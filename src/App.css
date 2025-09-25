@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* Updated for consistent padding */
 * {
   box-sizing: border-box;
@@ -261,6 +265,7 @@ html {
   background-color: #202c33;
   border-bottom: 1px solid #374045;
   margin: 0;
+  position: relative;
 }
 
 .search-input-wrapper {
@@ -2139,3 +2144,310 @@ h2 {
 }
 
 /* FORCE RELOAD - RESPONSIVE DESIGN APPLIED - SEDE LAYOUT FIXED */
+
+/* Estilos para funcionalidades de administrador */
+.admin-menu-toggle {
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  background-color: #00a884;
+  color: white;
+  font-size: 16px;
+  transition: background-color 0.2s;
+}
+
+.admin-menu-toggle:hover {
+  background-color: #008f6b;
+}
+
+.admin-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: #2a3942;
+  border: 1px solid #374045;
+  border-radius: 8px;
+  margin-top: 5px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  display: block;
+  visibility: visible;
+  opacity: 1;
+}
+
+.admin-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border-bottom: 1px solid #374045;
+}
+
+.admin-menu-header h4 {
+  margin: 0;
+  color: #e9edef;
+  font-size: 16px;
+}
+
+.close-admin-menu {
+  cursor: pointer;
+  color: #8696a0;
+  font-size: 18px;
+  padding: 5px;
+}
+
+.close-admin-menu:hover {
+  color: #e9edef;
+}
+
+.admin-options {
+  padding: 10px 0;
+}
+
+.admin-option {
+  display: flex;
+  align-items: center;
+  padding: 12px 15px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.admin-option:hover {
+  background-color: #374045;
+}
+
+.admin-icon {
+  font-size: 20px;
+  margin-right: 12px;
+  width: 24px;
+  text-align: center;
+}
+
+.admin-text {
+  color: #e9edef;
+  font-size: 14px;
+}
+
+/* Formularios de administrador */
+.create-conversation-form,
+.create-room-form,
+.join-room-form {
+  background-color: #2a3942;
+  border: 1px solid #374045;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 10px 0;
+}
+
+.create-conversation-form h4,
+.create-room-form h4,
+.join-room-form h4 {
+  margin: 0 0 15px 0;
+  color: #e9edef;
+  font-size: 16px;
+}
+
+.participant-selection {
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 15px 0;
+  border: 1px solid #374045;
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.participant-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #374045;
+}
+
+.participant-item:last-child {
+  border-bottom: none;
+}
+
+.participant-item input[type="checkbox"] {
+  margin-right: 10px;
+  transform: scale(1.2);
+}
+
+.participant-item label {
+  color: #e9edef;
+  cursor: pointer;
+  flex: 1;
+}
+
+.room-name-input,
+.link-input {
+  width: 100%;
+  padding: 12px;
+  background-color: #202c33;
+  border: 1px solid #374045;
+  border-radius: 6px;
+  color: #e9edef;
+  font-size: 14px;
+  margin: 10px 0;
+}
+
+.room-name-input:focus,
+.link-input:focus {
+  outline: none;
+  border-color: #00a884;
+}
+
+.room-type-options {
+  display: flex;
+  gap: 10px;
+  margin: 15px 0;
+}
+
+.room-type-button {
+  flex: 1;
+  padding: 12px;
+  background-color: #00a884;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.room-type-button:hover {
+  background-color: #008f6b;
+}
+
+.join-options {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.join-option h5 {
+  margin: 0 0 10px 0;
+  color: #e9edef;
+  font-size: 14px;
+}
+
+.join-button,
+.refresh-rooms-button {
+  padding: 10px 15px;
+  background-color: #00a884;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 10px;
+  transition: background-color 0.2s;
+}
+
+.join-button:hover,
+.refresh-rooms-button:hover {
+  background-color: #008f6b;
+}
+
+.public-rooms-list {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 10px;
+  border: 1px solid #374045;
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.public-room-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #374045;
+}
+
+.public-room-item:last-child {
+  border-bottom: none;
+}
+
+.room-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.room-name {
+  color: #e9edef;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.room-participants {
+  color: #8696a0;
+  font-size: 12px;
+}
+
+.join-room-button {
+  padding: 6px 12px;
+  background-color: #00a884;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.join-room-button:hover {
+  background-color: #008f6b;
+}
+
+.form-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.create-button,
+.cancel-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.create-button {
+  background-color: #00a884;
+  color: white;
+}
+
+.create-button:hover {
+  background-color: #008f6b;
+}
+
+.cancel-button {
+  background-color: #374045;
+  color: #e9edef;
+}
+
+.cancel-button:hover {
+  background-color: #4a5a65;
+}
+
+/* Responsive para admin */
+@media (max-width: 768px) {
+  .admin-menu {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 400px;
+  }
+
+  .room-type-options {
+    flex-direction: column;
+  }
+}

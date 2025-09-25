@@ -1,9 +1,54 @@
 import { WebSocketServer } from "ws";
+import crypto from "crypto";
 
 const wss = new WebSocketServer({ port: 8082 });
 
-const users = new Map(); // username -> ws
+const users = new Map(); // username -> { ws, userData }
 const groups = new Map(); // groupName -> Set of usernames
+const temporaryLinks = new Map(); // linkId -> { type, participants, expiresAt, createdBy, isActive }
+const publicRooms = new Map(); // roomId -> { name, participants, createdBy, isActive }
+
+// Función para verificar si un usuario es administrador
+function isAdmin(userData) {
+  // Verificar si el usuario tiene rol de administrador
+  if (userData && userData.role) {
+    return userData.role.toUpperCase() === "ADMIN";
+  }
+
+  // Fallback: verificar por nombre de usuario (para compatibilidad)
+  const ADMIN_USERS = ["admin", "administrador", "soporte"];
+  return ADMIN_USERS.includes(userData?.username?.toLowerCase());
+}
+
+// Función para generar enlaces temporales
+function generateTemporaryLink(type, participants, createdBy) {
+  const linkId = crypto.randomBytes(16).toString("hex");
+  const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutos
+
+  temporaryLinks.set(linkId, {
+    type,
+    participants,
+    expiresAt,
+    createdBy,
+    isActive: true,
+    createdAt: new Date(),
+  });
+
+  return linkId;
+}
+
+// Función para limpiar enlaces expirados
+function cleanExpiredLinks() {
+  const now = new Date();
+  for (const [linkId, link] of temporaryLinks.entries()) {
+    if (link.expiresAt < now) {
+      temporaryLinks.delete(linkId);
+    }
+  }
+}
+
+// Limpiar enlaces expirados cada 5 minutos
+setInterval(cleanExpiredLinks, 5 * 60 * 1000);
 
 // Función para enviar la lista de usuarios a todos los clientes
 function broadcastUserList() {
@@ -19,10 +64,10 @@ function broadcastUserList() {
 
   // Enviar a todos los clientes conectados
   let clientsNotified = 0;
-  for (const client of users.values()) {
-    if (client.readyState === 1) {
+  for (const userInfo of users.values()) {
+    if (userInfo.ws.readyState === 1) {
       // WebSocketServer.OPEN is 1
-      client.send(message);
+      userInfo.ws.send(message);
       clientsNotified++;
     }
   }
@@ -50,10 +95,10 @@ function broadcastGroupList() {
 
   // Enviar a todos los clientes conectados
   let clientsNotified = 0;
-  for (const client of users.values()) {
-    if (client.readyState === 1) {
+  for (const userInfo of users.values()) {
+    if (userInfo.ws.readyState === 1) {
       // WebSocketServer.OPEN is 1
-      client.send(message);
+      userInfo.ws.send(message);
       clientsNotified++;
     }
   }
@@ -89,8 +134,10 @@ wss.on("connection", function connection(ws) {
       if (data.type === "register") {
         // Registrar usuario
         username = data.username;
-        users.set(username, ws);
-        console.log(`Usuario registrado: ${username}`);
+        const userData = data.userData || { username, role: "USER" }; // Fallback si no viene userData
+
+        users.set(username, { ws, userData });
+        console.log(`Usuario registrado: ${username}`, userData);
         console.log(`Total de usuarios conectados: ${users.size}`);
         ws.send(
           JSON.stringify({
@@ -98,6 +145,18 @@ wss.on("connection", function connection(ws) {
             message: `Registrado como ${username}`,
           })
         );
+
+        // Enviar información de administrador si aplica
+        if (isAdmin(userData)) {
+          ws.send(
+            JSON.stringify({
+              type: "adminStatus",
+              isAdmin: true,
+              message: "Tienes permisos de administrador",
+            })
+          );
+        }
+
         // Enviar lista actualizada de usuarios a todos
         broadcastUserList();
         // Enviar lista de grupos si hay alguno
@@ -245,6 +304,220 @@ wss.on("connection", function connection(ws) {
             message: `Has salido del grupo ${groupName}`,
           })
         );
+      } else if (data.type === "createTemporaryLink") {
+        // Crear enlace temporal (solo administradores)
+        const userInfo = users.get(username);
+        if (!userInfo || !isAdmin(userInfo.userData)) {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message:
+                "Solo los administradores pueden crear enlaces temporales",
+            })
+          );
+          return;
+        }
+
+        const linkType = data.linkType; // 'conversation' o 'room'
+        const participants = data.participants || [];
+        const roomName = data.roomName;
+
+        if (linkType === "conversation" && participants.length < 2) {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message:
+                "Se necesitan al menos 2 participantes para crear una conversación",
+            })
+          );
+          return;
+        }
+
+        if (linkType === "room" && !roomName) {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Se necesita un nombre para la sala",
+            })
+          );
+          return;
+        }
+
+        const linkId = generateTemporaryLink(linkType, participants, username);
+        const linkUrl = `ws://localhost:8082/join/${linkId}`;
+
+        ws.send(
+          JSON.stringify({
+            type: "temporaryLinkCreated",
+            linkId,
+            linkUrl,
+            expiresAt: temporaryLinks.get(linkId).expiresAt,
+            linkType,
+            participants:
+              linkType === "conversation" ? participants : undefined,
+            roomName: linkType === "room" ? roomName : undefined,
+          })
+        );
+      } else if (data.type === "joinTemporaryLink") {
+        // Unirse a un enlace temporal
+        const linkId = data.linkId;
+        const link = temporaryLinks.get(linkId);
+
+        if (!link) {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Enlace no válido o expirado",
+            })
+          );
+          return;
+        }
+
+        if (!link.isActive) {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Este enlace ya no está activo",
+            })
+          );
+          return;
+        }
+
+        if (link.expiresAt < new Date()) {
+          temporaryLinks.delete(linkId);
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Este enlace ha expirado",
+            })
+          );
+          return;
+        }
+
+        if (link.type === "conversation") {
+          // Crear conversación temporal
+          const tempGroupName = `temp_${linkId}`;
+          groups.set(tempGroupName, new Set(link.participants));
+
+          ws.send(
+            JSON.stringify({
+              type: "joinedTemporaryConversation",
+              groupName: tempGroupName,
+              participants: link.participants,
+              expiresAt: link.expiresAt,
+            })
+          );
+
+          // Notificar a todos sobre el nuevo grupo temporal
+          broadcastGroupList();
+        } else if (link.type === "room") {
+          // Unirse a sala temporal
+          const roomId = `room_${linkId}`;
+          if (!publicRooms.has(roomId)) {
+            publicRooms.set(roomId, {
+              name: link.roomName || `Sala ${linkId.substring(0, 8)}`,
+              participants: new Set(),
+              createdBy: link.createdBy,
+              isActive: true,
+            });
+          }
+
+          const room = publicRooms.get(roomId);
+          room.participants.add(username);
+
+          ws.send(
+            JSON.stringify({
+              type: "joinedTemporaryRoom",
+              roomId,
+              roomName: room.name,
+              participants: Array.from(room.participants),
+              expiresAt: link.expiresAt,
+            })
+          );
+        }
+      } else if (data.type === "createPublicRoom") {
+        // Crear sala pública (solo administradores)
+        const userInfo = users.get(username);
+        if (!userInfo || !isAdmin(userInfo.userData)) {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Solo los administradores pueden crear salas públicas",
+            })
+          );
+          return;
+        }
+
+        const roomName = data.roomName;
+        if (!roomName) {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Se necesita un nombre para la sala",
+            })
+          );
+          return;
+        }
+
+        const roomId = crypto.randomBytes(8).toString("hex");
+        publicRooms.set(roomId, {
+          name: roomName,
+          participants: new Set([username]),
+          createdBy: username,
+          isActive: true,
+          createdAt: new Date(),
+        });
+
+        ws.send(
+          JSON.stringify({
+            type: "publicRoomCreated",
+            roomId,
+            roomName,
+            createdBy: username,
+          })
+        );
+      } else if (data.type === "joinPublicRoom") {
+        // Unirse a sala pública
+        const roomId = data.roomId;
+        const room = publicRooms.get(roomId);
+
+        if (!room || !room.isActive) {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Sala no encontrada o no disponible",
+            })
+          );
+          return;
+        }
+
+        room.participants.add(username);
+
+        ws.send(
+          JSON.stringify({
+            type: "joinedPublicRoom",
+            roomId,
+            roomName: room.name,
+            participants: Array.from(room.participants),
+          })
+        );
+      } else if (data.type === "getPublicRooms") {
+        // Obtener lista de salas públicas
+        const roomsList = Array.from(publicRooms.entries())
+          .filter(([, room]) => room.isActive)
+          .map(([roomId, room]) => ({
+            roomId,
+            name: room.name,
+            participantCount: room.participants.size,
+            createdBy: room.createdBy,
+          }));
+
+        ws.send(
+          JSON.stringify({
+            type: "publicRoomsList",
+            rooms: roomsList,
+          })
+        );
       } else if (data.type === "message") {
         // Enviar mensaje a usuario destino
         const to = data.to;
@@ -283,8 +556,8 @@ wss.on("connection", function connection(ws) {
           for (const member of group) {
             if (member !== username) {
               // No enviar el mensaje al remitente
-              const target = users.get(member);
-              if (target && target.readyState === 1) {
+              const targetInfo = users.get(member);
+              if (targetInfo && targetInfo.ws.readyState === 1) {
                 // Obtener la hora actual
                 const now = new Date();
                 const timeString = now.toLocaleTimeString([], {
@@ -313,7 +586,7 @@ wss.on("connection", function connection(ws) {
                   messageObj.fileName = data.fileName;
                 }
 
-                target.send(JSON.stringify(messageObj));
+                targetInfo.ws.send(JSON.stringify(messageObj));
                 messagesSent++;
               }
             }
@@ -324,8 +597,8 @@ wss.on("connection", function connection(ws) {
           );
         } else {
           // Mensaje a un usuario individual
-          const target = users.get(to);
-          if (target && target.readyState === 1) {
+          const targetInfo = users.get(to);
+          if (targetInfo && targetInfo.ws.readyState === 1) {
             // WebSocketServer.OPEN is 1
             // Obtener la hora actual
             const now = new Date();
@@ -360,7 +633,7 @@ wss.on("connection", function connection(ws) {
               }"`
             );
 
-            target.send(JSON.stringify(messageObj));
+            targetInfo.ws.send(JSON.stringify(messageObj));
           } else {
             ws.send(
               JSON.stringify({

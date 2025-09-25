@@ -30,6 +30,18 @@ function App() {
   // Estados para la eliminación de chat
   const [isDeletingChat, setIsDeletingChat] = useState(false);
   const [deleteProgress, setDeleteProgress] = useState(0);
+  
+  // Estados para funcionalidades de administrador
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showAdminMenu, setShowAdminMenu] = useState(false);
+  const [showCreateConversation, setShowCreateConversation] = useState(false);
+  const [showCreateRoom, setShowCreateRoom] = useState(false);
+  const [showJoinRoom, setShowJoinRoom] = useState(false);
+  const [, setTemporaryLinks] = useState([]);
+  const [publicRooms, setPublicRooms] = useState([]);
+  const [newRoomName, setNewRoomName] = useState('');
+  const [selectedParticipants, setSelectedParticipants] = useState([]);
+  const [linkToJoin, setLinkToJoin] = useState('');
 
   // Estados para la grabación de audio
   const [isRecording, setIsRecording] = useState(false);
@@ -73,6 +85,12 @@ function App() {
     setUsername(displayName);
     console.log('Username establecido como:', displayName);
     setIsAuthenticated(true);
+    
+    // Verificar si es administrador
+    const isUserAdmin = userData.role && userData.role.toUpperCase() === 'ADMIN';
+    console.log('Rol del usuario en login:', userData.role, 'Es admin:', isUserAdmin);
+    setIsAdmin(isUserAdmin);
+    
     // Limpiar mensajes de registro anteriores
     clearRegistrationMessages();
   };
@@ -83,6 +101,7 @@ function App() {
     setUser(null);
     setUsername('');
     setIsAuthenticated(false);
+    setIsAdmin(false);
     setMessages([]);
     setUserList([]);
     setGroupList([]);
@@ -90,6 +109,97 @@ function App() {
     setInput('');
     if (ws.current) {
       ws.current.close();
+    }
+  };
+
+  // Funciones para administrador
+  const createTemporaryConversation = () => {
+    if (selectedParticipants.length < 2) {
+      showErrorAlert('Error', 'Se necesitan al menos 2 participantes para crear una conversación');
+      return;
+    }
+
+    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+      ws.current.send(JSON.stringify({
+        type: 'createTemporaryLink',
+        linkType: 'conversation',
+        participants: selectedParticipants
+      }));
+      
+      setShowCreateConversation(false);
+      setSelectedParticipants([]);
+    }
+  };
+
+  const createTemporaryRoom = () => {
+    if (!newRoomName.trim()) {
+      showErrorAlert('Error', 'Se necesita un nombre para la sala');
+      return;
+    }
+
+    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+      ws.current.send(JSON.stringify({
+        type: 'createTemporaryLink',
+        linkType: 'room',
+        roomName: newRoomName
+      }));
+      
+      setShowCreateRoom(false);
+      setNewRoomName('');
+    }
+  };
+
+  const createPublicRoom = () => {
+    if (!newRoomName.trim()) {
+      showErrorAlert('Error', 'Se necesita un nombre para la sala');
+      return;
+    }
+
+    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+      ws.current.send(JSON.stringify({
+        type: 'createPublicRoom',
+        roomName: newRoomName
+      }));
+      
+      setShowCreateRoom(false);
+      setNewRoomName('');
+    }
+  };
+
+  const joinTemporaryLink = () => {
+    if (!linkToJoin.trim()) {
+      showErrorAlert('Error', 'Ingresa un enlace válido');
+      return;
+    }
+
+    // Extraer el ID del enlace
+    const linkId = linkToJoin.split('/').pop();
+    
+    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+      ws.current.send(JSON.stringify({
+        type: 'joinTemporaryLink',
+        linkId: linkId
+      }));
+      
+      setShowJoinRoom(false);
+      setLinkToJoin('');
+    }
+  };
+
+  const joinPublicRoom = (roomId) => {
+    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+      ws.current.send(JSON.stringify({
+        type: 'joinPublicRoom',
+        roomId: roomId
+      }));
+    }
+  };
+
+  const getPublicRooms = () => {
+    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+      ws.current.send(JSON.stringify({
+        type: 'getPublicRooms'
+      }));
     }
   };
 
@@ -126,6 +236,12 @@ function App() {
         setUsername(displayName);
         console.log('Username establecido como:', displayName);
         setIsAuthenticated(true);
+        
+        // Verificar si es administrador
+        const isUserAdmin = currentUser.role && currentUser.role.toUpperCase() === 'ADMIN';
+        console.log('Rol del usuario:', currentUser.role, 'Es admin:', isUserAdmin);
+        setIsAdmin(isUserAdmin);
+        
         // Limpiar mensajes de registro anteriores
         clearRegistrationMessages();
       }
@@ -216,7 +332,18 @@ function App() {
       if (isAuthenticated && user && username) {
         const displayName = user.nombre && user.apellido ? `${user.nombre} ${user.apellido}` : user.username || user.email;
         console.log('Registrando usuario autenticado:', displayName);
-        socket.send(JSON.stringify({ type: 'register', username: displayName }));
+        socket.send(JSON.stringify({ 
+          type: 'register', 
+          username: displayName,
+          userData: {
+            username: displayName,
+            role: user.role || 'USER',
+            nombre: user.nombre,
+            apellido: user.apellido,
+            email: user.email,
+            sede: user.sede
+          }
+        }));
       }
       
       // La lista de usuarios se envía automáticamente al registrarse
@@ -372,6 +499,46 @@ function App() {
           } else {
             console.error('Error: data.groups no es un array:', data.groups);
           }
+        } else if (data.type === 'adminStatus') {
+          console.log('Estado de administrador recibido:', data.isAdmin);
+          setIsAdmin(data.isAdmin);
+          if (data.isAdmin) {
+            showSuccessAlert('Administrador', data.message);
+          }
+        } else if (data.type === 'temporaryLinkCreated') {
+          console.log('Enlace temporal creado:', data);
+          const newLink = {
+            linkId: data.linkId,
+            linkUrl: data.linkUrl,
+            expiresAt: data.expiresAt,
+            linkType: data.linkType,
+            participants: data.participants,
+            roomName: data.roomName
+          };
+          setTemporaryLinks(prev => [...prev, newLink]);
+          
+          const linkTypeText = data.linkType === 'conversation' ? 'conversación' : 'sala';
+          showSuccessAlert(
+            'Enlace creado', 
+            `Enlace de ${linkTypeText} creado exitosamente.\nExpira en 30 minutos.\n\nEnlace: ${data.linkUrl}`
+          );
+        } else if (data.type === 'joinedTemporaryConversation') {
+          console.log('Unido a conversación temporal:', data);
+          setTo(data.groupName);
+          setIsGroup(true);
+          showSuccessAlert('Conversación', `Te has unido a la conversación temporal. Expira: ${new Date(data.expiresAt).toLocaleString()}`);
+        } else if (data.type === 'joinedTemporaryRoom') {
+          console.log('Unido a sala temporal:', data);
+          showSuccessAlert('Sala temporal', `Te has unido a la sala "${data.roomName}". Expira: ${new Date(data.expiresAt).toLocaleString()}`);
+        } else if (data.type === 'publicRoomCreated') {
+          console.log('Sala pública creada:', data);
+          showSuccessAlert('Sala pública', `Sala pública "${data.roomName}" creada exitosamente`);
+        } else if (data.type === 'joinedPublicRoom') {
+          console.log('Unido a sala pública:', data);
+          showSuccessAlert('Sala pública', `Te has unido a la sala "${data.roomName}"`);
+        } else if (data.type === 'publicRoomsList') {
+          console.log('Lista de salas públicas recibida:', data.rooms);
+          setPublicRooms(data.rooms);
         }
       } catch (error) {
         console.error('Error al procesar mensaje:', error);
@@ -1070,28 +1237,41 @@ function App() {
                 className="search-input"
               />
               {searchTerm ? (
-                <span
-                  className="clear-search"
+                <button
                   onClick={() => setSearchTerm('')}
+                  className="btn-icon"
+                  title="Limpiar búsqueda"
                 >
                   ✕
-                </span>
+                </button>
               ) : (
-                <div className="action-buttons">
-                  <span
-                    className="refresh-users"
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
                     onClick={requestUserList}
                     title="Actualizar lista de usuarios"
+                    className="btn-icon"
                   >
                     🔄
-                  </span>
-                  <span
-                    className="create-group"
+                  </button>
+                  <button
                     onClick={() => setShowCreateGroup(true)}
                     title="Crear nuevo grupo"
+                    className="btn-icon"
                   >
                     👥+
-                  </span>
+                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => {
+                        console.log('Abriendo menú de administrador');
+                        setShowAdminMenu(!showAdminMenu);
+                      }}
+                      title="Menú de administrador"
+                      className="btn-icon btn-primary"
+                    >
+                      ⚙️
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -1100,24 +1280,332 @@ function App() {
             </div>
           </div>
 
-          {/* Formulario para crear grupo (condicional) */}
-          {showCreateGroup && (
-            <div className="create-group-form">
-              <h4>Crear nuevo grupo</h4>
-              <input
-                type="text"
-                placeholder="Nombre del grupo"
-                value={newGroupName}
-                onChange={(e) => setNewGroupName(e.target.value)}
-                className="group-name-input"
-              />
-              <div className="member-selection">
-                <h5>Seleccionar miembros:</h5>
-                <div className="member-list">
+          {/* Menú de administrador */}
+          {isAdmin && showAdminMenu && (
+            <div 
+              className="modal-overlay"
+              onClick={() => setShowAdminMenu(false)}
+            >
+              <div 
+                className="modal-content"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="modal-header">
+                  <h3 className="modal-title">
+                    <span>🔧</span>
+                    Panel de Administrador
+                  </h3>
+                  <button 
+                    onClick={() => setShowAdminMenu(false)}
+                    className="modal-close"
+                  >
+                    ✕
+                  </button>
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <button 
+                    onClick={() => {
+                      setShowCreateConversation(true);
+                      setShowAdminMenu(false);
+                    }}
+                    className="btn btn-secondary"
+                    style={{ justifyContent: 'flex-start', padding: '12px 16px' }}
+                  >
+                    <span style={{ fontSize: '20px' }}>💬</span>
+                    Crear conversación
+                  </button>
+                  
+                  <button 
+                    onClick={() => {
+                      setShowCreateRoom(true);
+                      setShowAdminMenu(false);
+                    }}
+                    className="btn btn-secondary"
+                    style={{ justifyContent: 'flex-start', padding: '12px 16px' }}
+                  >
+                    <span style={{ fontSize: '20px' }}>🏠</span>
+                    Nueva sala
+                  </button>
+                  
+                  <button 
+                    onClick={() => {
+                      setShowJoinRoom(true);
+                      setShowAdminMenu(false);
+                    }}
+                    className="btn btn-secondary"
+                    style={{ justifyContent: 'flex-start', padding: '12px 16px' }}
+                  >
+                    <span style={{ fontSize: '20px' }}>🔗</span>
+                    Unirse a sala pública
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Formulario para crear conversación temporal */}
+          {showCreateConversation && (
+            <div 
+              className="modal-overlay"
+              onClick={() => setShowCreateConversation(false)}
+            >
+              <div 
+                className="modal-content"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="modal-header">
+                  <h3 className="modal-title">
+                    <span>💬</span>
+                    Crear conversación temporal
+                  </h3>
+                  <button 
+                    onClick={() => setShowCreateConversation(false)}
+                    className="modal-close"
+                  >
+                    ✕
+                  </button>
+                </div>
+                
+                <p style={{ color: '#8696a0', marginBottom: '16px' }}>Selecciona los participantes para la conversación:</p>
+                
+                <div className="participant-list">
                   {userList
                     .filter(user => user !== username)
                     .map((user, idx) => (
-                      <div key={idx} className="member-item">
+                      <div key={idx} className="checkbox-group">
+                        <input
+                          type="checkbox"
+                          id={`participant-${idx}`}
+                          checked={selectedParticipants.includes(user)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedParticipants([...selectedParticipants, user]);
+                            } else {
+                              setSelectedParticipants(selectedParticipants.filter(p => p !== user));
+                            }
+                          }}
+                        />
+                        <label htmlFor={`participant-${idx}`} style={{ color: '#e9edef', cursor: 'pointer', flex: 1 }}>
+                          {user}
+                        </label>
+                      </div>
+                    ))}
+                </div>
+                
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '20px' }}>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowCreateConversation(false)} 
+                    className="btn btn-secondary"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={createTemporaryConversation} 
+                    className="btn btn-primary"
+                  >
+                    Crear enlace
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Formulario para crear sala temporal/pública */}
+          {showCreateRoom && (
+            <div 
+              className="modal-overlay"
+              onClick={() => setShowCreateRoom(false)}
+            >
+              <div 
+                className="modal-content"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="modal-header">
+                  <h3 className="modal-title">
+                    <span>🏠</span>
+                    Crear nueva sala
+                  </h3>
+                  <button 
+                    onClick={() => setShowCreateRoom(false)}
+                    className="modal-close"
+                  >
+                    ✕
+                  </button>
+                </div>
+                
+                <div className="form-group">
+                  <input
+                    type="text"
+                    placeholder="Nombre de la sala"
+                    value={newRoomName}
+                    onChange={(e) => setNewRoomName(e.target.value)}
+                    className="form-input"
+                  />
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+                  <button 
+                    type="button" 
+                    onClick={createTemporaryRoom}
+                    className="btn btn-secondary"
+                    style={{ justifyContent: 'flex-start', padding: '12px 16px' }}
+                  >
+                    <span style={{ fontSize: '20px' }}>🕒</span>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontWeight: '500' }}>Sala temporal</div>
+                      <div style={{ fontSize: '12px', color: '#8696a0' }}>Expira en 30 minutos</div>
+                    </div>
+                  </button>
+                  
+                  <button 
+                    type="button" 
+                    onClick={createPublicRoom}
+                    className="btn btn-secondary"
+                    style={{ justifyContent: 'flex-start', padding: '12px 16px' }}
+                  >
+                    <span style={{ fontSize: '20px' }}>🌐</span>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontWeight: '500' }}>Sala pública</div>
+                      <div style={{ fontSize: '12px', color: '#8696a0' }}>Permanente hasta desactivar</div>
+                    </div>
+                  </button>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowCreateRoom(false)} 
+                    className="btn btn-secondary"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Formulario para unirse a sala pública */}
+          {showJoinRoom && (
+            <div 
+              className="modal-overlay"
+              onClick={() => setShowJoinRoom(false)}
+            >
+              <div 
+                className="modal-content"
+                onClick={(e) => e.stopPropagation()}
+                style={{ maxHeight: '80vh' }}
+              >
+                <div className="modal-header">
+                  <h3 className="modal-title">
+                    <span>🔗</span>
+                    Unirse a sala pública
+                  </h3>
+                  <button 
+                    onClick={() => setShowJoinRoom(false)}
+                    className="modal-close"
+                  >
+                    ✕
+                  </button>
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  {/* Por enlace temporal */}
+                  <div>
+                    <h5 style={{ color: '#e9edef', fontWeight: '500', marginBottom: '12px' }}>Por enlace temporal:</h5>
+                    <div className="form-group">
+                      <input
+                        type="text"
+                        placeholder="Pega el enlace aquí"
+                        value={linkToJoin}
+                        onChange={(e) => setLinkToJoin(e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={joinTemporaryLink} 
+                      className="btn btn-primary"
+                      style={{ width: '100%' }}
+                    >
+                      Unirse por enlace
+                    </button>
+                  </div>
+                  
+                  {/* Salas públicas disponibles */}
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                      <h5 style={{ color: '#e9edef', fontWeight: '500', margin: 0 }}>Salas públicas disponibles:</h5>
+                      <button 
+                        type="button" 
+                        onClick={getPublicRooms} 
+                        className="btn-icon"
+                        style={{ fontSize: '12px', padding: '6px 12px' }}
+                      >
+                        🔄 Actualizar
+                      </button>
+                    </div>
+                    
+                    <div className="participant-list">
+                      {publicRooms.length === 0 ? (
+                        <p style={{ color: '#8696a0', textAlign: 'center', padding: '16px' }}>No hay salas públicas disponibles</p>
+                      ) : (
+                        publicRooms.map((room, idx) => (
+                          <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #374045' }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ color: '#e9edef', fontWeight: '500', fontSize: '14px' }}>{room.name}</div>
+                              <div style={{ color: '#8696a0', fontSize: '12px' }}>{room.participantCount} participantes</div>
+                            </div>
+                            <button 
+                              type="button" 
+                              onClick={() => joinPublicRoom(room.roomId)}
+                              className="btn btn-primary"
+                              style={{ padding: '6px 12px', fontSize: '12px' }}
+                            >
+                              Unirse
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowJoinRoom(false)} 
+                    className="btn btn-secondary"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Formulario para crear grupo (condicional) */}
+          {showCreateGroup && (
+            <div style={{ padding: '16px', backgroundColor: '#202c33', borderRadius: '8px', margin: '16px' }}>
+              <h4 style={{ color: '#e9edef', marginBottom: '16px' }}>Crear nuevo grupo</h4>
+              <div className="form-group">
+                <input
+                  type="text"
+                  placeholder="Nombre del grupo"
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <h5 style={{ color: '#aebac1', marginBottom: '8px' }}>Seleccionar miembros:</h5>
+                <div className="participant-list">
+                  {userList
+                    .filter(user => user !== username)
+                    .map((user, idx) => (
+                      <div key={idx} className="checkbox-group">
                         <input
                           type="checkbox"
                           id={`member-${idx}`}
@@ -1130,17 +1618,27 @@ function App() {
                             }
                           }}
                         />
-                        <label htmlFor={`member-${idx}`}>{user}</label>
+                        <label htmlFor={`member-${idx}`} style={{ color: '#e9edef', cursor: 'pointer', flex: 1 }}>
+                          {user}
+                        </label>
                       </div>
                     ))}
                 </div>
               </div>
-              <div className="group-form-buttons">
-                <button type="button" onClick={createGroup} className="create-button">
-                  Crear grupo
-                </button>
-                <button type="button" onClick={() => setShowCreateGroup(false)} className="cancel-button">
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setShowCreateGroup(false)} 
+                  className="btn btn-secondary"
+                >
                   Cancelar
+                </button>
+                <button 
+                  type="button" 
+                  onClick={createGroup} 
+                  className="btn btn-primary"
+                >
+                  Crear grupo
                 </button>
               </div>
             </div>
@@ -1191,27 +1689,29 @@ function App() {
                     )}
                     <div className="group-actions">
                       {isMember ? (
-                        <span
-                          className="leave-group"
+                        <button
                           onClick={(e) => {
                             e.stopPropagation();
                             leaveGroup(group.name);
                           }}
                           title="Salir del grupo"
+                          className="btn-icon btn-danger"
+                          style={{ width: '28px', height: '28px', fontSize: '12px' }}
                         >
                           🚪
-                        </span>
+                        </button>
                       ) : (
-                        <span
-                          className="join-group"
+                        <button
                           onClick={(e) => {
                             e.stopPropagation();
                             joinGroup(group.name);
                           }}
                           title="Unirse al grupo"
+                          className="btn-icon btn-primary"
+                          style={{ width: '28px', height: '28px', fontSize: '12px' }}
                         >
                           ➕
-                        </span>
+                        </button>
                       )}
                     </div>
                   </div>
@@ -1293,9 +1793,11 @@ function App() {
         <div className="users-list-footer">
           <button 
             onClick={handleLogout} 
-            className="logout-button"
+            className="btn btn-danger"
+            style={{ width: '100%', justifyContent: 'center' }}
             title="Cerrar sesión"
           >
+            <span>🚪</span>
             Cerrar sesión
           </button>
         </div>
@@ -1791,8 +2293,12 @@ function App() {
                 />
 
                 {/* Botón para seleccionar archivos */}
-                <label className="file-upload-button" title="Adjuntar archivos (máx. 5)">
-                  <span>📎</span>
+                <label 
+                  className="btn-icon" 
+                  title="Adjuntar archivos (máx. 5)"
+                  style={{ cursor: 'pointer' }}
+                >
+                  📎
                   <input
                     type="file"
                     accept="*/*"
@@ -1804,37 +2310,40 @@ function App() {
                 </label>
 
                 {isRecording ? (
-                  <div className="recording-controls">
-                    <div className="recording-indicator">
-                      <span className="recording-dot"></span>
-                      <span className="recording-time">{recordingTime}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', backgroundColor: '#dc3545', borderRadius: '8px' }}>
+                      <div style={{ width: '8px', height: '8px', backgroundColor: 'white', borderRadius: '50%', animation: 'pulse 1.5s infinite' }}></div>
+                      <span style={{ color: 'white', fontSize: '12px', fontWeight: '500' }}>{recordingTime}</span>
                     </div>
                     <button
-                      className="recording-button stop"
                       onClick={stopRecording}
                       title="Enviar audio"
+                      className="btn-icon btn-primary"
                     >
-                      <span>✓</span>
+                      ✓
                     </button>
                     <button
-                      className="recording-button cancel"
                       onClick={cancelRecording}
                       title="Cancelar grabación"
+                      className="btn-icon btn-danger"
                     >
-                      <span>✕</span>
+                      ✕
                     </button>
                   </div>
                 ) : (
                   <>
                     <button
-                      className="mic-button"
                       onClick={startRecording}
                       title="Grabar audio"
+                      className="btn-icon"
                     >
-                      <span>🎤</span>
+                      🎤
                     </button>
-                    <button className="send-button" onClick={sendMessage}>
-                      <span>Enviar</span>
+                    <button 
+                      onClick={sendMessage}
+                      className="btn btn-primary"
+                    >
+                      Enviar
                     </button>
                   </>
                 )}
