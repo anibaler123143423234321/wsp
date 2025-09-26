@@ -469,7 +469,8 @@ function App() {
       const messageObj = {
         to,
         isGroup,
-        time: timeString
+        time: timeString,
+        from: username
       };
 
       if (input) {
@@ -938,11 +939,13 @@ function App() {
                     return msg.isGroup && msg.receiver === to;
                   } else {
                     if (to === username) {
+                      // Para "Notas personales" - mostrar mensajes enviados por ti
                       return msg.isSelf === true || (msg.sender === 'Tú' && msg.receiver === username && msg.isSent === true);
                     }
                     
+                    // Para chat con otro usuario
                     const isSentByMe = msg.sender === 'Tú' && msg.receiver === to;
-                    const isReceivedFromThem = msg.sender === to && (msg.receiver === username || msg.receiver === to);
+                    const isReceivedFromThem = msg.sender === to && msg.receiver === username;
                     return !msg.isGroup && (isSentByMe || isReceivedFromThem);
                   }
                 })
