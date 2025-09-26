@@ -1,9 +1,13 @@
-// Servicio para conectar con la API de Angular
-const API_BASE_URL = "https://apisozarusac.com/BackendJava/";
+// Servicio para conectar con la API (mismo host para CRM y Chat por ahora)
+const API_BASE_URL =
+  import.meta.env.VITE_CRM_BASE_URL || "https://apisozarusac.com/BackendJava/";
+const API_BASECHAT_URL =
+  import.meta.env.VITE_CHAT_BASE_URL || "http://localhost:8080/";
 
 class ApiService {
   constructor() {
     this.baseUrl = API_BASE_URL;
+    this.baseChatUrl = API_BASECHAT_URL;
   }
 
   // Método para hacer login usando la API de Angular
@@ -82,6 +86,271 @@ class ApiService {
     const token = localStorage.getItem("token");
     const user = this.getCurrentUser();
     return !!(token && user);
+  }
+
+  // Helper: fetch con Authorization y reintento usando refresh-token (estilo interceptor)
+  async fetchWithAuth(endpoint, options = {}) {
+    const token = localStorage.getItem("token");
+    const headers = {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+      Authorization:
+        options?.headers?.Authorization ||
+        (token ? `Bearer ${token}` : undefined),
+    };
+
+    const doRequest = async (authHeaders) => {
+      return await fetch(endpoint, {
+        ...(options || {}),
+        headers: authHeaders,
+      });
+    };
+
+    let response = await doRequest(headers);
+
+    // Temporalmente deshabilitado el refresh token para el backend de chat
+    // if (response.status === 401) {
+    //   // Intentar refrescar token como en Angular (GET refresh-token)
+    //   try {
+    //     const currentToken = localStorage.getItem("token");
+    //     const refreshResp = await fetch(
+    //       `${this.baseUrl}api/authentication/refresh-token`,
+    //       {
+    //         method: "GET",
+    //         headers: {
+    //           Authorization: currentToken
+    //             ? `Bearer ${currentToken}`
+    //             : undefined,
+    //         },
+    //       }
+    //     );
+
+    //     if (refreshResp.ok) {
+    //       const refreshData = await refreshResp.json();
+    //       if (
+    //         refreshData?.rpta === 1 &&
+    //         (refreshData?.data?.token || refreshData?.token)
+    //       ) {
+    //         const newToken = refreshData?.data?.token || refreshData?.token;
+    //         // actualizar token y user si viene
+    //         localStorage.setItem("token", newToken);
+    //         if (refreshData?.data) {
+    //           const existingUserStr = localStorage.getItem("user");
+    //           const existingUser = existingUserStr
+    //             ? JSON.parse(existingUserStr)
+    //             : {};
+    //           const mergedUser = { ...existingUser, ...refreshData.data };
+    //           localStorage.setItem("user", JSON.stringify(mergedUser));
+    //         }
+    //         // reintentar la petición original con el nuevo token
+    //         const retryHeaders = {
+    //           ...headers,
+    //           Authorization: `Bearer ${newToken}`,
+    //         };
+    //         response = await doRequest(retryHeaders);
+    //       }
+    //     }
+    //   } catch {
+    //     // Si falla el refresh, propagar 401
+    //   }
+    // }
+
+    return response;
+  }
+
+  // Método para crear conversación temporal
+  async createTemporaryConversation(data) {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/temporary-conversations`,
+        {
+          method: "POST",
+          body: JSON.stringify(data),
+        }
+      );
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al crear conversación temporal:", error);
+      throw error;
+    }
+  }
+
+  // Método para crear sala temporal
+  async createTemporaryRoom(data) {
+    try {
+      console.log(
+        "Enviando petición a:",
+        `${this.baseChatUrl}api/temporary-rooms`
+      );
+      console.log("Datos enviados:", data);
+
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/temporary-rooms`,
+        {
+          method: "POST",
+          body: JSON.stringify(data),
+        }
+      );
+
+      console.log("Status de respuesta:", response.status);
+      console.log("Headers de respuesta:", response.headers);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error del servidor:", errorText);
+        throw new Error(
+          `Error del servidor: ${response.status} - ${errorText}`
+        );
+      }
+
+      const result = await response.json();
+      console.log("Resultado parseado:", result);
+      return result;
+    } catch (error) {
+      console.error("Error al crear sala temporal:", error);
+      throw error;
+    }
+  }
+
+  // Método para unirse a sala
+  async joinRoom(data) {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/temporary-rooms/join`,
+        {
+          method: "POST",
+          body: JSON.stringify(data),
+        }
+      );
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al unirse a sala:", error);
+      throw error;
+    }
+  }
+
+  // Método para obtener información de sala por código
+  async getRoomByCode(roomCode) {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/temporary-rooms/code/${roomCode}`,
+        {
+          method: "GET",
+        }
+      );
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al obtener información de sala:", error);
+      throw error;
+    }
+  }
+
+  async getAdminRooms() {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/temporary-rooms/admin/rooms`,
+        {
+          method: "GET",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al obtener salas del admin:", error);
+      throw error;
+    }
+  }
+
+  async deleteRoom(roomId) {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/temporary-rooms/${roomId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Error del servidor: ${response.status} - ${errorText}`
+        );
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error al eliminar sala:", error);
+      throw error;
+    }
+  }
+
+  async deactivateRoom(roomId) {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/temporary-rooms/${roomId}/deactivate`,
+        {
+          method: "PATCH",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al desactivar sala:", error);
+      throw error;
+    }
+  }
+
+  // Método para obtener configuración del sistema
+  async getSystemConfig() {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/system-config`,
+        {
+          method: "GET",
+        }
+      );
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al obtener configuración:", error);
+      throw error;
+    }
+  }
+
+  // Método para actualizar configuración del sistema
+  async updateSystemConfig(key, data) {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/system-config/${key}`,
+        {
+          method: "POST",
+          body: JSON.stringify(data),
+        }
+      );
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al actualizar configuración:", error);
+      throw error;
+    }
   }
 }
 
