@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { showConfirmAlert, showSuccessAlert, showProgressAlert, updateProgressAlert, closeAlert } from './sweetalert2';
+import { showSuccessAlert } from './sweetalert2';
 import Swal from 'sweetalert2';
 import { AudioRecorder } from './audioRecorder';
 import Login from './components/Login';
 import apiService from './apiService';
+import { io } from 'socket.io-client';
 import './App.css';
 
 function App() {
@@ -14,42 +15,28 @@ function App() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
   const [userList, setUserList] = useState([]);
-  // const [userProfiles, setUserProfiles] = useState(new Map()); // Para almacenar información completa de usuarios
   const [groupList, setGroupList] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isGroup, setIsGroup] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
-  const [newGroupName, setNewGroupName] = useState('');
-  const [selectedMembers, setSelectedMembers] = useState([]);
-  // Estado para rastrear mensajes no leídos: { chatId: count }
   const [unreadMessages, setUnreadMessages] = useState({});
-  // Estado para manejar archivos multimedia
   const [mediaFiles, setMediaFiles] = useState([]);
   const [mediaPreviews, setMediaPreviews] = useState([]);
   const fileInputRef = useRef(null);
-  // Estados para la eliminación de chat
-  const [isDeletingChat, setIsDeletingChat] = useState(false);
-  const [deleteProgress, setDeleteProgress] = useState(0);
   
   // Estados para funcionalidades de administrador
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminMenu, setShowAdminMenu] = useState(false);
-  const [showCreateConversation, setShowCreateConversation] = useState(false);
-  const [showCreateRoom, setShowCreateRoom] = useState(false);
-  const [showJoinRoom, setShowJoinRoom] = useState(false);
-  const [, setTemporaryLinks] = useState([]);
-  const [publicRooms, setPublicRooms] = useState([]);
-  const [newRoomName, setNewRoomName] = useState('');
-  const [selectedParticipants, setSelectedParticipants] = useState([]);
-  const [linkToJoin, setLinkToJoin] = useState('');
 
-  // Estados para la grabación de audio
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState('00:00');
   const audioRecorderRef = useRef(null);
-  const ws = useRef(null);
+  const socket = useRef(null);
   const notificationSound = useRef(null);
   const isConnecting = useRef(false);
+
+  // Estados para el modal de enlace temporal
+  const [showTemporaryLinkModal, setShowTemporaryLinkModal] = useState(false);
+  const [currentTemporaryLink, setCurrentTemporaryLink] = useState(null);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   // Función para limpiar mensajes de registro del chat
   const clearRegistrationMessages = () => {
@@ -60,13 +47,9 @@ function App() {
 
   // Función para obtener la imagen de perfil de un usuario
   const getUserProfileImage = (username) => {
-    // Si es el usuario actual, usar su información
     if (username === (user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.username || user?.email)) {
       return user?.picture || null;
     }
-    
-    // Por ahora, solo tenemos la imagen del usuario actual
-    // En el futuro se puede expandir para incluir información de otros usuarios
     return null;
   };
 
@@ -78,7 +61,6 @@ function App() {
   // Función para manejar el login exitoso
   const handleLoginSuccess = (userData) => {
     setUser(userData);
-    // Usar el nombre completo como identificador en el chat
     const displayName = userData.nombre && userData.apellido ? 
       `${userData.nombre} ${userData.apellido}` : 
       userData.username || userData.email;
@@ -86,12 +68,10 @@ function App() {
     console.log('Username establecido como:', displayName);
     setIsAuthenticated(true);
     
-    // Verificar si es administrador
     const isUserAdmin = userData.role && userData.role.toUpperCase() === 'ADMIN';
     console.log('Rol del usuario en login:', userData.role, 'Es admin:', isUserAdmin);
     setIsAdmin(isUserAdmin);
     
-    // Limpiar mensajes de registro anteriores
     clearRegistrationMessages();
   };
 
@@ -107,119 +87,31 @@ function App() {
     setGroupList([]);
     setTo('');
     setInput('');
-    if (ws.current) {
-      ws.current.close();
+    if (socket.current) {
+      socket.current.disconnect();
     }
   };
 
-  // Funciones para administrador
-  const createTemporaryConversation = () => {
-    if (selectedParticipants.length < 2) {
-      showErrorAlert('Error', 'Se necesitan al menos 2 participantes para crear una conversación');
-      return;
-    }
 
-    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-      ws.current.send(JSON.stringify({
-        type: 'createTemporaryLink',
-        linkType: 'conversation',
-        participants: selectedParticipants
-      }));
-      
-      setShowCreateConversation(false);
-      setSelectedParticipants([]);
-    }
-  };
-
-  const createTemporaryRoom = () => {
-    if (!newRoomName.trim()) {
-      showErrorAlert('Error', 'Se necesita un nombre para la sala');
-      return;
-    }
-
-    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-      ws.current.send(JSON.stringify({
-        type: 'createTemporaryLink',
-        linkType: 'room',
-        roomName: newRoomName
-      }));
-      
-      setShowCreateRoom(false);
-      setNewRoomName('');
-    }
-  };
-
-  const createPublicRoom = () => {
-    if (!newRoomName.trim()) {
-      showErrorAlert('Error', 'Se necesita un nombre para la sala');
-      return;
-    }
-
-    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-      ws.current.send(JSON.stringify({
-        type: 'createPublicRoom',
-        roomName: newRoomName
-      }));
-      
-      setShowCreateRoom(false);
-      setNewRoomName('');
-    }
-  };
-
-  const joinTemporaryLink = () => {
-    if (!linkToJoin.trim()) {
-      showErrorAlert('Error', 'Ingresa un enlace válido');
-      return;
-    }
-
-    // Extraer el ID del enlace
-    const linkId = linkToJoin.split('/').pop();
-    
-    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-      ws.current.send(JSON.stringify({
-        type: 'joinTemporaryLink',
-        linkId: linkId
-      }));
-      
-      setShowJoinRoom(false);
-      setLinkToJoin('');
-    }
-  };
-
-  const joinPublicRoom = (roomId) => {
-    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-      ws.current.send(JSON.stringify({
-        type: 'joinPublicRoom',
-        roomId: roomId
-      }));
-    }
-  };
-
-  const getPublicRooms = () => {
-    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-      ws.current.send(JSON.stringify({
-        type: 'getPublicRooms'
-      }));
-    }
-  };
-
-  // Función para mostrar alertas de error
-  const showErrorAlert = async (title, text) => {
-    await Swal.fire({
-      icon: 'error',
-      title: title,
-      text: text,
-      confirmButtonText: 'OK'
-    });
-  };
 
   // Función para reproducir el sonido de notificación
   const playNotificationSound = () => {
     if (notificationSound.current) {
       notificationSound.current.play().catch(error => {
-        // Manejar errores de reproducción (algunos navegadores requieren interacción del usuario)
         console.log('Error al reproducir sonido de notificación:', error);
       });
+    }
+  };
+
+
+  // Función para copiar enlace en el modal
+  const copyLinkInModal = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch (err) {
+      console.error('Error al copiar al portapapeles:', err);
     }
   };
 
@@ -229,7 +121,6 @@ function App() {
       if (apiService.isAuthenticated()) {
         const currentUser = apiService.getCurrentUser();
         setUser(currentUser);
-        // Usar el nombre completo como identificador en el chat
         const displayName = currentUser.nombre && currentUser.apellido ? 
           `${currentUser.nombre} ${currentUser.apellido}` : 
           currentUser.username || currentUser.email;
@@ -237,17 +128,14 @@ function App() {
         console.log('Username establecido como:', displayName);
         setIsAuthenticated(true);
         
-        // Verificar si es administrador
         const isUserAdmin = currentUser.role && currentUser.role.toUpperCase() === 'ADMIN';
         console.log('Rol del usuario:', currentUser.role, 'Es admin:', isUserAdmin);
         setIsAdmin(isUserAdmin);
         
-        // Limpiar mensajes de registro anteriores
         clearRegistrationMessages();
       }
     };
     
-    // Solo ejecutar si no hay usuario autenticado
     if (!isAuthenticated && !user) {
       checkAuth();
     }
@@ -255,13 +143,11 @@ function App() {
 
   // Efecto para inicializar el sonido de notificación
   useEffect(() => {
-    // Crear elemento de audio para notificaciones
     const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
     audio.volume = 0.5;
     notificationSound.current = audio;
 
     return () => {
-      // Limpiar recurso de audio al desmontar
       notificationSound.current = null;
     };
   }, []);
@@ -271,320 +157,240 @@ function App() {
     audioRecorderRef.current = new AudioRecorder();
 
     return () => {
-      // Limpiar grabador al desmontar
       if (audioRecorderRef.current && audioRecorderRef.current.isCurrentlyRecording()) {
         audioRecorderRef.current.cancelRecording();
       }
     };
   }, []);
 
-  // Efecto para depurar cuando cambian los mensajes
-  useEffect(() => {
-    if (messages.length > 0) {
-      console.log('Mensajes actualizados:', messages.length, 'mensajes');
-    }
-  }, [messages]);
-
   // Efecto para manejar la tecla Escape
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === 'Escape' && to) {
-        // Cerrar el chat actual pero mantener los mensajes
         setTo('');
         setIsGroup(false);
       }
     };
 
-    // Agregar el event listener
     document.addEventListener('keydown', handleKeyDown);
-
-    // Limpiar el event listener al desmontar
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [to]);
 
+  // Efecto para detectar enlaces de unión en la URL
   useEffect(() => {
-    // Solo crear conexión si el usuario está autenticado
-    if (!isAuthenticated || !user || !username) {
-      return;
-    }
-
-    // Evitar crear múltiples conexiones
-    if (isConnecting.current || (ws.current && ws.current.readyState === WebSocket.OPEN)) {
-      console.log('Ya hay una conexión WebSocket activa, omitiendo...');
-      return;
-    }
-
-    console.log('Iniciando conexión WebSocket...');
-    isConnecting.current = true;
-
-    // Crear una nueva conexión WebSocket
-    const socket = new window.WebSocket('ws://localhost:8082');
-    ws.current = socket;
-
-    socket.onopen = () => {
-      console.log('Conexión WebSocket establecida');
-      console.log('Estado de la conexión:', socket.readyState);
-      isConnecting.current = false;
-      
-      // Si el usuario está autenticado, registrarlo automáticamente
-      if (isAuthenticated && user && username) {
-        const displayName = user.nombre && user.apellido ? `${user.nombre} ${user.apellido}` : user.username || user.email;
-        console.log('Registrando usuario autenticado:', displayName);
-        socket.send(JSON.stringify({ 
-          type: 'register', 
-          username: displayName,
-          userData: {
-            username: displayName,
-            role: user.role || 'USER',
-            nombre: user.nombre,
-            apellido: user.apellido,
-            email: user.email,
-            sede: user.sede
-          }
-        }));
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#/join/')) {
+        const linkId = hash.replace('#/join/', '');
+        console.log('Detectado enlace de unión:', linkId);
+        
+        if (socket.current && socket.current.connected) {
+          socket.current.emit('joinTemporaryLink', {
+            linkId: linkId,
+            from: username
+          });
+        }
       }
-      
-      // La lista de usuarios se envía automáticamente al registrarse
-      // No necesitamos solicitarla manualmente
     };
 
-    socket.onmessage = (event) => {
+    // Verificar hash al cargar
+    handleHashChange();
+
+    // Escuchar cambios en el hash
+    window.addEventListener('hashchange', handleHashChange);
+    
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, [username]);
+
+  // Efecto principal para la conexión Socket.IO
+  useEffect(() => {
+    if (!isAuthenticated || !user || !username) return;
+    if (isConnecting.current || (socket.current && socket.current.connected)) return;
+
+    isConnecting.current = true;
+    const s = io('http://localhost:8080', { transports: ['websocket'] });
+    socket.current = s;
+
+    s.on('connect', () => {
+      isConnecting.current = false;
+      const displayName = user.nombre && user.apellido ? `${user.nombre} ${user.apellido}` : user.username || user.email;
+      s.emit('register', {
+        username: displayName,
+        userData: {
+          username: displayName,
+          role: user.role || 'USER',
+          nombre: user.nombre,
+          apellido: user.apellido,
+          email: user.email,
+          sede: user.sede
+        }
+      });
+    });
+
+    s.on('message', (data) => {
       try {
-        const data = JSON.parse(event.data);
         console.log('Mensaje recibido:', data);
+        const timeString = data.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        if (data.type === 'message') {
-          // Obtener la hora actual si no viene en el mensaje
-          const timeString = data.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-          if (data.isGroup) {
-            // Mensaje de grupo con formato mejorado
-            const newMessage = {
-              sender: data.from,
-              receiver: data.group,
-              text: data.message || '',
-              isGroup: true,
-              time: timeString,
-              isSent: false
-            };
-
-            // Añadir información multimedia si existe
-            if (data.mediaType) {
-              console.log('Mensaje de grupo recibido con multimedia:', {
-                tipo: data.mediaType,
-                nombre: data.fileName,
-                datosPresentes: !!data.mediaData,
-                longitudDatos: data.mediaData ? data.mediaData.length : 0
-              });
-
-              newMessage.mediaType = data.mediaType;
-              newMessage.mediaData = data.mediaData;
-              newMessage.fileName = data.fileName;
-            }
-            setMessages((prev) => [...prev, newMessage]);
-
-            // Verificar si el usuario actual es miembro del grupo
-            const isUserMember = groupList.some(group =>
-              group.name === data.group && group.members.includes(username)
-            );
-
-            // Incrementar contador de mensajes no leídos solo si:
-            // 1. El usuario es miembro del grupo
-            // 2. No está viendo actualmente este grupo
-            if (isUserMember && !(isGroup && to === data.group)) {
-              setUnreadMessages(prev => {
-                const chatId = `group-${data.group}`;
-                return {
-                  ...prev,
-                  [chatId]: (prev[chatId] || 0) + 1
-                };
-              });
-
-              // Reproducir sonido de notificación
-              playNotificationSound();
-            }
-          } else {
-            // Mensaje individual con formato mejorado
-            const newMessage = {
-              sender: data.from,
-              receiver: data.to || username, // Usar el campo 'to' si está disponible
-              text: data.message || '',
-              isGroup: false,
-              time: timeString,
-              isSent: false
-            };
-
-            // Añadir información multimedia si existe
-            if (data.mediaType) {
-              console.log('Mensaje recibido con multimedia:', {
-                tipo: data.mediaType,
-                nombre: data.fileName,
-                datosPresentes: !!data.mediaData,
-                longitudDatos: data.mediaData ? data.mediaData.length : 0
-              });
-
-              newMessage.mediaType = data.mediaType;
-              newMessage.mediaData = data.mediaData;
-              newMessage.fileName = data.fileName;
-            }
-
-            console.log('Mensaje recibido de:', data.from, 'Contenido:', data.message);
-            console.log('Creando objeto de mensaje:', newMessage);
-
-            setMessages((prev) => {
-              console.log('Estado actual de mensajes:', prev);
-              return [...prev, newMessage];
-            });
-
-            // Incrementar contador de mensajes no leídos si no estamos viendo este chat
-            if (to !== data.from) {
-              setUnreadMessages(prev => {
-                const chatId = `user-${data.from}`;
-                return {
-                  ...prev,
-                  [chatId]: (prev[chatId] || 0) + 1
-                };
-              });
-
-              // Reproducir sonido de notificación
-              playNotificationSound();
-            }
-          }
-        } else if (data.type === 'info') {
-          // Mensaje de información del sistema
-          console.log('Mensaje de info recibido:', data.message);
-          
-          // Si es un mensaje de registro exitoso, no mostrarlo en el chat
-          if (data.message && data.message.includes('Registrado como')) {
-            console.log('Usuario registrado exitosamente en el chat');
-            // Limpiar mensajes de registro anteriores del chat
-            clearRegistrationMessages();
-            // No agregar este mensaje al chat, solo confirmar el registro
-            return;
-          }
-          
-          // Solo mostrar otros mensajes de info en el chat
-          const infoMessage = {
-            type: 'info',
-            text: data.message,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        if (data.isGroup) {
+          const newMessage = {
+            sender: data.from,
+            receiver: data.group,
+            text: data.message || '',
+            isGroup: true,
+            time: timeString,
+            isSent: false
           };
-          setMessages((prev) => [...prev, infoMessage]);
-        } else if (data.type === 'error') {
-          // Mensaje de error del sistema
-          const errorMessage = {
-            type: 'error',
-            text: data.message,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          };
-          setMessages((prev) => [...prev, errorMessage]);
-        } else if (data.type === 'userList') {
-          console.log('Lista de usuarios recibida:', data.users);
 
-          // Verificar que data.users es un array
-          if (Array.isArray(data.users)) {
-            console.log('Actualizando lista de usuarios con:', data.users);
-            setUserList(data.users);
-          } else {
-            console.error('Error: data.users no es un array:', data.users);
+          if (data.mediaType) {
+            newMessage.mediaType = data.mediaType;
+            newMessage.mediaData = data.mediaData;
+            newMessage.fileName = data.fileName;
           }
-        } else if (data.type === 'groupList') {
-          console.log('Lista de grupos recibida:', data.groups);
-          // Verificar que data.groups es un array
-          if (Array.isArray(data.groups)) {
-            setGroupList(data.groups);
-            console.log('groupList actualizado a:', data.groups);
-          } else {
-            console.error('Error: data.groups no es un array:', data.groups);
-          }
-        } else if (data.type === 'adminStatus') {
-          console.log('Estado de administrador recibido:', data.isAdmin);
-          setIsAdmin(data.isAdmin);
-          if (data.isAdmin) {
-            showSuccessAlert('Administrador', data.message);
-          }
-        } else if (data.type === 'temporaryLinkCreated') {
-          console.log('Enlace temporal creado:', data);
-          const newLink = {
-            linkId: data.linkId,
-            linkUrl: data.linkUrl,
-            expiresAt: data.expiresAt,
-            linkType: data.linkType,
-            participants: data.participants,
-            roomName: data.roomName
-          };
-          setTemporaryLinks(prev => [...prev, newLink]);
-          
-          const linkTypeText = data.linkType === 'conversation' ? 'conversación' : 'sala';
-          showSuccessAlert(
-            'Enlace creado', 
-            `Enlace de ${linkTypeText} creado exitosamente.\nExpira en 30 minutos.\n\nEnlace: ${data.linkUrl}`
+          setMessages((prev) => [...prev, newMessage]);
+
+          const isUserMember = groupList.some(group =>
+            group.name === data.group && group.members.includes(username)
           );
-        } else if (data.type === 'joinedTemporaryConversation') {
-          console.log('Unido a conversación temporal:', data);
-          setTo(data.groupName);
-          setIsGroup(true);
-          showSuccessAlert('Conversación', `Te has unido a la conversación temporal. Expira: ${new Date(data.expiresAt).toLocaleString()}`);
-        } else if (data.type === 'joinedTemporaryRoom') {
-          console.log('Unido a sala temporal:', data);
-          showSuccessAlert('Sala temporal', `Te has unido a la sala "${data.roomName}". Expira: ${new Date(data.expiresAt).toLocaleString()}`);
-        } else if (data.type === 'publicRoomCreated') {
-          console.log('Sala pública creada:', data);
-          showSuccessAlert('Sala pública', `Sala pública "${data.roomName}" creada exitosamente`);
-        } else if (data.type === 'joinedPublicRoom') {
-          console.log('Unido a sala pública:', data);
-          showSuccessAlert('Sala pública', `Te has unido a la sala "${data.roomName}"`);
-        } else if (data.type === 'publicRoomsList') {
-          console.log('Lista de salas públicas recibida:', data.rooms);
-          setPublicRooms(data.rooms);
+
+          if (isUserMember && !(isGroup && to === data.group)) {
+            setUnreadMessages(prev => {
+              const chatId = `group-${data.group}`;
+              return {
+                ...prev,
+                [chatId]: (prev[chatId] || 0) + 1
+              };
+            });
+            playNotificationSound();
+          }
+        } else {
+          const newMessage = {
+            sender: data.from,
+            receiver: data.to || username,
+            text: data.message || '',
+            isGroup: false,
+            time: timeString,
+            isSent: false
+          };
+
+          if (data.mediaType) {
+            newMessage.mediaType = data.mediaType;
+            newMessage.mediaData = data.mediaData;
+            newMessage.fileName = data.fileName;
+          }
+
+          setMessages((prev) => [...prev, newMessage]);
+
+          if (to !== data.from) {
+            setUnreadMessages(prev => {
+              const chatId = `user-${data.from}`;
+              return {
+                ...prev,
+                [chatId]: (prev[chatId] || 0) + 1
+              };
+            });
+            playNotificationSound();
+          }
         }
       } catch (error) {
         console.error('Error al procesar mensaje:', error);
       }
-    };
+    });
 
-    socket.onerror = (error) => {
-      console.error('Error en la conexión WebSocket:', error);
-    };
+    s.on('info', (data) => {
+      console.log('Mensaje de info recibido:', data.message);
+      
+      if (data.message && data.message.includes('Registrado como')) {
+        console.log('Usuario registrado exitosamente en el chat');
+        clearRegistrationMessages();
+        return;
+      }
+      
+      const infoMessage = {
+        type: 'info',
+        text: data.message,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages((prev) => [...prev, infoMessage]);
+    });
 
-    socket.onclose = () => {
-      console.log('Conexión WebSocket cerrada');
-      console.log('Razón del cierre:', socket.readyState);
+    s.on('error', (data) => {
+      const errorMessage = {
+        type: 'error',
+        text: data.message,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    });
+
+    s.on('userList', (data) => {
+      console.log('Lista de usuarios recibida:', data.users);
+      if (Array.isArray(data.users)) {
+        setUserList(data.users);
+      }
+    });
+
+    s.on('groupList', (data) => {
+      console.log('Lista de grupos recibida:', data.groups);
+      if (Array.isArray(data.groups)) {
+        setGroupList(data.groups);
+      }
+    });
+
+    s.on('temporaryLinkCreated', (data) => {
+      console.log('Enlace temporal creado:', data);
+      setCurrentTemporaryLink(data);
+      setShowTemporaryLinkModal(true);
+    });
+
+    s.on('joinedTemporaryConversation', (data) => {
+      console.log('Unido a conversación temporal:', data);
+      setTo(data.groupName);
+      setIsGroup(true);
+      showSuccessAlert('Conversación', `Te has unido a la conversación temporal. Expira: ${new Date(data.expiresAt).toLocaleString()}`);
+    });
+
+    s.on('joinedTemporaryRoom', (data) => {
+      console.log('Unido a sala temporal:', data);
+      showSuccessAlert('Sala temporal', `Te has unido a la sala "${data.roomName}". Expira: ${new Date(data.expiresAt).toLocaleString()}`);
+    });
+
+    s.on('error', (error) => {
+      console.error('Error en la conexión Socket.IO:', error);
+    });
+
+    s.on('disconnect', () => {
+      console.log('Conexión Socket.IO cerrada');
       isConnecting.current = false;
-    };
+    });
 
-    // Función de limpieza
     return () => {
-      console.log('Limpiando conexión WebSocket...');
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.close();
+      console.log('Limpiando conexión Socket.IO...');
+      if (s && s.connected) {
+        s.disconnect();
       }
     };
-  }, [isAuthenticated, user, username]); // eslint-disable-line react-hooks/exhaustive-deps
-
+  }, [isAuthenticated, user, username]);
 
   // Función para manejar la selección de archivos
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
-    // Limitar a un máximo de 5 archivos a la vez
     const selectedFiles = files.slice(0, 5);
-
-    // Filtrar solo imágenes y videos y verificar tamaño
-    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 5MB
+    const MAX_FILE_SIZE = 50 * 1024 * 1024;
     const validFiles = [];
     const invalidFiles = [];
 
     selectedFiles.forEach(file => {
-      // Determinar el tipo de archivo
       let fileType = 'unknown';
       if (file.type) {
         fileType = file.type.split('/')[0];
       } else {
-        // Si no se puede determinar el tipo por MIME, intentar por extensión
         const extension = file.name.split('.').pop().toLowerCase();
         if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
           fileType = 'image';
@@ -597,15 +403,10 @@ function App() {
         }
       }
 
-      // Verificar tamaño
       const isValidSize = file.size <= MAX_FILE_SIZE;
 
       if (isValidSize) {
-        // Añadir información del tipo de archivo
-        validFiles.push({
-          file,
-          fileType
-        });
+        validFiles.push({ file, fileType });
       } else {
         invalidFiles.push(`${file.name} (tamaño excede ${MAX_FILE_SIZE / (1024 * 1024)}MB)`);
       }
@@ -620,16 +421,11 @@ function App() {
       alert(`Los siguientes archivos fueron ignorados:\n${invalidFiles.join('\n')}`);
     }
 
-    // Extraer solo los objetos de archivo
     const fileObjects = validFiles.map(item => item.file);
-
-    // Guardar los archivos inmediatamente
     setMediaFiles(fileObjects);
 
-    // Crear URLs para vistas previas
     const readFiles = validFiles.map(item => {
       const { file, fileType } = item;
-
       return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -645,14 +441,11 @@ function App() {
       });
     });
 
-    // Esperar a que todas las lecturas de archivos terminen
     Promise.all(readFiles).then(results => {
-      console.log('Vistas previas generadas:', results);
       setMediaPreviews(results);
     });
   };
 
-  // Función para cancelar el envío de archivos multimedia
   const cancelMediaUpload = () => {
     setMediaFiles([]);
     setMediaPreviews([]);
@@ -661,159 +454,28 @@ function App() {
     }
   };
 
-  // Función para eliminar un archivo específico
   const removeMediaFile = (index) => {
     setMediaFiles(prev => prev.filter((_, i) => i !== index));
     setMediaPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Función para iniciar la grabación de audio
-  const startRecording = async () => {
-    if (!to) {
-      await showErrorAlert('Error', 'Debes seleccionar un destinatario antes de grabar un audio.');
-      return;
-    }
-
-    if (!audioRecorderRef.current) {
-      audioRecorderRef.current = new AudioRecorder();
-    }
-
-    const success = await audioRecorderRef.current.startRecording((time) => {
-      setRecordingTime(time);
-    });
-
-    if (success) {
-      setIsRecording(true);
-    } else {
-      await showErrorAlert('Error', 'No se pudo acceder al micrófono. Verifica los permisos.');
-    }
-  };
-
-  // Función para detener la grabación y enviar el audio
-  const stopRecording = async () => {
-    if (!audioRecorderRef.current || !isRecording) return;
-
-    try {
-      const result = await audioRecorderRef.current.stopRecording();
-      if (!result) return;
-
-      setIsRecording(false);
-      setRecordingTime('00:00');
-
-      // Obtener la hora actual para el mensaje
-      const now = new Date();
-      const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-      // Crear objeto de mensaje de audio
-      const audioMessageObj = {
-        type: 'message',
-        to,
-        isGroup,
-        time: timeString,
-        mediaType: 'audio',
-        mediaData: result.base64,
-        fileName: `audio_${now.getTime()}.webm`,
-        fileSize: Math.round(result.blob.size)
-      };
-
-      // Enviar mensaje al servidor
-      ws.current.send(JSON.stringify(audioMessageObj));
-
-      // Mostrar mensaje en la interfaz
-      const audioMessage = {
-        sender: 'Tú',
-        receiver: to,
-        text: '',
-        isGroup: isGroup,
-        time: timeString,
-        isSent: true,
-        mediaType: 'audio',
-        mediaData: result.base64,
-        fileName: `audio_${now.getTime()}.webm`,
-        fileSize: Math.round(result.blob.size)
-      };
-
-      setMessages((prev) => [...prev, audioMessage]);
-    } catch (error) {
-      console.error('Error al detener la grabación:', error);
-      await showErrorAlert('Error', 'Ocurrió un error al procesar el audio.');
-      setIsRecording(false);
-      setRecordingTime('00:00');
-    }
-  };
-
-  // Función para cancelar la grabación
-  const cancelRecording = () => {
-    if (!audioRecorderRef.current || !isRecording) return;
-
-    audioRecorderRef.current.cancelRecording();
-    setIsRecording(false);
-    setRecordingTime('00:00');
-  };
-
-  // Función para convertir archivo a base64
-  const fileToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      // Verificar el tamaño del archivo
-      const MAX_FILE_SIZE = 50 * 1024 * 1024; // 20MB
-
-      // Para archivos pequeños, usar el método estándar
-      if (file.size <= MAX_FILE_SIZE) {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-
-        reader.onload = () => {
-          // Devolver directamente el resultado para mantener compatibilidad
-          resolve(reader.result);
-        };
-
-        reader.onerror = (error) => {
-          console.error('Error al leer el archivo:', error);
-          reject(error);
-        };
-
-        // Añadir un manejador de progreso para archivos grandes
-        reader.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const progress = Math.round((event.loaded / event.total) * 100);
-            console.log(`Progreso de carga: ${progress}%`);
-          }
-        };
-      }
-      // Para archivos grandes, mostrar un mensaje de advertencia
-      else {
-        // Opción 1: Rechazar archivos demasiado grandes
-        reject(new Error(`El archivo ${file.name} es demasiado grande (${(file.size / (1024 * 1024)).toFixed(2)}MB). El tamaño máximo es 20MB.`));
-
-        // Opción 2: Comprimir el video (esto requeriría una biblioteca adicional)
-        // En una implementación real, aquí se podría usar una biblioteca como ffmpeg.js para comprimir el video
-      }
-    });
-  };
-
   const sendMessage = async () => {
     if ((!input && mediaFiles.length === 0) || !to) return;
 
-    // Obtener la hora actual para el mensaje
     const now = new Date();
     const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // Si hay texto o un solo archivo multimedia, enviamos un mensaje normal
     if (input || mediaFiles.length === 1) {
-      // Crear objeto base del mensaje
       const messageObj = {
-        type: 'message',
         to,
         isGroup,
         time: timeString
       };
 
-      // Añadir contenido del mensaje (texto)
       if (input) {
         messageObj.message = input;
       }
 
-      // Si hay un archivo multimedia, convertirlo a base64 y añadirlo al mensaje
       if (mediaFiles.length === 1) {
         try {
           const file = mediaFiles[0];
@@ -821,12 +483,6 @@ function App() {
           messageObj.mediaType = file.type.split('/')[0];
           messageObj.mediaData = base64Data;
           messageObj.fileName = file.name;
-
-          console.log('Enviando archivo único:', {
-            tipo: file.type.split('/')[0],
-            tamaño: file.size,
-            nombre: file.name
-          });
         } catch (error) {
           console.error('Error al convertir archivo a base64:', error);
           alert('Error al procesar el archivo. Inténtalo de nuevo.');
@@ -834,11 +490,7 @@ function App() {
         }
       }
 
-      // Si es un mensaje a sí mismo, no enviarlo al servidor para evitar duplicación
       if (to === username) {
-        console.log('Mensaje personal (no enviado al servidor):', messageObj);
-        
-        // Mostrar mensaje solo en la interfaz local
         const newMessage = {
           sender: 'Tú',
           receiver: username,
@@ -857,11 +509,9 @@ function App() {
         return;
       }
 
-      // Enviar mensaje al servidor
       console.log('Enviando mensaje al servidor:', messageObj);
-      ws.current.send(JSON.stringify(messageObj));
+      socket.current.emit('message', messageObj);
 
-      // Mostrar mensaje en la interfaz con formato mejorado
       const newMessage = {
         sender: 'Tú',
         receiver: to,
@@ -871,7 +521,6 @@ function App() {
         isSent: true
       };
 
-      // Añadir información multimedia si existe
       if (mediaFiles.length === 1) {
         const preview = mediaPreviews[0];
         newMessage.mediaType = preview.type;
@@ -881,312 +530,63 @@ function App() {
 
       setMessages((prev) => [...prev, newMessage]);
     }
-    // Si hay múltiples archivos multimedia, enviamos un mensaje por cada uno
-    else if (mediaFiles.length > 1) {
-      // Primero enviamos el mensaje de texto si existe
-      if (input) {
-        const textMessageObj = {
-          type: 'message',
-          to,
-          isGroup,
-          time: timeString,
-          message: input
-        };
 
-        ws.current.send(JSON.stringify(textMessageObj));
-
-        const textMessage = {
-          sender: 'Tú',
-          receiver: to,
-          text: input,
-          isGroup: isGroup,
-          time: timeString,
-          isSent: true
-        };
-
-        setMessages((prev) => [...prev, textMessage]);
-      }
-
-      // Luego enviamos cada archivo como un mensaje separado
-      for (let i = 0; i < mediaFiles.length; i++) {
-        const file = mediaFiles[i];
-        const preview = mediaPreviews[i];
-
-        try {
-          // Mostrar mensaje de carga
-          const loadingMessage = {
-            sender: 'Tú',
-            receiver: to,
-            text: file.type.split('/')[0] === 'image' ? 'Enviando imagen...' : 'Enviando video...',
-            isGroup: isGroup,
-            time: timeString,
-            isSent: true,
-            isLoading: true
-          };
-
-          const loadingMessageIndex = messages.length;
-          setMessages((prev) => [...prev, loadingMessage]);
-
-          // Convertir archivo a base64
-          const result = await fileToBase64(file);
-
-          // Determinar el tipo de archivo
-          let fileType = 'unknown';
-          if (file.type) {
-            fileType = file.type.split('/')[0];
-          } else {
-            // Si no se puede determinar el tipo por MIME, intentar por extensión
-            const extension = file.name.split('.').pop().toLowerCase();
-            if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
-              fileType = 'image';
-            } else if (['mp4', 'webm', 'ogg', 'mov', 'avi'].includes(extension)) {
-              fileType = 'video';
-            } else if (['mp3', 'wav', 'ogg', 'm4a', 'aac'].includes(extension)) {
-              fileType = 'audio';
-            } else if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt'].includes(extension)) {
-              fileType = 'document';
-            }
-          }
-
-          // Crear objeto de mensaje
-          const mediaMessageObj = {
-            type: 'message',
-            to,
-            isGroup,
-            time: timeString,
-            mediaType: fileType,
-            mediaData: result.data ? result.data : result, // Manejar ambos formatos
-            fileName: file.name,
-            fileExtension: file.name.split('.').pop().toLowerCase(),
-            fileSize: file.size
-          };
-
-          console.log('Enviando mensaje multimedia:', {
-            tipo: fileType,
-            tamaño: file.size,
-            nombre: file.name,
-            extension: file.name.split('.').pop().toLowerCase()
-          });
-
-          // Enviar mensaje al servidor
-          ws.current.send(JSON.stringify(mediaMessageObj));
-
-          // Crear mensaje para mostrar en la interfaz
-          const mediaMessage = {
-            sender: 'Tú',
-            receiver: to,
-            text: '',
-            isGroup: isGroup,
-            time: timeString,
-            isSent: true,
-            mediaType: preview.type,
-            mediaData: preview.data,
-            fileName: preview.name
-          };
-
-          // Reemplazar el mensaje de carga con el mensaje real
-          setMessages((prev) => {
-            const newMessages = [...prev];
-            newMessages[loadingMessageIndex] = mediaMessage;
-            return newMessages;
-          });
-
-          // Pequeña pausa entre mensajes para evitar sobrecarga
-          await new Promise(resolve => setTimeout(resolve, 200));
-        } catch (error) {
-          console.error(`Error al procesar archivo ${i+1}:`, error);
-
-          // Mostrar mensaje de error
-          setMessages((prev) => [
-            ...prev,
-            {
-              type: 'error',
-              text: `Error al enviar archivo: ${error.message || 'Error desconocido'}`,
-              time: timeString
-            }
-          ]);
-
-          // Si el error es por tamaño, mostrar sugerencias
-          if (error.message && error.message.includes('demasiado grande')) {
-            setMessages((prev) => [
-              ...prev,
-              {
-                type: 'info',
-                text: 'Sugerencia: Puedes comprimir el video o recortarlo para reducir su tamaño antes de enviarlo.',
-                time: timeString
-              }
-            ]);
-          }
-        }
-      }
-    }
-
-    // Limpiar estados
     setInput('');
     cancelMediaUpload();
   };
 
-  // Función para solicitar manualmente la lista de usuarios
-  const requestUserList = () => {
-    console.log('Solicitando lista de usuarios manualmente');
-    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-      ws.current.send(JSON.stringify({ type: 'getUserList' }));
-    } else {
-      console.error('WebSocket no está conectado');
-      setMessages(prev => [...prev, '[ERROR] No se pudo conectar al servidor. Intenta recargar la página.']);
-    }
-  };
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
-  // Función para eliminar el chat actual
-  const deleteChat = async () => {
-    if (!to) return;
+      if (file.size <= MAX_FILE_SIZE) {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
 
-    // Mostrar confirmación con SweetAlert2
-    const result = await showConfirmAlert(
-      '¿Eliminar chat?',
-      `¿Estás seguro de que deseas eliminar el chat con ${to}?`
-    );
-
-    // Si el usuario cancela, no hacer nada
-    if (!result.isConfirmed) {
-      return;
-    }
-
-    // Mostrar alerta de progreso
-    await showProgressAlert('Eliminando chat', 'Procesando...');
-
-    // Iniciar animación de carga
-    setIsDeletingChat(true);
-    setDeleteProgress(0);
-
-    // Simulamos un proceso de eliminación con progreso
-    const totalSteps = 5;
-    let currentStep = 0;
-
-    const interval = setInterval(async () => {
-      currentStep++;
-      const newProgress = (currentStep / totalSteps) * 100;
-
-      // Actualizar progreso en la UI
-      setDeleteProgress(newProgress);
-
-      // Actualizar progreso en SweetAlert2
-      await updateProgressAlert(
-        'Eliminando chat',
-        'Procesando...',
-        newProgress
-      );
-
-      // Si llegamos al 100%, completamos la eliminación
-      if (currentStep >= totalSteps) {
-        clearInterval(interval);
-
-        // Filtrar los mensajes para eliminar solo los del chat actual
-        setMessages(prev => prev.filter(msg => {
-          // Mantener mensajes del sistema
-          if (msg.type === 'info' || msg.type === 'error') {
-            return true;
-          }
-
-          // Eliminar mensajes del chat actual
-          if (isGroup) {
-            return !(msg.isGroup && msg.receiver === to);
-          } else {
-            return !(
-              (msg.sender === 'Tú' && msg.receiver === to) ||
-              (msg.sender === to && (msg.receiver === username || msg.receiver === to))
-            );
-          }
-        }));
-
-        // Añadir mensaje de confirmación
-        const infoMessage = {
-          type: 'info',
-          text: `Chat con ${to} eliminado`,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        reader.onload = () => {
+          resolve(reader.result);
         };
-        setMessages(prev => [...prev, infoMessage]);
 
-        // Limpiar el chat actual
-        setTo('');
-        setIsGroup(false);
-
-        // Finalizar animación
-        setIsDeletingChat(false);
-
-        // Cerrar alerta de progreso
-        await closeAlert();
-
-        // Mostrar alerta de éxito
-        await showSuccessAlert('¡Completado!', `El chat con ${to} ha sido eliminado.`);
+        reader.onerror = (error) => {
+          console.error('Error al leer el archivo:', error);
+          reject(error);
+        };
+      } else {
+        reject(new Error(`El archivo ${file.name} es demasiado grande (${(file.size / (1024 * 1024)).toFixed(2)}MB). El tamaño máximo es 50MB.`));
       }
-    }, 500); // Actualizar cada 500ms
+    });
   };
 
 
-  // Función para crear un nuevo grupo
-  const createGroup = () => {
-    if (!newGroupName.trim()) {
-      setMessages(prev => [...prev, '[ERROR] El nombre del grupo no puede estar vacío']);
-      return;
-    }
-
-    if (selectedMembers.length === 0) {
-      setMessages(prev => [...prev, '[ERROR] Debes seleccionar al menos un miembro para el grupo']);
-      return;
-    }
-
-    console.log(`Creando grupo: ${newGroupName} con miembros: ${selectedMembers.join(', ')}`);
-
-    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-      ws.current.send(JSON.stringify({
-        type: 'createGroup',
-        groupName: newGroupName,
-        members: selectedMembers
-      }));
-
-      // Limpiar el formulario
-      setNewGroupName('');
-      setSelectedMembers([]);
-      setShowCreateGroup(false);
-    } else {
-      console.error('WebSocket no está conectado');
-      setMessages(prev => [...prev, '[ERROR] No se pudo conectar al servidor. Intenta recargar la página.']);
-    }
-  };
-
-  // Función para unirse a un grupo
   const joinGroup = (groupName) => {
     console.log(`Uniéndose al grupo: ${groupName}`);
 
-    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-      ws.current.send(JSON.stringify({
-        type: 'joinGroup',
-        groupName: groupName
-      }));
+    if (socket.current && socket.current.connected) {
+      socket.current.emit('joinGroup', {
+        groupName: groupName,
+        from: username
+      });
     } else {
-      console.error('WebSocket no está conectado');
+      console.error('Socket no está conectado');
       setMessages(prev => [...prev, '[ERROR] No se pudo conectar al servidor. Intenta recargar la página.']);
     }
   };
 
-  // Función para salir de un grupo
   const leaveGroup = (groupName) => {
     console.log(`Saliendo del grupo: ${groupName}`);
 
-    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-      ws.current.send(JSON.stringify({
-        type: 'leaveGroup',
-        groupName: groupName
-      }));
+    if (socket.current && socket.current.connected) {
+      socket.current.emit('leaveGroup', {
+        groupName: groupName,
+        from: username
+      });
 
-      // Si estábamos chateando con este grupo, limpiar el destinatario
       if (isGroup && to === groupName) {
         setTo('');
         setIsGroup(false);
       }
     } else {
-      console.error('WebSocket no está conectado');
+      console.error('Socket no está conectado');
       setMessages(prev => [...prev, '[ERROR] No se pudo conectar al servidor. Intenta recargar la página.']);
     }
   };
@@ -1195,23 +595,17 @@ function App() {
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
-
-  // Filtrar usuarios según el término de búsqueda
   const filteredUsers = userList.filter(user =>
     user.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Filtrar grupos según el término de búsqueda
   const filteredGroups = groupList.filter(group =>
     group.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Verificar si el usuario actual es miembro de un grupo
   const isGroupMember = (group) => {
     return group.members.includes(username);
   };
-
-
 
   return (
     <div className="chat-app">
@@ -1225,7 +619,6 @@ function App() {
           )}
         </h3>
         <div className="users">
-          {/* Buscador de usuarios y grupos */}
           <div className="search-container">
             <div className="search-input-wrapper">
               <span className="search-icon">🔍</span>
@@ -1246,13 +639,6 @@ function App() {
                 </button>
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button
-                    onClick={requestUserList}
-                    title="Actualizar lista de usuarios"
-                    className="btn-icon"
-                  >
-                    🔄
-                  </button>
                   <button
                     onClick={() => setShowCreateGroup(true)}
                     title="Crear nuevo grupo"
@@ -1280,366 +666,63 @@ function App() {
             </div>
           </div>
 
-          {/* Menú de administrador */}
-          {isAdmin && showAdminMenu && (
+          {/* Modal de enlace temporal */}
+          {showTemporaryLinkModal && currentTemporaryLink && (
             <div 
-              className="modal-overlay"
-              onClick={() => setShowAdminMenu(false)}
+              className="temporary-link-modal"
+              onClick={(e) => {
+                if (e.target.classList.contains('temporary-link-modal')) {
+                  setShowTemporaryLinkModal(false);
+                }
+              }}
             >
-              <div 
-                className="modal-content"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="modal-header">
-                  <h3 className="modal-title">
-                    <span>🔧</span>
-                    Panel de Administrador
-                  </h3>
+              <div className="temporary-link-content">
+                <div className="temporary-link-header">
+                  <h3>🔗 Enlace Temporal Creado</h3>
                   <button 
-                    onClick={() => setShowAdminMenu(false)}
+                    onClick={() => setShowTemporaryLinkModal(false)}
                     className="modal-close"
                   >
                     ✕
                   </button>
                 </div>
                 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <button 
-                    onClick={() => {
-                      setShowCreateConversation(true);
-                      setShowAdminMenu(false);
-                    }}
-                    className="btn btn-secondary"
-                    style={{ justifyContent: 'flex-start', padding: '12px 16px' }}
-                  >
-                    <span style={{ fontSize: '20px' }}>💬</span>
-                    Crear conversación
-                  </button>
-                  
-                  <button 
-                    onClick={() => {
-                      setShowCreateRoom(true);
-                      setShowAdminMenu(false);
-                    }}
-                    className="btn btn-secondary"
-                    style={{ justifyContent: 'flex-start', padding: '12px 16px' }}
-                  >
-                    <span style={{ fontSize: '20px' }}>🏠</span>
-                    Nueva sala
-                  </button>
-                  
-                  <button 
-                    onClick={() => {
-                      setShowJoinRoom(true);
-                      setShowAdminMenu(false);
-                    }}
-                    className="btn btn-secondary"
-                    style={{ justifyContent: 'flex-start', padding: '12px 16px' }}
-                  >
-                    <span style={{ fontSize: '20px' }}>🔗</span>
-                    Unirse a sala pública
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Formulario para crear conversación temporal */}
-          {showCreateConversation && (
-            <div 
-              className="modal-overlay"
-              onClick={() => setShowCreateConversation(false)}
-            >
-              <div 
-                className="modal-content"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="modal-header">
-                  <h3 className="modal-title">
-                    <span>💬</span>
-                    Crear conversación temporal
-                  </h3>
-                  <button 
-                    onClick={() => setShowCreateConversation(false)}
-                    className="modal-close"
-                  >
-                    ✕
-                  </button>
-                </div>
-                
-                <p style={{ color: '#8696a0', marginBottom: '16px' }}>Selecciona los participantes para la conversación:</p>
-                
-                <div className="participant-list">
-                  {userList
-                    .filter(user => user !== username)
-                    .map((user, idx) => (
-                      <div key={idx} className="checkbox-group">
-                        <input
-                          type="checkbox"
-                          id={`participant-${idx}`}
-                          checked={selectedParticipants.includes(user)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedParticipants([...selectedParticipants, user]);
-                            } else {
-                              setSelectedParticipants(selectedParticipants.filter(p => p !== user));
-                            }
-                          }}
-                        />
-                        <label htmlFor={`participant-${idx}`} style={{ color: '#e9edef', cursor: 'pointer', flex: 1 }}>
-                          {user}
-                        </label>
-                      </div>
-                    ))}
-                </div>
-                
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '20px' }}>
-                  <button 
-                    type="button" 
-                    onClick={() => setShowCreateConversation(false)} 
-                    className="btn btn-secondary"
-                  >
-                    Cancelar
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={createTemporaryConversation} 
-                    className="btn btn-primary"
-                  >
-                    Crear enlace
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Formulario para crear sala temporal/pública */}
-          {showCreateRoom && (
-            <div 
-              className="modal-overlay"
-              onClick={() => setShowCreateRoom(false)}
-            >
-              <div 
-                className="modal-content"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="modal-header">
-                  <h3 className="modal-title">
-                    <span>🏠</span>
-                    Crear nueva sala
-                  </h3>
-                  <button 
-                    onClick={() => setShowCreateRoom(false)}
-                    className="modal-close"
-                  >
-                    ✕
-                  </button>
-                </div>
-                
-                <div className="form-group">
-                  <input
-                    type="text"
-                    placeholder="Nombre de la sala"
-                    value={newRoomName}
-                    onChange={(e) => setNewRoomName(e.target.value)}
-                    className="form-input"
-                  />
-                </div>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
-                  <button 
-                    type="button" 
-                    onClick={createTemporaryRoom}
-                    className="btn btn-secondary"
-                    style={{ justifyContent: 'flex-start', padding: '12px 16px' }}
-                  >
-                    <span style={{ fontSize: '20px' }}>🕒</span>
-                    <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontWeight: '500' }}>Sala temporal</div>
-                      <div style={{ fontSize: '12px', color: '#8696a0' }}>Expira en 30 minutos</div>
-                    </div>
-                  </button>
-                  
-                  <button 
-                    type="button" 
-                    onClick={createPublicRoom}
-                    className="btn btn-secondary"
-                    style={{ justifyContent: 'flex-start', padding: '12px 16px' }}
-                  >
-                    <span style={{ fontSize: '20px' }}>🌐</span>
-                    <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontWeight: '500' }}>Sala pública</div>
-                      <div style={{ fontSize: '12px', color: '#8696a0' }}>Permanente hasta desactivar</div>
-                    </div>
-                  </button>
-                </div>
-                
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                  <button 
-                    type="button" 
-                    onClick={() => setShowCreateRoom(false)} 
-                    className="btn btn-secondary"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Formulario para unirse a sala pública */}
-          {showJoinRoom && (
-            <div 
-              className="modal-overlay"
-              onClick={() => setShowJoinRoom(false)}
-            >
-              <div 
-                className="modal-content"
-                onClick={(e) => e.stopPropagation()}
-                style={{ maxHeight: '80vh' }}
-              >
-                <div className="modal-header">
-                  <h3 className="modal-title">
-                    <span>🔗</span>
-                    Unirse a sala pública
-                  </h3>
-                  <button 
-                    onClick={() => setShowJoinRoom(false)}
-                    className="modal-close"
-                  >
-                    ✕
-                  </button>
-                </div>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                  {/* Por enlace temporal */}
-                  <div>
-                    <h5 style={{ color: '#e9edef', fontWeight: '500', marginBottom: '12px' }}>Por enlace temporal:</h5>
-                    <div className="form-group">
-                      <input
-                        type="text"
-                        placeholder="Pega el enlace aquí"
-                        value={linkToJoin}
-                        onChange={(e) => setLinkToJoin(e.target.value)}
-                        className="form-input"
+                <div className="temporary-link-body">
+                  <div className="link-section">
+                    <h4>💬 Iniciar conversación</h4>
+                    <p>Comparte este enlace con los participantes para comenzar la conversación:</p>
+                    <div className="link-container">
+                      <input 
+                        type="text" 
+                        value={currentTemporaryLink.linkUrl} 
+                        readOnly 
+                        className="link-input"
                       />
-                    </div>
-                    <button 
-                      type="button" 
-                      onClick={joinTemporaryLink} 
-                      className="btn btn-primary"
-                      style={{ width: '100%' }}
-                    >
-                      Unirse por enlace
-                    </button>
-                  </div>
-                  
-                  {/* Salas públicas disponibles */}
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                      <h5 style={{ color: '#e9edef', fontWeight: '500', margin: 0 }}>Salas públicas disponibles:</h5>
                       <button 
-                        type="button" 
-                        onClick={getPublicRooms} 
-                        className="btn-icon"
-                        style={{ fontSize: '12px', padding: '6px 12px' }}
+                        onClick={() => copyLinkInModal(currentTemporaryLink.linkUrl)}
+                        className={`copy-btn ${linkCopied ? 'copied' : ''}`}
                       >
-                        🔄 Actualizar
+                        {linkCopied ? '✓' : '📋'}
                       </button>
                     </div>
-                    
-                    <div className="participant-list">
-                      {publicRooms.length === 0 ? (
-                        <p style={{ color: '#8696a0', textAlign: 'center', padding: '16px' }}>No hay salas públicas disponibles</p>
-                      ) : (
-                        publicRooms.map((room, idx) => (
-                          <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #374045' }}>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ color: '#e9edef', fontWeight: '500', fontSize: '14px' }}>{room.name}</div>
-                              <div style={{ color: '#8696a0', fontSize: '12px' }}>{room.participantCount} participantes</div>
-                            </div>
-                            <button 
-                              type="button" 
-                              onClick={() => joinPublicRoom(room.roomId)}
-                              className="btn btn-primary"
-                              style={{ padding: '6px 12px', fontSize: '12px' }}
-                            >
-                              Unirse
-                            </button>
-                          </div>
-                        ))
-                      )}
+                  </div>
+
+                  <div className="participants-section">
+                    <h4>👥 Participantes</h4>
+                    <div className="participants-list">
+                      {currentTemporaryLink.participants.map((participant, idx) => (
+                        <div key={idx} className="participant-item">
+                          {participant}
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
-                
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
-                  <button 
-                    type="button" 
-                    onClick={() => setShowJoinRoom(false)} 
-                    className="btn btn-secondary"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
 
-          {/* Formulario para crear grupo (condicional) */}
-          {showCreateGroup && (
-            <div style={{ padding: '16px', backgroundColor: '#202c33', borderRadius: '8px', margin: '16px' }}>
-              <h4 style={{ color: '#e9edef', marginBottom: '16px' }}>Crear nuevo grupo</h4>
-              <div className="form-group">
-                <input
-                  type="text"
-                  placeholder="Nombre del grupo"
-                  value={newGroupName}
-                  onChange={(e) => setNewGroupName(e.target.value)}
-                  className="form-input"
-                />
-              </div>
-              <div style={{ marginBottom: '16px' }}>
-                <h5 style={{ color: '#aebac1', marginBottom: '8px' }}>Seleccionar miembros:</h5>
-                <div className="participant-list">
-                  {userList
-                    .filter(user => user !== username)
-                    .map((user, idx) => (
-                      <div key={idx} className="checkbox-group">
-                        <input
-                          type="checkbox"
-                          id={`member-${idx}`}
-                          checked={selectedMembers.includes(user)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedMembers([...selectedMembers, user]);
-                            } else {
-                              setSelectedMembers(selectedMembers.filter(m => m !== user));
-                            }
-                          }}
-                        />
-                        <label htmlFor={`member-${idx}`} style={{ color: '#e9edef', cursor: 'pointer', flex: 1 }}>
-                          {user}
-                        </label>
-                      </div>
-                    ))}
+                  <div className="expiry-section">
+                    <h4>⏰ Expira en</h4>
+                    <p>{new Date(currentTemporaryLink.expiresAt).toLocaleString()}</p>
+                  </div>
                 </div>
-              </div>
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button 
-                  type="button" 
-                  onClick={() => setShowCreateGroup(false)} 
-                  className="btn btn-secondary"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="button" 
-                  onClick={createGroup} 
-                  className="btn btn-primary"
-                >
-                  Crear grupo
-                </button>
               </div>
             </div>
           )}
@@ -1789,7 +872,6 @@ function App() {
 
         </div>
         
-        {/* Footer con botón de cerrar sesión */}
         <div className="users-list-footer">
           <button 
             onClick={handleLogout} 
@@ -1802,6 +884,7 @@ function App() {
           </button>
         </div>
       </div>
+      
       <div className="chat-container">
         {to ? (
           <>
@@ -1844,113 +927,27 @@ function App() {
                   </div>
                 </div>
               </div>
-              <div className="chat-actions">
-                <span className="chat-action">🔍</span>
-                <div className="chat-action-menu">
-                  <span className="chat-action" onClick={(e) => {
-                    e.stopPropagation();
-                    const menu = e.target.nextElementSibling;
-                    if (menu) {
-                      menu.classList.toggle('show');
-                    }
-                  }}>⋮</span>
-                  <div className="chat-options-menu">
-                    <div className="chat-option" onClick={(e) => {
-                      e.stopPropagation();
-                      e.target.parentNode.classList.remove('show');
-                      deleteChat();
-                    }}>
-                      🗑️ Eliminar chat
-                    </div>
-                    <div className="chat-option" onClick={(e) => {
-                      e.stopPropagation();
-                      e.target.parentNode.classList.remove('show');
-                      showSuccessAlert('Información', 'Esta función aún no está implementada');
-                    }}>
-                      🔇 Silenciar notificaciones
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
+            
             <div className="chat-history">
-              {isDeletingChat && (
-                <div className="delete-overlay">
-                  <div className="delete-progress-container">
-                    <div className="delete-progress-text">Eliminando chat...</div>
-                    <div className="delete-progress-bar">
-                      <div
-                        className="delete-progress-fill"
-                        style={{ width: `${deleteProgress}%` }}
-                      ></div>
-                    </div>
-                    <div className="delete-progress-percentage">{Math.round(deleteProgress)}%</div>
-                  </div>
-                </div>
-              )}
-              <div className="debug-controls" style={{ position: 'absolute', top: '5px', right: '5px', zIndex: 100 }}>
-                <button
-                  onClick={() => console.log('Todos los mensajes:', messages)}
-                  style={{ fontSize: '10px', padding: '2px 5px' }}
-                >
-                  Debug
-                </button>
-              </div>
               {messages
                 .filter(msg => {
-                  // Log para depuración
-                  console.log('Evaluando mensaje para mostrar:', msg);
-
                   if (msg.type === 'info' || msg.type === 'error') {
-                    // Mostrar mensajes del sistema en todos los chats
-                    console.log('Es un mensaje del sistema, se muestra');
                     return true;
                   } else if (isGroup) {
-                    // Filtrar mensajes de grupo
-                    const shouldShow = msg.isGroup && msg.receiver === to;
-                    console.log('Es un mensaje de grupo, se muestra:', shouldShow);
-                    return shouldShow;
+                    return msg.isGroup && msg.receiver === to;
                   } else {
-                    // Filtrar mensajes individuales (conversación entre dos usuarios)
-                    
-                    // Si es un mensaje personal (a sí mismo)
                     if (to === username) {
-                      const isPersonalMessage = msg.isSelf === true || (msg.sender === 'Tú' && msg.receiver === username && msg.isSent === true);
-                      console.log('Mensaje personal:', {
-                        isPersonalMessage,
-                        sender: msg.sender,
-                        isSent: msg.isSent,
-                        to: to,
-                        username: username
-                      });
-                      return isPersonalMessage;
+                      return msg.isSelf === true || (msg.sender === 'Tú' && msg.receiver === username && msg.isSent === true);
                     }
                     
-                    // Mensajes enviados por mí a este usuario
                     const isSentByMe = msg.sender === 'Tú' && msg.receiver === to;
-
-                    // Mensajes recibidos de este usuario
                     const isReceivedFromThem = msg.sender === to && (msg.receiver === username || msg.receiver === to);
-
-                    // Mostrar el mensaje si es parte de esta conversación
-                    const shouldShow = !msg.isGroup && (isSentByMe || isReceivedFromThem);
-
-                    console.log('Mensaje individual:', {
-                      isSentByMe,
-                      isReceivedFromThem,
-                      shouldShow,
-                      sender: msg.sender,
-                      receiver: msg.receiver,
-                      to,
-                      username
-                    });
-
-                    return shouldShow;
+                    return !msg.isGroup && (isSentByMe || isReceivedFromThem);
                   }
                 })
                 .map((msg, idx) => {
                   if (msg.type === 'info') {
-                    // Mensaje de información del sistema
                     return (
                       <div key={idx} className="message system info">
                         <div className="message-content">
@@ -1960,7 +957,6 @@ function App() {
                       </div>
                     );
                   } else if (msg.type === 'error') {
-                    // Mensaje de error del sistema
                     return (
                       <div key={idx} className="message system error">
                         <div className="message-content">
@@ -1970,7 +966,6 @@ function App() {
                       </div>
                     );
                   } else {
-                    // Mensaje normal (enviado o recibido)
                     return (
                       <div key={idx} className={`message ${msg.isSent ? 'sent' : 'received'}`}>
                         <div className="message-content">
@@ -1980,66 +975,14 @@ function App() {
                                 {msg.isGroup ? `${msg.sender} (en ${msg.receiver})` : msg.sender}
                               </div>
                             )}
-                            <div className="message-options">
-                              <div className="message-options-button" onClick={(e) => {
-                                e.stopPropagation();
-                                const optionsMenu = e.target.nextElementSibling;
-                                if (optionsMenu) {
-                                  optionsMenu.classList.toggle('show');
-                                }
-                              }}>
-                                ⋮
-                              </div>
-                              <div className="message-options-menu">
-                                {msg.mediaType && (
-                                  <div className="message-option" onClick={(e) => {
-                                    e.stopPropagation();
-                                    // Crear un enlace temporal para descargar
-                                    const link = document.createElement('a');
-                                    link.href = msg.mediaData;
-                                    link.download = msg.fileName || `${msg.mediaType === 'image' ? 'imagen' : 'video'}_${new Date().getTime()}`;
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
-                                    e.target.parentNode.classList.remove('show');
-                                  }}>
-                                    📥 Descargar
-                                  </div>
-                                )}
-                                <div className="message-option" onClick={(e) => {
-                                  e.stopPropagation();
-                                  showSuccessAlert(
-                                    'Información del mensaje',
-                                    `Enviado por: ${msg.sender}\nRecibido por: ${msg.receiver}\nHora: ${msg.time}\nEstado: ${msg.isSent ? 'Enviado ✓' : 'Recibido'}`
-                                  );
-                                  e.target.parentNode.classList.remove('show');
-                                }}>
-                                  ℹ️ Info
-                                </div>
-                                <div className="message-option" onClick={(e) => {
-                                  e.stopPropagation();
-                                  // Copiar al portapapeles
-                                  const textToCopy = msg.text || (msg.mediaType === 'image' ? '[Imagen]' : '[Video]');
-                                  navigator.clipboard.writeText(textToCopy).then(() => {
-                                    showSuccessAlert('Éxito', 'Contenido copiado al portapapeles');
-                                  });
-                                  e.target.parentNode.classList.remove('show');
-                                }}>
-                                  📋 Copiar
-                                </div>
-                              </div>
-                            </div>
                           </div>
 
-                          {/* Mostrar texto del mensaje si existe */}
                           {msg.text && (
-                            <div className={`message-text ${msg.isLoading ? 'isLoading' : ''}`}>
+                            <div className="message-text">
                               {msg.text}
-                              {msg.isLoading && <span className="loading-dots"></span>}
                             </div>
                           )}
 
-                          {/* Mostrar contenido multimedia si existe */}
                           {msg.mediaType && (
                             <div className="message-media">
                               {msg.mediaType === 'image' ? (
@@ -2047,159 +990,24 @@ function App() {
                                   src={msg.mediaData}
                                   alt="Imagen"
                                   className="message-image"
-                                  onClick={() => {
-                                    // Crear un elemento modal para mostrar la imagen en pantalla completa
-                                    const modal = document.createElement('div');
-                                    modal.className = 'image-modal';
-
-                                    // Crear contenedor para la imagen
-                                    const imageContainer = document.createElement('div');
-                                    imageContainer.className = 'image-modal-content';
-
-                                    // Crear la imagen
-                                    const image = document.createElement('img');
-                                    image.src = msg.mediaData;
-                                    image.alt = 'Imagen ampliada';
-
-                                    // Crear botón de cerrar
-                                    const closeBtn = document.createElement('span');
-                                    closeBtn.className = 'close-modal';
-                                    closeBtn.innerHTML = '&times;';
-                                    closeBtn.onclick = () => document.body.removeChild(modal);
-
-                                    // Añadir elementos al DOM
-                                    imageContainer.appendChild(image);
-                                    modal.appendChild(closeBtn);
-                                    modal.appendChild(imageContainer);
-                                    document.body.appendChild(modal);
-
-                                    // Cerrar modal al hacer clic fuera de la imagen
-                                    modal.onclick = (e) => {
-                                      if (e.target === modal) {
-                                        document.body.removeChild(modal);
-                                      }
-                                    };
-                                  }}
                                 />
                               ) : msg.mediaType === 'video' ? (
-                                <div className="video-container">
-                                  {console.log('Renderizando video con datos:', {
-                                    datosPresentes: !!msg.mediaData,
-                                    longitudDatos: msg.mediaData ? msg.mediaData.length : 0,
-                                    primeros100Chars: msg.mediaData ? msg.mediaData.substring(0, 100) : 'No hay datos'
-                                  })}
-                                  <video
-                                    src={msg.mediaData}
-                                    controls
-                                    className="message-video"
-                                    preload="metadata"
-                                    controlsList="nodownload"
-                                    onError={(e) => {
-                                      console.error('Error al cargar el video:', e);
-                                      e.target.parentNode.innerHTML = `
-                                        <div class="video-error">
-                                          <span>❌ Error al cargar el video</span>
-                                          <button onclick="this.parentNode.parentNode.querySelector('video').load()">
-                                            Reintentar
-                                          </button>
-                                        </div>
-                                      `;
-                                    }}
-                                  />
-                                  <div className="video-overlay">
-                                    <span className="video-info">Video</span>
-                                  </div>
-                                  <div className="video-controls">
-                                    <button
-                                      className="video-download-button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        // Crear un enlace temporal para descargar
-                                        const link = document.createElement('a');
-                                        link.href = msg.mediaData;
-                                        link.download = msg.fileName || `video_${new Date().getTime()}.mp4`;
-                                        document.body.appendChild(link);
-                                        link.click();
-                                        document.body.removeChild(link);
-                                      }}
-                                      title="Descargar video"
-                                    >
-                                      📥
-                                    </button>
-                                  </div>
-                                </div>
+                                <video
+                                  src={msg.mediaData}
+                                  controls
+                                  className="message-video"
+                                />
                               ) : msg.mediaType === 'audio' ? (
-                                <div className="audio-container">
-                                  <audio
-                                    src={msg.mediaData}
-                                    controls
-                                    className="message-audio"
-                                    preload="metadata"
-                                    controlsList="nodownload"
-                                    onError={(e) => {
-                                      console.error('Error al cargar el audio:', e);
-                                      e.target.parentNode.innerHTML = `
-                                        <div class="audio-error">
-                                          <span>❌ Error al cargar el audio</span>
-                                          <button onclick="this.parentNode.parentNode.querySelector('audio').load()">
-                                            Reintentar
-                                          </button>
-                                        </div>
-                                      `;
-                                    }}
-                                  />
-                            
-                                  <div className="audio-controls">
-                                    <button
-                                      className="audio-download-button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        // Crear un enlace temporal para descargar
-                                        const link = document.createElement('a');
-                                        link.href = msg.mediaData;
-                                        link.download = msg.fileName || `audio_${new Date().getTime()}.mp3`;
-                                        document.body.appendChild(link);
-                                        link.click();
-                                        document.body.removeChild(link);
-                                      }}
-                                      title="Descargar audio"
-                                    >
-                                      📥
-                                    </button>
-                                  </div>
-                                </div>
+                                <audio
+                                  src={msg.mediaData}
+                                  controls
+                                  className="message-audio"
+                                />
                               ) : (
                                 <div className="file-container">
-                                  <div className="file-icon">
-                                    {msg.fileExtension === 'pdf' ? '📄' :
-                                     msg.fileExtension === 'doc' || msg.fileExtension === 'docx' ? '📝' :
-                                     msg.fileExtension === 'xls' || msg.fileExtension === 'xlsx' ? '📊' :
-                                     msg.fileExtension === 'ppt' || msg.fileExtension === 'pptx' ? '📑' :
-                                     msg.fileExtension === 'txt' ? '📃' : '📁'}
-                                  </div>
+                                  <div className="file-icon">📁</div>
                                   <div className="file-info">
                                     <div className="file-name">{msg.fileName}</div>
-                                    <div className="file-size">
-                                      {msg.fileSize ? `${(msg.fileSize / 1024).toFixed(1)} KB` : ''}
-                                    </div>
-                                  </div>
-                                  <div className="file-controls">
-                                    <button
-                                      className="file-download-button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        // Crear un enlace temporal para descargar
-                                        const link = document.createElement('a');
-                                        link.href = msg.mediaData;
-                                        link.download = msg.fileName || `archivo_${new Date().getTime()}`;
-                                        document.body.appendChild(link);
-                                        link.click();
-                                        document.body.removeChild(link);
-                                      }}
-                                      title="Descargar archivo"
-                                    >
-                                      📥
-                                    </button>
                                   </div>
                                 </div>
                               )}
@@ -2220,8 +1028,8 @@ function App() {
                   }
                 })}
             </div>
+            
             <div className="message-form">
-              {/* Vista previa de archivos multimedia */}
               {mediaPreviews.length > 0 && (
                 <div className="media-preview">
                   <div className="media-preview-header">
@@ -2252,13 +1060,7 @@ function App() {
                             </div>
                           ) : (
                             <div className="file-preview">
-                              <div className="file-icon">
-                                {preview.extension === 'pdf' ? '📄' :
-                                 preview.extension === 'doc' || preview.extension === 'docx' ? '📝' :
-                                 preview.extension === 'xls' || preview.extension === 'xlsx' ? '📊' :
-                                 preview.extension === 'ppt' || preview.extension === 'pptx' ? '📑' :
-                                 preview.extension === 'txt' ? '📃' : '📁'}
-                              </div>
+                              <div className="file-icon">📁</div>
                               <div className="file-info">
                                 <div className="file-name">{preview.name}</div>
                                 <div className="file-size">
@@ -2292,7 +1094,6 @@ function App() {
                   onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
                 />
 
-                {/* Botón para seleccionar archivos */}
                 <label 
                   className="btn-icon" 
                   title="Adjuntar archivos (máx. 5)"
@@ -2309,44 +1110,12 @@ function App() {
                   />
                 </label>
 
-                {isRecording ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', backgroundColor: '#dc3545', borderRadius: '8px' }}>
-                      <div style={{ width: '8px', height: '8px', backgroundColor: 'white', borderRadius: '50%', animation: 'pulse 1.5s infinite' }}></div>
-                      <span style={{ color: 'white', fontSize: '12px', fontWeight: '500' }}>{recordingTime}</span>
-                    </div>
-                    <button
-                      onClick={stopRecording}
-                      title="Enviar audio"
-                      className="btn-icon btn-primary"
-                    >
-                      ✓
-                    </button>
-                    <button
-                      onClick={cancelRecording}
-                      title="Cancelar grabación"
-                      className="btn-icon btn-danger"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <button
-                      onClick={startRecording}
-                      title="Grabar audio"
-                      className="btn-icon"
-                    >
-                      🎤
-                    </button>
-                    <button 
-                      onClick={sendMessage}
-                      className="btn btn-primary"
-                    >
-                      Enviar
-                    </button>
-                  </>
-                )}
+                <button 
+                  onClick={sendMessage}
+                  className="btn btn-primary"
+                >
+                  Enviar
+                </button>
               </div>
             </div>
           </>
