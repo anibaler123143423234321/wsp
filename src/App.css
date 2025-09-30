@@ -1,0 +1,151 @@
+/* Estilos globales de la aplicación */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #0b141a;
+  color: #e9edef;
+  overflow: hidden;
+}
+
+
+.App {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+@media (max-width: 900px) {
+  .App {
+    min-width: 100vw;
+    min-height: 100vh;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 600px) {
+  .App {
+    min-width: 100vw;
+    min-height: 100vh;
+    font-size: 13px;
+    flex-direction: column;
+    padding: 0;
+  }
+}
+
+/* Estilos para la pantalla de login */
+.login-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-image: url('./assets/login.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  padding: 20px;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* Overlay para mejorar legibilidad en login */
+.login-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(11, 20, 26, 0.75);
+  z-index: 1;
+}
+
+.login-container > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Responsive para el contenedor de login */
+@media (max-width: 768px) {
+  .login-container {
+    padding: 16px;
+    align-items: flex-start;
+    padding-top: 10vh;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-container {
+    padding: 12px;
+    padding-top: 8vh;
+  }
+}
+
+@media (max-width: 360px) {
+  .login-container {
+    padding: 8px;
+    padding-top: 5vh;
+  }
+}
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #2a3942;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #8696a0;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
+}
+
+/* Mejoras para dispositivos móviles */
+@media (max-width: 768px) {
+  body {
+    -webkit-text-size-adjust: 100%;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+
+  input,
+  textarea {
+    -webkit-user-select: text;
+    -khtml-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+  }
+}
+
+/* Prevenir zoom en inputs en iOS */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  input[type="text"],
+  input[type="password"],
+  input[type="email"] {
+    font-size: 16px !important;
+  }
+}

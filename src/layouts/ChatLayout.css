@@ -1,0 +1,40 @@
+/* Layout principal del chat */
+.chat-app {
+  display: flex;
+  gap: 0;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  height: 100vh;
+  border-radius: 0;
+  overflow: hidden;
+  box-shadow: none;
+  background: linear-gradient(135deg, #0b141a 0%, #111b21 100%);
+}
+
+.chat-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #0b141a 0%, #111b21 50%, #0b141a 100%);
+  position: relative;
+  transition: all 0.3s ease;
+  border-left: 1px solid #374045;
+}
+
+/* Cuando el sidebar está oculto, el chat-main se expande */
+.chat-app:not(:has(.sidebar)) .chat-main {
+  width: 100%;
+  margin-left: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .chat-app {
+    flex-direction: column;
+  }
+
+  .chat-main {
+    height: calc(100vh - 60px);
+  }
+}

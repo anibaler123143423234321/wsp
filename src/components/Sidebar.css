@@ -1,0 +1,504 @@
+/* Estilos del sidebar */
+
+.users-list {
+  width: 320px;
+  min-width: 280px;
+  max-width: 380px;
+  background: linear-gradient(180deg, #111b21 0%, #1a252c 50%, #202c33 100%);
+  border-right: 1px solid #374045;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  box-shadow: 2px 0 15px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+@media (max-width: 900px) {
+  .users-list {
+    width: 220px;
+    min-width: 180px;
+    max-width: 240px;
+  }
+  .users-list h3 {
+    font-size: 15px;
+    height: 48px;
+    padding: 0 10px;
+  }
+  .search-section {
+    padding: 8px;
+  }
+  .users-count {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  .admin-toggle-btn, .admin-option, .join-room-section, .logout-section {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  .join-room-btn {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+}
+
+@media (max-width: 600px) {
+  .users-list {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    z-index: 100;
+    width: 100vw;
+    min-width: 0;
+    max-width: 100vw;
+    box-shadow: 2px 0 15px rgba(0,0,0,0.3);
+    transition: transform 0.3s cubic-bezier(.4,2,.3,1);
+    transform: translateX(0);
+  }
+  .users-list.closed {
+    transform: translateX(-100vw);
+  }
+  .users-list h3 {
+    font-size: 14px;
+    height: 44px;
+    padding: 0 6px;
+  }
+  .search-section {
+    padding: 6px;
+  }
+  .users-count {
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+  .admin-toggle-btn, .admin-option, .join-room-section, .logout-section {
+    padding: 6px 6px;
+    font-size: 11px;
+  }
+  .join-room-btn {
+    font-size: 11px;
+    padding: 6px 6px;
+  }
+}
+
+.users-list h3 {
+  padding: 0 20px;
+  margin: 0;
+  background: linear-gradient(135deg, #1a252c 0%, #202c33 100%);
+  color: #e9edef;
+  font-size: 18px;
+  font-weight: 700;
+  border-bottom: 1px solid #374045;
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 60px;
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.main-title {
+  flex: 1;
+}
+
+.sede-info {
+  font-size: 12px;
+  color: #8696a0;
+  font-weight: 400;
+  margin-left: 10px;
+}
+
+.search-section {
+  padding: 15px;
+  background: linear-gradient(135deg, #0f1419 0%, #111b21 100%);
+  border-bottom: 1px solid #374045;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.search-bar {
+  margin-bottom: 0;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 16px;
+  background-color: #2a3942;
+  border: none;
+  border-radius: 20px;
+  color: #e9edef;
+  font-size: 14px;
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: #8696a0;
+}
+
+.users-count {
+  padding: 10px 20px;
+  color: #8696a0;
+  font-size: 14px;
+  background-color: #111b21;
+  border-bottom: 1px solid #374045;
+}
+
+/* Sección de administrador */
+.admin-section {
+  background-color: #111b21;
+  border-bottom: 1px solid #374045;
+}
+
+.admin-toggle-btn {
+  width: 100%;
+  padding: 15px 20px;
+  background: none;
+  border: none;
+  color: #e9edef;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.admin-toggle-btn:hover {
+  background-color: #2a3942;
+}
+
+.admin-icon {
+  font-size: 16px;
+}
+
+.admin-text {
+  flex: 1;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.admin-arrow {
+  font-size: 12px;
+  transition: transform 0.2s;
+}
+
+.admin-arrow.open {
+  transform: rotate(180deg);
+}
+
+.admin-menu {
+  background-color: #2a3942;
+  border-bottom: 1px solid #374045;
+}
+
+.admin-option {
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  color: #e9edef;
+}
+
+.admin-option:hover {
+  background-color: #374045;
+}
+
+.admin-option .admin-icon {
+  font-size: 14px;
+}
+
+.admin-option .admin-text {
+  font-size: 13px;
+  font-weight: 400;
+}
+
+/* Botón de unirse a sala */
+.join-room-section {
+  padding: 15px 20px;
+  background: linear-gradient(135deg, #0f1419 0%, #111b21 100%);
+  border-bottom: 1px solid #374045;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.join-room-btn {
+  width: 100%;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #00a884, #008f6b);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.3);
+}
+
+.join-room-btn:hover {
+  background: linear-gradient(135deg, #008f6b, #007a5a);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 168, 132, 0.4);
+}
+
+.join-icon {
+  font-size: 16px;
+}
+
+.join-text {
+  flex: 1;
+  text-align: left;
+}
+
+/* Lista de usuarios */
+.users-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 0;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-bottom: 1px solid #2a3942;
+}
+
+.user-item:hover {
+  background-color: #2a3942;
+}
+
+.user-item.selected {
+  background-color: #2a3942;
+  border-left: 3px solid #00a884;
+}
+
+.user-item.room-user {
+  cursor: default !important;
+  opacity: 0.7;
+}
+
+.user-item.room-user:hover {
+  background-color: transparent !important;
+}
+
+.user-item.room-user .user-name {
+  color: #8696a0;
+}
+
+.user-item.room-user .user-status {
+  color: #6b7c85;
+}
+
+.user-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00a884, #008f6b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 16px;
+  margin-right: 14px;
+  box-shadow: 0 3px 8px rgba(0, 168, 132, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  color: #e9edef;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-status {
+  color: #8696a0;
+  font-size: 12px;
+}
+
+/* Lista de grupos */
+.groups-container {
+  padding: 10px 0;
+  border-top: 1px solid #374045;
+}
+
+.groups-container h4 {
+  color: #8696a0;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0 20px 10px;
+  margin: 0;
+}
+
+.group-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-bottom: 1px solid #2a3942;
+}
+
+.group-item:hover {
+  background-color: #2a3942;
+}
+
+.group-item.selected {
+  background-color: #2a3942;
+  border-left: 3px solid #00a884;
+}
+
+.group-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+  margin-right: 12px;
+}
+
+.group-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.group-name {
+  color: #e9edef;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.group-members {
+  color: #8696a0;
+  font-size: 12px;
+}
+
+/* Notas personales */
+.personal-notes {
+  padding: 10px 0;
+  border-top: 1px solid #374045;
+}
+
+/* Badge de mensajes no leídos */
+.unread-badge {
+  background-color: #00a884;
+  color: white;
+  border-radius: 50%;
+  min-width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+/* Botón de cerrar sesión */
+.logout-section {
+  padding: 20px;
+  background: linear-gradient(135deg, #0f1419 0%, #111b21 100%);
+  border-top: 1px solid #374045;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.logout-btn {
+  width: 100%;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f15c6d, #e74c3c);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(241, 92, 109, 0.3);
+}
+
+.logout-btn:hover {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(241, 92, 109, 0.4);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .users-list {
+    width: 100%;
+    height: 60px;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .users-list h3 {
+    display: none;
+  }
+
+  .search-section {
+    display: none;
+  }
+
+  .users-count {
+    display: none;
+  }
+
+  .admin-section {
+    display: none;
+  }
+
+  .join-room-section {
+    display: none;
+  }
+
+  .users-container {
+    display: flex;
+    flex-direction: row;
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .user-item {
+    min-width: 60px;
+    flex-direction: column;
+    padding: 8px;
+    border: none;
+  }
+
+  .user-info {
+    display: none;
+  }
+
+  .user-avatar {
+    width: 30px;
+    height: 30px;
+    margin: 0;
+  }
+}
