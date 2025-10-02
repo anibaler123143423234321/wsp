@@ -6,10 +6,13 @@ export const useAuth = () => {
   const [user, setUser] = useState(null);
   const [username, setUsername] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Estado de carga inicial
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     const checkAuth = () => {
+      setIsLoading(true); // Iniciar carga
+
       if (apiService.isAuthenticated()) {
         const currentUser = apiService.getCurrentUser();
         setUser(currentUser);
@@ -30,6 +33,8 @@ export const useAuth = () => {
         setUsername("");
         setIsAdmin(false);
       }
+
+      setIsLoading(false); // Finalizar carga
     };
 
     // Verificar autenticación inicial
@@ -67,6 +72,7 @@ export const useAuth = () => {
     user,
     username,
     isAdmin,
+    isLoading,
     logout,
     refreshAuth,
   };

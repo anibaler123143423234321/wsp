@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaCog, FaSignOutAlt, FaSignInAlt } from 'react-icons/fa';
+import { FaCog, FaSignOutAlt, FaSignInAlt, FaPlus, FaDoorOpen } from 'react-icons/fa';
 import './Sidebar.css';
 import logo from '../assets/Logotipo +34.svg';
 
@@ -32,14 +32,24 @@ const Sidebar = ({
   const createConversations = () => {
     const displayUsers = isGroup && roomUsers ? roomUsers : userList;
 
-    return displayUsers.map((userName, index) => ({
-      id: `user-${userName}`,
-      name: userName,
-      lastMessage: isGroup ? 'Usuario en sala' : 'Haz clic para chatear',
-      time: '16:45',
-      unread: !isGroup && unreadMessages[`user-${userName}`] ? unreadMessages[`user-${userName}`] : 0,
-      avatar: userName.charAt(0).toUpperCase()
-    }));
+    return displayUsers.map((userItem, index) => {
+      // Manejar tanto strings (usuarios normales) como objetos (usuarios de sala con info completa)
+      const userName = typeof userItem === 'string' ? userItem : userItem.username;
+      const userPicture = typeof userItem === 'object' ? userItem.picture : null;
+      const userNombre = typeof userItem === 'object' ? userItem.nombre : null;
+      const userApellido = typeof userItem === 'object' ? userItem.apellido : null;
+
+      return {
+        id: `user-${userName}`,
+        name: userName,
+        displayName: userNombre && userApellido ? `${userNombre} ${userApellido}` : userName,
+        picture: userPicture,
+        lastMessage: isGroup ? 'Usuario en sala' : 'Haz clic para chatear',
+        time: '16:45',
+        unread: !isGroup && unreadMessages[`user-${userName}`] ? unreadMessages[`user-${userName}`] : 0,
+        avatar: userName.charAt(0).toUpperCase()
+      };
+    });
   };
 
   const conversations = createConversations();
@@ -71,7 +81,7 @@ const Sidebar = ({
           </div>
 
           <button className="create-space-btn-left" onClick={onShowCreateRoom} title="Crear un espacio">
-            <span className="create-icon">+</span>
+            <FaPlus className="create-icon-left" />
             <span className="create-text-left">Crear un espacio</span>
           </button>
 
@@ -79,6 +89,13 @@ const Sidebar = ({
             <FaSignInAlt className="join-icon-left" />
             <span className="join-text-left">Unirse a sala</span>
           </button>
+
+          {isAdmin && (
+            <button className="my-rooms-btn-left" onClick={onShowAdminRooms} title="Mis salas">
+              <FaDoorOpen className="my-rooms-icon-left" />
+              <span className="my-rooms-text-left">Mis salas</span>
+            </button>
+          )}
         </div>
 
         <div className="sidebar-footer-left">
@@ -121,10 +138,6 @@ const Sidebar = ({
         {/* Lista de conversaciones */}
         <div className="conversations-container">
           {filteredConversations.map((conversation) => {
-            // Buscar el usuario en userList para obtener su picture
-            const userInfo = userList.find(u => u === conversation.name);
-            const userPicture = user?.picture; // Aquí deberías obtener la picture del usuario específico
-
             return (
               <div
                 key={conversation.id}
@@ -141,8 +154,8 @@ const Sidebar = ({
                 }}
                 title={isGroup ? 'Usuarios en la sala (no seleccionable)' : 'Hacer clic para chatear'}
               >
-                {userPicture ? (
-                  <img src={userPicture} alt={conversation.name} className="conversation-avatar-img" />
+                {conversation.picture ? (
+                  <img src={conversation.picture} alt={conversation.name} className="conversation-avatar-img" />
                 ) : (
                   <div className="conversation-avatar">
                     {conversation.avatar}
@@ -150,7 +163,7 @@ const Sidebar = ({
                 )}
                 <div className="conversation-info">
                   <div className="conversation-header">
-                    <div className="conversation-name">{conversation.name}</div>
+                    <div className="conversation-name">{conversation.displayName || conversation.name}</div>
                     <div className="conversation-time">{conversation.time}</div>
                   </div>
                   <div className="conversation-preview">

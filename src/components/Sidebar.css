@@ -199,9 +199,8 @@
   background: rgba(0, 0, 0, 0.08);
 }
 
-.create-icon {
-  font-size: 18px;
-  font-weight: 400;
+.create-icon-left {
+  font-size: 16px;
   color: #1f2937;
 }
 
@@ -250,6 +249,50 @@
 }
 
 .join-text-left {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0px;
+  color: #1f2937;
+}
+
+/* Botón mis salas en columna izquierda */
+.my-rooms-btn-left {
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  color: #1f2937;
+  border: none;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0px;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+}
+
+.my-rooms-btn-left:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.my-rooms-btn-left:active {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.my-rooms-icon-left {
+  font-size: 16px;
+  color: #1f2937;
+}
+
+.my-rooms-text-left {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 15px;
   font-weight: 500;

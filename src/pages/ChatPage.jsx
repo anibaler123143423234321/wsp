@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ChatLayout from '../layouts/ChatLayout';
 import Login from '../components/Login';
+import LoadingScreen from '../components/LoadingScreen';
 import CreateRoomModal from '../components/modals/CreateRoomModal';
 import JoinRoomModal from '../components/modals/JoinRoomModal';
 import AdminRoomsModal from '../components/modals/AdminRoomsModal';
@@ -14,7 +15,7 @@ import apiService from '../apiService';
 
 const ChatPage = () => {
   // Hooks personalizados
-  const { isAuthenticated, user, username, isAdmin, logout, refreshAuth } = useAuth();
+  const { isAuthenticated, user, username, isAdmin, isLoading, logout, refreshAuth } = useAuth();
   const socket = useSocket(isAuthenticated, username, user);
   const {
     input,
@@ -109,48 +110,18 @@ const ChatPage = () => {
   }, [socket]);
 
   // Efectos
+  // ❌ ELIMINADO: No reconectar automáticamente a salas al hacer login
+  // Los usuarios solo deben unirse a salas cuando:
+  // 1. Crean una sala nueva
+  // 2. Ingresan manualmente el código de una sala
   useEffect(() => {
     if (!isAuthenticated || !username) return;
 
-    const checkCurrentRoom = async () => {
-      if (hasRestoredRoom.current) return;
+    // Solo marcar que se ha verificado, pero NO reconectar automáticamente
+    if (!hasRestoredRoom.current) {
       hasRestoredRoom.current = true;
-
-      try {
-        const roomData = await apiService.getCurrentUserRoom();
-        
-        // Verificar si hay error en la respuesta
-        if (roomData.statusCode && (roomData.statusCode === 500 || roomData.statusCode === 503)) {
-          console.warn('⚠️ Error del servidor al obtener sala actual, continuando sin cargar mensajes históricos');
-          return;
-        }
-        
-        if (roomData.inRoom && roomData.room) {
-          
-          setTo(roomData.room.name);
-          setIsGroup(true);
-          setCurrentRoomCode(roomData.room.roomCode);
-          setRoomDuration(roomData.room.durationMinutes);
-          setRoomExpiresAt(roomData.room.expiresAt);
-          currentRoomCodeRef.current = roomData.room.roomCode;
-          
-          if (socket && socket.connected) {
-            socket.emit('joinRoom', {
-              roomCode: roomData.room.roomCode,
-              roomName: roomData.room.name,
-              from: username
-            });
-          }
-            }
-      } catch (error) {
-        console.error('❌ Error al verificar sala actual:', error);
-      }
-    };
-
-    if (socket && socket.connected) {
-      checkCurrentRoom();
     }
-      }, [isAuthenticated, username, socket]);
+  }, [isAuthenticated, username]);
 
   // Cargar mensajes cuando cambie currentRoomCode (para grupos/salas)
   useEffect(() => {
@@ -732,11 +703,50 @@ const ChatPage = () => {
     // Guardar datos del usuario en localStorage
     localStorage.setItem('user', JSON.stringify(userData));
     localStorage.setItem('token', userData.token || 'mock-token');
-    
+
     // Forzar actualización del estado de autenticación
     refreshAuth();
   };
-  
+
+  // Función mejorada de logout que primero sale de la sala si está en una
+  const handleLogout = async () => {
+    try {
+      // Si el usuario está en una sala, salir primero
+      if (currentRoomCode && socket && socket.connected) {
+        socket.emit('leaveRoom', {
+          roomCode: currentRoomCode,
+          from: username
+        });
+
+        // Limpiar estado de la sala
+        setTo('');
+        setIsGroup(false);
+        setRoomUsers([]);
+        setCurrentRoomCode(null);
+        setRoomDuration(null);
+        setRoomExpiresAt(null);
+        currentRoomCodeRef.current = null;
+      }
+
+      // Desconectar socket
+      if (socket) {
+        socket.disconnect();
+      }
+
+      // Ejecutar logout normal
+      logout();
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+      // Aún así ejecutar logout
+      logout();
+    }
+  };
+
+  // Mostrar loading mientras verifica autenticación
+  if (isLoading) {
+    return <LoadingScreen message="Verificando sesión..." />;
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="login-container">
@@ -766,7 +776,7 @@ const ChatPage = () => {
       onUserSelect={handleUserSelect}
       onGroupSelect={handleGroupSelect}
       onPersonalNotes={handlePersonalNotes}
-      onLogout={logout}
+      onLogout={handleLogout}
       onShowCreateRoom={() => setShowCreateRoomModal(true)}
       onShowJoinRoom={() => setShowJoinRoomModal(true)}
       onShowAdminRooms={handleShowAdminRooms}

@@ -68,6 +68,7 @@ export const useSocket = (isAuthenticated, username, user) => {
               apellido: user.apellido,
               email: user.email,
               sede: user.sede,
+              picture: user.picture || null, // ✅ Agregar picture
             },
           });
 
@@ -117,8 +118,20 @@ export const useSocket = (isAuthenticated, username, user) => {
 
     connectSocket();
 
+    // Manejar cierre de ventana/pestaña
+    const handleBeforeUnload = () => {
+      if (socket.current && socket.current.connected) {
+        // Desconectar el socket de forma síncrona
+        socket.current.disconnect();
+      }
+    };
+
+    // Agregar listener para cuando se cierra la ventana
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
       clearTimeout(connectionTimeout.current);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       if (socket.current) {
         socket.current.disconnect();
         socket.current = null;

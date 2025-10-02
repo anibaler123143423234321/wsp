@@ -29,6 +29,12 @@ const ChatContent = ({
   const isUserScrollingRef = useRef(false);
   const lastMessageCountRef = useRef(0);
 
+  // Función para descargar archivos
+  const handleDownload = (url, fileName) => {
+    // Abrir en nueva pestaña
+    window.open(url, '_blank');
+  };
+
   // Manejar cambio de input
   const handleInputChange = (e) => {
     setInput(e.target.value);
@@ -226,60 +232,146 @@ const ChatContent = ({
               }}
             >
               {message.mediaType === 'image' ? (
-                <img
-                  src={message.mediaData}
-                  alt={message.fileName || 'Imagen'}
-                  className="media-image"
-                  style={{
-                    maxWidth: '100%',
-                    borderRadius: '7.5px',
-                    display: 'block'
-                  }}
-                />
+                <div style={{ position: 'relative' }}>
+                  <img
+                    src={message.mediaData}
+                    alt={message.fileName || 'Imagen'}
+                    className="media-image"
+                    style={{
+                      maxWidth: '100%',
+                      borderRadius: '7.5px',
+                      display: 'block',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => handleDownload(message.mediaData, message.fileName || 'imagen')}
+                  />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownload(message.mediaData, message.fileName || 'imagen');
+                    }}
+                    style={{
+                      position: 'absolute',
+                      bottom: '8px',
+                      right: '8px',
+                      backgroundColor: 'rgba(0,0,0,0.6)',
+                      color: '#fff',
+                      padding: '6px 12px',
+                      borderRadius: '15px',
+                      fontSize: '12px',
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.8)'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.6)'}
+                  >
+                    ⬇️ Descargar
+                  </button>
+                </div>
               ) : message.mediaType === 'video' ? (
-                <video
-                  src={message.mediaData}
-                  controls
-                  className="media-video"
-                  style={{
-                    maxWidth: '100%',
-                    borderRadius: '7.5px',
-                    display: 'block'
-                  }}
-                />
+                <div style={{ position: 'relative' }}>
+                  <video
+                    src={message.mediaData}
+                    controls
+                    className="media-video"
+                    style={{
+                      maxWidth: '100%',
+                      borderRadius: '7.5px',
+                      display: 'block'
+                    }}
+                  />
+                  <button
+                    onClick={() => handleDownload(message.mediaData, message.fileName || 'video')}
+                    style={{
+                      display: 'inline-block',
+                      marginTop: '8px',
+                      backgroundColor: 'rgba(0,0,0,0.6)',
+                      color: '#fff',
+                      padding: '6px 12px',
+                      borderRadius: '15px',
+                      fontSize: '12px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.8)'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.6)'}
+                  >
+                    ⬇️ Descargar video
+                  </button>
+                </div>
               ) : message.mediaType === 'audio' ? (
-                <audio
-                  src={message.mediaData}
-                  controls
-                  className="media-audio"
-                  style={{
-                    width: '100%',
-                    maxWidth: '300px'
-                  }}
-                />
+                <div>
+                  <audio
+                    src={message.mediaData}
+                    controls
+                    className="media-audio"
+                    style={{
+                      width: '100%',
+                      maxWidth: '300px'
+                    }}
+                  />
+                  <button
+                    onClick={() => handleDownload(message.mediaData, message.fileName || 'audio')}
+                    style={{
+                      display: 'inline-block',
+                      marginTop: '8px',
+                      backgroundColor: 'rgba(0,0,0,0.6)',
+                      color: '#fff',
+                      padding: '6px 12px',
+                      borderRadius: '15px',
+                      fontSize: '12px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.8)'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.6)'}
+                  >
+                    ⬇️ Descargar audio
+                  </button>
+                </div>
               ) : (
                 <div
                   className="file-message"
+                  onClick={() => handleDownload(message.mediaData, message.fileName || 'archivo')}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    padding: '8px',
+                    padding: '12px',
                     backgroundColor: 'rgba(255,255,255,0.1)',
                     borderRadius: '7.5px',
-                    border: '1px solid rgba(255,255,255,0.2)'
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
                   }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'}
                 >
-                  <div className="file-icon" style={{ fontSize: '20px' }}>📎</div>
-                  <div
-                    className="file-name"
-                    style={{
-                      color: '#e9edef',
-                      fontSize: '14px'
-                    }}
-                  >
-                    {message.fileName}
+                  <div className="file-icon" style={{ fontSize: '24px' }}>📎</div>
+                  <div style={{ flex: 1 }}>
+                    <div
+                      className="file-name"
+                      style={{
+                        color: '#e9edef',
+                        fontSize: '14px',
+                        fontWeight: '500'
+                      }}
+                    >
+                      {message.fileName}
+                    </div>
+                    {message.fileSize && (
+                      <div style={{ color: '#8696a0', fontSize: '12px', marginTop: '2px' }}>
+                        {(message.fileSize / 1024 / 1024).toFixed(2)} MB
+                      </div>
+                    )}
                   </div>
+                  <div style={{ color: '#00a884', fontSize: '20px' }}>⬇️</div>
                 </div>
               )}
             </div>
