@@ -230,8 +230,9 @@ const ChatPage = () => {
 
         if (data.mediaType) {
           newMessage.mediaType = data.mediaType;
-          newMessage.mediaData = data.mediaData;
+          newMessage.mediaData = data.mediaData; // URL del archivo
           newMessage.fileName = data.fileName;
+          newMessage.fileSize = data.fileSize;
         }
 
         addNewMessage(newMessage);
@@ -257,8 +258,9 @@ const ChatPage = () => {
 
         if (data.mediaType) {
           newMessage.mediaType = data.mediaType;
-          newMessage.mediaData = data.mediaData;
+          newMessage.mediaData = data.mediaData; // URL del archivo
           newMessage.fileName = data.fileName;
+          newMessage.fileSize = data.fileSize;
         }
 
         addNewMessage(newMessage);
@@ -711,22 +713,6 @@ const ChatPage = () => {
       console.error('Error al obtener usuarios de la sala:', error);
       alert('Error al obtener usuarios de la sala: ' + error.message);
     }
-  };
-
-  // Función auxiliar para convertir archivos a base64
-  const fileToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const MAX_FILE_SIZE = 50 * 1024 * 1024;
-      if (file.size > MAX_FILE_SIZE) {
-        reject(new Error('El archivo es demasiado grande. Máximo 50MB.'));
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = error => reject(error);
-      reader.readAsDataURL(file);
-    });
   };
 
   const handleEnableSounds = async () => {
