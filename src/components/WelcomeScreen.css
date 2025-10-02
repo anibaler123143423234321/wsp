@@ -1,0 +1,253 @@
+.welcome-screen-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  background: #ffffff;
+  padding: 40px;
+  box-sizing: border-box;
+}
+
+.welcome-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 900px;
+  width: 100%;
+  animation: fadeIn 0.6s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.welcome-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  gap: 12px;
+}
+
+.welcome-logo {
+  animation: slideDown 0.8s ease-out;
+  margin-bottom: 0;
+}
+
+.welcome-bottom {
+  display: flex;
+  gap: 40px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 20px;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.logo-image {
+  height: 100px;
+  width: auto;
+  filter: drop-shadow(0 4px 12px rgba(220, 38, 38, 0.2));
+}
+
+.welcome-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: #1f2937;
+  margin: 0;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  text-align: center;
+  animation: fadeIn 1s ease-in-out 0.2s both;
+}
+
+.welcome-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 340px;
+}
+
+.welcome-option {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 22px;
+  background: #f9fafb;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  animation: slideIn 0.6s ease-out both;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+}
+
+.welcome-option:nth-child(1) {
+  animation-delay: 0.3s;
+}
+
+.welcome-option:nth-child(2) {
+  animation-delay: 0.4s;
+}
+
+.welcome-option:nth-child(3) {
+  animation-delay: 0.5s;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.welcome-option:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.12);
+  background: white;
+}
+
+.option-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  box-shadow: 0 3px 10px rgba(220, 38, 38, 0.25);
+}
+
+.option-text {
+  font-size: 14px;
+  color: #374151;
+  font-weight: 500;
+  text-align: left;
+}
+
+.welcome-image {
+  animation: fadeIn 1s ease-in-out 0.6s both;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.teleoperadora-image {
+  width: 320px;
+  height: 320px;
+  object-fit: cover;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(220, 38, 38, 0.2);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .welcome-bottom {
+    flex-direction: column;
+    gap: 30px;
+  }
+
+  .teleoperadora-image {
+    width: 280px;
+    height: 280px;
+  }
+}
+
+@media (max-width: 768px) {
+  .welcome-screen-container {
+    padding: 20px;
+  }
+
+  .welcome-title {
+    font-size: 26px;
+  }
+
+  .logo-image {
+    height: 70px;
+  }
+
+  .welcome-options {
+    gap: 10px;
+    max-width: 100%;
+  }
+
+  .welcome-option {
+    padding: 14px 18px;
+  }
+
+  .option-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+
+  .option-text {
+    font-size: 13px;
+  }
+
+  .teleoperadora-image {
+    width: 240px;
+    height: 240px;
+  }
+}
+
+@media (max-width: 480px) {
+  .welcome-title {
+    font-size: 22px;
+  }
+
+  .logo-image {
+    height: 60px;
+  }
+
+  .welcome-option {
+    padding: 12px 16px;
+    gap: 12px;
+  }
+
+  .option-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+
+  .option-text {
+    font-size: 12px;
+  }
+
+  .teleoperadora-image {
+    width: 200px;
+    height: 200px;
+  }
+}
+

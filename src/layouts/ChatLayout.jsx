@@ -74,6 +74,7 @@ const ChatLayout = ({
               showSidebar={showSidebar}
               soundsEnabled={soundsEnabled}
               onEnableSounds={onEnableSounds}
+              userPicture={user?.picture}
             />
         
         <ChatContent

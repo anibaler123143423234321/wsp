@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { FaUser, FaUsers, FaPaperclip, FaMicrophone, FaMicrophoneSlash, FaComments, FaStop } from 'react-icons/fa';
 import LoadMoreMessages from './LoadMoreMessages';
+import WelcomeScreen from './WelcomeScreen';
 import './ChatContent.css';
 import backgroundImage from '../assets/login.png';
 
@@ -149,10 +150,33 @@ const ChatContent = ({
         style={{
           display: 'flex',
           justifyContent: isOwnMessage ? 'flex-end' : 'flex-start',
+          alignItems: 'flex-end',
           margin: '4px 0',
-          padding: '0 16px'
+          padding: '0 16px',
+          gap: '8px'
         }}
       >
+        {/* Avatar para mensajes de otros */}
+        {!isOwnMessage && (
+          <div
+            className="message-avatar"
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '14px',
+              flexShrink: 0,
+              marginBottom: '2px'
+            }}
+          >
+            {message.sender?.charAt(0).toUpperCase() || '👤'}
+          </div>
+        )}
+
         <div
           className="message-content"
           style={{
@@ -296,8 +320,8 @@ const ChatContent = ({
     return (
       <div className="chat-content">
         <div className="welcome-screen">
-          <div className="welcome-icon"> <FaComments size={40} color="#00a884"/></div>
-          <div className="welcome-title" style={{color: '#00a884', fontSize: '20px', fontWeight: 'bold'}}>Bienvenido al Chat</div>
+          <div className="welcome-icon">💬</div>
+          <div className="welcome-title">Bienvenido al Chat</div>
           <div className="welcome-subtitle">
             Selecciona un chat para comenzar a conversar
           </div>
@@ -321,6 +345,14 @@ const ChatContent = ({
           isLoadingMore={isLoadingMore}
           onLoadMore={onLoadMoreMessages}
         />
+
+        {/* Separador de fecha */}
+        {messages.length > 0 && (
+          <div className="date-separator">
+            <div className="date-separator-content">Hoy</div>
+          </div>
+        )}
+
         {messages.map((message, index) => renderMessage(message, index))}
       </div>
 
@@ -359,15 +391,6 @@ const ChatContent = ({
         )}
         
         <div className="input-group">
-          <input
-            type="text"
-            className="message-input"
-            placeholder={`Escribe un mensaje${isGroup ? ` en ${to}` : ''}`}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && onSendMessage()}
-          />
-          
           <label className="btn-icon" title="Adjuntar archivos (máx. 5)">
             <input
               type="file"
@@ -385,7 +408,7 @@ const ChatContent = ({
               onClick={onStopRecording}
               title="Detener grabación"
             >
-              <FaStop />
+              ⏹️
             </button>
           ) : (
             <button
@@ -393,7 +416,7 @@ const ChatContent = ({
               onClick={onRecordAudio}
               title="Grabar audio"
             >
-              <FaMicrophone />
+              🎤
             </button>
           )}
           
@@ -401,8 +424,9 @@ const ChatContent = ({
             onClick={onSendMessage}
             className="btn btn-primary"
             disabled={!input && mediaFiles.length === 0}
+            style={{ color: '#A50104', background: 'transparent', border: 'none' }}
           >
-            Enviar
+            Enviar mensaje
           </button>
         </div>
       </div>

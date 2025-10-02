@@ -13,7 +13,8 @@ const ChatHeader = ({
   onToggleMenu,
   showSidebar,
   soundsEnabled,
-  onEnableSounds
+  onEnableSounds,
+  userPicture
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   console.log(showSidebar);
@@ -72,7 +73,9 @@ const ChatHeader = ({
     return { text, isUrgent };
   };
 
+  // No mostrar el header si no hay chat seleccionado
   if (!to) {
+<<<<<<< HEAD
     return (
       <div className="chat-header">
         <div className="chat-header-content">
@@ -104,12 +107,16 @@ const ChatHeader = ({
         </div>
       </div>
     );
+=======
+    return null;
+>>>>>>> b37357b (mejoras de estilos profesionales)
   }
 
   return (
     <div className="chat-header">
       <div className="chat-header-content">
         <div className="chat-header-info">
+<<<<<<< HEAD
           <div className="chat-title">
             {isGroup ? (
               <>
@@ -143,27 +150,73 @@ const ChatHeader = ({
                     );
                   })()}
                 </>
+=======
+          {/* Avatar */}
+          {userPicture ? (
+            <img src={userPicture} alt={to} className="chat-avatar-img" />
+          ) : (
+            <div className="chat-avatar">
+              {isGroup ? '👥' : '👤'}
+            </div>
+          )}
+
+          {/* Información del usuario/grupo */}
+          <div className="chat-user-info">
+            <div className="chat-title">
+              {to}
+              {isGroup && currentRoomCode && (
+                <span className="room-code">• {currentRoomCode}</span>
+              )}
+            </div>
+            <div className="chat-subtitle">
+              {isGroup ? (
+                currentRoomCode ? (
+                  <>
+                    Sala temporal • {roomUsers.length} miembro{roomUsers.length !== 1 ? 's' : ''}
+                    {roomDuration && (
+                      <span className="room-duration"> • Duración: {formatDuration(roomDuration)}</span>
+                    )}
+                    {roomExpiresAt && (() => {
+                      const expiration = formatExpirationDate(roomExpiresAt);
+                      return (
+                        <span className={`room-expiration ${expiration.isUrgent ? 'urgent' : ''}`}>
+                          • {expiration.text}
+                        </span>
+                      );
+                    })()}
+                  </>
+                ) : (
+                  `Grupo • ${roomUsers.length} miembro${roomUsers.length !== 1 ? 's' : ''}`
+                )
+>>>>>>> b37357b (mejoras de estilos profesionales)
               ) : (
-                `Grupo • ${roomUsers.length} miembro${roomUsers.length !== 1 ? 's' : ''}`
-              )
-            ) : (
-              'En línea'
-            )}
+                'Online'
+              )}
+            </div>
           </div>
         </div>
-        
-        {isGroup && currentRoomCode && (
-          <div className="chat-header-actions">
-            <button 
-              className="leave-room-btn" 
+
+        {/* Botones de acción */}
+        <div className="chat-header-actions">
+          {/* Botones de video e info */}
+          <button className="header-icon-btn" title="Videollamada">
+            📹
+          </button>
+          <button className="header-icon-btn" title="Información">
+            ℹ️
+          </button>
+
+          {isGroup && currentRoomCode && (
+            <button
+              className="leave-room-btn"
               onClick={onLeaveRoom}
               title="Salir de la sala"
             >
               <span className="leave-icon"><FaSignOutAlt /></span>
               <span className="leave-text">Salir</span>
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
