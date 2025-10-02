@@ -214,6 +214,50 @@
   color: #1f2937;
 }
 
+/* Botón unirse a sala en columna izquierda */
+.join-room-btn-left {
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  color: #1f2937;
+  border: none;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0px;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+}
+
+.join-room-btn-left:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.join-room-btn-left:active {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.join-icon-left {
+  font-size: 16px;
+  color: #1f2937;
+}
+
+.join-text-left {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0px;
+  color: #1f2937;
+}
+
 .search-section {
   padding: 12px 16px;
   background: #ffffff;
@@ -471,12 +515,19 @@
 .settings-btn:hover,
 .logout-btn-icon:hover {
   background: #f3f4f6;
+  color: #374151;
+}
+
+.settings-btn:active,
+.logout-btn-icon:active {
+  background: #e5e7eb;
+  transform: scale(0.95);
 }
 
 .settings-icon,
 .logout-icon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 /* Responsive */

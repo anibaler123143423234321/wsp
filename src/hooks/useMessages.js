@@ -5,6 +5,7 @@ export const useMessages = () => {
   const [input, setInput] = useState("");
   const [mediaFiles, setMediaFiles] = useState([]);
   const [mediaPreviews, setMediaPreviews] = useState([]);
+  const [uploadedFiles, setUploadedFiles] = useState([]); // URLs de archivos subidos
   const [isRecording, setIsRecording] = useState(false);
   const messageSound = useRef(null);
 
@@ -58,6 +59,7 @@ export const useMessages = () => {
           name: files[index].name,
           type: files[index].type.split("/")[0],
           data: data,
+          size: files[index].size, // Guardar el tamaño del archivo
         }));
         setMediaPreviews(previews);
       })
@@ -77,6 +79,7 @@ export const useMessages = () => {
   const cancelMediaUpload = () => {
     setMediaFiles([]);
     setMediaPreviews([]);
+    setUploadedFiles([]);
   };
 
   const addMessage = useCallback((message) => {
@@ -99,6 +102,8 @@ export const useMessages = () => {
     setInput,
     mediaFiles,
     mediaPreviews,
+    uploadedFiles,
+    setUploadedFiles,
     isRecording,
     setIsRecording,
     messageSound,

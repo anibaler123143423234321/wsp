@@ -26,28 +26,28 @@
     padding: 8px 4px;
   }
   .input-group {
-    padding: 6px 8px;
-    gap: 6px;
-    font-size: 13px;
-  }
-  .btn,
-  .btn-primary,
-  .btn-secondary,
-  .btn-danger {
-    min-width: 60px;
-    height: 36px;
-    font-size: 12px;
-    padding: 6px 10px;
-  }
-  .btn-icon {
-    width: 32px;
-    height: 32px;
-    font-size: 15px;
-    padding: 6px;
+    padding: 6px 12px;
+    gap: 8px;
+    height: 45px;
   }
   .message-input {
     font-size: 13px;
     padding: 8px 0;
+  }
+  .btn-send {
+    font-size: 12px;
+  }
+  .send-text {
+    display: none;
+  }
+  .send-icon {
+    display: inline;
+    width: 16px;
+    height: 16px;
+  }
+  .attach-icon {
+    width: 16px;
+    height: 16px;
   }
 }
 
@@ -78,28 +78,28 @@
     padding: 4px 1px;
   }
   .input-group {
-    padding: 3px 4px;
-    gap: 3px;
-    font-size: 11px;
-  }
-  .btn,
-  .btn-primary,
-  .btn-secondary,
-  .btn-danger {
-    min-width: 40px;
-    height: 28px;
-    font-size: 10px;
-    padding: 3px 6px;
-  }
-  .btn-icon {
-    width: 24px;
-    height: 24px;
-    font-size: 12px;
-    padding: 3px;
+    padding: 6px 10px;
+    gap: 6px;
+    height: 40px;
   }
   .message-input {
-    font-size: 11px;
+    font-size: 12px;
     padding: 4px 0;
+  }
+  .btn-send {
+    font-size: 11px;
+  }
+  .send-text {
+    display: none;
+  }
+  .send-icon {
+    display: inline;
+    width: 14px;
+    height: 14px;
+  }
+  .attach-icon {
+    width: 14px;
+    height: 14px;
   }
 }
 /* Estilos del contenido del chat */
@@ -402,7 +402,8 @@
   transition: all 0.2s ease;
   width: 100%;
   max-width: 100%;
-  height: 51.33px;
+  min-height: 51.33px;
+  height: auto;
 }
 
 .input-group:hover {
@@ -439,29 +440,31 @@
   letter-spacing: 0%;
 }
 
-.btn-icon {
+/* Botón de adjuntar */
+.btn-attach {
   background: transparent;
   border: none;
   color: #6b7280;
-  font-size: 16px;
   cursor: pointer;
   padding: 0;
-  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
-  width: 14.05px;
-  height: 16.05px;
   flex-shrink: 0;
 }
 
-.btn-icon:hover {
+.btn-attach:hover {
   color: #374151;
 }
 
-.btn-icon:active {
+.btn-attach:active {
   transform: scale(0.95);
+}
+
+.attach-icon {
+  width: 18px;
+  height: 18px;
 }
 
 .btn {
@@ -479,28 +482,49 @@
   height: auto;
 }
 
-.btn-primary {
+/* Botón de enviar */
+.btn-send {
   background: transparent;
   color: #A50104;
-  box-shadow: none;
+  border: none;
   padding: 0;
   min-width: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
-.btn-primary:hover:not(:disabled) {
+.btn-send:hover:not(:disabled) {
   color: #8a0103;
   text-decoration: underline;
 }
 
-.btn-primary:active {
+.btn-send:active {
   transform: scale(0.98);
 }
 
-.btn-primary:disabled {
+.btn-send:disabled {
   color: #d1d5db;
   cursor: not-allowed;
   transform: none;
   text-decoration: none;
+}
+
+.send-text {
+  display: inline;
+}
+
+.send-icon {
+  width: 16px;
+  height: 16px;
+  display: none;
 }
 
 .btn-secondary {
@@ -625,7 +649,7 @@
 
   .input-group {
     padding: 10px 16px;
-    gap: 10px;
+    gap: 12px;
   }
 
   .message-input {
@@ -633,17 +657,23 @@
     padding: 8px 0;
   }
 
-  .btn {
-    padding: 8px 16px;
+  .btn-send {
     font-size: 13px;
-    min-width: 70px;
-    height: 40px;
   }
 
-  .btn-icon {
-    width: 36px;
-    height: 36px;
-    padding: 8px;
+  .send-text {
+    display: none;
+  }
+
+  .send-icon {
+    display: inline;
+    width: 18px;
+    height: 18px;
+  }
+
+  .attach-icon {
+    width: 20px;
+    height: 20px;
   }
 
   .welcome-screen {
@@ -657,5 +687,74 @@
   .welcome-subtitle,
   .welcome-description {
     font-size: 14px;
+  }
+}
+
+/* Estilos adicionales para móviles pequeños */
+@media (max-width: 480px) {
+  .input-group {
+    padding: 6px 12px;
+    gap: 8px;
+    min-height: 42px;
+    border-radius: 25px;
+  }
+
+  .message-input {
+    font-size: 13px;
+  }
+
+  .btn-send {
+    font-size: 12px;
+    gap: 6px;
+  }
+
+  .send-text {
+    display: none;
+  }
+
+  .send-icon {
+    display: inline;
+    width: 16px;
+    height: 16px;
+  }
+
+  .attach-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .chat-input-container {
+    padding: 10px 12px;
+  }
+}
+
+/* Estilos para pantallas muy pequeñas */
+@media (max-width: 360px) {
+  .input-group {
+    padding: 5px 10px;
+    gap: 6px;
+    min-height: 38px;
+  }
+
+  .message-input {
+    font-size: 12px;
+  }
+
+  .btn-send {
+    font-size: 11px;
+  }
+
+  .send-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .attach-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .chat-input-container {
+    padding: 8px 10px;
   }
 }

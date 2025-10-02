@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import apiService from "../apiService";
 
-export const useMessagePagination = (roomCode, username) => {
+export const useMessagePagination = (roomCode, username, to = null, isGroup = false) => {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
@@ -12,17 +12,33 @@ export const useMessagePagination = (roomCode, username) => {
 
   // Cargar mensajes iniciales (más recientes)
   const loadInitialMessages = useCallback(async () => {
-    if (!roomCode) return;
+    // Si es un grupo, necesitamos roomCode
+    // Si es individual, necesitamos 'to'
+    if (isGroup && !roomCode) return;
+    if (!isGroup && !to) return;
 
     setIsLoading(true);
     currentOffset.current = 0;
 
     try {
-      const historicalMessages = await apiService.getRoomMessages(
-        roomCode,
-        MESSAGES_PER_PAGE,
-        0
-      );
+      let historicalMessages;
+
+      if (isGroup) {
+        // Cargar mensajes de sala/grupo
+        historicalMessages = await apiService.getRoomMessages(
+          roomCode,
+          MESSAGES_PER_PAGE,
+          0
+        );
+      } else {
+        // Cargar mensajes entre usuarios (incluyendo mensajes a ti mismo)
+        historicalMessages = await apiService.getUserMessages(
+          username,
+          to,
+          MESSAGES_PER_PAGE,
+          0
+        );
+      }
 
       // Verificar si hay error en la respuesta
       if (
@@ -50,8 +66,9 @@ export const useMessagePagination = (roomCode, username) => {
         isSent: msg.from === username,
         isSelf: msg.from === username,
         mediaType: msg.mediaType,
-        mediaData: msg.mediaData,
+        mediaData: msg.mediaData, // Ahora es URL en lugar de Base64
         fileName: msg.fileName,
+        fileSize: msg.fileSize, // Tamaño del archivo en bytes
         id: msg.id,
         sentAt: msg.sentAt,
       }));
@@ -71,20 +88,36 @@ export const useMessagePagination = (roomCode, username) => {
     } finally {
       setIsLoading(false);
     }
-  }, [roomCode, username]);
+  }, [roomCode, username, to, isGroup]);
 
   // Cargar más mensajes antiguos (paginación estilo WhatsApp)
   const loadMoreMessages = useCallback(async () => {
-    if (!roomCode || !hasMoreMessages || isLoadingMore) return;
+    // Validar según el tipo de conversación
+    if (isGroup && !roomCode) return;
+    if (!isGroup && !to) return;
+    if (!hasMoreMessages || isLoadingMore) return;
 
     setIsLoadingMore(true);
 
     try {
-      const historicalMessages = await apiService.getRoomMessages(
-        roomCode,
-        MESSAGES_PER_PAGE,
-        currentOffset.current
-      );
+      let historicalMessages;
+
+      if (isGroup) {
+        // Cargar más mensajes de sala/grupo
+        historicalMessages = await apiService.getRoomMessages(
+          roomCode,
+          MESSAGES_PER_PAGE,
+          currentOffset.current
+        );
+      } else {
+        // Cargar más mensajes entre usuarios
+        historicalMessages = await apiService.getUserMessages(
+          username,
+          to,
+          MESSAGES_PER_PAGE,
+          currentOffset.current
+        );
+      }
 
       // Verificar si hay error en la respuesta
       if (
@@ -117,8 +150,9 @@ export const useMessagePagination = (roomCode, username) => {
         isSent: msg.from === username,
         isSelf: msg.from === username,
         mediaType: msg.mediaType,
-        mediaData: msg.mediaData,
+        mediaData: msg.mediaData, // Ahora es URL en lugar de Base64
         fileName: msg.fileName,
+        fileSize: msg.fileSize, // Tamaño del archivo en bytes
         id: msg.id,
         sentAt: msg.sentAt,
       }));
@@ -137,7 +171,7 @@ export const useMessagePagination = (roomCode, username) => {
     } finally {
       setIsLoadingMore(false);
     }
-  }, [roomCode, username, hasMoreMessages, isLoadingMore]);
+  }, [roomCode, username, to, isGroup, hasMoreMessages, isLoadingMore]);
 
   // Agregar nuevo mensaje (para mensajes en tiempo real)
   const addNewMessage = useCallback((message) => {
@@ -197,12 +231,15 @@ export const useMessagePagination = (roomCode, username) => {
     currentOffset.current = 0;
   }, []);
 
-  // Limpiar mensajes cuando cambie el roomCode
+  // Limpiar mensajes cuando cambie el roomCode o el destinatario
   useEffect(() => {
-    if (!roomCode) {
+    // Solo limpiar si realmente no hay contexto válido
+    const shouldClear = (isGroup && !roomCode) || (!isGroup && !to);
+    if (shouldClear) {
       clearMessages();
     }
-  }, [roomCode, clearMessages]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomCode, to, isGroup]);
 
   return {
     messages,

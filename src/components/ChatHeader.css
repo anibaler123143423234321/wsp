@@ -55,35 +55,12 @@
 }
 
 
-.menu-toggle-btn {
-  background: none;
-  border: none;
-  padding: 8px 12px;
-  cursor: pointer;
+.chat-header-info {
   display: flex;
   align-items: center;
-<<<<<<< HEAD
-  transition: background 0.2s;
-}
-.menu-toggle-btn.open {
-  background: #232e35;
-}
-.menu-icon {
-  display: flex;
-  align-items: center;
-  font-size: 1.25rem;
-  transition: transform 0.3s cubic-bezier(.4,2,.3,1), color 0.2s;
-}
-.menu-icon .menu-arrow {
-  font-size: 1.5rem;
-  margin-left: 2px;
-  transition: transform 0.3s cubic-bezier(.4,2,.3,1);
-}
-.menu-icon.open .menu-arrow {
-  transform: rotate(-180deg);
-  color: #00a884;
-=======
   gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
 
 /* Avatar del usuario/grupo */
@@ -116,7 +93,6 @@
   flex-direction: column;
   justify-content: center;
   gap: 2px;
->>>>>>> b37357b (mejoras de estilos profesionales)
 }
 
 /* Indicador de estado de conexión */
@@ -526,5 +502,144 @@
 
   .sound-icon {
     font-size: 16px;
+  }
+
+  /* Ajustes para avatar y texto */
+  .chat-avatar,
+  .chat-avatar-img {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+
+  .chat-title {
+    font-size: 15px;
+  }
+
+  .chat-subtitle {
+    font-size: 12px;
+  }
+
+  .room-code {
+    font-size: 10px;
+    padding: 1px 4px;
+  }
+
+  .chat-header-content {
+    padding: 0 12px;
+    gap: 10px;
+  }
+
+  .chat-header-info {
+    gap: 10px;
+  }
+
+  .header-icon-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+
+  .leave-room-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .leave-text {
+    display: none;
+  }
+}
+
+/* Responsive para móviles */
+@media (max-width: 480px) {
+  .chat-header {
+    height: 56px;
+  }
+
+  .chat-header-content {
+    padding: 0 10px;
+    gap: 8px;
+  }
+
+  .chat-header-info {
+    gap: 8px;
+  }
+
+  .chat-avatar,
+  .chat-avatar-img {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+
+  .chat-title {
+    font-size: 14px;
+  }
+
+  .chat-subtitle {
+    font-size: 11px;
+  }
+
+  .room-code {
+    display: none;
+  }
+
+  .header-icon-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+
+  .leave-room-btn {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+
+  .leave-icon {
+    font-size: 12px;
+  }
+}
+
+/* Responsive para pantallas muy pequeñas */
+@media (max-width: 360px) {
+  .chat-header {
+    height: 52px;
+  }
+
+  .chat-header-content {
+    padding: 0 8px;
+    gap: 6px;
+  }
+
+  .chat-header-info {
+    gap: 6px;
+  }
+
+  .chat-avatar,
+  .chat-avatar-img {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+
+  .chat-title {
+    font-size: 13px;
+  }
+
+  .chat-subtitle {
+    font-size: 10px;
+  }
+
+  .header-icon-btn {
+    display: none;
+  }
+
+  .leave-room-btn {
+    padding: 4px 6px;
+    font-size: 10px;
+  }
+
+  .chat-header-actions {
+    gap: 4px;
   }
 }

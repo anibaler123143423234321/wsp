@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { FaVolumeUp, FaUsers, FaUser, FaSignOutAlt, FaBars, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { useState, useEffect } from 'react';
+import { FaSignOutAlt } from 'react-icons/fa';
 import './ChatHeader.css';
 
 const ChatHeader = ({
@@ -10,14 +10,9 @@ const ChatHeader = ({
   roomDuration,
   roomExpiresAt,
   onLeaveRoom,
-  onToggleMenu,
-  showSidebar,
-  soundsEnabled,
-  onEnableSounds,
   userPicture
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
-  console.log(showSidebar);
   // Actualizar el tiempo cada minuto para refrescar el contador de expiración
   useEffect(() => {
     const interval = setInterval(() => {
@@ -75,82 +70,13 @@ const ChatHeader = ({
 
   // No mostrar el header si no hay chat seleccionado
   if (!to) {
-<<<<<<< HEAD
-    return (
-      <div className="chat-header">
-        <div className="chat-header-content">
-          <div className="chat-header-info" style={{justifyContent: 'space-between', alignItems: 'center',display: 'flex' , width: '100%'}}>
-            <button 
-              className={`menu-toggle-btn${showSidebar ? ' open' : ''}`}
-              onClick={onToggleMenu}
-              title={showSidebar ? "Ocultar menú de usuarios" : "Mostrar menú de usuarios"}
-              aria-label={showSidebar ? "Ocultar menú de usuarios" : "Mostrar menú de usuarios"}
-              aria-expanded={showSidebar}
-            >
-              <span className={`menu-icon${showSidebar ? ' open' : ''}`} aria-hidden="true" >
-                 {showSidebar ? <FaChevronLeft /> : <FaChevronRight />}
-              </span>
-            </button>
-            
-            {!soundsEnabled && (
-              <button 
-                className="enable-sounds-btn"
-                onClick={onEnableSounds}
-                title="Habilitar sonidos de notificación"
-                aria-label="Habilitar sonidos de notificación"
-              >
-                <span className="sound-icon"><FaVolumeUp /></span>
-                <span className="sound-text">Habilitar sonidos</span>
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-=======
     return null;
->>>>>>> b37357b (mejoras de estilos profesionales)
   }
 
   return (
     <div className="chat-header">
       <div className="chat-header-content">
         <div className="chat-header-info">
-<<<<<<< HEAD
-          <div className="chat-title">
-            {isGroup ? (
-              <>
-                <span className="group-icon"><FaUsers /></span>
-                {to}
-                {currentRoomCode && (
-                  <span className="room-code">• Código: {currentRoomCode}</span>
-                )}
-              </>
-            ) : (
-              <>
-                <span className="user-icon"><FaUser /></span>
-                {to}
-              </>
-            )}
-          </div>
-          <div className="chat-subtitle">
-            {isGroup ? (
-              currentRoomCode ? (
-                <>
-                  Sala temporal • {roomUsers.length} miembro{roomUsers.length !== 1 ? 's' : ''}
-                  {roomDuration && (
-                    <span className="room-duration"> • Duración: {formatDuration(roomDuration)}</span>
-                  )}
-                  {roomExpiresAt && (() => {
-                    const expiration = formatExpirationDate(roomExpiresAt);
-                    return (
-                      <span className={`room-expiration ${expiration.isUrgent ? 'urgent' : ''}`}>
-                        • {expiration.text}
-                      </span>
-                    );
-                  })()}
-                </>
-=======
           {/* Avatar */}
           {userPicture ? (
             <img src={userPicture} alt={to} className="chat-avatar-img" />
@@ -188,7 +114,6 @@ const ChatHeader = ({
                 ) : (
                   `Grupo • ${roomUsers.length} miembro${roomUsers.length !== 1 ? 's' : ''}`
                 )
->>>>>>> b37357b (mejoras de estilos profesionales)
               ) : (
                 'Online'
               )}

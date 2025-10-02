@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { FaUser, FaUsers, FaPaperclip, FaMicrophone, FaMicrophoneSlash, FaComments, FaStop } from 'react-icons/fa';
+import { useEffect, useRef } from 'react';
+import { FaPaperclip, FaPaperPlane } from 'react-icons/fa';
 import LoadMoreMessages from './LoadMoreMessages';
 import WelcomeScreen from './WelcomeScreen';
 import './ChatContent.css';
@@ -28,6 +28,19 @@ const ChatContent = ({
   const chatHistoryRef = useRef(null);
   const isUserScrollingRef = useRef(false);
   const lastMessageCountRef = useRef(0);
+
+  // Manejar cambio de input
+  const handleInputChange = (e) => {
+    setInput(e.target.value);
+  };
+
+  // Manejar tecla Enter
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      onSendMessage();
+    }
+  };
 
 
   // Scroll automático al final para mensajes nuevos (estilo WhatsApp)
@@ -391,7 +404,7 @@ const ChatContent = ({
         )}
         
         <div className="input-group">
-          <label className="btn-icon" title="Adjuntar archivos (máx. 5)">
+          <label className="btn-attach" title="Adjuntar archivos (máx. 5)">
             <input
               type="file"
               multiple
@@ -399,34 +412,27 @@ const ChatContent = ({
               onChange={onFileSelect}
               style={{ display: 'none' }}
             />
-            <FaPaperclip />
+            <FaPaperclip className="attach-icon" />
           </label>
-          
-          {isRecording ? (
-            <button
-              className="btn btn-danger"
-              onClick={onStopRecording}
-              title="Detener grabación"
-            >
-              ⏹️
-            </button>
-          ) : (
-            <button
-              className="btn btn-secondary"
-              onClick={onRecordAudio}
-              title="Grabar audio"
-            >
-              🎤
-            </button>
-          )}
-          
+
+          <input
+            type="text"
+            value={input}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyPress}
+            placeholder="Escribe tu mensaje aquí."
+            className="message-input"
+            disabled={isRecording}
+          />
+
           <button
             onClick={onSendMessage}
-            className="btn btn-primary"
+            className="btn-send"
             disabled={!input && mediaFiles.length === 0}
-            style={{ color: '#A50104', background: 'transparent', border: 'none' }}
+            title="Enviar mensaje"
           >
-            Enviar mensaje
+            <span className="send-text">Enviar mensaje</span>
+            <FaPaperPlane className="send-icon" />
           </button>
         </div>
       </div>

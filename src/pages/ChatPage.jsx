@@ -48,7 +48,7 @@ const ChatPage = () => {
     loadMoreMessages,
     addNewMessage,
     clearMessages
-  } = useMessagePagination(currentRoomCode, username);
+  } = useMessagePagination(currentRoomCode, username, to, isGroup);
 
   // Estados adicionales del chat
   const [roomDuration, setRoomDuration] = useState(null);
@@ -152,12 +152,19 @@ const ChatPage = () => {
     }
       }, [isAuthenticated, username, socket]);
 
-  // Cargar mensajes cuando cambie currentRoomCode
+  // Cargar mensajes cuando cambie currentRoomCode (para grupos/salas)
   useEffect(() => {
-    if (currentRoomCode && username) {
+    if (currentRoomCode && username && isGroup) {
       loadInitialMessages();
     }
-  }, [currentRoomCode, username, loadInitialMessages]);
+  }, [currentRoomCode, username, isGroup, loadInitialMessages]);
+
+  // Cargar mensajes cuando cambie 'to' (para conversaciones individuales)
+  useEffect(() => {
+    if (to && username && !isGroup && !currentRoomCode) {
+      loadInitialMessages();
+    }
+  }, [to, username, isGroup, currentRoomCode, loadInitialMessages]);
 
   // WebSocket listeners
   useEffect(() => {
@@ -449,33 +456,63 @@ const ChatPage = () => {
         messageObj.message = input;
       }
 
+      // 🔥 NUEVO: Subir archivo al servidor primero
       if (mediaFiles.length === 1) {
         try {
           const file = mediaFiles[0];
-          const base64Data = await fileToBase64(file);
+          console.log('📤 Subiendo archivo al servidor:', file.name);
+
+          // Subir archivo y obtener URL
+          const uploadResult = await apiService.uploadFile(file, 'chat');
+
           messageObj.mediaType = file.type.split('/')[0];
-          messageObj.mediaData = base64Data;
-          messageObj.fileName = file.name;
+          messageObj.mediaData = uploadResult.fileUrl; // ✅ Ahora es URL, no base64
+          messageObj.fileName = uploadResult.fileName;
+          messageObj.fileSize = uploadResult.fileSize;
+
+          console.log('✅ Archivo subido exitosamente:', uploadResult.fileUrl);
         } catch (error) {
-          console.error('Error al convertir archivo a base64:', error);
-          alert('Error al procesar el archivo. Inténtalo de nuevo.');
+          console.error('❌ Error al subir archivo:', error);
+          alert('Error al subir el archivo. Inténtalo de nuevo.');
           return;
         }
       }
 
       if (to === username) {
+        // Mensaje a ti mismo - guardar en BD y mostrar localmente
         const newMessage = {
           sender: 'Tú',
           receiver: username,
-          text: input || (mediaFiles.length === 1 ? `📎 ${mediaFiles[0].name}` : ''),
+          text: input || (messageObj.fileName ? `📎 ${messageObj.fileName}` : ''),
           time: timeString,
           isSent: true,
           isSelf: true,
-          mediaType: mediaFiles.length === 1 ? mediaFiles[0].type.split('/')[0] : null,
-          mediaData: mediaFiles.length === 1 ? await fileToBase64(mediaFiles[0]) : null,
-          fileName: mediaFiles.length === 1 ? mediaFiles[0].name : null
+          mediaType: messageObj.mediaType || null,
+          mediaData: messageObj.mediaData || null, // Ahora es URL
+          fileName: messageObj.fileName || null,
+          fileSize: messageObj.fileSize || null
         };
-        
+
+        // Guardar en la base de datos
+        try {
+          await apiService.createMessage({
+            from: username,
+            fromId: user.id,
+            to: username,
+            message: input,
+            isGroup: false,
+            mediaType: newMessage.mediaType,
+            mediaData: newMessage.mediaData, // URL del archivo
+            fileName: newMessage.fileName,
+            fileSize: newMessage.fileSize,
+            time: timeString,
+            sentAt: new Date().toISOString()
+          });
+          console.log('✅ Mensaje personal guardado en BD');
+        } catch (error) {
+          console.error('❌ Error al guardar mensaje personal en BD:', error);
+        }
+
         addNewMessage(newMessage);
         clearInput();
         return;
@@ -501,11 +538,11 @@ const ChatPage = () => {
         isSent: true
       };
 
-      if (mediaFiles.length === 1) {
-        const preview = mediaPreviews[0];
-        newMessage.mediaType = preview.type;
-        newMessage.mediaData = preview.data;
-        newMessage.fileName = preview.name;
+      if (messageObj.mediaType) {
+        newMessage.mediaType = messageObj.mediaType;
+        newMessage.mediaData = messageObj.mediaData; // URL del archivo
+        newMessage.fileName = messageObj.fileName;
+        newMessage.fileSize = messageObj.fileSize;
       }
 
       addNewMessage(newMessage);

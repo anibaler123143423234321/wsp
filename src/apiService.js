@@ -11,9 +11,41 @@ class ApiService {
     this.baseUrl = API_BASE_URL;
     this.baseChatUrl = API_BASECHAT_URL;
 
-    // Debug: mostrar las URLs que se están usando
-    console.log("API_BASE_URL:", this.baseUrl);
-    console.log("API_BASECHAT_URL:", this.baseChatUrl);
+    // Debug: mostrar las URLs que se están usando (comentado para evitar logs duplicados)
+    // console.log("API_BASE_URL:", this.baseUrl);
+    // console.log("API_BASECHAT_URL:", this.baseChatUrl);
+  }
+
+  // Método para subir archivos al servidor
+  async uploadFile(file, category = 'chat') {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('category', category);
+
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${this.baseUrl}api/files/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al subir archivo');
+      }
+
+      const data = await response.json();
+      return {
+        fileUrl: data.fileUrl,
+        fileName: data.fileName,
+        fileSize: data.size,
+      };
+    } catch (error) {
+      console.error('❌ Error al subir archivo:', error);
+      throw error;
+    }
   }
 
   // Método para hacer login usando la API de Angular
@@ -419,6 +451,64 @@ class ApiService {
       return result;
     } catch (error) {
       console.error("Error al actualizar duración de la sala:", error);
+      throw error;
+    }
+  }
+
+  // Crear un mensaje
+  async createMessage(messageData) {
+    try {
+      const response = await fetch(`${API_BASECHAT_URL}api/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(messageData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `Error del servidor: ${response.status} - ${JSON.stringify(
+            errorData
+          )}`
+        );
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al crear mensaje:", error);
+      throw error;
+    }
+  }
+
+  // Obtener mensajes entre usuarios
+  async getUserMessages(from, to, limit = 50, offset = 0) {
+    try {
+      const response = await fetch(
+        `${API_BASECHAT_URL}api/messages/user/${from}/${to}?limit=${limit}&offset=${offset}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `Error del servidor: ${response.status} - ${JSON.stringify(
+            errorData
+          )}`
+        );
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al obtener mensajes entre usuarios:", error);
       throw error;
     }
   }
