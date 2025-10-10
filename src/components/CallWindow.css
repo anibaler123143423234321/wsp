@@ -1,0 +1,527 @@
+/* Ventana de llamada */
+.call-window {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  max-width: 90vw;
+  height: 500px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideIn 0.3s ease-out;
+}
+
+.call-window.fullscreen {
+  width: 100vw;
+  height: 100vh;
+  max-width: 100vw;
+  border-radius: 0;
+  top: 0;
+  left: 0;
+  transform: none;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -60%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* Header de la llamada */
+.call-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.call-info h3 {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+}
+
+.call-status {
+  color: #aaa;
+  font-size: 14px;
+  margin: 0;
+}
+
+.call-status-large {
+  color: #aaa;
+  font-size: 18px;
+  margin: 12px 0 0 0;
+}
+
+.call-header-buttons {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.fullscreen-btn,
+.close-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 18px;
+}
+
+.fullscreen-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.close-btn {
+  background: rgba(220, 38, 38, 0.8);
+}
+
+.close-btn:hover {
+  background: rgba(220, 38, 38, 1);
+  transform: scale(1.1);
+}
+
+/* Contenedor de video */
+.call-video-container {
+  flex: 1;
+  position: relative;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Video remoto (principal) */
+.remote-video-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.remote-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Placeholder cuando no hay video */
+.video-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.video-placeholder p {
+  color: #fff;
+  font-size: 18px;
+  margin-top: 16px;
+}
+
+/* Avatar grande */
+.avatar-large {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  font-weight: 600;
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Pantalla de llamada de audio */
+.audio-call-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+.audio-call-display h2 {
+  color: #fff;
+  font-size: 28px;
+  font-weight: 600;
+  margin: 20px 0 0 0;
+}
+
+/* Video local (miniatura) */
+.local-video-wrapper {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 150px;
+  height: 112px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  z-index: 10;
+}
+
+.local-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* Efecto espejo */
+}
+
+/* Controles de llamada */
+.call-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+}
+
+.control-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.control-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.1);
+}
+
+.control-btn.active {
+  background: rgba(255, 59, 48, 0.8);
+}
+
+.control-btn.active:hover {
+  background: rgba(255, 59, 48, 1);
+}
+
+/* Botón de finalizar llamada */
+.control-btn.end-call,
+.control-btn.reject-call {
+  background: rgba(255, 59, 48, 0.9);
+  width: 64px;
+  height: 64px;
+  font-size: 24px;
+}
+
+.control-btn.end-call:hover,
+.control-btn.reject-call:hover {
+  background: rgba(255, 59, 48, 1);
+  transform: scale(1.1);
+}
+
+/* Botón de aceptar llamada */
+.control-btn.accept-call {
+  background: rgba(52, 199, 89, 0.9);
+  width: 64px;
+  height: 64px;
+  font-size: 18px;
+  gap: 8px;
+}
+
+.control-btn.accept-call:hover {
+  background: rgba(52, 199, 89, 1);
+  transform: scale(1.1);
+}
+
+/* Botón de cerrar llamada finalizada */
+.control-btn.close-call {
+  background: rgba(100, 100, 100, 0.9);
+  padding: 12px 24px;
+  width: auto;
+  height: auto;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 12px;
+}
+
+.control-btn.close-call:hover {
+  background: rgba(120, 120, 120, 1);
+  transform: scale(1.05);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .call-window {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height para iOS */
+    max-width: 100vw;
+    border-radius: 0;
+    top: 0;
+    left: 0;
+    transform: none;
+  }
+
+  .call-header {
+    padding: 16px;
+    padding-top: max(16px, env(safe-area-inset-top));
+  }
+
+  .call-info h3 {
+    font-size: 16px;
+  }
+
+  .call-status {
+    font-size: 12px;
+  }
+
+  .fullscreen-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+
+  .local-video-wrapper {
+    width: 100px;
+    height: 75px;
+    top: max(10px, env(safe-area-inset-top) + 10px);
+    right: 10px;
+    border-radius: 8px;
+  }
+
+  .call-controls {
+    gap: 16px;
+    padding: 20px 16px;
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+
+  .control-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 18px;
+  }
+
+  .control-btn.end-call,
+  .control-btn.reject-call,
+  .control-btn.accept-call {
+    width: 56px;
+    height: 56px;
+    font-size: 16px;
+  }
+
+  .avatar-large {
+    width: 100px;
+    height: 100px;
+    font-size: 40px;
+  }
+
+  .audio-call-display h2 {
+    font-size: 24px;
+  }
+
+  .call-status-large {
+    font-size: 16px;
+  }
+}
+
+/* iPhone 15 y dispositivos con notch/Dynamic Island */
+@media (max-width: 430px) {
+  .call-window {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height para iOS */
+    max-width: 100vw;
+    border-radius: 0;
+    top: 0;
+    left: 0;
+    transform: none;
+  }
+
+  .call-header {
+    padding: max(16px, env(safe-area-inset-top)) 16px 16px 16px;
+    min-height: 60px;
+  }
+
+  .call-info h3 {
+    font-size: 15px;
+  }
+
+  .call-status {
+    font-size: 11px;
+  }
+
+  .fullscreen-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+
+  .local-video-wrapper {
+    width: 90px;
+    height: 68px;
+    top: max(12px, env(safe-area-inset-top) + 8px);
+    right: 12px;
+    border-radius: 8px;
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .call-controls {
+    gap: 12px;
+    padding: 16px 12px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom) + 8px);
+    min-height: 100px;
+  }
+
+  .control-btn {
+    width: 52px;
+    height: 52px;
+    font-size: 18px;
+  }
+
+  .control-btn.end-call,
+  .control-btn.reject-call {
+    width: 60px;
+    height: 60px;
+    font-size: 20px;
+  }
+
+  .control-btn.accept-call {
+    width: 60px;
+    height: 60px;
+    font-size: 14px;
+    padding: 0 8px;
+  }
+
+  .avatar-large {
+    width: 90px;
+    height: 90px;
+    font-size: 36px;
+  }
+
+  .audio-call-display h2 {
+    font-size: 20px;
+    margin: 16px 0 0 0;
+  }
+
+  .call-status-large {
+    font-size: 14px;
+    margin: 8px 0 0 0;
+  }
+
+  .video-placeholder p {
+    font-size: 16px;
+    margin-top: 12px;
+  }
+}
+
+/* iPhone SE y dispositivos pequeños */
+@media (max-width: 375px) {
+  .call-header {
+    padding: max(12px, env(safe-area-inset-top)) 12px 12px 12px;
+    min-height: 56px;
+  }
+
+  .call-info h3 {
+    font-size: 14px;
+  }
+
+  .call-status {
+    font-size: 10px;
+  }
+
+  .local-video-wrapper {
+    width: 80px;
+    height: 60px;
+    top: max(10px, env(safe-area-inset-top) + 6px);
+    right: 10px;
+  }
+
+  .call-controls {
+    gap: 10px;
+    padding: 14px 10px;
+    padding-bottom: max(14px, env(safe-area-inset-bottom) + 6px);
+    min-height: 90px;
+  }
+
+  .control-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 16px;
+  }
+
+  .control-btn.end-call,
+  .control-btn.reject-call {
+    width: 56px;
+    height: 56px;
+    font-size: 18px;
+  }
+
+  .control-btn.accept-call {
+    width: 56px;
+    height: 56px;
+    font-size: 13px;
+    padding: 0 6px;
+  }
+
+  .avatar-large {
+    width: 80px;
+    height: 80px;
+    font-size: 32px;
+  }
+
+  .audio-call-display h2 {
+    font-size: 18px;
+  }
+
+  .call-status-large {
+    font-size: 13px;
+  }
+}
+
+/* Animación de pulso para llamada entrante */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.call-window .control-btn.accept-call {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+

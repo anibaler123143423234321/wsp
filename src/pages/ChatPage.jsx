@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ChatLayout from '../layouts/ChatLayout';
 import Login from '../components/Login';
 import LoadingScreen from '../components/LoadingScreen';
@@ -7,11 +7,16 @@ import JoinRoomModal from '../components/modals/JoinRoomModal';
 import AdminRoomsModal from '../components/modals/AdminRoomsModal';
 import EditRoomModal from '../components/modals/EditRoomModal';
 import RoomCreatedModal from '../components/modals/RoomCreatedModal';
+import CreateConversationModal from '../components/modals/CreateConversationModal';
+import ManageAssignedConversationsModal from '../components/modals/ManageAssignedConversationsModal';
+import CallWindow from '../components/CallWindow';
 import { useAuth } from '../hooks/useAuth';
 import { useSocket } from '../hooks/useSocket';
 import { useMessages } from '../hooks/useMessages';
 import { useMessagePagination } from '../hooks/useMessagePagination';
+import { useWebRTC } from '../hooks/useWebRTC';
 import apiService from '../apiService';
+import { showSuccessAlert, showErrorAlert } from '../sweetalert2';
 
 const ChatPage = () => {
   // Hooks personalizados
@@ -32,6 +37,31 @@ const ChatPage = () => {
     clearInput
   } = useMessages();
 
+  // Hook de WebRTC
+  const {
+    localStream,
+    remoteStream,
+    callStatus,
+    isIncoming,
+    callerName,
+    callType,
+    isMuted,
+    isVideoOff,
+    callDuration,
+    hasCamera,
+    startCall,
+    acceptCall,
+    rejectCall,
+    endCall,
+    toggleMute,
+    toggleVideo,
+    peerConnection,
+    setCallStatus,
+    setIsIncoming,
+    setCallerName,
+    setCallType
+  } = useWebRTC(socket, username);
+
   // Estados del chat (declarar antes de los hooks que los usan)
   const [to, setTo] = useState('');
   const [isGroup, setIsGroup] = useState(false);
@@ -39,6 +69,7 @@ const ChatPage = () => {
   const [groupList] = useState([]);
   const [roomUsers, setRoomUsers] = useState([]);
   const [currentRoomCode, setCurrentRoomCode] = useState(null);
+  const [assignedConversations, setAssignedConversations] = useState([]);
 
   // Hook para paginación de mensajes
   const {
@@ -66,6 +97,8 @@ const ChatPage = () => {
   const [showAdminRoomsModal, setShowAdminRoomsModal] = useState(false);
   const [showEditRoomModal, setShowEditRoomModal] = useState(false);
   const [showRoomCreatedModal, setShowRoomCreatedModal] = useState(false);
+  const [showCreateConversationModal, setShowCreateConversationModal] = useState(false);
+  const [showManageConversationsModal, setShowManageConversationsModal] = useState(false);
   const [createdRoomData, setCreatedRoomData] = useState(null);
   const [adminRooms, setAdminRooms] = useState([]);
   const [loadingAdminRooms, setLoadingAdminRooms] = useState(false);
@@ -137,6 +170,45 @@ const ChatPage = () => {
     }
   }, [to, username, isGroup, currentRoomCode, loadInitialMessages]);
 
+  // Cargar conversaciones asignadas al usuario
+  useEffect(() => {
+    if (!isAuthenticated || !username) {
+      console.log('⏳ No autenticado o sin username:', { isAuthenticated, username });
+      return;
+    }
+
+    const loadAssignedConversations = async () => {
+      try {
+        console.log('🔄 Cargando conversaciones asignadas para:', username);
+        const conversations = await apiService.getMyAssignedConversations();
+        console.log('📋 Conversaciones asignadas recibidas:', conversations);
+        setAssignedConversations(conversations || []);
+
+        // Actualizar el registro del socket con las conversaciones asignadas
+        if (socket && conversations && conversations.length > 0) {
+          const displayName = user?.nombre && user?.apellido
+            ? `${user.nombre} ${user.apellido}`
+            : user?.username || user?.email;
+
+          socket.emit('updateAssignedConversations', {
+            username: displayName,
+            assignedConversations: conversations
+          });
+        }
+      } catch (error) {
+        console.error('❌ Error al cargar conversaciones asignadas:', error);
+        setAssignedConversations([]);
+      }
+    };
+
+    // Pequeño delay para asegurar que el usuario esté completamente autenticado
+    const timeoutId = setTimeout(() => {
+      loadAssignedConversations();
+    }, 1000);
+
+    return () => clearTimeout(timeoutId);
+  }, [isAuthenticated, username, socket, user]);
+
   // WebSocket listeners
   useEffect(() => {
     if (!socket) return;
@@ -145,12 +217,11 @@ const ChatPage = () => {
 
     s.on('userList', (data) => {
       if (currentRoomCode) return;
-      
-      if (isAdmin) {
-        setUserList(data.users);
-      } else {
-        setUserList([username]);
-      }
+
+      // El backend ya envía la lista correcta según el rol del usuario
+      // Para admin: lista completa de usuarios
+      // Para no-admin: solo su propio nombre
+      setUserList(data.users);
     });
 
         s.on('roomUsers', (data) => {
@@ -242,6 +313,20 @@ const ChatPage = () => {
       }
     });
 
+    // Evento para mensaje editado
+    s.on('messageEdited', (data) => {
+      const { messageId, newText, editedAt, isEdited } = data;
+
+      // Actualizar el mensaje en la lista de mensajes
+      setMessages(prevMessages =>
+        prevMessages.map(msg =>
+          msg.id === messageId
+            ? { ...msg, text: newText, isEdited, editedAt }
+            : msg
+        )
+      );
+    });
+
     s.on('connect', () => {
       if (currentRoomCode) {
         socket.emit('joinRoom', {
@@ -252,6 +337,76 @@ const ChatPage = () => {
       }
     });
 
+    // ==================== LISTENERS WEBRTC (SIMPLE-PEER) ====================
+
+    // Recibir llamada entrante
+    s.on('callUser', (data) => {
+      console.log('📞 ¡LLAMADA ENTRANTE RECIBIDA!');
+      console.log('📞 Datos de la llamada:', data);
+      console.log('📞 De:', data.from);
+      console.log('📞 Tipo:', data.callType);
+
+      setCallerName(data.from);
+      setCallType(data.callType);
+      setIsIncoming(true);
+      setCallStatus('ringing');
+
+      // Guardar la señal para cuando se acepte la llamada
+      window.incomingCallSignal = data.signal;
+
+      console.log('✅ Estado actualizado - debería mostrar CallWindow');
+    });
+
+    // Llamada aceptada (el caller recibe la respuesta)
+    s.on('callAccepted', (data) => {
+      console.log('✅ Llamada aceptada - señal recibida');
+      setCallStatus('connecting');
+
+      // Señalar al peer con la respuesta
+      if (peerConnection.current) {
+        peerConnection.current.signal(data.signal);
+      }
+    });
+
+    // Llamada rechazada
+    s.on('callRejected', (data) => {
+      console.log('❌ Llamada rechazada por:', data.from);
+      alert(`${data.from} rechazó la llamada`);
+      endCall();
+    });
+
+    // Llamada finalizada
+    s.on('callEnded', () => {
+      console.log('📴 Llamada finalizada por el otro usuario');
+      endCall();
+    });
+
+    // Llamada fallida
+    s.on('callFailed', (data) => {
+      console.log('❌ Llamada fallida:', data.reason);
+      alert(`No se pudo realizar la llamada: ${data.reason}`);
+      endCall();
+    });
+
+    // Nueva conversación asignada
+    s.on('newConversationAssigned', async (data) => {
+      console.log('💬 Nueva conversación asignada:', data);
+
+      // Recargar conversaciones asignadas
+      try {
+        const conversations = await apiService.getMyAssignedConversations();
+        setAssignedConversations(conversations);
+
+        // Mostrar notificación con SweetAlert2
+        await showSuccessAlert(
+          '💬 Conversación asignada',
+          `Chat: ${data.otherUser}\n\nPuedes verla en tu lista de chats.`
+        );
+      } catch (error) {
+        console.error('Error al recargar conversaciones:', error);
+      }
+    });
+
         return () => {
           s.off('userList');
           s.off('roomUsers');
@@ -259,8 +414,14 @@ const ChatPage = () => {
           s.off('userJoinedRoom');
           s.off('message');
           s.off('connect');
+          s.off('callUser');
+          s.off('callAccepted');
+          s.off('callRejected');
+          s.off('callEnded');
+          s.off('callFailed');
+          s.off('newConversationAssigned');
         };
-      }, [socket, currentRoomCode, to, isGroup, username, isAdmin, addNewMessage, playMessageSound, soundsEnabled]);
+      }, [socket, currentRoomCode, to, isGroup, username, isAdmin, soundsEnabled]);
 
   // Handlers
   const handleUserSelect = (userName) => {
@@ -294,6 +455,37 @@ const ChatPage = () => {
   const handleToggleMenu = () => {
     setShowSidebar(!showSidebar);
   };
+
+  // Función para cerrar el chat (volver al sidebar)
+  const handleCloseChat = () => {
+    // En desktop, cerrar el chat significa limpiar la selección
+    setTo('');
+    setIsGroup(false);
+    setCurrentRoomCode(null);
+    currentRoomCodeRef.current = null;
+    setRoomUsers([]);
+    clearMessages();
+
+    // En mobile, mostrar el sidebar
+    if (window.innerWidth <= 600) {
+      setShowSidebar(true);
+    }
+  };
+
+  // Listener para la tecla ESC en desktop
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      // Solo en desktop (ancho > 600px)
+      if (event.key === 'Escape' && window.innerWidth > 600 && to) {
+        handleCloseChat();
+      }
+    };
+
+    window.addEventListener('keydown', handleEscKey);
+    return () => {
+      window.removeEventListener('keydown', handleEscKey);
+    };
+  }, [to]); // Dependencia: to (para saber si hay un chat abierto)
 
   const handleCreateRoom = async () => {
     try {
@@ -525,6 +717,42 @@ const ChatPage = () => {
     clearInput();
   };
 
+  const handleEditMessage = async (messageId, newText) => {
+    if (!newText.trim()) {
+      alert('El mensaje no puede estar vacío');
+      return;
+    }
+
+    try {
+      // Actualizar en la base de datos
+      await apiService.editMessage(messageId, username, newText);
+
+      // Emitir evento de socket para sincronizar en tiempo real
+      if (socket && socket.connected) {
+        socket.emit('editMessage', {
+          messageId,
+          username,
+          newText,
+          to,
+          isGroup,
+          roomCode: currentRoomCode
+        });
+      }
+
+      // Actualizar localmente
+      setMessages(prevMessages =>
+        prevMessages.map(msg =>
+          msg.id === messageId
+            ? { ...msg, text: newText, isEdited: true, editedAt: new Date() }
+            : msg
+        )
+      );
+    } catch (error) {
+      console.error('Error al editar mensaje:', error);
+      alert('Error al editar el mensaje. Inténtalo de nuevo.');
+    }
+  };
+
   const handleShowAdminRooms = async () => {
     setLoadingAdminRooms(true);
     try {
@@ -608,6 +836,60 @@ const ChatPage = () => {
     } catch (error) {
       console.error('Error al actualizar duración de la sala:', error);
       alert('Error al actualizar la duración: ' + error.message);
+    }
+  };
+
+  const handleCreateConversation = async (data) => {
+    try {
+      const result = await apiService.createAdminAssignedConversation(
+        data.user1,
+        data.user2,
+        data.name
+      );
+
+      setShowCreateConversationModal(false);
+
+      alert(`✅ Conversación creada exitosamente entre ${data.user1} y ${data.user2}`);
+
+      // Opcional: Notificar a los usuarios via Socket.io
+      if (socket && socket.connected) {
+        socket.emit('conversationAssigned', {
+          user1: data.user1,
+          user2: data.user2,
+          conversationName: data.name,
+          linkId: result.linkId
+        });
+      }
+    } catch (error) {
+      console.error('Error al crear conversación:', error);
+      alert('Error al crear la conversación: ' + error.message);
+    }
+  };
+
+  // Funciones de llamadas
+  const handleStartCall = (targetUser) => {
+    if (!targetUser || isGroup) {
+      alert('Solo puedes hacer llamadas a usuarios individuales');
+      return;
+    }
+    startCall(targetUser, 'audio');
+  };
+
+  const handleStartVideoCall = (targetUser) => {
+    if (!targetUser || isGroup) {
+      alert('Solo puedes hacer videollamadas a usuarios individuales');
+      return;
+    }
+    startCall(targetUser, 'video');
+  };
+
+  // Wrapper para aceptar llamada con la señal guardada
+  const handleAcceptCall = () => {
+    if (window.incomingCallSignal) {
+      acceptCall(window.incomingCallSignal);
+      window.incomingCallSignal = null;
+    } else {
+      console.error('❌ No hay señal de llamada guardada');
     }
   };
 
@@ -769,6 +1051,7 @@ const ChatPage = () => {
       user={user}
       userList={userList}
       groupList={groupList}
+      assignedConversations={assignedConversations}
       isAdmin={isAdmin}
       showAdminMenu={showAdminMenu}
       setShowAdminMenu={setShowAdminMenu}
@@ -780,7 +1063,8 @@ const ChatPage = () => {
       onShowCreateRoom={() => setShowCreateRoomModal(true)}
       onShowJoinRoom={() => setShowJoinRoomModal(true)}
       onShowAdminRooms={handleShowAdminRooms}
-      onShowCreateConversation={() => {}}
+      onShowCreateConversation={() => setShowCreateConversationModal(true)}
+      onShowManageConversations={() => setShowManageConversationsModal(true)}
       onShowManageUsers={() => {}}
       onShowSystemConfig={() => {}}
       loadingAdminRooms={loadingAdminRooms}
@@ -805,6 +1089,9 @@ const ChatPage = () => {
       mediaPreviews={mediaPreviews}
       onCancelMediaUpload={cancelMediaUpload}
       onRemoveMediaFile={handleRemoveMediaFile}
+      onStartCall={handleStartCall}
+      onStartVideoCall={handleStartVideoCall}
+      hasCamera={hasCamera}
       onLeaveRoom={handleLeaveRoom}
       hasMoreMessages={hasMoreMessages}
       isLoadingMore={isLoadingMore}
@@ -815,6 +1102,7 @@ const ChatPage = () => {
       soundsEnabled={soundsEnabled}
       onEnableSounds={handleEnableSounds}
       currentUsername={username}
+      onEditMessage={handleEditMessage}
 
       // Props de modales
       showCreateRoomModal={showCreateRoomModal}
@@ -856,6 +1144,41 @@ const ChatPage = () => {
         setCreatedRoomData(null);
       }}
       roomData={createdRoomData}
+    />
+
+    <CreateConversationModal
+      isOpen={showCreateConversationModal}
+      onClose={() => setShowCreateConversationModal(false)}
+      onCreateConversation={handleCreateConversation}
+      userList={userList}
+      currentUser={user}
+    />
+
+    <ManageAssignedConversationsModal
+      show={showManageConversationsModal}
+      onClose={() => setShowManageConversationsModal(false)}
+      onConversationUpdated={() => {
+        // Recargar las conversaciones asignadas
+        loadAssignedConversations();
+      }}
+    />
+
+    <CallWindow
+      isOpen={callStatus !== 'idle'}
+      callType={callType}
+      isIncoming={isIncoming}
+      callerName={callerName}
+      localStream={localStream}
+      remoteStream={remoteStream}
+      onAccept={handleAcceptCall}
+      onReject={rejectCall}
+      onEnd={endCall}
+      onToggleMute={toggleMute}
+      onToggleVideo={toggleVideo}
+      isMuted={isMuted}
+      isVideoOff={isVideoOff}
+      callStatus={callStatus}
+      callDuration={callDuration}
     />
     </>
   );

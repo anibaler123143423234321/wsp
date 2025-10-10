@@ -28,6 +28,11 @@
   margin-left: 0;
 }
 
+/* Overlay para mobile */
+.sidebar-overlay {
+  display: none;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .chat-app {
@@ -36,5 +41,32 @@
 
   .chat-main {
     height: calc(100vh - 60px);
+  }
+}
+
+@media (max-width: 600px) {
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .chat-main {
+    height: 100vh;
   }
 }

@@ -28,9 +28,17 @@ export const useMessages = () => {
 
   const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
-      const MAX_FILE_SIZE = 50 * 1024 * 1024;
+      // 🔥 NUEVO: Límite de 10MB para imágenes
+      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
       if (file.size > MAX_FILE_SIZE) {
-        reject(new Error("El archivo es demasiado grande. Máximo 50MB."));
+        reject(new Error("El archivo es demasiado grande. Máximo 10MB."));
+        return;
+      }
+
+      // 🔥 NUEVO: Validar que solo sean imágenes
+      if (!file.type.startsWith('image/')) {
+        reject(new Error("Solo se permiten archivos de imagen (JPG, PNG, GIF, etc.)"));
         return;
       }
 
@@ -45,8 +53,26 @@ export const useMessages = () => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
+    // 🔥 NUEVO: Validar que todos los archivos sean imágenes
+    const nonImageFiles = files.filter(file => !file.type.startsWith('image/'));
+    if (nonImageFiles.length > 0) {
+      alert("❌ Solo se permiten archivos de imagen (JPG, PNG, GIF, etc.)");
+      e.target.value = ''; // Limpiar el input
+      return;
+    }
+
+    // 🔥 NUEVO: Validar tamaño de cada archivo (10MB máximo)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    const oversizedFiles = files.filter(file => file.size > MAX_FILE_SIZE);
+    if (oversizedFiles.length > 0) {
+      alert(`❌ Algunos archivos superan el límite de 10MB:\n${oversizedFiles.map(f => `- ${f.name} (${(f.size / 1024 / 1024).toFixed(2)}MB)`).join('\n')}`);
+      e.target.value = ''; // Limpiar el input
+      return;
+    }
+
     if (files.length > 5) {
-      alert("Máximo 5 archivos a la vez");
+      alert("❌ Máximo 5 archivos a la vez");
+      e.target.value = ''; // Limpiar el input
       return;
     }
 
@@ -66,6 +92,7 @@ export const useMessages = () => {
       .catch((error) => {
         console.error("Error al procesar archivos:", error);
         alert("Error al procesar archivos: " + error.message);
+        e.target.value = ''; // Limpiar el input
       });
   };
 

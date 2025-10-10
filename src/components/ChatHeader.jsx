@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FaSignOutAlt } from 'react-icons/fa';
+import { FaSignOutAlt, FaPhone, FaVideo, FaArrowLeft } from 'react-icons/fa';
 import './ChatHeader.css';
 
 const ChatHeader = ({
@@ -10,7 +10,11 @@ const ChatHeader = ({
   roomDuration,
   roomExpiresAt,
   onLeaveRoom,
-  userPicture
+  userPicture,
+  onStartCall,
+  onStartVideoCall,
+  hasCamera = true,
+  onBack
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   // Actualizar el tiempo cada minuto para refrescar el contador de expiración
@@ -76,6 +80,13 @@ const ChatHeader = ({
   return (
     <div className="chat-header">
       <div className="chat-header-content">
+        {/* Botón de atrás en mobile */}
+        {onBack && (
+          <button className="back-btn-mobile" onClick={onBack} title="Volver">
+            <FaArrowLeft />
+          </button>
+        )}
+
         <div className="chat-header-info">
           {/* Avatar */}
           {userPicture ? (
@@ -123,10 +134,27 @@ const ChatHeader = ({
 
         {/* Botones de acción */}
         <div className="chat-header-actions">
-          {/* Botones de video e info */}
-          <button className="header-icon-btn" title="Videollamada">
-            📹
-          </button>
+          {/* Botones de llamada (solo para chats individuales) */}
+          {!isGroup && to && (
+            <>
+              <button
+                className="header-icon-btn call-btn"
+                onClick={() => onStartCall && onStartCall(to)}
+                title="Llamada de audio"
+              >
+                <FaPhone />
+              </button>
+              <button
+                className={`header-icon-btn video-btn ${!hasCamera ? 'disabled' : ''}`}
+                onClick={() => hasCamera && onStartVideoCall && onStartVideoCall(to)}
+                title={hasCamera ? "Videollamada" : "No hay cámara disponible"}
+                disabled={!hasCamera}
+              >
+                <FaVideo />
+              </button>
+            </>
+          )}
+
           <button className="header-icon-btn" title="Información">
             ℹ️
           </button>

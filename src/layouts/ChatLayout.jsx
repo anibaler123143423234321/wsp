@@ -7,40 +7,64 @@ import JoinRoomModal from '../components/modals/JoinRoomModal';
 import AdminRoomsModal from '../components/modals/AdminRoomsModal';
 import './ChatLayout.css';
 
-const ChatLayout = ({ 
+const ChatLayout = ({
   // Props del sidebar
-  user, userList, groupList, isAdmin, showAdminMenu, setShowAdminMenu, showSidebar,
+  user, userList, groupList, assignedConversations, isAdmin, showAdminMenu, setShowAdminMenu, showSidebar,
   onUserSelect, onGroupSelect, onPersonalNotes, onLogout,
-  onShowCreateRoom, onShowJoinRoom, onShowAdminRooms, onShowCreateConversation,
+  onShowCreateRoom, onShowJoinRoom, onShowAdminRooms, onShowCreateConversation, onShowManageConversations,
   onShowManageUsers, onShowSystemConfig, loadingAdminRooms,
-  
+
       // Props del chat
       to, isGroup, currentRoomCode, roomUsers, roomDuration, roomExpiresAt, messages, input, setInput,
   onSendMessage, onFileSelect, onRecordAudio, onStopRecording, isRecording,
   mediaFiles, mediaPreviews, onCancelMediaUpload, onRemoveMediaFile, onLeaveRoom, onToggleMenu,
-  
+  onEditMessage, hasMoreMessages, isLoadingMore, onLoadMoreMessages,
+  onStartCall, onStartVideoCall, hasCamera,
+
   // Props de modales
   showCreateRoomModal, setShowCreateRoomModal, roomForm, setRoomForm, onCreateRoom,
   showJoinRoomModal, setShowJoinRoomModal, joinRoomForm, setJoinRoomForm, onJoinRoom,
   showAdminRoomsModal, setShowAdminRoomsModal, adminRooms, onDeleteRoom, onDeactivateRoom, onViewRoomUsers, onEditRoom,
-  
+
   // Props de notificaciones
   unreadMessages,
-  
+
   // Props del socket
   soundsEnabled, onEnableSounds,
 
   // Props del usuario
   currentUsername
 }) => {
+  // Función para obtener el picture del usuario con el que se está chateando
+  const getUserPicture = () => {
+    if (!to || isGroup) return null;
+
+    // Buscar el usuario en userList
+    const targetUser = userList?.find(u => {
+      const uName = typeof u === 'string' ? u : u.username;
+      const uFullName = typeof u === 'object' && u.nombre && u.apellido
+        ? `${u.nombre} ${u.apellido}`
+        : uName;
+      return uFullName === to || uName === to;
+    });
+
+    return typeof targetUser === 'object' ? targetUser.picture : null;
+  };
+
   return (
     <div className="chat-app">
-      
+
+      {/* Overlay para mobile */}
+      {showSidebar && (
+        <div className="sidebar-overlay" onClick={onToggleMenu}></div>
+      )}
+
       {showSidebar && (
         <Sidebar
           user={user}
           userList={userList}
           groupList={groupList}
+          assignedConversations={assignedConversations}
           roomUsers={roomUsers}
           isGroup={isGroup}
           isAdmin={isAdmin}
@@ -54,10 +78,12 @@ const ChatLayout = ({
           onShowJoinRoom={onShowJoinRoom}
           onShowAdminRooms={onShowAdminRooms}
           onShowCreateConversation={onShowCreateConversation}
+          onShowManageConversations={onShowManageConversations}
           onShowManageUsers={onShowManageUsers}
           onShowSystemConfig={onShowSystemConfig}
           loadingAdminRooms={loadingAdminRooms}
           unreadMessages={unreadMessages}
+          onToggleSidebar={onToggleMenu}
         />
       )}
       
@@ -74,7 +100,11 @@ const ChatLayout = ({
               showSidebar={showSidebar}
               soundsEnabled={soundsEnabled}
               onEnableSounds={onEnableSounds}
-              userPicture={user?.picture}
+              userPicture={getUserPicture()}
+              onStartCall={onStartCall}
+              onStartVideoCall={onStartVideoCall}
+              hasCamera={hasCamera}
+              onBack={onToggleMenu}
             />
         
         <ChatContent
@@ -93,6 +123,10 @@ const ChatLayout = ({
           to={to}
           isGroup={isGroup}
           currentUsername={currentUsername}
+          onEditMessage={onEditMessage}
+          hasMoreMessages={hasMoreMessages}
+          isLoadingMore={isLoadingMore}
+          onLoadMoreMessages={onLoadMoreMessages}
         />
       </div>
       

@@ -44,6 +44,39 @@
   }
 }
 
+/* Botón de atrás en mobile */
+.back-btn-mobile {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .back-btn-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    color: #1f2937;
+    font-size: 18px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    margin-right: 4px;
+  }
+
+  .back-btn-mobile:hover {
+    background: #f3f4f6;
+  }
+
+  .back-btn-mobile:active {
+    background: #e5e7eb;
+    transform: scale(0.95);
+  }
+}
+
 .chat-header-content {
   display: flex;
   align-items: center;
@@ -275,6 +308,36 @@
 .header-icon-btn:hover {
   background: #f3f4f6;
   color: #374151;
+}
+
+/* Botones de llamada */
+.header-icon-btn.call-btn {
+  color: #10b981;
+}
+
+.header-icon-btn.call-btn:hover {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+}
+
+.header-icon-btn.video-btn {
+  color: #3b82f6;
+}
+
+.header-icon-btn.video-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+}
+
+.header-icon-btn.video-btn.disabled {
+  color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.header-icon-btn.video-btn.disabled:hover {
+  background: transparent;
+  color: #9ca3af;
 }
 
 /* Botón de salir de sala */

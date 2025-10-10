@@ -1,0 +1,223 @@
+import React, { useState, useEffect } from 'react';
+import { FaTimes, FaUser, FaComments, FaInfoCircle } from 'react-icons/fa';
+import './Modal.css';
+import './CreateConversationModal.css';
+
+const CreateConversationModal = ({
+  isOpen,
+  onClose,
+  onCreateConversation,
+  userList,
+  currentUser
+}) => {
+  const [selectedUser1, setSelectedUser1] = useState('');
+  const [selectedUser2, setSelectedUser2] = useState('');
+  const [conversationName, setConversationName] = useState('');
+  const [error, setError] = useState('');
+
+  // Filtrar usuarios para excluir al usuario actual
+  const availableUsers = userList.filter(user => {
+    const username = typeof user === 'string' ? user : user.username;
+    return username !== currentUser?.username;
+  });
+
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedUser1('');
+      setSelectedUser2('');
+      setConversationName('');
+      setError('');
+    }
+  }, [isOpen]);
+
+  // Generar nombre automático cuando se seleccionan ambos usuarios
+  useEffect(() => {
+    if (selectedUser1 && selectedUser2) {
+      const user1Name = typeof selectedUser1 === 'string' ? selectedUser1 : selectedUser1.username;
+      const user2Name = typeof selectedUser2 === 'string' ? selectedUser2 : selectedUser2.username;
+      setConversationName(`Chat: ${user1Name} ↔ ${user2Name}`);
+    }
+  }, [selectedUser1, selectedUser2]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!selectedUser1 || !selectedUser2) {
+      setError('Debes seleccionar dos usuarios');
+      return;
+    }
+
+    if (selectedUser1 === selectedUser2) {
+      setError('Debes seleccionar dos usuarios diferentes');
+      return;
+    }
+
+    const user1 = typeof selectedUser1 === 'string' ? selectedUser1 : selectedUser1.username;
+    const user2 = typeof selectedUser2 === 'string' ? selectedUser2 : selectedUser2.username;
+
+    onCreateConversation({
+      user1,
+      user2,
+      name: conversationName
+    });
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content create-conversation-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>
+            <FaComments className="header-icon" />
+            Crear Conversación Individual
+          </h2>
+          <button className="modal-close" onClick={onClose}>
+            <FaTimes />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            {error && (
+              <div className="error-alert">
+                <FaInfoCircle />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <div className="form-group-modern">
+              <label htmlFor="user1">
+                <FaUser className="label-icon" />
+                Primer Usuario
+              </label>
+              <div className="select-wrapper">
+                <select
+                  id="user1"
+                  value={selectedUser1}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const user = availableUsers.find(u =>
+                      (typeof u === 'string' ? u : u.username) === value
+                    );
+                    setSelectedUser1(user || value);
+                  }}
+                  required
+                  className="form-select-modern"
+                >
+                  <option value="">Selecciona un usuario</option>
+                  {availableUsers.map((user, index) => {
+                    const username = typeof user === 'string' ? user : user.username;
+                    const displayName = typeof user === 'object' && user.nombre && user.apellido
+                      ? `${user.nombre} ${user.apellido} (${username})`
+                      : username;
+
+                    return (
+                      <option key={index} value={username}>
+                        {displayName}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            </div>
+
+            <div className="form-group-modern">
+              <label htmlFor="user2">
+                <FaUser className="label-icon" />
+                Segundo Usuario
+              </label>
+              <div className="select-wrapper">
+                <select
+                  id="user2"
+                  value={selectedUser2}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const user = availableUsers.find(u =>
+                      (typeof u === 'string' ? u : u.username) === value
+                    );
+                    setSelectedUser2(user || value);
+                  }}
+                  required
+                  className="form-select-modern"
+                >
+                  <option value="">Selecciona un usuario</option>
+                  {availableUsers
+                    .filter(user => {
+                      const username = typeof user === 'string' ? user : user.username;
+                      const selectedUser1Name = typeof selectedUser1 === 'string'
+                        ? selectedUser1
+                        : selectedUser1?.username;
+                      return username !== selectedUser1Name;
+                    })
+                    .map((user, index) => {
+                      const username = typeof user === 'string' ? user : user.username;
+                      const displayName = typeof user === 'object' && user.nombre && user.apellido
+                        ? `${user.nombre} ${user.apellido} (${username})`
+                        : username;
+
+                      return (
+                        <option key={index} value={username}>
+                          {displayName}
+                        </option>
+                      );
+                    })}
+                </select>
+              </div>
+            </div>
+
+            <div className="form-group-modern">
+              <label htmlFor="conversationName">
+                <FaComments className="label-icon" />
+                Nombre de la Conversación
+              </label>
+              <input
+                type="text"
+                id="conversationName"
+                value={conversationName}
+                onChange={(e) => setConversationName(e.target.value)}
+                placeholder="Ej: Chat: Usuario1 ↔ Usuario2"
+                className="form-input-modern"
+                required
+              />
+              <small className="form-hint-modern">
+                Se genera automáticamente al seleccionar los usuarios
+              </small>
+            </div>
+
+            <div className="info-box-modern">
+              <FaInfoCircle className="info-icon" />
+              <div className="info-content">
+                <strong>Nota:</strong> Esta conversación será asignada por el administrador.
+                Los usuarios seleccionados podrán chatear entre sí pero no podrán eliminar
+                la conversación ni los mensajes.
+              </div>
+            </div>
+          </div>
+
+          <div className="modal-footer">
+            <button
+              type="button"
+              className="btn-cancel-modern"
+              onClick={onClose}
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="btn-create-modern"
+              disabled={!selectedUser1 || !selectedUser2 || selectedUser1 === selectedUser2}
+            >
+              <FaComments />
+              Crear Conversación
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default CreateConversationModal;
+

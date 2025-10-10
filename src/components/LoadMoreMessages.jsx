@@ -1,10 +1,11 @@
 import React from 'react';
+import { FaChevronUp } from 'react-icons/fa';
 import './LoadMoreMessages.css';
 
-const LoadMoreMessages = ({ 
-  hasMoreMessages, 
-  isLoadingMore, 
-  onLoadMore 
+const LoadMoreMessages = ({
+  hasMoreMessages,
+  isLoadingMore,
+  onLoadMore
 }) => {
   if (!hasMoreMessages) {
     return null;
@@ -12,7 +13,7 @@ const LoadMoreMessages = ({
 
   return (
     <div className="load-more-container">
-      <button 
+      <button
         className="load-more-btn"
         onClick={onLoadMore}
         disabled={isLoadingMore}
@@ -24,7 +25,7 @@ const LoadMoreMessages = ({
           </>
         ) : (
           <>
-            <span className="load-icon"><FaFileAlt /></span>
+            <span className="load-icon"><FaChevronUp /></span>
             Cargar mensajes anteriores
           </>
         )}

@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { FaPaperclip, FaPaperPlane } from 'react-icons/fa';
+import { useEffect, useRef, useState } from 'react';
+import { FaPaperclip, FaPaperPlane, FaEdit, FaTimes } from 'react-icons/fa';
 import LoadMoreMessages from './LoadMoreMessages';
 import WelcomeScreen from './WelcomeScreen';
 import './ChatContent.css';
@@ -23,16 +23,40 @@ const ChatContent = ({
   hasMoreMessages,
   isLoadingMore,
   onLoadMoreMessages,
-  currentUsername
+  currentUsername,
+  onEditMessage
 }) => {
   const chatHistoryRef = useRef(null);
   const isUserScrollingRef = useRef(false);
   const lastMessageCountRef = useRef(0);
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editText, setEditText] = useState('');
 
   // Función para descargar archivos
   const handleDownload = (url, fileName) => {
     // Abrir en nueva pestaña
     window.open(url, '_blank');
+  };
+
+  // Iniciar edición de mensaje
+  const handleStartEdit = (message) => {
+    setEditingMessageId(message.id);
+    setEditText(message.text);
+  };
+
+  // Cancelar edición
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setEditText('');
+  };
+
+  // Guardar edición
+  const handleSaveEdit = () => {
+    if (editText.trim() && editingMessageId) {
+      onEditMessage(editingMessageId, editText);
+      setEditingMessageId(null);
+      setEditText('');
+    }
   };
 
   // Manejar cambio de input
@@ -45,6 +69,16 @@ const ChatContent = ({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       onSendMessage();
+    }
+  };
+
+  // Manejar tecla Enter en edición
+  const handleEditKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSaveEdit();
+    } else if (e.key === 'Escape') {
+      handleCancelEdit();
     }
   };
 
@@ -375,21 +409,109 @@ const ChatContent = ({
                 </div>
               )}
             </div>
+          ) : editingMessageId === message.id ? (
+            // Modo de edición
+            <div style={{ marginBottom: '8px' }}>
+              <input
+                type="text"
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                onKeyDown={handleEditKeyPress}
+                autoFocus
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  backgroundColor: '#2a3942',
+                  border: '1px solid #00a884',
+                  borderRadius: '5px',
+                  color: '#e9edef',
+                  fontSize: '14px',
+                  outline: 'none'
+                }}
+              />
+              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                <button
+                  onClick={handleSaveEdit}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: '#00a884',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '5px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: '500'
+                  }}
+                >
+                  Guardar
+                </button>
+                <button
+                  onClick={handleCancelEdit}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: '#374151',
+                    color: '#e9edef',
+                    border: 'none',
+                    borderRadius: '5px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: '500'
+                  }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
           ) : (
-            <div
-              className="message-text"
-              style={{
-                color: '#e9edef',
-                fontSize: '14.2px',
-                lineHeight: '19px',
-                marginBottom: '2px',
-                whiteSpace: 'pre-wrap'
-              }}
-            >
-              {message.text}
+            <div>
+              <div
+                className="message-text"
+                style={{
+                  color: '#e9edef',
+                  fontSize: '14.2px',
+                  lineHeight: '19px',
+                  marginBottom: '2px',
+                  whiteSpace: 'pre-wrap'
+                }}
+              >
+                {message.text}
+                {message.isEdited && (
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      color: '#8696a0',
+                      marginLeft: '6px',
+                      fontStyle: 'italic'
+                    }}
+                  >
+                    (editado)
+                  </span>
+                )}
+              </div>
+              {/* Botón de editar solo para mensajes propios sin multimedia */}
+              {isOwnMessage && !message.mediaType && (
+                <button
+                  onClick={() => handleStartEdit(message)}
+                  style={{
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    color: '#8696a0',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    padding: '4px 0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    marginTop: '4px'
+                  }}
+                  title="Editar mensaje"
+                >
+                  <FaEdit /> Editar
+                </button>
+              )}
             </div>
           )}
-          
+
           <div
             className="message-time"
             style={{
@@ -496,11 +618,11 @@ const ChatContent = ({
         )}
         
         <div className="input-group">
-          <label className="btn-attach" title="Adjuntar archivos (máx. 5)">
+          <label className="btn-attach" title="Adjuntar imágenes (máx. 5, 10MB cada una)">
             <input
               type="file"
               multiple
-              accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
+              accept="image/*"
               onChange={onFileSelect}
               style={{ display: 'none' }}
             />

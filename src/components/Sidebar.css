@@ -54,29 +54,189 @@
     box-shadow: 2px 0 15px rgba(0,0,0,0.3);
     transition: transform 0.3s cubic-bezier(.4,2,.3,1);
     transform: translateX(0);
+    flex-direction: row;
   }
   .users-list.closed {
-    transform: translateX(-100vw);
+    transform: translateX(-100%);
   }
+
+  /* Columna izquierda - 1/3 del ancho */
+  .sidebar-left {
+    width: 33.333%;
+    min-width: 33.333%;
+    max-width: 33.333%;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height para iOS */
+  }
+
+  .sidebar-logo {
+    width: 90%;
+    max-width: 100px;
+    height: auto;
+    margin: 0 auto 16px;
+    display: block;
+    object-fit: contain;
+  }
+
+  .user-profile {
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+    align-items: center;
+  }
+
+  .user-avatar-small,
+  .user-avatar-image {
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+  }
+
+  .user-info-header {
+    display: block;
+    text-align: center;
+  }
+
+  .user-name-tooltip {
+    font-size: 12px;
+    text-align: center;
+    line-height: 1.3;
+    max-width: 100%;
+    word-wrap: break-word;
+  }
+
+  .create-space-btn-left,
+  .join-room-btn-left,
+  .my-rooms-btn-left,
+  .create-conversation-btn-left,
+  .manage-conversations-btn-left {
+    padding: 10px 8px;
+    font-size: 11px;
+    gap: 6px;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: none;
+  }
+
+  .create-space-btn-left {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  .create-icon-left,
+  .join-icon-left,
+  .my-rooms-icon-left,
+  .create-conversation-icon-left {
+    font-size: 20px;
+  }
+
+  .create-text-left,
+  .join-text-left,
+  .my-rooms-text-left,
+  .create-conversation-text-left {
+    font-size: 10px;
+    line-height: 1.2;
+    white-space: normal;
+    text-align: center;
+    max-width: 100%;
+  }
+
+  .sidebar-footer-left {
+    flex-direction: row;
+    gap: 8px;
+    padding: 12px 0;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    margin-top: auto;
+    justify-content: center;
+    flex-shrink: 0; /* Evitar que se comprima */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 8px;
+  }
+
+  .settings-btn,
+  .logout-btn-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+
+  /* Columna derecha - 2/3 del ancho */
+  .sidebar-right {
+    width: 66.666%;
+    min-width: 66.666%;
+    max-width: 66.666%;
+    overflow-y: auto;
+  }
+
   .users-list h3 {
-    font-size: 14px;
-    height: 44px;
-    padding: 0 6px;
+    font-size: 18px;
+    height: 56px;
+    padding: 0 16px;
   }
+
   .search-section {
-    padding: 6px;
+    padding: 12px 16px;
   }
+
+  .search-input {
+    font-size: 15px;
+    padding: 10px 14px;
+  }
+
   .users-count {
-    padding: 4px 6px;
-    font-size: 11px;
+    padding: 8px 16px;
+    font-size: 13px;
   }
-  .admin-toggle-btn, .admin-option, .join-room-section, .logout-section {
-    padding: 6px 6px;
-    font-size: 11px;
+
+  .admin-toggle-btn,
+  .admin-option,
+  .join-room-section,
+  .logout-section {
+    padding: 12px 16px;
+    font-size: 14px;
   }
+
   .join-room-btn {
-    font-size: 11px;
-    padding: 6px 6px;
+    font-size: 14px;
+    padding: 12px 16px;
+  }
+
+  .user-item {
+    padding: 12px 16px;
+    min-height: 64px;
+  }
+
+  .user-avatar {
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
+  }
+
+  .user-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .user-name {
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .user-status {
+    font-size: 13px;
+  }
+
+  /* Ocultar header mobile en esta vista */
+  .sidebar-mobile-header {
+    display: none;
   }
 }
 
@@ -100,11 +260,12 @@
 }
 
 .sidebar-logo {
-  width: 89.05px;
-  height: 44.05px;
+  width: 100%;
+  max-width: 120px;
+  height: auto;
   object-fit: contain;
-  margin-top: 6.26px;
-  margin-left: 55.24px;
+  margin: 6px auto 0;
+  display: block;
 }
 
 /* Columna derecha */
@@ -293,6 +454,95 @@
 }
 
 .my-rooms-text-left {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0px;
+  color: #1f2937;
+}
+
+/* Botón crear conversación en columna izquierda */
+.create-conversation-btn-left {
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  color: #1f2937;
+  border: none;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0px;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+}
+
+.create-conversation-btn-left:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.create-conversation-btn-left:active {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.create-conversation-icon-left {
+  font-size: 16px;
+  color: #1f2937;
+}
+
+.create-conversation-text-left {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0px;
+  color: #1f2937;
+}
+
+/* Botón gestionar conversaciones en columna izquierda */
+.manage-conversations-btn-left {
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  color: #1f2937;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0px;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+}
+
+.manage-conversations-btn-left:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.manage-conversations-btn-left:active {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.manage-conversations-icon-left {
+  font-size: 16px;
+  color: #1f2937;
+}
+
+.manage-conversations-text-left {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 15px;
   font-weight: 500;
@@ -530,6 +780,17 @@
   flex-shrink: 0;
 }
 
+/* Footer del sidebar izquierdo */
+.sidebar-footer-left {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  margin-top: auto;
+}
+
 /* Footer del sidebar */
 .sidebar-footer {
   padding: 16px;
@@ -573,57 +834,20 @@
   height: 18px;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
+/* Responsive - Media query adicional para tablets */
+@media (max-width: 768px) and (min-width: 601px) {
   .users-list {
-    width: 100%;
-    height: 60px;
-    flex-direction: row;
-    overflow-x: auto;
-    overflow-y: hidden;
+    width: 300px;
+    min-width: 280px;
+    max-width: 320px;
   }
 
-  .users-list h3 {
-    display: none;
+  .sidebar-left {
+    width: 100px;
   }
 
-  .search-section {
-    display: none;
-  }
-
-  .users-count {
-    display: none;
-  }
-
-  .admin-section {
-    display: none;
-  }
-
-  .join-room-section {
-    display: none;
-  }
-
-  .users-container {
-    display: flex;
-    flex-direction: row;
-    padding: 10px;
-    gap: 10px;
-  }
-
-  .user-item {
-    min-width: 60px;
-    flex-direction: column;
-    padding: 8px;
-    border: none;
-  }
-
-  .user-info {
-    display: none;
-  }
-
-  .user-avatar {
-    width: 30px;
+  .sidebar-logo {
+    width: 60px;
     height: 30px;
-    margin: 0;
   }
 }

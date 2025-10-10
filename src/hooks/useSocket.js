@@ -30,16 +30,21 @@ export const useSocket = (isAuthenticated, username, user) => {
     const connectSocket = () => {
       try {
         // Usar variable de entorno o fallback
-        const socketUrl = import.meta.env.VITE_SOCKET_URL || "http://apisozarusac.com";
+        // const socketUrl = import.meta.env.VITE_SOCKET_URL || "https://apisozarusac.com";
+        const socketUrl = import.meta.env.VITE_SOCKET_URL || "http://localhost:8747";
 
         socket.current = io(socketUrl, {
           transports: ["websocket", "polling"],
           timeout: 10000,
-          path: "/BackendChat/socket.io/",
+          path: "/socket.io/",
+          //path: "/BackendChat/socket.io/",
           forceNew: true,
           reconnection: true,
-          reconnectionAttempts: 5,
+          reconnectionAttempts: Infinity, // Intentar reconectar indefinidamente
           reconnectionDelay: 1000,
+          reconnectionDelayMax: 5000,
+          randomizationFactor: 0.5,
+          autoConnect: true,
         });
 
         // Timeout para la conexión
@@ -97,8 +102,33 @@ export const useSocket = (isAuthenticated, username, user) => {
           clearTimeout(connectionTimeout.current);
         });
 
-        socket.current.on("reconnect", () => {
+        socket.current.on("reconnect", (attemptNumber) => {
+          console.log(`✅ Socket reconectado después de ${attemptNumber} intentos`);
           isConnecting.current = false;
+
+          // Re-registrar usuario después de reconectar
+          const displayName =
+            user.nombre && user.apellido
+              ? `${user.nombre} ${user.apellido}`
+              : user.username || user.email;
+
+          socket.current.emit("register", {
+            username: displayName,
+            userData: {
+              id: user.id,
+              username: displayName,
+              role: user.role || "USER",
+              nombre: user.nombre,
+              apellido: user.apellido,
+              email: user.email,
+              sede: user.sede,
+              picture: user.picture || null,
+            },
+          });
+        });
+
+        socket.current.on("reconnect_attempt", (attemptNumber) => {
+          console.log(`🔄 Intento de reconexión #${attemptNumber}`);
         });
 
         socket.current.on("reconnect_error", (error) => {
@@ -126,12 +156,27 @@ export const useSocket = (isAuthenticated, username, user) => {
       }
     };
 
-    // Agregar listener para cuando se cierra la ventana
+    // Manejar visibilidad de la página (importante para mobile)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('📱 App visible - verificando conexión socket');
+        if (socket.current && !socket.current.connected) {
+          console.log('🔄 Reconectando socket...');
+          socket.current.connect();
+        }
+      } else {
+        console.log('📱 App en background');
+      }
+    };
+
+    // Agregar listeners
     window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       clearTimeout(connectionTimeout.current);
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (socket.current) {
         socket.current.disconnect();
         socket.current = null;

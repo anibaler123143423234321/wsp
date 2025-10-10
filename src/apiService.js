@@ -1,10 +1,8 @@
 // Servicio para conectar con la API (mismo host para CRM y Chat por ahora)
 // Temporalmente hardcodeadas hasta resolver el problema con .env
-// const API_BASE_URL = "https://apisozarusac.com/BackendJava/";
-// const API_BASECHAT_URL = "http://localhost:8747/";
-
-const API_BASE_URL = "https://apisozarusac.com/BackendJava/";
-const API_BASECHAT_URL = "https://apisozarusac.com/BackendChat/";
+ const API_BASE_URL = "https://apisozarusac.com/BackendJava/";
+ const API_BASECHAT_URL = "http://localhost:8747/";
+// const API_BASECHAT_URL = "https://apisozarusac.com/BackendChat/";
 
 class ApiService {
   constructor() {
@@ -541,6 +539,203 @@ class ApiService {
       return result;
     } catch (error) {
       console.error("Error al obtener mensajes de la sala:", error);
+      throw error;
+    }
+  }
+
+  // Editar un mensaje
+  async editMessage(messageId, username, newText) {
+    try {
+      const response = await fetch(`${API_BASECHAT_URL}api/messages/${messageId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, message: newText }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `Error del servidor: ${response.status} - ${JSON.stringify(
+            errorData
+          )}`
+        );
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al editar mensaje:", error);
+      throw error;
+    }
+  }
+
+  // Crear conversación asignada por admin
+  async createAdminAssignedConversation(user1, user2, name) {
+    try {
+      // Obtener información del usuario actual
+      const currentUser = this.getCurrentUser();
+      if (!currentUser) {
+        throw new Error("Usuario no autenticado");
+      }
+
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/temporary-conversations/admin-assign`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            user1,
+            user2,
+            name,
+            adminId: currentUser.id,
+            adminRole: currentUser.role,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message || `Error del servidor: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al crear conversación asignada:", error);
+      throw error;
+    }
+  }
+
+  // Obtener conversaciones asignadas al usuario actual
+  async getMyAssignedConversations() {
+    try {
+      // Obtener el usuario actual
+      const user = this.getCurrentUser();
+      console.log('👤 Usuario actual para conversaciones:', user);
+
+      if (!user) {
+        console.warn("No hay usuario autenticado");
+        return [];
+      }
+
+      // Usar el nombre completo si está disponible, sino usar username
+      const displayName = user.nombre && user.apellido
+        ? `${user.nombre} ${user.apellido}`
+        : (user.username || user.email);
+
+      console.log('🔍 Buscando conversaciones para:', displayName);
+
+      const response = await fetch(
+        `${this.baseChatUrl}api/temporary-conversations/my-conversations?username=${encodeURIComponent(displayName)}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Error en respuesta:', errorData);
+        throw new Error(
+          errorData.message || `Error del servidor: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+      console.log('✅ Conversaciones obtenidas:', result);
+      return result;
+    } catch (error) {
+      console.error("Error al obtener conversaciones asignadas:", error);
+      return []; // Retornar array vacío en caso de error
+    }
+  }
+
+  // Obtener TODAS las conversaciones asignadas (solo para admin)
+  async getAllAssignedConversations() {
+    try {
+      const response = await fetch(
+        `${this.baseChatUrl}api/temporary-conversations/all`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Error del servidor: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al obtener todas las conversaciones:", error);
+      throw error;
+    }
+  }
+
+  // Actualizar una conversación asignada
+  async updateAssignedConversation(conversationId, data) {
+    try {
+      const response = await fetch(
+        `${this.baseChatUrl}api/temporary-conversations/${conversationId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Error del servidor: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al actualizar conversación:", error);
+      throw error;
+    }
+  }
+
+  // Eliminar una conversación asignada
+  async deleteAssignedConversation(conversationId) {
+    try {
+      const response = await fetch(
+        `${this.baseChatUrl}api/temporary-conversations/${conversationId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Error del servidor: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al eliminar conversación:", error);
       throw error;
     }
   }
