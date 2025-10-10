@@ -5,7 +5,6 @@ import LoadingScreen from '../components/LoadingScreen';
 import CreateRoomModal from '../components/modals/CreateRoomModal';
 import JoinRoomModal from '../components/modals/JoinRoomModal';
 import AdminRoomsModal from '../components/modals/AdminRoomsModal';
-import EditRoomModal from '../components/modals/EditRoomModal';
 import RoomCreatedModal from '../components/modals/RoomCreatedModal';
 import CreateConversationModal from '../components/modals/CreateConversationModal';
 import ManageAssignedConversationsModal from '../components/modals/ManageAssignedConversationsModal';
@@ -16,7 +15,7 @@ import { useMessages } from '../hooks/useMessages';
 import { useMessagePagination } from '../hooks/useMessagePagination';
 import { useWebRTC } from '../hooks/useWebRTC';
 import apiService from '../apiService';
-import { showSuccessAlert, showErrorAlert } from '../sweetalert2';
+import { showSuccessAlert, showErrorAlert, showConfirmAlert } from '../sweetalert2';
 
 const ChatPage = () => {
   // Hooks personalizados
@@ -83,7 +82,6 @@ const ChatPage = () => {
   } = useMessagePagination(currentRoomCode, username, to, isGroup);
 
   // Estados adicionales del chat
-  const [roomDuration, setRoomDuration] = useState(null);
   const [roomExpiresAt, setRoomExpiresAt] = useState(null);
   const [unreadMessages] = useState({});
   const [socketConnected, setSocketConnected] = useState(false);
@@ -95,19 +93,16 @@ const ChatPage = () => {
   const [showCreateRoomModal, setShowCreateRoomModal] = useState(false);
   const [showJoinRoomModal, setShowJoinRoomModal] = useState(false);
   const [showAdminRoomsModal, setShowAdminRoomsModal] = useState(false);
-  const [showEditRoomModal, setShowEditRoomModal] = useState(false);
   const [showRoomCreatedModal, setShowRoomCreatedModal] = useState(false);
   const [showCreateConversationModal, setShowCreateConversationModal] = useState(false);
   const [showManageConversationsModal, setShowManageConversationsModal] = useState(false);
   const [createdRoomData, setCreatedRoomData] = useState(null);
   const [adminRooms, setAdminRooms] = useState([]);
   const [loadingAdminRooms, setLoadingAdminRooms] = useState(false);
-  const [editingRoom, setEditingRoom] = useState(null);
 
   // Estados de formularios
-  const [roomForm, setRoomForm] = useState({ name: '', maxCapacity: 50, durationHours: 24, durationMinutes: 0 });
+  const [roomForm, setRoomForm] = useState({ name: '', maxCapacity: 50 });
   const [joinRoomForm, setJoinRoomForm] = useState({ roomCode: '' });
-  const [editForm, setEditForm] = useState({ durationHours: 0, durationMinutes: 0 });
 
   // Referencias
   const currentRoomCodeRef = useRef(null);
@@ -170,6 +165,35 @@ const ChatPage = () => {
     }
   }, [to, username, isGroup, currentRoomCode, loadInitialMessages]);
 
+  // Función para cargar conversaciones asignadas
+  const loadAssignedConversations = useCallback(async () => {
+    if (!isAuthenticated || !username) {
+      return;
+    }
+
+    try {
+      console.log('🔄 Cargando conversaciones asignadas para:', username);
+      const conversations = await apiService.getMyAssignedConversations();
+      console.log('📋 Conversaciones asignadas recibidas:', conversations);
+      setAssignedConversations(conversations || []);
+
+      // Actualizar el registro del socket con las conversaciones asignadas
+      if (socket && conversations && conversations.length > 0) {
+        const displayName = user?.nombre && user?.apellido
+          ? `${user.nombre} ${user.apellido}`
+          : user?.username || user?.email;
+
+        socket.emit('updateAssignedConversations', {
+          username: displayName,
+          assignedConversations: conversations
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error al cargar conversaciones asignadas:', error);
+      setAssignedConversations([]);
+    }
+  }, [isAuthenticated, username, socket, user]);
+
   // Cargar conversaciones asignadas al usuario
   useEffect(() => {
     if (!isAuthenticated || !username) {
@@ -177,37 +201,13 @@ const ChatPage = () => {
       return;
     }
 
-    const loadAssignedConversations = async () => {
-      try {
-        console.log('🔄 Cargando conversaciones asignadas para:', username);
-        const conversations = await apiService.getMyAssignedConversations();
-        console.log('📋 Conversaciones asignadas recibidas:', conversations);
-        setAssignedConversations(conversations || []);
-
-        // Actualizar el registro del socket con las conversaciones asignadas
-        if (socket && conversations && conversations.length > 0) {
-          const displayName = user?.nombre && user?.apellido
-            ? `${user.nombre} ${user.apellido}`
-            : user?.username || user?.email;
-
-          socket.emit('updateAssignedConversations', {
-            username: displayName,
-            assignedConversations: conversations
-          });
-        }
-      } catch (error) {
-        console.error('❌ Error al cargar conversaciones asignadas:', error);
-        setAssignedConversations([]);
-      }
-    };
-
     // Pequeño delay para asegurar que el usuario esté completamente autenticado
     const timeoutId = setTimeout(() => {
       loadAssignedConversations();
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [isAuthenticated, username, socket, user]);
+  }, [isAuthenticated, username, loadAssignedConversations]);
 
   // WebSocket listeners
   useEffect(() => {
@@ -369,9 +369,9 @@ const ChatPage = () => {
     });
 
     // Llamada rechazada
-    s.on('callRejected', (data) => {
+    s.on('callRejected', async (data) => {
       console.log('❌ Llamada rechazada por:', data.from);
-      alert(`${data.from} rechazó la llamada`);
+      await showErrorAlert('Llamada rechazada', `${data.from} rechazó la llamada`);
       endCall();
     });
 
@@ -382,9 +382,9 @@ const ChatPage = () => {
     });
 
     // Llamada fallida
-    s.on('callFailed', (data) => {
+    s.on('callFailed', async (data) => {
       console.log('❌ Llamada fallida:', data.reason);
-      alert(`No se pudo realizar la llamada: ${data.reason}`);
+      await showErrorAlert('Llamada fallida', `No se pudo realizar la llamada: ${data.reason}`);
       endCall();
     });
 
@@ -396,6 +396,18 @@ const ChatPage = () => {
       try {
         const conversations = await apiService.getMyAssignedConversations();
         setAssignedConversations(conversations);
+
+        // Actualizar el socket con las conversaciones asignadas para que se actualice la lista de usuarios
+        if (s && s.connected && user) {
+          const displayName = user?.nombre && user?.apellido
+            ? `${user.nombre} ${user.apellido}`
+            : user?.username || user?.email;
+
+          s.emit('updateAssignedConversations', {
+            username: displayName,
+            assignedConversations: conversations
+          });
+        }
 
         // Mostrar notificación con SweetAlert2
         await showSuccessAlert(
@@ -489,26 +501,16 @@ const ChatPage = () => {
 
   const handleCreateRoom = async () => {
     try {
-      // Validar que se haya especificado al menos algún tiempo
-      if (roomForm.durationHours === 0 && roomForm.durationMinutes === 0) {
-        alert('Por favor especifica al menos 1 minuto de duración para la sala');
-        return;
-      }
-      
-      // Convertir horas y minutos a duración total en minutos
-      const totalMinutes = (roomForm.durationHours * 60) + roomForm.durationMinutes;
-      
       // Incluir el nombre del creador en la petición de creación
       const createData = {
         name: roomForm.name,
         maxCapacity: roomForm.maxCapacity,
-        duration: totalMinutes, // Enviar duración en minutos
         creatorUsername: username
       };
-      
+
       const result = await apiService.createTemporaryRoom(createData);
       setShowCreateRoomModal(false);
-      setRoomForm({ name: '', maxCapacity: 50, durationHours: 24, durationMinutes: 0 });
+      setRoomForm({ name: '', maxCapacity: 50 });
       
       // Guardar los datos de la sala creada para mostrar en el modal
       setCreatedRoomData(result);
@@ -518,7 +520,6 @@ const ChatPage = () => {
       setTo(result.name);
       setIsGroup(true);
       setCurrentRoomCode(result.roomCode);
-      setRoomDuration(totalMinutes);
       setRoomExpiresAt(result.expiresAt);
       currentRoomCodeRef.current = result.roomCode;
       
@@ -535,10 +536,10 @@ const ChatPage = () => {
       
       clearMessages();
       setRoomUsers([]);
-      
+
     } catch (error) {
       console.error('Error al crear sala:', error);
-      alert('Error al crear la sala: ' + error.message);
+      await showErrorAlert('Error', 'Error al crear la sala: ' + error.message);
     }
   };
 
@@ -553,11 +554,10 @@ const ChatPage = () => {
       const result = await apiService.joinRoom(joinData);
       setShowJoinRoomModal(false);
       setJoinRoomForm({ roomCode: '' });
-      
+
           setTo(result.name);
           setIsGroup(true);
           setCurrentRoomCode(result.roomCode);
-          setRoomDuration(result.durationMinutes);
           setRoomExpiresAt(result.expiresAt);
           currentRoomCodeRef.current = result.roomCode;
       
@@ -572,12 +572,12 @@ const ChatPage = () => {
           from: username
         });
       }
-      
+
       setRoomUsers([]);
-      
+
     } catch (error) {
       console.error('Error al unirse a sala:', error);
-      alert('Error al unirse a la sala: ' + error.message);
+      await showErrorAlert('Error', 'Error al unirse a la sala: ' + error.message);
     }
   };
 
@@ -593,7 +593,6 @@ const ChatPage = () => {
     setIsGroup(false);
     setRoomUsers([]);
     setCurrentRoomCode(null);
-    setRoomDuration(null);
     currentRoomCodeRef.current = null;
     clearMessages();
   };
@@ -638,7 +637,7 @@ const ChatPage = () => {
           console.log('✅ Archivo subido exitosamente:', uploadResult.fileUrl);
         } catch (error) {
           console.error('❌ Error al subir archivo:', error);
-          alert('Error al subir el archivo. Inténtalo de nuevo.');
+          await showErrorAlert('Error', 'Error al subir el archivo. Inténtalo de nuevo.');
           return;
         }
       }
@@ -683,11 +682,11 @@ const ChatPage = () => {
         return;
       }
 
-      
+
       // Verificar que el socket esté conectado antes de enviar
       if (!socket || !socket.connected) {
         console.error('❌ Socket no conectado, no se puede enviar mensaje');
-        alert('Error: No hay conexión con el servidor. Inténtalo de nuevo.');
+        await showErrorAlert('Error de conexión', 'No hay conexión con el servidor. Inténtalo de nuevo.');
         return;
       }
       
@@ -719,7 +718,7 @@ const ChatPage = () => {
 
   const handleEditMessage = async (messageId, newText) => {
     if (!newText.trim()) {
-      alert('El mensaje no puede estar vacío');
+      await showErrorAlert('Error', 'El mensaje no puede estar vacío');
       return;
     }
 
@@ -749,7 +748,7 @@ const ChatPage = () => {
       );
     } catch (error) {
       console.error('Error al editar mensaje:', error);
-      alert('Error al editar el mensaje. Inténtalo de nuevo.');
+      await showErrorAlert('Error', 'Error al editar el mensaje. Inténtalo de nuevo.');
     }
   };
 
@@ -761,83 +760,57 @@ const ChatPage = () => {
       setShowAdminRoomsModal(true);
     } catch (error) {
       console.error('Error al cargar salas:', error);
-      alert('Error al cargar las salas: ' + error.message);
+      await showErrorAlert('Error', 'Error al cargar las salas: ' + error.message);
     } finally {
       setLoadingAdminRooms(false);
     }
   };
 
   const handleDeleteRoom = async (roomId, roomName) => {
-    if (confirm(`¿Estás seguro de que quieres eliminar la sala "${roomName}"?`)) {
+    const confirmed = await showConfirmAlert(
+      '¿Eliminar sala?',
+      `¿Estás seguro de que quieres eliminar la sala "${roomName}"?`
+    );
+
+    if (confirmed) {
       try {
         await apiService.deleteRoom(roomId);
-        alert('Sala eliminada correctamente');
+        await showSuccessAlert('Éxito', 'Sala eliminada correctamente');
         const rooms = await apiService.getAdminRooms();
         setAdminRooms(rooms);
       } catch (error) {
         console.error('Error al eliminar sala:', error);
         if (error.message.includes('404') || error.message.includes('Not Found')) {
-          alert('La sala ya fue eliminada');
+          await showErrorAlert('Aviso', 'La sala ya fue eliminada');
           const rooms = await apiService.getAdminRooms();
           setAdminRooms(rooms);
         } else {
-          alert('Error al eliminar la sala: ' + error.message);
+          await showErrorAlert('Error', 'Error al eliminar la sala: ' + error.message);
         }
       }
     }
   };
 
   const handleDeactivateRoom = async (roomId, roomName) => {
-    if (confirm(`¿Estás seguro de que quieres desactivar la sala "${roomName}"?`)) {
+    const confirmed = await showConfirmAlert(
+      '¿Desactivar sala?',
+      `¿Estás seguro de que quieres desactivar la sala "${roomName}"?`
+    );
+
+    if (confirmed) {
       try {
         await apiService.deactivateRoom(roomId);
-        alert('Sala desactivada correctamente');
+        await showSuccessAlert('Éxito', 'Sala desactivada correctamente');
         const rooms = await apiService.getAdminRooms();
         setAdminRooms(rooms);
       } catch (error) {
         console.error('Error al desactivar sala:', error);
-        alert('Error al desactivar la sala: ' + error.message);
+        await showErrorAlert('Error', 'Error al desactivar la sala: ' + error.message);
       }
     }
   };
 
-  const handleEditRoom = (room) => {
-    setEditingRoom(room);
-    // Convertir la duración actual de minutos a horas y minutos
-    const currentMinutes = room.durationMinutes || 0;
-    const hours = Math.floor(currentMinutes / 60);
-    const minutes = currentMinutes % 60;
-    setEditForm({ durationHours: hours, durationMinutes: minutes });
-    setShowEditRoomModal(true);
-  };
 
-  const handleUpdateRoom = async () => {
-    try {
-      // Validar que se haya especificado al menos algún tiempo
-      if (editForm.durationHours === 0 && editForm.durationMinutes === 0) {
-        alert('Por favor especifica al menos 1 minuto de duración para la sala');
-        return;
-      }
-      
-      // Convertir horas y minutos a duración total en minutos
-      const totalMinutes = (editForm.durationHours * 60) + editForm.durationMinutes;
-      
-      // Actualizar la duración de la sala
-      await apiService.updateRoomDuration(editingRoom.id, totalMinutes);
-      
-      setShowEditRoomModal(false);
-      setEditingRoom(null);
-      setEditForm({ durationHours: 0, durationMinutes: 0 });
-      
-      // Recargar la lista de salas
-      handleShowAdminRooms();
-      
-      alert('Duración de la sala actualizada correctamente');
-    } catch (error) {
-      console.error('Error al actualizar duración de la sala:', error);
-      alert('Error al actualizar la duración: ' + error.message);
-    }
-  };
 
   const handleCreateConversation = async (data) => {
     try {
@@ -849,7 +822,10 @@ const ChatPage = () => {
 
       setShowCreateConversationModal(false);
 
-      alert(`✅ Conversación creada exitosamente entre ${data.user1} y ${data.user2}`);
+      await showSuccessAlert(
+        'Conversación creada',
+        `Conversación creada exitosamente entre ${data.user1} y ${data.user2}`
+      );
 
       // Opcional: Notificar a los usuarios via Socket.io
       if (socket && socket.connected) {
@@ -862,22 +838,22 @@ const ChatPage = () => {
       }
     } catch (error) {
       console.error('Error al crear conversación:', error);
-      alert('Error al crear la conversación: ' + error.message);
+      await showErrorAlert('Error', 'Error al crear la conversación: ' + error.message);
     }
   };
 
   // Funciones de llamadas
-  const handleStartCall = (targetUser) => {
+  const handleStartCall = async (targetUser) => {
     if (!targetUser || isGroup) {
-      alert('Solo puedes hacer llamadas a usuarios individuales');
+      await showErrorAlert('Error', 'Solo puedes hacer llamadas a usuarios individuales');
       return;
     }
     startCall(targetUser, 'audio');
   };
 
-  const handleStartVideoCall = (targetUser) => {
+  const handleStartVideoCall = async (targetUser) => {
     if (!targetUser || isGroup) {
-      alert('Solo puedes hacer videollamadas a usuarios individuales');
+      await showErrorAlert('Error', 'Solo puedes hacer videollamadas a usuarios individuales');
       return;
     }
     startCall(targetUser, 'video');
@@ -961,10 +937,10 @@ const ChatPage = () => {
           modal.remove();
         }
       });
-      
+
     } catch (error) {
       console.error('Error al obtener usuarios de la sala:', error);
-      alert('Error al obtener usuarios de la sala: ' + error.message);
+      await showErrorAlert('Error', 'Error al obtener usuarios de la sala: ' + error.message);
     }
   };
 
@@ -1005,7 +981,6 @@ const ChatPage = () => {
         setIsGroup(false);
         setRoomUsers([]);
         setCurrentRoomCode(null);
-        setRoomDuration(null);
         setRoomExpiresAt(null);
         currentRoomCodeRef.current = null;
       }
@@ -1075,7 +1050,6 @@ const ChatPage = () => {
           isGroup={isGroup}
           currentRoomCode={currentRoomCode}
           roomUsers={roomUsers}
-          roomDuration={roomDuration}
           roomExpiresAt={roomExpiresAt}
       messages={messages}
       input={input}
@@ -1121,20 +1095,6 @@ const ChatPage = () => {
       onDeleteRoom={handleDeleteRoom}
       onDeactivateRoom={handleDeactivateRoom}
       onViewRoomUsers={handleViewRoomUsers}
-      onEditRoom={handleEditRoom}
-    />
-
-    <EditRoomModal
-      isOpen={showEditRoomModal}
-      onClose={() => {
-        setShowEditRoomModal(false);
-        setEditingRoom(null);
-        setEditForm({ durationHours: 0, durationMinutes: 0 });
-      }}
-      room={editingRoom}
-      editForm={editForm}
-      setEditForm={setEditForm}
-      onUpdateRoom={handleUpdateRoom}
     />
 
     <RoomCreatedModal
@@ -1161,6 +1121,7 @@ const ChatPage = () => {
         // Recargar las conversaciones asignadas
         loadAssignedConversations();
       }}
+      currentUser={user}
     />
 
     <CallWindow

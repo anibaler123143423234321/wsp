@@ -33,9 +33,7 @@ const CreateConversationModal = ({
   // Generar nombre automático cuando se seleccionan ambos usuarios
   useEffect(() => {
     if (selectedUser1 && selectedUser2) {
-      const user1Name = typeof selectedUser1 === 'string' ? selectedUser1 : selectedUser1.username;
-      const user2Name = typeof selectedUser2 === 'string' ? selectedUser2 : selectedUser2.username;
-      setConversationName(`Chat: ${user1Name} ↔ ${user2Name}`);
+      setConversationName(`Chat: ${selectedUser1} ↔ ${selectedUser2}`);
     }
   }, [selectedUser1, selectedUser2]);
 
@@ -53,12 +51,9 @@ const CreateConversationModal = ({
       return;
     }
 
-    const user1 = typeof selectedUser1 === 'string' ? selectedUser1 : selectedUser1.username;
-    const user2 = typeof selectedUser2 === 'string' ? selectedUser2 : selectedUser2.username;
-
     onCreateConversation({
-      user1,
-      user2,
+      user1: selectedUser1,
+      user2: selectedUser2,
       name: conversationName
     });
   };
@@ -95,13 +90,10 @@ const CreateConversationModal = ({
               <div className="select-wrapper">
                 <select
                   id="user1"
-                  value={selectedUser1}
+                  value={typeof selectedUser1 === 'string' ? selectedUser1 : selectedUser1?.username || ''}
                   onChange={(e) => {
                     const value = e.target.value;
-                    const user = availableUsers.find(u =>
-                      (typeof u === 'string' ? u : u.username) === value
-                    );
-                    setSelectedUser1(user || value);
+                    setSelectedUser1(value);
                   }}
                   required
                   className="form-select-modern"
@@ -131,13 +123,10 @@ const CreateConversationModal = ({
               <div className="select-wrapper">
                 <select
                   id="user2"
-                  value={selectedUser2}
+                  value={typeof selectedUser2 === 'string' ? selectedUser2 : selectedUser2?.username || ''}
                   onChange={(e) => {
                     const value = e.target.value;
-                    const user = availableUsers.find(u =>
-                      (typeof u === 'string' ? u : u.username) === value
-                    );
-                    setSelectedUser2(user || value);
+                    setSelectedUser2(value);
                   }}
                   required
                   className="form-select-modern"
@@ -146,10 +135,7 @@ const CreateConversationModal = ({
                   {availableUsers
                     .filter(user => {
                       const username = typeof user === 'string' ? user : user.username;
-                      const selectedUser1Name = typeof selectedUser1 === 'string'
-                        ? selectedUser1
-                        : selectedUser1?.username;
-                      return username !== selectedUser1Name;
+                      return username !== selectedUser1;
                     })
                     .map((user, index) => {
                       const username = typeof user === 'string' ? user : user.username;

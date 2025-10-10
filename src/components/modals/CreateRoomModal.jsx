@@ -43,40 +43,7 @@ const CreateRoomModal = ({ isOpen, onClose, roomForm, setRoomForm, onCreateRoom 
               required
             />
           </div>
-          
-          <div className="form-group">
-            <label htmlFor="duration">Duración de la sala:</label>
-            <div className="duration-inputs">
-              <div className="duration-field">
-                <input
-                  type="number"
-                  id="durationHours"
-                  value={roomForm.durationHours || '24'}
-                  onChange={(e) => setRoomForm({...roomForm, durationHours: parseInt(e.target.value) || 0})}
-                  min="0"
-                  max="8760"
-                  placeholder="0"
-                />
-                <label htmlFor="durationHours">horas</label>
-              </div>
-              <div className="duration-field">
-                <input
-                  type="number"
-                  id="durationMinutes"
-                  value={roomForm.durationMinutes || '0'}
-                  onChange={(e) => setRoomForm({...roomForm, durationMinutes: parseInt(e.target.value) || 0})}
-                  min="0"
-                  max="59"
-                  placeholder="0"
-                />
-                <label htmlFor="durationMinutes">minutos</label>
-              </div>
-            </div>
-            <div className="duration-help">
-              <small>Ejemplos: 1h 30m, 2h 15m, 30m, 6h</small>
-            </div>
-          </div>
-          
+
           <div className="modal-actions">
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               Cancelar

@@ -2,8 +2,11 @@ import React from 'react';
 import { FaUsers, FaUser, FaTrash, FaEdit, FaEye, FaExclamationTriangle } from 'react-icons/fa';
 import './Modal.css';
 
-const AdminRoomsModal = ({ isOpen, onClose, adminRooms, onDeleteRoom, onDeactivateRoom, onViewRoomUsers, onEditRoom }) => {
+const AdminRoomsModal = ({ isOpen, onClose, adminRooms, onDeleteRoom, onDeactivateRoom, onViewRoomUsers, currentUser }) => {
   if (!isOpen) return null;
+
+  // Verificar si el usuario puede eliminar (solo ADMIN)
+  const canDelete = currentUser?.role === 'ADMIN';
 
   // Función para formatear la duración en minutos a horas y minutos
   const formatDuration = (minutes) => {
@@ -109,14 +112,7 @@ const AdminRoomsModal = ({ isOpen, onClose, adminRooms, onDeleteRoom, onDeactiva
                     >
                       👥
                     </button>
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => onEditRoom(room)}
-                      title="Editar duración de la sala"
-                    >
-                      ✏️
-                    </button>
-                    {room.isActive && (
+                    {canDelete && room.isActive && (
                       <button
                         className="btn btn-warning"
                         onClick={() => onDeactivateRoom(room.id, room.name)}
@@ -125,13 +121,15 @@ const AdminRoomsModal = ({ isOpen, onClose, adminRooms, onDeleteRoom, onDeactiva
                         ⏸️
                       </button>
                     )}
-                    <button
-                      className="btn btn-danger"
-                      onClick={() => onDeleteRoom(room.id, room.name)}
-                      title="Eliminar sala permanentemente"
-                    >
-                      🗑️
-                    </button>
+                    {canDelete && (
+                      <button
+                        className="btn btn-danger"
+                        onClick={() => onDeleteRoom(room.id, room.name)}
+                        title="Eliminar sala permanentemente"
+                      >
+                        🗑️
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

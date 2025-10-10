@@ -4,7 +4,7 @@ import './ManageAssignedConversationsModal.css';
 import apiService from '../../apiService';
 import { showSuccessAlert, showErrorAlert, showConfirmAlert } from '../../sweetalert2';
 
-const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated }) => {
+const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated, currentUser }) => {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editingConv, setEditingConv] = useState(null);
@@ -12,6 +12,9 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
     name: '',
     description: ''
   });
+
+  // Verificar si el usuario puede eliminar (solo ADMIN)
+  const canDelete = currentUser?.role === 'ADMIN';
 
   useEffect(() => {
     if (show) {
@@ -185,13 +188,15 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
                           >
                             <FaEdit />
                           </button>
-                          <button
-                            className="action-btn delete-btn"
-                            onClick={() => handleDelete(conv)}
-                            title="Eliminar"
-                          >
-                            <FaTrash />
-                          </button>
+                          {canDelete && (
+                            <button
+                              className="action-btn delete-btn"
+                              onClick={() => handleDelete(conv)}
+                              title="Eliminar"
+                            >
+                              <FaTrash />
+                            </button>
+                          )}
                         </div>
                       </div>
 

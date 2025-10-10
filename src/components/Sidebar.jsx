@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { FaCog, FaSignOutAlt, FaSignInAlt, FaPlus, FaDoorOpen, FaUserFriends, FaClipboardList } from 'react-icons/fa';
 import './Sidebar.css';
-import logo from '../assets/Logotipo +34.svg';
 
 const Sidebar = ({
   user,
@@ -127,8 +126,6 @@ const Sidebar = ({
       {/* Columna izquierda */}
       <div className="sidebar-left">
         <div className="sidebar-left-content">
-          <img src={logo} alt="+34 Logo" className="sidebar-logo" />
-
           <div className="user-profile">
             {user?.picture ? (
               <img src={user.picture} alt="Avatar" className="user-avatar-image" />
@@ -144,20 +141,18 @@ const Sidebar = ({
             </div>
           </div>
 
-          {isAdmin && (
-            <button className="create-space-btn-left" onClick={onShowCreateRoom} title="Crear un grupo">
-              <FaPlus className="create-icon-left" />
-              <span className="create-text-left">Crear un grupo</span>
-            </button>
-          )}
-
-          <button className="join-room-btn-left" onClick={onShowJoinRoom} title="Unirse a sala">
-            <FaSignInAlt className="join-icon-left" />
-            <span className="join-text-left">Unirse a sala</span>
-          </button>
-
-          {isAdmin && (
+          {(user?.role === 'ADMIN' || user?.role === 'JEFEPISO') && (
             <>
+              <button className="create-space-btn-left" onClick={onShowCreateRoom} title="Crear Sala Temporal">
+                <FaPlus className="create-icon-left" />
+                <span className="create-text-left">Crear Sala Temporal</span>
+              </button>
+
+              <button className="join-room-btn-left" onClick={onShowJoinRoom} title="Unirse a sala">
+                <FaSignInAlt className="join-icon-left" />
+                <span className="join-text-left">Unirse a sala</span>
+              </button>
+
               <button className="my-rooms-btn-left" onClick={onShowAdminRooms} title="Mis salas">
                 <FaDoorOpen className="my-rooms-icon-left" />
                 <span className="my-rooms-text-left">Mis salas</span>
