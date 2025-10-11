@@ -159,13 +159,9 @@ export const useSocket = (isAuthenticated, username, user) => {
     // Manejar visibilidad de la página (importante para mobile)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log('📱 App visible - verificando conexión socket');
         if (socket.current && !socket.current.connected) {
-          console.log('🔄 Reconectando socket...');
           socket.current.connect();
         }
-      } else {
-        console.log('📱 App en background');
       }
     };
 

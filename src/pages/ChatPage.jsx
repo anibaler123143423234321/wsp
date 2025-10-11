@@ -86,6 +86,9 @@ const ChatPage = () => {
   const [unreadMessages] = useState({});
   const [socketConnected, setSocketConnected] = useState(false);
   const [soundsEnabled, setSoundsEnabled] = useState(false);
+  const [isTyping, setIsTyping] = useState(false); // El otro usuario está escribiendo
+  const [typingTimeout, setTypingTimeout] = useState(null); // Timeout para detectar cuando deja de escribir
+  const [adminViewConversation, setAdminViewConversation] = useState(null); // Conversación que el admin está viendo
 
   // Estados de UI
   const [showAdminMenu, setShowAdminMenu] = useState(false);
@@ -99,6 +102,7 @@ const ChatPage = () => {
   const [createdRoomData, setCreatedRoomData] = useState(null);
   const [adminRooms, setAdminRooms] = useState([]);
   const [loadingAdminRooms, setLoadingAdminRooms] = useState(false);
+  const [myActiveRooms, setMyActiveRooms] = useState([]); // Salas activas para mostrar en el sidebar
 
   // Estados de formularios
   const [roomForm, setRoomForm] = useState({ name: '', maxCapacity: 50 });
@@ -149,7 +153,31 @@ const ChatPage = () => {
     if (!hasRestoredRoom.current) {
       hasRestoredRoom.current = true;
     }
-  }, [isAuthenticated, username]);
+
+    // Cargar las salas activas solo para ADMIN y JEFEPISO
+    if (user?.role === 'ADMIN' || user?.role === 'JEFEPISO') {
+      loadMyActiveRooms();
+    }
+  }, [isAuthenticated, username, user]);
+
+  // Función para cargar las salas activas del usuario (solo para ADMIN y JEFEPISO)
+  const loadMyActiveRooms = async () => {
+    // Verificar que el usuario tenga permisos
+    if (user?.role !== 'ADMIN' && user?.role !== 'JEFEPISO') {
+      setMyActiveRooms([]);
+      return;
+    }
+
+    try {
+      const rooms = await apiService.getAdminRooms();
+      // Filtrar solo las salas activas
+      const activeRooms = rooms.filter(room => room.isActive);
+      setMyActiveRooms(activeRooms);
+    } catch (error) {
+      console.error('Error al cargar salas activas:', error);
+      setMyActiveRooms([]);
+    }
+  };
 
   // Cargar mensajes cuando cambie currentRoomCode (para grupos/salas)
   useEffect(() => {
@@ -160,10 +188,62 @@ const ChatPage = () => {
 
   // Cargar mensajes cuando cambie 'to' (para conversaciones individuales)
   useEffect(() => {
-    if (to && username && !isGroup && !currentRoomCode) {
+    if (to && username && !isGroup && !currentRoomCode && !adminViewConversation) {
       loadInitialMessages();
     }
-  }, [to, username, isGroup, currentRoomCode, loadInitialMessages]);
+  }, [to, username, isGroup, currentRoomCode, loadInitialMessages, adminViewConversation]);
+
+  // Cargar mensajes cuando el admin ve una conversación de otros usuarios
+  useEffect(() => {
+    const loadAdminViewMessages = async () => {
+      if (!adminViewConversation || !adminViewConversation.participants || adminViewConversation.participants.length < 2) {
+        return;
+      }
+
+      try {
+        const [participant1, participant2] = adminViewConversation.participants;
+        console.log(`👁️ Admin viendo conversación entre: ${participant1} y ${participant2}`);
+
+        // Cargar mensajes entre los dos participantes
+        const historicalMessages = await apiService.getUserMessages(
+          participant1,
+          participant2,
+          20,
+          0
+        );
+
+        // Convertir mensajes al formato del frontend
+        const formattedMessages = historicalMessages.map((msg) => ({
+          sender: msg.from,
+          receiver: msg.to,
+          text: msg.message || "",
+          isGroup: false,
+          time: msg.time || new Date(msg.sentAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          isSent: false, // El admin no es el remitente
+          isSelf: false, // El admin no es el remitente
+          mediaType: msg.mediaType,
+          mediaData: msg.mediaData,
+          fileName: msg.fileName,
+          fileSize: msg.fileSize,
+          id: msg.id,
+          sentAt: msg.sentAt,
+        }));
+
+        // Actualizar los mensajes manualmente (no usar el hook)
+        clearMessages();
+        formattedMessages.forEach(msg => addNewMessage(msg));
+      } catch (error) {
+        console.error("❌ Error al cargar mensajes de admin view:", error);
+      }
+    };
+
+    if (adminViewConversation) {
+      loadAdminViewMessages();
+    }
+  }, [adminViewConversation, clearMessages, addNewMessage]);
 
   // Función para cargar conversaciones asignadas
   const loadAssignedConversations = useCallback(async () => {
@@ -172,9 +252,15 @@ const ChatPage = () => {
     }
 
     try {
-      console.log('🔄 Cargando conversaciones asignadas para:', username);
-      const conversations = await apiService.getMyAssignedConversations();
-      console.log('📋 Conversaciones asignadas recibidas:', conversations);
+      // Si el usuario es admin, obtener TODAS las conversaciones
+      // Si no es admin, obtener solo las conversaciones asignadas al usuario
+      let conversations;
+      if (user?.role === 'ADMIN') {
+        conversations = await apiService.getAllAssignedConversations();
+      } else {
+        conversations = await apiService.getMyAssignedConversations();
+      }
+
       setAssignedConversations(conversations || []);
 
       // Actualizar el registro del socket con las conversaciones asignadas
@@ -197,7 +283,6 @@ const ChatPage = () => {
   // Cargar conversaciones asignadas al usuario
   useEffect(() => {
     if (!isAuthenticated || !username) {
-      console.log('⏳ No autenticado o sin username:', { isAuthenticated, username });
       return;
     }
 
@@ -225,9 +310,29 @@ const ChatPage = () => {
     });
 
         s.on('roomUsers', (data) => {
+          console.log('📨 Recibido roomUsers:', data);
+          console.log('🔍 currentRoomCodeRef.current:', currentRoomCodeRef.current);
+          console.log('🔍 data.roomCode:', data.roomCode);
+
+          // Actualizar lista de usuarios si estamos en la sala
           if (data.roomCode === currentRoomCodeRef.current) {
+            console.log('✅ Actualizando roomUsers con:', data.users);
             setRoomUsers(data.users);
+          } else {
+            console.log('❌ No actualizando roomUsers porque no coincide el roomCode');
           }
+
+          // SIEMPRE actualizar el contador en "Mis Salas Activas"
+          // Contar solo usuarios conectados (isOnline === true)
+          const connectedCount = data.users.filter(u => u.isOnline).length;
+          console.log('📊 Contador de conectados:', connectedCount);
+          setMyActiveRooms(prevRooms =>
+            prevRooms.map(room =>
+              room.roomCode === data.roomCode
+                ? { ...room, currentMembers: connectedCount }
+                : room
+            )
+          );
         });
 
         s.on('roomJoined', (data) => {
@@ -240,7 +345,7 @@ const ChatPage = () => {
           if (data.roomCode === currentRoomCodeRef.current) {
         // Actualizar la lista de usuarios agregando el nuevo usuario
         setRoomUsers(prevUsers => {
-          const userExists = prevUsers.some(user => 
+          const userExists = prevUsers.some(user =>
             (typeof user === 'string' ? user : user.username) === data.user.username
           );
           if (!userExists) {
@@ -248,6 +353,19 @@ const ChatPage = () => {
           }
           return prevUsers;
         });
+      }
+    });
+
+    // Actualizar contador de usuarios en salas activas (solo para ADMIN y JEFEPISO)
+    s.on('roomCountUpdate', (data) => {
+      if (user?.role === 'ADMIN' || user?.role === 'JEFEPISO') {
+        setMyActiveRooms(prevRooms =>
+          prevRooms.map(room =>
+            room.roomCode === data.roomCode
+              ? { ...room, currentMembers: data.currentMembers }
+              : room
+          )
+        );
       }
     });
 
@@ -394,7 +512,15 @@ const ChatPage = () => {
 
       // Recargar conversaciones asignadas
       try {
-        const conversations = await apiService.getMyAssignedConversations();
+        // Si el usuario es admin, obtener TODAS las conversaciones
+        // Si no es admin, obtener solo las conversaciones asignadas al usuario
+        let conversations;
+        if (user?.role === 'ADMIN') {
+          conversations = await apiService.getAllAssignedConversations();
+        } else {
+          conversations = await apiService.getMyAssignedConversations();
+        }
+
         setAssignedConversations(conversations);
 
         // Actualizar el socket con las conversaciones asignadas para que se actualice la lista de usuarios
@@ -419,6 +545,29 @@ const ChatPage = () => {
       }
     });
 
+    // Evento: El otro usuario está escribiendo
+    s.on('userTyping', (data) => {
+      const { from, isTyping: typing } = data;
+
+      // Solo mostrar si el mensaje es del usuario con el que estamos chateando
+      if (from === to) {
+        setIsTyping(typing);
+
+        // Si está escribiendo, limpiar el timeout anterior
+        if (typing && typingTimeout) {
+          clearTimeout(typingTimeout);
+        }
+
+        // Si dejó de escribir, ocultar el indicador después de 1 segundo
+        if (!typing) {
+          const timeout = setTimeout(() => {
+            setIsTyping(false);
+          }, 1000);
+          setTypingTimeout(timeout);
+        }
+      }
+    });
+
         return () => {
           s.off('userList');
           s.off('roomUsers');
@@ -432,17 +581,37 @@ const ChatPage = () => {
           s.off('callEnded');
           s.off('callFailed');
           s.off('newConversationAssigned');
+          s.off('userTyping');
         };
-      }, [socket, currentRoomCode, to, isGroup, username, isAdmin, soundsEnabled]);
+      }, [socket, currentRoomCode, to, isGroup, username, isAdmin, soundsEnabled, typingTimeout]);
+
+  // Estado para el mensaje a resaltar
+  const [highlightMessageId, setHighlightMessageId] = useState(null);
 
   // Handlers
-  const handleUserSelect = (userName) => {
-    setTo(userName);
+  const handleUserSelect = (userName, messageId = null, conversationData = null) => {
+    // Si es una conversación de admin (conversationData presente), guardarla
+    if (conversationData) {
+      setAdminViewConversation(conversationData);
+      // Para conversaciones de admin, usar el nombre de la conversación como "to"
+      setTo(conversationData.name || userName);
+    } else {
+      setAdminViewConversation(null);
+      setTo(userName);
+    }
+
     setIsGroup(false);
     setCurrentRoomCode(null);
     currentRoomCodeRef.current = null;
     setRoomUsers([]);
     clearMessages();
+
+    // Si se proporciona un messageId, guardarlo para resaltarlo después de cargar los mensajes
+    if (messageId) {
+      setHighlightMessageId(messageId);
+    } else {
+      setHighlightMessageId(null);
+    }
   };
 
   const handleGroupSelect = (group) => {
@@ -537,6 +706,9 @@ const ChatPage = () => {
       clearMessages();
       setRoomUsers([]);
 
+      // Actualizar la lista de salas activas para que aparezca en el sidebar
+      await loadMyActiveRooms();
+
     } catch (error) {
       console.error('Error al crear sala:', error);
       await showErrorAlert('Error', 'Error al crear la sala: ' + error.message);
@@ -588,7 +760,7 @@ const ChatPage = () => {
         from: username
       });
     }
-    
+
     setTo(username);
     setIsGroup(false);
     setRoomUsers([]);
@@ -597,8 +769,69 @@ const ChatPage = () => {
     clearMessages();
   };
 
+  // Función para seleccionar una sala del sidebar
+  const handleRoomSelect = async (room) => {
+    try {
+      // Si ya estamos en esta sala, no hacer nada
+      if (currentRoomCode === room.roomCode) {
+        return;
+      }
+
+      // Si estamos en otra sala, salir primero
+      if (currentRoomCode && socket && socket.connected) {
+        socket.emit('leaveRoom', {
+          roomCode: currentRoomCode,
+          from: username
+        });
+      }
+
+      // Unirse a la sala seleccionada
+      setTo(room.name);
+      setIsGroup(true);
+      setCurrentRoomCode(room.roomCode);
+      setRoomExpiresAt(room.expiresAt);
+      currentRoomCodeRef.current = room.roomCode;
+
+      // Emitir evento de unirse a la sala
+      if (socket && socket.connected) {
+        socket.emit('joinRoom', {
+          roomCode: room.roomCode,
+          roomName: room.name,
+          from: username
+        });
+      }
+
+      clearMessages();
+      setRoomUsers([]);
+
+    } catch (error) {
+      console.error('Error al seleccionar sala:', error);
+      await showErrorAlert('Error', 'Error al unirse a la sala: ' + error.message);
+    }
+  };
+
   const handleSendMessage = async () => {
     if ((!input && mediaFiles.length === 0) || !to) return;
+
+    // Verificar si el usuario actual está en la conversación asignada
+    const currentUserFullName = user?.nombre && user?.apellido
+      ? `${user.nombre} ${user.apellido}`
+      : user?.username;
+
+    // Buscar si esta conversación es asignada
+    const assignedConv = assignedConversations?.find(conv => {
+      const otherUser = conv.participants?.find(p => p !== currentUserFullName);
+      return otherUser === to || conv.name === to;
+    });
+
+    // Si es una conversación asignada y el usuario NO está en ella, no permitir enviar
+    if (assignedConv && !assignedConv.participants?.includes(currentUserFullName)) {
+      await showErrorAlert(
+        'No permitido',
+        'No puedes enviar mensajes en conversaciones de otros usuarios. Solo puedes monitorearlas.'
+      );
+      return;
+    }
 
     const now = new Date();
     const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -999,6 +1232,28 @@ const ChatPage = () => {
     }
   };
 
+  // Verificar si el usuario puede enviar mensajes en la conversación actual
+  const canSendMessages = React.useMemo(() => {
+    if (!to) return false;
+
+    const currentUserFullName = user?.nombre && user?.apellido
+      ? `${user.nombre} ${user.apellido}`
+      : user?.username;
+
+    // Buscar si esta conversación es asignada
+    const assignedConv = assignedConversations?.find(conv => {
+      const otherUser = conv.participants?.find(p => p !== currentUserFullName);
+      return otherUser === to || conv.name === to;
+    });
+
+    // Si es una conversación asignada y el usuario NO está en ella, no puede enviar
+    if (assignedConv && !assignedConv.participants?.includes(currentUserFullName)) {
+      return false;
+    }
+
+    return true;
+  }, [to, user, assignedConversations]);
+
   // Mostrar loading mientras verifica autenticación
   if (isLoading) {
     return <LoadingScreen message="Verificando sesión..." />;
@@ -1015,12 +1270,12 @@ const ChatPage = () => {
   return (
     <>
       {/* Elemento de audio para notificaciones */}
-      <audio 
+      <audio
         ref={messageSound}
         preload="auto"
         src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
       />
-      
+
       <ChatLayout
       // Props del sidebar
       user={user}
@@ -1044,7 +1299,9 @@ const ChatPage = () => {
       onShowSystemConfig={() => {}}
       loadingAdminRooms={loadingAdminRooms}
       unreadMessages={unreadMessages}
-      
+      myActiveRooms={myActiveRooms}
+      onRoomSelect={handleRoomSelect}
+
       // Props del chat
           to={to}
           isGroup={isGroup}
@@ -1052,9 +1309,11 @@ const ChatPage = () => {
           roomUsers={roomUsers}
           roomExpiresAt={roomExpiresAt}
       messages={messages}
+      adminViewConversation={adminViewConversation}
       input={input}
       setInput={setInput}
       onSendMessage={handleSendMessage}
+      canSendMessages={canSendMessages}
       onFileSelect={handleFileSelect}
       onRecordAudio={() => setIsRecording(true)}
       onStopRecording={() => setIsRecording(false)}
@@ -1077,6 +1336,9 @@ const ChatPage = () => {
       onEnableSounds={handleEnableSounds}
       currentUsername={username}
       onEditMessage={handleEditMessage}
+      isTyping={isTyping}
+      highlightMessageId={highlightMessageId}
+      onMessageHighlighted={() => setHighlightMessageId(null)}
 
       // Props de modales
       showCreateRoomModal={showCreateRoomModal}

@@ -33,7 +33,17 @@ const CreateConversationModal = ({
   // Generar nombre automático cuando se seleccionan ambos usuarios
   useEffect(() => {
     if (selectedUser1 && selectedUser2) {
-      setConversationName(`Chat: ${selectedUser1} ↔ ${selectedUser2}`);
+      // Función para extraer solo los primeros nombres
+      const getShortName = (fullName) => {
+        const parts = fullName.split(' ');
+        // Si tiene más de 2 palabras, tomar las primeras 2 (nombre + segundo nombre)
+        return parts.length > 2 ? `${parts[0]} ${parts[1]}` : parts[0];
+      };
+
+      const shortName1 = getShortName(selectedUser1);
+      const shortName2 = getShortName(selectedUser2);
+
+      setConversationName(`${shortName1} ↔ ${shortName2}`);
     }
   }, [selectedUser1, selectedUser2]);
 
@@ -163,7 +173,7 @@ const CreateConversationModal = ({
                 id="conversationName"
                 value={conversationName}
                 onChange={(e) => setConversationName(e.target.value)}
-                placeholder="Ej: Chat: Usuario1 ↔ Usuario2"
+                placeholder="Ej: Juan Carlos ↔ María Elena"
                 className="form-input-modern"
                 required
               />

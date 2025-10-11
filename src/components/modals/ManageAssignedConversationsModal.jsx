@@ -81,7 +81,21 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
         }
       } catch (error) {
         console.error('Error al eliminar conversación:', error);
-        await showErrorAlert('Error', 'No se pudo eliminar la conversación');
+
+        // Manejar error 404 (conversación ya eliminada o no encontrada)
+        if (error.message.includes('404') || error.message.includes('Not Found') || error.message.includes('no encontrada')) {
+          await showErrorAlert(
+            'Conversación no encontrada',
+            'La conversación ya fue eliminada o no existe. Se actualizará la lista.'
+          );
+          // Recargar la lista para sincronizar con el backend
+          loadConversations();
+          if (onConversationUpdated) {
+            onConversationUpdated();
+          }
+        } else {
+          await showErrorAlert('Error', 'No se pudo eliminar la conversación: ' + error.message);
+        }
       }
     }
   };
@@ -209,11 +223,19 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
                           <FaUsers />
                           <span>Participantes:</span>
                           <div className="participants">
-                            {conv.participants?.map((participant, idx) => (
-                              <span key={idx} className="participant-badge">
-                                {participant}
-                              </span>
-                            ))}
+                            {conv.participants?.map((participant, idx) => {
+                              // Función para extraer solo los primeros nombres
+                              const getShortName = (fullName) => {
+                                const parts = fullName.split(' ');
+                                return parts.length > 2 ? `${parts[0]} ${parts[1]}` : parts[0];
+                              };
+
+                              return (
+                                <span key={idx} className="participant-badge" title={participant}>
+                                  {getShortName(participant)}
+                                </span>
+                              );
+                            })}
                           </div>
                         </div>
 

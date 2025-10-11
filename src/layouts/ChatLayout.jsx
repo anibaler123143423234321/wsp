@@ -12,14 +12,14 @@ const ChatLayout = ({
   user, userList, groupList, assignedConversations, isAdmin, showAdminMenu, setShowAdminMenu, showSidebar,
   onUserSelect, onGroupSelect, onPersonalNotes, onLogout,
   onShowCreateRoom, onShowJoinRoom, onShowAdminRooms, onShowCreateConversation, onShowManageConversations,
-  onShowManageUsers, onShowSystemConfig, loadingAdminRooms,
+  onShowManageUsers, onShowSystemConfig, loadingAdminRooms, myActiveRooms, onRoomSelect,
 
       // Props del chat
       to, isGroup, currentRoomCode, roomUsers, roomDuration, roomExpiresAt, messages, input, setInput,
   onSendMessage, onFileSelect, onRecordAudio, onStopRecording, isRecording,
   mediaFiles, mediaPreviews, onCancelMediaUpload, onRemoveMediaFile, onLeaveRoom, onToggleMenu,
   onEditMessage, hasMoreMessages, isLoadingMore, onLoadMoreMessages,
-  onStartCall, onStartVideoCall, hasCamera,
+  onStartCall, onStartVideoCall, hasCamera, canSendMessages, adminViewConversation,
 
   // Props de modales
   showCreateRoomModal, setShowCreateRoomModal, roomForm, setRoomForm, onCreateRoom,
@@ -30,10 +30,13 @@ const ChatLayout = ({
   unreadMessages,
 
   // Props del socket
-  soundsEnabled, onEnableSounds,
+  soundsEnabled, onEnableSounds, socket, isTyping,
 
   // Props del usuario
-  currentUsername
+  currentUsername,
+
+  // Props de búsqueda
+  highlightMessageId, onMessageHighlighted
 }) => {
   // Función para obtener el picture del usuario con el que se está chateando
   const getUserPicture = () => {
@@ -84,6 +87,9 @@ const ChatLayout = ({
           loadingAdminRooms={loadingAdminRooms}
           unreadMessages={unreadMessages}
           onToggleSidebar={onToggleMenu}
+          myActiveRooms={myActiveRooms}
+          onRoomSelect={onRoomSelect}
+          currentRoomCode={currentRoomCode}
         />
       )}
       
@@ -105,6 +111,8 @@ const ChatLayout = ({
               onStartVideoCall={onStartVideoCall}
               hasCamera={hasCamera}
               onBack={onToggleMenu}
+              isTyping={isTyping}
+              adminViewConversation={adminViewConversation}
             />
         
         <ChatContent
@@ -127,6 +135,10 @@ const ChatLayout = ({
           hasMoreMessages={hasMoreMessages}
           isLoadingMore={isLoadingMore}
           onLoadMoreMessages={onLoadMoreMessages}
+          socket={socket}
+          highlightMessageId={highlightMessageId}
+          onMessageHighlighted={onMessageHighlighted}
+          canSendMessages={canSendMessages}
         />
       </div>
       

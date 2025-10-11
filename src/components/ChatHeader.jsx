@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FaSignOutAlt, FaPhone, FaVideo, FaArrowLeft } from 'react-icons/fa';
+import { FaSignOutAlt, FaPhone, FaVideo, FaArrowLeft, FaKeyboard } from 'react-icons/fa';
 import './ChatHeader.css';
 
 const ChatHeader = ({
@@ -14,7 +14,9 @@ const ChatHeader = ({
   onStartCall,
   onStartVideoCall,
   hasCamera = true,
-  onBack
+  onBack,
+  isTyping,
+  adminViewConversation
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   // Actualizar el tiempo cada minuto para refrescar el contador de expiración
@@ -100,9 +102,17 @@ const ChatHeader = ({
           {/* Información del usuario/grupo */}
           <div className="chat-user-info">
             <div className="chat-title">
-              {to}
-              {isGroup && currentRoomCode && (
-                <span className="room-code">• {currentRoomCode}</span>
+              {adminViewConversation && adminViewConversation.participants ? (
+                // Vista de admin: mostrar ambos participantes
+                `${adminViewConversation.participants[0]} ↔ ${adminViewConversation.participants[1]}`
+              ) : (
+                // Vista normal: mostrar solo el destinatario
+                <>
+                  {to}
+                  {isGroup && currentRoomCode && (
+                    <span className="room-code">• {currentRoomCode}</span>
+                  )}
+                </>
               )}
             </div>
             <div className="chat-subtitle">
@@ -125,8 +135,20 @@ const ChatHeader = ({
                 ) : (
                   `Grupo • ${roomUsers.length} miembro${roomUsers.length !== 1 ? 's' : ''}`
                 )
+              ) : adminViewConversation ? (
+                // Vista de admin
+                <span style={{ color: '#3b82f6', fontWeight: 500 }}>
+                  👁️ Monitoreando conversación
+                </span>
               ) : (
-                'Online'
+                isTyping ? (
+                  <span className="typing-status">
+                    <FaKeyboard className="typing-icon" />
+                    está escribiendo...
+                  </span>
+                ) : (
+                  'Conversación asignada'
+                )
               )}
             </div>
           </div>

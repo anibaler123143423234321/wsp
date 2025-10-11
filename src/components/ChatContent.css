@@ -1,3 +1,17 @@
+/* Animación para mensaje resaltado */
+.highlighted-message {
+  animation: highlightPulse 1.5s ease-in-out;
+}
+
+@keyframes highlightPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
 /* Responsive para ChatContent */
 @media (max-width: 900px) {
   .chat-content {
@@ -440,6 +454,17 @@
   letter-spacing: 0%;
 }
 
+.message-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #f3f4f6;
+}
+
+.message-input:disabled::placeholder {
+  color: rgba(0, 0, 0, 0.3);
+  font-style: italic;
+}
+
 /* Botón de adjuntar */
 .btn-attach {
   background: transparent;
@@ -456,6 +481,12 @@
 
 .btn-attach:hover {
   color: #374151;
+}
+
+.btn-attach.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .btn-attach:active {
@@ -756,5 +787,69 @@
 
   .chat-input-container {
     padding: 8px 10px;
+  }
+}
+
+/* Indicador de "está escribiendo..." */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin: 8px 0;
+  animation: fadeIn 0.3s ease-in;
+}
+
+.typing-bubble {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #202c33;
+  padding: 10px 14px;
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.typing-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #8696a0;
+  border-radius: 50%;
+  animation: typingAnimation 1.4s infinite;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.typing-text {
+  color: #8696a0;
+  font-size: 13px;
+  font-style: italic;
+}
+
+@keyframes typingAnimation {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.7;
+  }
+  30% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

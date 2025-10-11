@@ -14,30 +14,33 @@
 
 @media (max-width: 900px) {
   .chat-header {
-    height: 54px;
+    height: 60px; /* Aumentado para permitir 2 líneas */
     padding: 0 8px;
   }
   .chat-header-content {
     padding: 0 8px;
   }
   .chat-title {
-    font-size: 16px;
+    font-size: 14px;
+    line-height: 1.2;
   }
   .chat-subtitle {
-    font-size: 13px;
+    font-size: 12px;
   }
 }
 
 @media (max-width: 600px) {
   .chat-header {
-    height: 44px;
-    padding: 0 2px;
+    height: 56px; /* Aumentado para permitir 2 líneas */
+    padding: 0 4px;
   }
   .chat-header-content {
-    padding: 0 2px;
+    padding: 0 4px;
   }
   .chat-title {
-    font-size: 14px;
+    font-size: 13px;
+    line-height: 1.2;
+    max-height: 2.4em; /* Ajustado para 2 líneas */
   }
   .chat-subtitle {
     font-size: 11px;
@@ -182,9 +185,13 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  word-break: break-word;
+  line-height: 1.3;
+  max-height: 2.6em; /* Máximo 2 líneas */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .group-icon,
@@ -456,19 +463,21 @@
 /* Responsive */
 @media (max-width: 768px) {
   .chat-header {
-    height: 50px;
+    height: 58px; /* Aumentado para permitir 2 líneas */
   }
 
   .chat-header-content {
-    padding: 0 15px;
+    padding: 0 12px;
   }
 
   .chat-title {
-    font-size: 14px;
+    font-size: 13px;
+    line-height: 1.2;
+    max-height: 2.4em;
   }
 
   .chat-subtitle {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .leave-room-btn {
@@ -576,11 +585,13 @@
   }
 
   .chat-title {
-    font-size: 15px;
+    font-size: 14px;
+    line-height: 1.2;
+    max-height: 2.4em;
   }
 
   .chat-subtitle {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .room-code {
@@ -636,11 +647,13 @@
   }
 
   .chat-title {
-    font-size: 14px;
+    font-size: 13px;
+    line-height: 1.2;
+    max-height: 2.4em;
   }
 
   .chat-subtitle {
-    font-size: 11px;
+    font-size: 10px;
   }
 
   .room-code {
@@ -686,11 +699,13 @@
   }
 
   .chat-title {
-    font-size: 13px;
+    font-size: 12px;
+    line-height: 1.2;
+    max-height: 2.4em;
   }
 
   .chat-subtitle {
-    font-size: 10px;
+    font-size: 9px;
   }
 
   .header-icon-btn {
@@ -704,5 +719,61 @@
 
   .chat-header-actions {
     gap: 4px;
+  }
+}
+
+/* Indicador de "está escribiendo..." en el header */
+.typing-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #00a884;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease-in;
+}
+
+.typing-icon {
+  font-size: 14px;
+  animation: typingPulse 1s infinite;
+}
+
+@keyframes typingPulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Responsive para el indicador de typing */
+@media (max-width: 768px) {
+  .typing-status {
+    font-size: 12px;
+  }
+
+  .typing-icon {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .typing-status {
+    font-size: 11px;
+  }
+
+  .typing-icon {
+    font-size: 11px;
   }
 }

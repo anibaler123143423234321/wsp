@@ -182,12 +182,19 @@
   font-size: 0.95rem;
   font-family: inherit;
   transition: border-color 0.2s ease;
+  background: white;
+  color: #2c3e50;
 }
 
 .edit-mode input:focus,
 .edit-mode textarea:focus {
   outline: none;
   border-color: #00bfa5;
+}
+
+.edit-mode input::placeholder,
+.edit-mode textarea::placeholder {
+  color: #95a5a6;
 }
 
 .edit-mode textarea {

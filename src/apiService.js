@@ -739,6 +739,38 @@ class ApiService {
       throw error;
     }
   }
+
+  // Buscar mensajes por contenido
+  async searchMessages(username, searchTerm) {
+    try {
+      if (!searchTerm || searchTerm.trim().length === 0) {
+        return [];
+      }
+
+      const response = await fetch(
+        `${this.baseChatUrl}api/messages/search/${encodeURIComponent(username)}?q=${encodeURIComponent(searchTerm)}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Error del servidor: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al buscar mensajes:", error);
+      return [];
+    }
+  }
 }
 
 export default new ApiService();

@@ -24,13 +24,19 @@ const ChatContent = ({
   isLoadingMore,
   onLoadMoreMessages,
   currentUsername,
-  onEditMessage
+  onEditMessage,
+  socket,
+  highlightMessageId,
+  onMessageHighlighted,
+  canSendMessages = true
 }) => {
   const chatHistoryRef = useRef(null);
   const isUserScrollingRef = useRef(false);
   const lastMessageCountRef = useRef(0);
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editText, setEditText] = useState('');
+  const typingTimeoutRef = useRef(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState(null);
 
   // Función para descargar archivos
   const handleDownload = (url, fileName) => {
@@ -61,7 +67,32 @@ const ChatContent = ({
 
   // Manejar cambio de input
   const handleInputChange = (e) => {
-    setInput(e.target.value);
+    const value = e.target.value;
+    setInput(value);
+
+    // Emitir evento "typing" si hay un destinatario y socket conectado
+    if (socket && socket.connected && to && currentUsername) {
+      // Emitir que está escribiendo
+      socket.emit('typing', {
+        from: currentUsername,
+        to: to,
+        isTyping: true
+      });
+
+      // Limpiar timeout anterior
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
+      // Después de 2 segundos sin escribir, emitir que dejó de escribir
+      typingTimeoutRef.current = setTimeout(() => {
+        socket.emit('typing', {
+          from: currentUsername,
+          to: to,
+          isTyping: false
+        });
+      }, 2000);
+    }
   };
 
   // Manejar tecla Enter
@@ -82,6 +113,31 @@ const ChatContent = ({
     }
   };
 
+
+  // Scroll al mensaje resaltado cuando se selecciona desde la búsqueda
+  useEffect(() => {
+    if (highlightMessageId && messages.length > 0) {
+      // Esperar a que los mensajes se rendericen
+      setTimeout(() => {
+        const messageElement = document.getElementById(`message-${highlightMessageId}`);
+        if (messageElement) {
+          // Hacer scroll al mensaje
+          messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+          // Resaltar el mensaje
+          setHighlightedMessageId(highlightMessageId);
+
+          // Quitar el resaltado después de 3 segundos
+          setTimeout(() => {
+            setHighlightedMessageId(null);
+            if (onMessageHighlighted) {
+              onMessageHighlighted();
+            }
+          }, 3000);
+        }
+      }, 500);
+    }
+  }, [highlightMessageId, messages, onMessageHighlighted]);
 
   // Scroll automático al final para mensajes nuevos (estilo WhatsApp)
   useEffect(() => {
@@ -196,17 +252,21 @@ const ChatContent = ({
       );
     }
 
+    const isHighlighted = highlightedMessageId === message.id;
+
     return (
       <div
         key={index}
-        className={`message ${isOwnMessage ? 'own-message' : 'other-message'}`}
+        id={`message-${message.id}`}
+        className={`message ${isOwnMessage ? 'own-message' : 'other-message'} ${isHighlighted ? 'highlighted-message' : ''}`}
         style={{
           display: 'flex',
           justifyContent: isOwnMessage ? 'flex-end' : 'flex-start',
           alignItems: 'flex-end',
           margin: '4px 0',
           padding: '0 16px',
-          gap: '8px'
+          gap: '8px',
+          transition: 'all 0.3s ease'
         }}
       >
         {/* Avatar para mensajes de otros */}
@@ -233,15 +293,21 @@ const ChatContent = ({
         <div
           className="message-content"
           style={{
-            backgroundColor: isOwnMessage ? '#005c4b' : '#202c33',
+            backgroundColor: isHighlighted
+              ? (isOwnMessage ? '#007a5e' : '#2a3942')
+              : (isOwnMessage ? '#005c4b' : '#202c33'),
             color: '#e9edef',
             padding: '6px 12px 8px 12px',
             borderRadius: '7.5px',
             maxWidth: '65%',
             minWidth: '100px',
             position: 'relative',
-            boxShadow: '0 1px 0.5px rgba(0,0,0,.13)',
-            wordWrap: 'break-word'
+            boxShadow: isHighlighted
+              ? '0 0 15px rgba(0, 168, 132, 0.5)'
+              : '0 1px 0.5px rgba(0,0,0,.13)',
+            wordWrap: 'break-word',
+            transition: 'all 0.3s ease',
+            border: isHighlighted ? '2px solid #00a884' : 'none'
           }}
         >
           {!isOwnMessage && (
@@ -618,13 +684,14 @@ const ChatContent = ({
         )}
         
         <div className="input-group">
-          <label className="btn-attach" title="Adjuntar imágenes (máx. 5, 10MB cada una)">
+          <label className={`btn-attach ${!canSendMessages ? 'disabled' : ''}`} title={canSendMessages ? "Adjuntar imágenes (máx. 5, 10MB cada una)" : "No puedes enviar mensajes en esta conversación"}>
             <input
               type="file"
               multiple
               accept="image/*"
               onChange={onFileSelect}
               style={{ display: 'none' }}
+              disabled={!canSendMessages}
             />
             <FaPaperclip className="attach-icon" />
           </label>
@@ -634,16 +701,16 @@ const ChatContent = ({
             value={input}
             onChange={handleInputChange}
             onKeyDown={handleKeyPress}
-            placeholder="Escribe tu mensaje aquí."
+            placeholder={canSendMessages ? "Escribe tu mensaje aquí." : "Solo puedes monitorear esta conversación"}
             className="message-input"
-            disabled={isRecording}
+            disabled={isRecording || !canSendMessages}
           />
 
           <button
             onClick={onSendMessage}
             className="btn-send"
-            disabled={!input && mediaFiles.length === 0}
-            title="Enviar mensaje"
+            disabled={!input && mediaFiles.length === 0 || !canSendMessages}
+            title={canSendMessages ? "Enviar mensaje" : "No puedes enviar mensajes en esta conversación"}
           >
             <span className="send-text">Enviar mensaje</span>
             <FaPaperPlane className="send-icon" />

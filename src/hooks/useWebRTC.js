@@ -329,7 +329,6 @@ export const useWebRTC = (socket, username) => {
         const videoDevices = devices.filter(device => device.kind === 'videoinput');
         const cameraAvailable = videoDevices.length > 0;
         setHasCamera(cameraAvailable);
-        console.log(`📹 Cámara disponible: ${cameraAvailable ? 'Sí' : 'No'}`);
       } catch (error) {
         console.error('❌ Error al detectar cámara:', error);
         setHasCamera(false);
