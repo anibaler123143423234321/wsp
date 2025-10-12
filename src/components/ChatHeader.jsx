@@ -7,8 +7,6 @@ const ChatHeader = ({
   isGroup,
   currentRoomCode,
   roomUsers,
-  roomDuration,
-  roomExpiresAt,
   onLeaveRoom,
   userPicture,
   onStartCall,
@@ -18,61 +16,6 @@ const ChatHeader = ({
   isTyping,
   adminViewConversation
 }) => {
-  const [currentTime, setCurrentTime] = useState(new Date());
-  // Actualizar el tiempo cada minuto para refrescar el contador de expiración
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000); // Actualizar cada minuto
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Función para formatear la duración en minutos a horas y minutos
-  const formatDuration = (minutes) => {
-    if (!minutes) return 'No especificada';
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    
-    if (hours === 0) {
-      return `${mins}m`;
-    } else if (mins === 0) {
-      return `${hours}h`;
-    } else {
-      return `${hours}h ${mins}m`;
-    }
-  };
-
-  // Función para formatear la fecha de expiración
-  const formatExpirationDate = (expiresAt) => {
-    if (!expiresAt) return null;
-    
-    const expirationDate = new Date(expiresAt);
-    const timeDiff = expirationDate.getTime() - currentTime.getTime();
-    
-    // Si ya expiró
-    if (timeDiff <= 0) {
-      return { text: 'Expirada', isUrgent: true };
-    }
-    
-    const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-    
-    let text = '';
-    if (days > 0) {
-      text = `Expira en ${days}d ${hours}h`;
-    } else if (hours > 0) {
-      text = `Expira en ${hours}h ${minutes}m`;
-    } else {
-      text = `Expira en ${minutes}m`;
-    }
-    
-    // Marcar como urgente si queda menos de 1 hora
-    const isUrgent = timeDiff < (60 * 60 * 1000); // 1 hora en milisegundos
-    
-    return { text, isUrgent };
-  };
 
   // No mostrar el header si no hay chat seleccionado
   if (!to) {
@@ -120,17 +63,6 @@ const ChatHeader = ({
                 currentRoomCode ? (
                   <>
                     Sala temporal • {roomUsers.length} miembro{roomUsers.length !== 1 ? 's' : ''}
-                    {roomDuration && (
-                      <span className="room-duration"> • Duración: {formatDuration(roomDuration)}</span>
-                    )}
-                    {roomExpiresAt && (() => {
-                      const expiration = formatExpirationDate(roomExpiresAt);
-                      return (
-                        <span className={`room-expiration ${expiration.isUrgent ? 'urgent' : ''}`}>
-                          • {expiration.text}
-                        </span>
-                      );
-                    })()}
                   </>
                 ) : (
                   `Grupo • ${roomUsers.length} miembro${roomUsers.length !== 1 ? 's' : ''}`
@@ -185,10 +117,10 @@ const ChatHeader = ({
             <button
               className="leave-room-btn"
               onClick={onLeaveRoom}
-              title="Salir de la sala"
+              title="Regresar"
             >
-              <span className="leave-icon"><FaSignOutAlt /></span>
-              <span className="leave-text">Salir</span>
+              <span className="leave-icon"><FaArrowLeft /></span>
+              <span className="leave-text">Regresar</span>
             </button>
           )}
         </div>

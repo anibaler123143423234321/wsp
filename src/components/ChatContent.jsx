@@ -37,11 +37,83 @@ const ChatContent = ({
   const [editText, setEditText] = useState('');
   const typingTimeoutRef = useRef(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Función para descargar archivos
   const handleDownload = (url, fileName) => {
     // Abrir en nueva pestaña
     window.open(url, '_blank');
+  };
+
+  // 🔥 Manejar drag & drop de archivos
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (canSendMessages) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (!canSendMessages) return;
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      // Crear un evento sintético para onFileSelect
+      const syntheticEvent = {
+        target: {
+          files: files,
+          value: ''
+        }
+      };
+      onFileSelect(syntheticEvent);
+    }
+  };
+
+  // 🔥 Manejar paste de archivos/imágenes
+  const handlePaste = (e) => {
+    if (!canSendMessages) return;
+
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    const files = [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === 'file') {
+        const file = item.getAsFile();
+        if (file) {
+          files.push(file);
+        }
+      }
+    }
+
+    if (files.length > 0) {
+      e.preventDefault();
+      // Crear un evento sintético para onFileSelect
+      const syntheticEvent = {
+        target: {
+          files: files,
+          value: ''
+        }
+      };
+      onFileSelect(syntheticEvent);
+    }
   };
 
   // Iniciar edición de mensaje
@@ -627,7 +699,23 @@ const ChatContent = ({
   }
 
   return (
-    <div className="chat-content">
+    <div
+      className="chat-content"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+      onPaste={handlePaste}
+    >
+      {isDragging && canSendMessages && (
+        <div className="drag-overlay">
+          <div className="drag-overlay-content">
+            <div className="drag-icon">📎</div>
+            <div className="drag-text">Suelta los archivos aquí</div>
+          </div>
+        </div>
+      )}
+
       <div
         className="chat-history"
         ref={chatHistoryRef}
@@ -652,28 +740,50 @@ const ChatContent = ({
       <div className="chat-input-container">
         {mediaFiles.length > 0 && (
           <div className="media-preview">
-            {mediaPreviews.map((preview, index) => (
-              <div key={index} className="media-preview-item">
-                {preview.type === 'image' ? (
-                  <img
-                    src={preview.data}
-                    alt={preview.name}
-                    className="preview-image"
-                  />
-                ) : (
-                  <div className="preview-file">
-                    <div className="preview-icon">📎</div>
-                    <div className="preview-name">{preview.name}</div>
-                  </div>
-                )}
-                <button
-                  className="remove-media-btn"
-                  onClick={() => onRemoveMediaFile(index)}
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
+            {mediaPreviews.map((preview, index) => {
+              // Función para obtener el ícono según el tipo de archivo
+              const getFileIcon = (type) => {
+                switch(type) {
+                  case 'image': return '🖼️';
+                  case 'pdf': return '📄';
+                  case 'video': return '🎥';
+                  case 'audio': return '🎵';
+                  case 'document': return '📝';
+                  case 'spreadsheet': return '📊';
+                  default: return '📎';
+                }
+              };
+
+              return (
+                <div key={index} className="media-preview-item">
+                  {preview.type === 'image' ? (
+                    <img
+                      src={preview.data}
+                      alt={preview.name}
+                      className="preview-image"
+                    />
+                  ) : (
+                    <div className="preview-file">
+                      <div className="preview-icon">{getFileIcon(preview.type)}</div>
+                      <div className="preview-name">{preview.name}</div>
+                      <div className="preview-size">
+                        {preview.size > 1024 * 1024
+                          ? `${(preview.size / 1024 / 1024).toFixed(1)} MB`
+                          : `${(preview.size / 1024).toFixed(1)} KB`
+                        }
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    className="remove-media-btn"
+                    onClick={() => onRemoveMediaFile(index)}
+                    title="Eliminar archivo"
+                  >
+                    ✕
+                  </button>
+                </div>
+              );
+            })}
             <button
               className="cancel-media-btn"
               onClick={onCancelMediaUpload}
@@ -684,11 +794,11 @@ const ChatContent = ({
         )}
         
         <div className="input-group">
-          <label className={`btn-attach ${!canSendMessages ? 'disabled' : ''}`} title={canSendMessages ? "Adjuntar imágenes (máx. 5, 10MB cada una)" : "No puedes enviar mensajes en esta conversación"}>
+          <label className={`btn-attach ${!canSendMessages ? 'disabled' : ''}`} title={canSendMessages ? "Adjuntar archivos (imágenes, PDFs, documentos - máx. 5, 10MB cada uno)" : "No puedes enviar mensajes en esta conversación"}>
             <input
               type="file"
               multiple
-              accept="image/*"
+              accept="*/*"
               onChange={onFileSelect}
               style={{ display: 'none' }}
               disabled={!canSendMessages}

@@ -6,6 +6,7 @@ import CreateRoomModal from '../components/modals/CreateRoomModal';
 import JoinRoomModal from '../components/modals/JoinRoomModal';
 import AdminRoomsModal from '../components/modals/AdminRoomsModal';
 import RoomCreatedModal from '../components/modals/RoomCreatedModal';
+import EditRoomModal from '../components/modals/EditRoomModal';
 import CreateConversationModal from '../components/modals/CreateConversationModal';
 import ManageAssignedConversationsModal from '../components/modals/ManageAssignedConversationsModal';
 import CallWindow from '../components/CallWindow';
@@ -82,7 +83,6 @@ const ChatPage = () => {
   } = useMessagePagination(currentRoomCode, username, to, isGroup);
 
   // Estados adicionales del chat
-  const [roomExpiresAt, setRoomExpiresAt] = useState(null);
   const [unreadMessages] = useState({});
   const [socketConnected, setSocketConnected] = useState(false);
   const [soundsEnabled, setSoundsEnabled] = useState(false);
@@ -92,21 +92,25 @@ const ChatPage = () => {
 
   // Estados de UI
   const [showAdminMenu, setShowAdminMenu] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(true);
+  // Sidebar cerrado por defecto en mobile, abierto en desktop
+  const [showSidebar, setShowSidebar] = useState(window.innerWidth > 768);
   const [showCreateRoomModal, setShowCreateRoomModal] = useState(false);
   const [showJoinRoomModal, setShowJoinRoomModal] = useState(false);
   const [showAdminRoomsModal, setShowAdminRoomsModal] = useState(false);
   const [showRoomCreatedModal, setShowRoomCreatedModal] = useState(false);
+  const [showEditRoomModal, setShowEditRoomModal] = useState(false);
   const [showCreateConversationModal, setShowCreateConversationModal] = useState(false);
   const [showManageConversationsModal, setShowManageConversationsModal] = useState(false);
   const [createdRoomData, setCreatedRoomData] = useState(null);
   const [adminRooms, setAdminRooms] = useState([]);
   const [loadingAdminRooms, setLoadingAdminRooms] = useState(false);
   const [myActiveRooms, setMyActiveRooms] = useState([]); // Salas activas para mostrar en el sidebar
+  const [editingRoom, setEditingRoom] = useState(null);
 
   // Estados de formularios
   const [roomForm, setRoomForm] = useState({ name: '', maxCapacity: 50 });
   const [joinRoomForm, setJoinRoomForm] = useState({ roomCode: '' });
+  const [editForm, setEditForm] = useState({ maxCapacity: 50 });
 
   // Referencias
   const currentRoomCodeRef = useRef(null);
@@ -369,6 +373,22 @@ const ChatPage = () => {
       }
     });
 
+    // Escuchar evento de expulsión
+    s.on('kicked', async (data) => {
+      console.log('👢 Has sido expulsado de la sala:', data);
+
+      // Limpiar estado de la sala
+      setTo('');
+      setIsGroup(false);
+      setRoomUsers([]);
+      setCurrentRoomCode(null);
+      currentRoomCodeRef.current = null;
+      clearMessages();
+
+      // Mostrar alerta
+      await showErrorAlert('Expulsado', data.message || 'Has sido expulsado de la sala');
+    });
+
     s.on('message', (data) => {
       const timeString = data.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -568,6 +588,33 @@ const ChatPage = () => {
       }
     });
 
+    // 🔥 Evento: Sala eliminada/desactivada (notificación global)
+    s.on('roomDeleted', (data) => {
+      console.log('🗑️ Sala eliminada/desactivada:', data);
+      const { roomCode, roomId } = data;
+
+      // Actualizar la lista de salas activas eliminando la sala
+      setMyActiveRooms(prevRooms =>
+        prevRooms.filter(room => room.id !== roomId && room.roomCode !== roomCode)
+      );
+
+      // Si el usuario está actualmente en la sala eliminada, sacarlo
+      if (currentRoomCode === roomCode) {
+        setTo('');
+        setIsGroup(false);
+        setCurrentRoomCode(null);
+        currentRoomCodeRef.current = null;
+        setRoomUsers([]);
+        clearMessages();
+
+        // Mostrar notificación
+        showErrorAlert(
+          'Sala eliminada',
+          'La sala en la que estabas ha sido eliminada por el administrador.'
+        );
+      }
+    });
+
         return () => {
           s.off('userList');
           s.off('roomUsers');
@@ -582,6 +629,7 @@ const ChatPage = () => {
           s.off('callFailed');
           s.off('newConversationAssigned');
           s.off('userTyping');
+          s.off('roomDeleted');
         };
       }, [socket, currentRoomCode, to, isGroup, username, isAdmin, soundsEnabled, typingTimeout]);
 
@@ -612,6 +660,11 @@ const ChatPage = () => {
     } else {
       setHighlightMessageId(null);
     }
+
+    // 📱 Cerrar sidebar en mobile al seleccionar un chat
+    if (window.innerWidth <= 768) {
+      setShowSidebar(false);
+    }
   };
 
   const handleGroupSelect = (group) => {
@@ -621,6 +674,11 @@ const ChatPage = () => {
     currentRoomCodeRef.current = null;
     setRoomUsers(group.members);
     clearMessages();
+
+    // 📱 Cerrar sidebar en mobile al seleccionar un grupo
+    if (window.innerWidth <= 768) {
+      setShowSidebar(false);
+    }
   };
 
   const handlePersonalNotes = () => {
@@ -689,7 +747,6 @@ const ChatPage = () => {
       setTo(result.name);
       setIsGroup(true);
       setCurrentRoomCode(result.roomCode);
-      setRoomExpiresAt(result.expiresAt);
       currentRoomCodeRef.current = result.roomCode;
       
       // La sala se maneja automáticamente por el backend
@@ -730,7 +787,6 @@ const ChatPage = () => {
           setTo(result.name);
           setIsGroup(true);
           setCurrentRoomCode(result.roomCode);
-          setRoomExpiresAt(result.expiresAt);
           currentRoomCodeRef.current = result.roomCode;
       
       // Cargar mensajes históricos de la sala usando paginación
@@ -789,7 +845,6 @@ const ChatPage = () => {
       setTo(room.name);
       setIsGroup(true);
       setCurrentRoomCode(room.roomCode);
-      setRoomExpiresAt(room.expiresAt);
       currentRoomCodeRef.current = room.roomCode;
 
       // Emitir evento de unirse a la sala
@@ -803,6 +858,11 @@ const ChatPage = () => {
 
       clearMessages();
       setRoomUsers([]);
+
+      // 📱 Cerrar sidebar en mobile al seleccionar una sala
+      if (window.innerWidth <= 768) {
+        setShowSidebar(false);
+      }
 
     } catch (error) {
       console.error('Error al seleccionar sala:', error);
@@ -1000,23 +1060,32 @@ const ChatPage = () => {
   };
 
   const handleDeleteRoom = async (roomId, roomName) => {
-    const confirmed = await showConfirmAlert(
+    const result = await showConfirmAlert(
       '¿Eliminar sala?',
       `¿Estás seguro de que quieres eliminar la sala "${roomName}"?`
     );
 
-    if (confirmed) {
+    // ✅ Verificar correctamente si el usuario confirmó
+    if (result.isConfirmed) {
       try {
         await apiService.deleteRoom(roomId);
         await showSuccessAlert('Éxito', 'Sala eliminada correctamente');
+
+        // Actualizar la lista de salas en el modal de administración
         const rooms = await apiService.getAdminRooms();
         setAdminRooms(rooms);
+
+        // ✅ Actualizar también la lista de salas activas en el sidebar
+        await loadMyActiveRooms();
       } catch (error) {
         console.error('Error al eliminar sala:', error);
         if (error.message.includes('404') || error.message.includes('Not Found')) {
           await showErrorAlert('Aviso', 'La sala ya fue eliminada');
           const rooms = await apiService.getAdminRooms();
           setAdminRooms(rooms);
+
+          // ✅ Actualizar también la lista de salas activas en el sidebar
+          await loadMyActiveRooms();
         } else {
           await showErrorAlert('Error', 'Error al eliminar la sala: ' + error.message);
         }
@@ -1024,18 +1093,72 @@ const ChatPage = () => {
     }
   };
 
+  const handleKickUser = async (usernameToKick, roomCode) => {
+    const result = await showConfirmAlert(
+      '¿Expulsar usuario?',
+      `¿Estás seguro de que quieres expulsar a ${usernameToKick} de la sala?`
+    );
+
+    if (result.isConfirmed) {
+      if (socket && socket.connected) {
+        socket.emit('kickUser', {
+          roomCode: roomCode || currentRoomCode,
+          username: usernameToKick,
+          kickedBy: username
+        });
+        await showSuccessAlert('Éxito', `Usuario ${usernameToKick} expulsado de la sala`);
+      }
+    }
+  };
+
+  const handleEditRoom = (room) => {
+    setEditingRoom(room);
+    setEditForm({ maxCapacity: room.maxCapacity });
+    setShowEditRoomModal(true);
+  };
+
+  const handleUpdateRoom = async () => {
+    try {
+      await apiService.updateRoom(editingRoom.id, {
+        maxCapacity: editForm.maxCapacity
+      });
+
+      await showSuccessAlert('Éxito', 'Capacidad de sala actualizada correctamente');
+
+      // Actualizar la lista de salas
+      const rooms = await apiService.getAdminRooms();
+      setAdminRooms(rooms);
+
+      // Actualizar también la lista de salas activas en el sidebar
+      await loadMyActiveRooms();
+
+      // Cerrar modal
+      setShowEditRoomModal(false);
+      setEditingRoom(null);
+    } catch (error) {
+      console.error('Error al actualizar sala:', error);
+      await showErrorAlert('Error', 'Error al actualizar la sala: ' + error.message);
+    }
+  };
+
   const handleDeactivateRoom = async (roomId, roomName) => {
-    const confirmed = await showConfirmAlert(
+    const result = await showConfirmAlert(
       '¿Desactivar sala?',
       `¿Estás seguro de que quieres desactivar la sala "${roomName}"?`
     );
 
-    if (confirmed) {
+    // ✅ Verificar correctamente si el usuario confirmó
+    if (result.isConfirmed) {
       try {
         await apiService.deactivateRoom(roomId);
         await showSuccessAlert('Éxito', 'Sala desactivada correctamente');
+
+        // Actualizar la lista de salas en el modal de administración
         const rooms = await apiService.getAdminRooms();
         setAdminRooms(rooms);
+
+        // ✅ Actualizar también la lista de salas activas en el sidebar
+        await loadMyActiveRooms();
       } catch (error) {
         console.error('Error al desactivar sala:', error);
         await showErrorAlert('Error', 'Error al desactivar la sala: ' + error.message);
@@ -1208,15 +1331,19 @@ const ChatPage = () => {
           roomCode: currentRoomCode,
           from: username
         });
-
-        // Limpiar estado de la sala
-        setTo('');
-        setIsGroup(false);
-        setRoomUsers([]);
-        setCurrentRoomCode(null);
-        setRoomExpiresAt(null);
-        currentRoomCodeRef.current = null;
       }
+
+      // 🔥 Limpiar TODOS los estados del chat
+      setTo('');
+      setIsGroup(false);
+      setRoomUsers([]);
+      setCurrentRoomCode(null);
+      currentRoomCodeRef.current = null;
+      setMyActiveRooms([]);
+      setAssignedConversations([]);
+      setAdminViewConversation(null);
+      clearMessages();
+      clearInput();
 
       // Desconectar socket
       if (socket) {
@@ -1301,13 +1428,13 @@ const ChatPage = () => {
       unreadMessages={unreadMessages}
       myActiveRooms={myActiveRooms}
       onRoomSelect={handleRoomSelect}
+      onKickUser={handleKickUser}
 
       // Props del chat
           to={to}
           isGroup={isGroup}
           currentRoomCode={currentRoomCode}
           roomUsers={roomUsers}
-          roomExpiresAt={roomExpiresAt}
       messages={messages}
       adminViewConversation={adminViewConversation}
       input={input}
@@ -1356,7 +1483,20 @@ const ChatPage = () => {
       adminRooms={adminRooms}
       onDeleteRoom={handleDeleteRoom}
       onDeactivateRoom={handleDeactivateRoom}
+      onEditRoom={handleEditRoom}
       onViewRoomUsers={handleViewRoomUsers}
+    />
+
+    <EditRoomModal
+      isOpen={showEditRoomModal}
+      onClose={() => {
+        setShowEditRoomModal(false);
+        setEditingRoom(null);
+      }}
+      room={editingRoom}
+      editForm={editForm}
+      setEditForm={setEditForm}
+      onUpdateRoom={handleUpdateRoom}
     />
 
     <RoomCreatedModal

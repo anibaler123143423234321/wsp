@@ -1,3 +1,46 @@
+/* Drag & Drop Overlay */
+.drag-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 123, 255, 0.1);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  border: 3px dashed #007bff;
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+.drag-overlay-content {
+  text-align: center;
+  color: #007bff;
+}
+
+.drag-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  animation: bounce 1s infinite;
+}
+
+.drag-text {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
 /* Animación para mensaje resaltado */
 .highlighted-message {
   animation: highlightPulse 1.5s ease-in-out;

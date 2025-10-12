@@ -1,8 +1,8 @@
 // Servicio para conectar con la API (mismo host para CRM y Chat por ahora)
 // Temporalmente hardcodeadas hasta resolver el problema con .env
  const API_BASE_URL = "https://apisozarusac.com/BackendJava/";
-// const API_BASECHAT_URL = "http://localhost:8747/";
- const API_BASECHAT_URL = "https://apisozarusac.com/BackendChat/";
+ const API_BASECHAT_URL = "http://localhost:8747/";
+// const API_BASECHAT_URL = "https://apisozarusac.com/BackendChat/";
 
 class ApiService {
   constructor() {
@@ -425,14 +425,14 @@ class ApiService {
     }
   }
 
-  // Método para actualizar la duración de una sala
-  async updateRoomDuration(roomId, durationMinutes) {
+  // Método para actualizar la capacidad de una sala
+  async updateRoom(roomId, updateData) {
     try {
       const response = await this.fetchWithAuth(
-        `${this.baseChatUrl}api/temporary-rooms/${roomId}/duration`,
+        `${this.baseChatUrl}api/temporary-rooms/${roomId}/update`,
         {
           method: "PATCH",
-          body: JSON.stringify({ duration: durationMinutes }),
+          body: JSON.stringify(updateData),
         }
       );
 
@@ -448,7 +448,7 @@ class ApiService {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error("Error al actualizar duración de la sala:", error);
+      console.error("Error al actualizar sala:", error);
       throw error;
     }
   }

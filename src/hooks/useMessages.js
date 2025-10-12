@@ -28,7 +28,7 @@ export const useMessages = () => {
 
   const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
-      // 🔥 NUEVO: Límite de 10MB para imágenes
+      // 🔥 Límite de 10MB para todos los archivos
       const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
       if (file.size > MAX_FILE_SIZE) {
@@ -36,11 +36,8 @@ export const useMessages = () => {
         return;
       }
 
-      // 🔥 NUEVO: Validar que solo sean imágenes
-      if (!file.type.startsWith('image/')) {
-        reject(new Error("Solo se permiten archivos de imagen (JPG, PNG, GIF, etc.)"));
-        return;
-      }
+      // ✅ Permitir todos los tipos de archivos (imágenes, PDFs, documentos, etc.)
+      // Ya no hay restricción de tipo de archivo
 
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result);
@@ -53,15 +50,10 @@ export const useMessages = () => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
-    // 🔥 NUEVO: Validar que todos los archivos sean imágenes
-    const nonImageFiles = files.filter(file => !file.type.startsWith('image/'));
-    if (nonImageFiles.length > 0) {
-      alert("❌ Solo se permiten archivos de imagen (JPG, PNG, GIF, etc.)");
-      e.target.value = ''; // Limpiar el input
-      return;
-    }
+    // ✅ Permitir todos los tipos de archivos (imágenes, PDFs, documentos, etc.)
+    // Ya no hay restricción de tipo de archivo
 
-    // 🔥 NUEVO: Validar tamaño de cada archivo (10MB máximo)
+    // 🔥 Validar tamaño de cada archivo (10MB máximo)
     const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     const oversizedFiles = files.filter(file => file.size > MAX_FILE_SIZE);
     if (oversizedFiles.length > 0) {
@@ -81,12 +73,34 @@ export const useMessages = () => {
     const previewPromises = files.map((file) => fileToBase64(file));
     Promise.all(previewPromises)
       .then((results) => {
-        const previews = results.map((data, index) => ({
-          name: files[index].name,
-          type: files[index].type.split("/")[0],
-          data: data,
-          size: files[index].size, // Guardar el tamaño del archivo
-        }));
+        const previews = results.map((data, index) => {
+          const file = files[index];
+          const fileType = file.type;
+
+          // Determinar el tipo de archivo para el preview
+          let displayType = 'file'; // Por defecto
+          if (fileType.startsWith('image/')) {
+            displayType = 'image';
+          } else if (fileType === 'application/pdf') {
+            displayType = 'pdf';
+          } else if (fileType.startsWith('video/')) {
+            displayType = 'video';
+          } else if (fileType.startsWith('audio/')) {
+            displayType = 'audio';
+          } else if (fileType.includes('word') || fileType.includes('document')) {
+            displayType = 'document';
+          } else if (fileType.includes('sheet') || fileType.includes('excel')) {
+            displayType = 'spreadsheet';
+          }
+
+          return {
+            name: file.name,
+            type: displayType,
+            mimeType: fileType,
+            data: data,
+            size: file.size,
+          };
+        });
         setMediaPreviews(previews);
       })
       .catch((error) => {

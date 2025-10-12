@@ -14,10 +14,10 @@ const EditRoomModal = ({ isOpen, onClose, room, editForm, setEditForm, onUpdateR
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Editar Duración de Sala</h2>
+          <h2>Editar Capacidad de Sala</h2>
           <button className="modal-close" onClick={onClose}><FaTimes /></button>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="modal-body">
           <div className="form-group">
             <label>Sala: <strong>{room.name}</strong></label>
@@ -25,46 +25,30 @@ const EditRoomModal = ({ isOpen, onClose, room, editForm, setEditForm, onUpdateR
               <small>Código: {room.roomCode}</small>
             </div>
           </div>
-          
+
           <div className="form-group">
-            <label htmlFor="editDuration">Nueva duración de la sala:</label>
-            <div className="duration-inputs">
-              <div className="duration-field">
-                <input
-                  type="number"
-                  id="editDurationHours"
-                  value={editForm.durationHours || 0}
-                  onChange={(e) => setEditForm({...editForm, durationHours: parseInt(e.target.value) || 0})}
-                  min="0"
-                  max="8760"
-                  placeholder="0"
-                />
-                <label htmlFor="editDurationHours">horas</label>
-              </div>
-              <div className="duration-field">
-                <input
-                  type="number"
-                  id="editDurationMinutes"
-                  value={editForm.durationMinutes || 0}
-                  onChange={(e) => setEditForm({...editForm, durationMinutes: parseInt(e.target.value) || 0})}
-                  min="0"
-                  max="59"
-                  placeholder="0"
-                />
-                <label htmlFor="editDurationMinutes">minutos</label>
-              </div>
-            </div>
+            <label htmlFor="editMaxCapacity">Capacidad máxima:</label>
+            <input
+              type="number"
+              id="editMaxCapacity"
+              value={editForm.maxCapacity || 50}
+              onChange={(e) => setEditForm({...editForm, maxCapacity: parseInt(e.target.value) || 50})}
+              min="1"
+              max="500"
+              placeholder="50"
+              className="form-input"
+            />
             <div className="duration-help">
-              <small>Ejemplos: 1h 30m, 2h 15m, 30m, 6h</small>
+              <small>Número máximo de usuarios que pueden unirse a la sala (1-500)</small>
             </div>
           </div>
-          
+
           <div className="modal-actions">
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               Cancelar
             </button>
             <button type="submit" className="btn btn-primary">
-              Actualizar Duración
+              Actualizar Capacidad
             </button>
           </div>
         </form>

@@ -11,8 +11,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #0b141a;
-  color: #e9edef;
+  background-color: #ffffff;
+  color: #111b21;
   overflow: hidden;
 }
 
@@ -107,11 +107,11 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #2a3942;
+  background: #f0f0f0;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #8696a0;
+  background: #c0c0c0;
   border-radius: 3px;
 }
 

@@ -2,67 +2,12 @@ import React from 'react';
 import { FaUsers, FaUser, FaTrash, FaEdit, FaEye, FaExclamationTriangle } from 'react-icons/fa';
 import './Modal.css';
 
-const AdminRoomsModal = ({ isOpen, onClose, adminRooms, onDeleteRoom, onDeactivateRoom, onViewRoomUsers, currentUser }) => {
+const AdminRoomsModal = ({ isOpen, onClose, adminRooms, onDeleteRoom, onDeactivateRoom, onViewRoomUsers, onEditRoom, currentUser }) => {
   if (!isOpen) return null;
 
   // Verificar si el usuario puede eliminar (solo ADMIN)
   const canDelete = currentUser?.role === 'ADMIN';
-
-  // Función para formatear la duración en minutos a horas y minutos
-  const formatDuration = (minutes) => {
-    if (!minutes) return 'No especificada';
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    
-    if (hours === 0) {
-      return `${mins}m`;
-    } else if (mins === 0) {
-      return `${hours}h`;
-    } else {
-      return `${hours}h ${mins}m`;
-    }
-  };
-
-  // Función para formatear la fecha de expiración
-  const formatExpiration = (expiresAt) => {
-    if (!expiresAt) return 'No especificada';
-    
-    const now = new Date();
-    const expiration = new Date(expiresAt);
-    const diffMs = expiration - now;
-    
-    if (diffMs <= 0) {
-      return 'Expirada';
-    }
-    
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    
-    if (diffHours === 0) {
-      return `Expira en ${diffMinutes}m`;
-    } else if (diffMinutes === 0) {
-      return `Expira en ${diffHours}h`;
-    } else {
-      return `Expira en ${diffHours}h ${diffMinutes}m`;
-    }
-  };
-
-  // Función para obtener el estado de expiración
-  const getExpirationStatus = (expiresAt) => {
-    if (!expiresAt) return 'unknown';
-    
-    const now = new Date();
-    const expiration = new Date(expiresAt);
-    const diffMs = expiration - now;
-    
-    if (diffMs <= 0) {
-      return 'expired';
-    } else if (diffMs <= 30 * 60 * 1000) { // 30 minutos
-      return 'warning';
-    } else {
-      return 'normal';
-    }
-  };
+  const canEdit = currentUser?.role === 'ADMIN' || currentUser?.role === 'JEFEPISO';
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -91,18 +36,6 @@ const AdminRoomsModal = ({ isOpen, onClose, adminRooms, onDeleteRoom, onDeactiva
                         {room.isActive ? 'Activa' : 'Inactiva'}
                       </span>
                     </div>
-                    <div className="room-timing">
-                      <div className="room-duration">
-                        <span className="timing-label">⏱️ Duración:</span>
-                        <span className="timing-value">{formatDuration(room.durationMinutes)}</span>
-                      </div>
-                      <div className="room-expiration">
-                        <span className="timing-label">⏰ Expira:</span>
-                        <span className={`timing-value expiration-${getExpirationStatus(room.expiresAt)}`}>
-                          {formatExpiration(room.expiresAt)}
-                        </span>
-                      </div>
-                    </div>
                   </div>
                   <div className="room-actions">
                     <button
@@ -112,6 +45,15 @@ const AdminRoomsModal = ({ isOpen, onClose, adminRooms, onDeleteRoom, onDeactiva
                     >
                       👥
                     </button>
+                    {canEdit && room.isActive && (
+                      <button
+                        className="btn btn-edit"
+                        onClick={() => onEditRoom(room)}
+                        title="Editar capacidad de la sala"
+                      >
+                        <FaEdit />
+                      </button>
+                    )}
                     {canDelete && room.isActive && (
                       <button
                         className="btn btn-warning"

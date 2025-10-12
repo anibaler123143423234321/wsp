@@ -1,21 +1,21 @@
 import React from 'react';
+import { FaBars } from 'react-icons/fa';
 import Sidebar from '../components/Sidebar';
 import ChatHeader from '../components/ChatHeader';
 import ChatContent from '../components/ChatContent';
 import CreateRoomModal from '../components/modals/CreateRoomModal';
 import JoinRoomModal from '../components/modals/JoinRoomModal';
 import AdminRoomsModal from '../components/modals/AdminRoomsModal';
-import './ChatLayout.css';
 
 const ChatLayout = ({
   // Props del sidebar
   user, userList, groupList, assignedConversations, isAdmin, showAdminMenu, setShowAdminMenu, showSidebar,
   onUserSelect, onGroupSelect, onPersonalNotes, onLogout,
   onShowCreateRoom, onShowJoinRoom, onShowAdminRooms, onShowCreateConversation, onShowManageConversations,
-  onShowManageUsers, onShowSystemConfig, loadingAdminRooms, myActiveRooms, onRoomSelect,
+  onShowManageUsers, onShowSystemConfig, loadingAdminRooms, myActiveRooms, onRoomSelect, onKickUser,
 
       // Props del chat
-      to, isGroup, currentRoomCode, roomUsers, roomDuration, roomExpiresAt, messages, input, setInput,
+      to, isGroup, currentRoomCode, roomUsers, messages, input, setInput,
   onSendMessage, onFileSelect, onRecordAudio, onStopRecording, isRecording,
   mediaFiles, mediaPreviews, onCancelMediaUpload, onRemoveMediaFile, onLeaveRoom, onToggleMenu,
   onEditMessage, hasMoreMessages, isLoadingMore, onLoadMoreMessages,
@@ -24,7 +24,7 @@ const ChatLayout = ({
   // Props de modales
   showCreateRoomModal, setShowCreateRoomModal, roomForm, setRoomForm, onCreateRoom,
   showJoinRoomModal, setShowJoinRoomModal, joinRoomForm, setJoinRoomForm, onJoinRoom,
-  showAdminRoomsModal, setShowAdminRoomsModal, adminRooms, onDeleteRoom, onDeactivateRoom, onViewRoomUsers,
+  showAdminRoomsModal, setShowAdminRoomsModal, adminRooms, onDeleteRoom, onDeactivateRoom, onEditRoom, onViewRoomUsers,
 
   // Props de notificaciones
   unreadMessages,
@@ -55,14 +55,29 @@ const ChatLayout = ({
   };
 
   return (
-    <div className="chat-app">
+    <div className="flex gap-0 w-full max-w-full m-0 h-screen rounded-none overflow-hidden shadow-none bg-white">
+
+      {/* Botón hamburguesa flotante para mobile - solo visible cuando el sidebar está cerrado */}
+      {!showSidebar && (
+        <button
+          onClick={onToggleMenu}
+          className="hidden max-[768px]:flex fixed top-4 left-4 z-[101] w-12 h-12 items-center justify-center bg-[#13467A] text-white rounded-lg shadow-lg hover:bg-[#0f3660] transition-all duration-200 active:scale-95"
+          title="Abrir menú"
+        >
+          <FaBars className="text-xl" />
+        </button>
+      )}
 
       {/* Overlay para mobile */}
       {showSidebar && (
-        <div className="sidebar-overlay" onClick={onToggleMenu}></div>
+        <div
+          className="hidden max-[768px]:block fixed top-0 left-0 w-screen h-screen bg-black/50 z-[99] animate-[fadeIn_0.3s_ease]"
+          onClick={onToggleMenu}
+        ></div>
       )}
 
-      {showSidebar && (
+      {/* Sidebar - cerrado por defecto en mobile */}
+      <div className={`max-[768px]:fixed max-[768px]:left-0 max-[768px]:top-0 max-[768px]:h-screen max-[768px]:z-[100] max-[768px]:transition-transform max-[768px]:duration-300 max-[768px]:ease-in-out ${showSidebar ? 'max-[768px]:translate-x-0' : 'max-[768px]:-translate-x-full'}`}>
         <Sidebar
           user={user}
           userList={userList}
@@ -90,17 +105,16 @@ const ChatLayout = ({
           myActiveRooms={myActiveRooms}
           onRoomSelect={onRoomSelect}
           currentRoomCode={currentRoomCode}
+          onKickUser={onKickUser}
         />
-      )}
-      
-      <div className="chat-main">
+      </div>
+
+      <div className="flex-1 flex flex-col bg-white relative transition-all duration-300 ease-in-out max-[768px]:h-[calc(100vh-60px)] max-[600px]:h-screen">
             <ChatHeader
               to={to}
               isGroup={isGroup}
               currentRoomCode={currentRoomCode}
               roomUsers={roomUsers}
-              roomDuration={roomDuration}
-              roomExpiresAt={roomExpiresAt}
               onLeaveRoom={onLeaveRoom}
               onToggleMenu={onToggleMenu}
               showSidebar={showSidebar}
@@ -170,6 +184,7 @@ const ChatLayout = ({
           adminRooms={adminRooms}
           onDeleteRoom={onDeleteRoom}
           onDeactivateRoom={onDeactivateRoom}
+          onEditRoom={onEditRoom}
           onViewRoomUsers={onViewRoomUsers}
           currentUser={user}
         />
