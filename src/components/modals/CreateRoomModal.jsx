@@ -14,7 +14,7 @@ const CreateRoomModal = ({ isOpen, onClose, roomForm, setRoomForm, onCreateRoom 
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Crear Sala Temporal</h2>
+          <h2>Crear Sala</h2>
           <button className="modal-close" onClick={onClose}><FaTimes /></button>
         </div>
         

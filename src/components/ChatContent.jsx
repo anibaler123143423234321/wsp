@@ -683,7 +683,7 @@ const ChatContent = ({
 
   if (!to) {
     return (
-      <div className="chat-content">
+      <div className="chat-content max-[768px]:hidden">
         <div className="welcome-screen">
           <div className="welcome-icon">💬</div>
           <div className="welcome-title">Bienvenido al Chat</div>

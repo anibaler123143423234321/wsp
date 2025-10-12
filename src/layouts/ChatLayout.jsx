@@ -1,6 +1,7 @@
 import React from 'react';
 import { FaBars } from 'react-icons/fa';
 import Sidebar from '../components/Sidebar';
+import LeftSidebar from '../components/LeftSidebar';
 import ChatHeader from '../components/ChatHeader';
 import ChatContent from '../components/ChatContent';
 import CreateRoomModal from '../components/modals/CreateRoomModal';
@@ -57,8 +58,8 @@ const ChatLayout = ({
   return (
     <div className="flex gap-0 w-full max-w-full m-0 h-screen rounded-none overflow-hidden shadow-none bg-white">
 
-      {/* Botón hamburguesa flotante para mobile - solo visible cuando el sidebar está cerrado */}
-      {!showSidebar && (
+      {/* Botón hamburguesa flotante para mobile - solo visible cuando hay chat seleccionado y el sidebar está cerrado */}
+      {!showSidebar && to && (
         <button
           onClick={onToggleMenu}
           className="hidden max-[768px]:flex fixed top-4 left-4 z-[101] w-12 h-12 items-center justify-center bg-[#13467A] text-white rounded-lg shadow-lg hover:bg-[#0f3660] transition-all duration-200 active:scale-95"
@@ -68,7 +69,7 @@ const ChatLayout = ({
         </button>
       )}
 
-      {/* Overlay para mobile */}
+      {/* Overlay para mobile - cuando el sidebar está abierto */}
       {showSidebar && (
         <div
           className="hidden max-[768px]:block fixed top-0 left-0 w-screen h-screen bg-black/50 z-[99] animate-[fadeIn_0.3s_ease]"
@@ -76,40 +77,56 @@ const ChatLayout = ({
         ></div>
       )}
 
-      {/* Sidebar - cerrado por defecto en mobile */}
-      <div className={`max-[768px]:fixed max-[768px]:left-0 max-[768px]:top-0 max-[768px]:h-screen max-[768px]:z-[100] max-[768px]:transition-transform max-[768px]:duration-300 max-[768px]:ease-in-out ${showSidebar ? 'max-[768px]:translate-x-0' : 'max-[768px]:-translate-x-full'}`}>
-        <Sidebar
+      {/* Sidebar - Desktop: siempre visible | Mobile: ConversationList siempre visible, LeftSidebar como overlay */}
+      <Sidebar
+        user={user}
+        userList={userList}
+        groupList={groupList}
+        assignedConversations={assignedConversations}
+        roomUsers={roomUsers}
+        isGroup={isGroup}
+        isAdmin={isAdmin}
+        showAdminMenu={showAdminMenu}
+        setShowAdminMenu={setShowAdminMenu}
+        onUserSelect={onUserSelect}
+        onGroupSelect={onGroupSelect}
+        onPersonalNotes={onPersonalNotes}
+        onLogout={onLogout}
+        onShowCreateRoom={onShowCreateRoom}
+        onShowJoinRoom={onShowJoinRoom}
+        onShowAdminRooms={onShowAdminRooms}
+        onShowCreateConversation={onShowCreateConversation}
+        onShowManageConversations={onShowManageConversations}
+        onShowManageUsers={onShowManageUsers}
+        onShowSystemConfig={onShowSystemConfig}
+        loadingAdminRooms={loadingAdminRooms}
+        unreadMessages={unreadMessages}
+        onToggleSidebar={onToggleMenu}
+        myActiveRooms={myActiveRooms}
+        onRoomSelect={onRoomSelect}
+        currentRoomCode={currentRoomCode}
+        onKickUser={onKickUser}
+        to={to}
+      />
+
+      {/* LeftSidebar overlay para mobile */}
+      <div className={`hidden max-[768px]:block fixed left-0 top-0 h-screen z-[100] transition-transform duration-300 ease-in-out ${showSidebar ? 'translate-x-0' : '-translate-x-full'}`}>
+        <LeftSidebar
           user={user}
-          userList={userList}
-          groupList={groupList}
-          assignedConversations={assignedConversations}
-          roomUsers={roomUsers}
-          isGroup={isGroup}
-          isAdmin={isAdmin}
-          showAdminMenu={showAdminMenu}
-          setShowAdminMenu={setShowAdminMenu}
-          onUserSelect={onUserSelect}
-          onGroupSelect={onGroupSelect}
-          onPersonalNotes={onPersonalNotes}
-          onLogout={onLogout}
           onShowCreateRoom={onShowCreateRoom}
           onShowJoinRoom={onShowJoinRoom}
           onShowAdminRooms={onShowAdminRooms}
           onShowCreateConversation={onShowCreateConversation}
           onShowManageConversations={onShowManageConversations}
-          onShowManageUsers={onShowManageUsers}
-          onShowSystemConfig={onShowSystemConfig}
-          loadingAdminRooms={loadingAdminRooms}
-          unreadMessages={unreadMessages}
+          showAdminMenu={showAdminMenu}
+          setShowAdminMenu={setShowAdminMenu}
+          onLogout={onLogout}
           onToggleSidebar={onToggleMenu}
-          myActiveRooms={myActiveRooms}
-          onRoomSelect={onRoomSelect}
-          currentRoomCode={currentRoomCode}
-          onKickUser={onKickUser}
         />
       </div>
 
-      <div className="flex-1 flex flex-col bg-white relative transition-all duration-300 ease-in-out max-[768px]:h-[calc(100vh-60px)] max-[600px]:h-screen">
+      {/* ChatContent - Desktop: siempre visible | Mobile: solo cuando hay chat seleccionado */}
+      <div className={`flex-1 flex flex-col bg-white relative transition-all duration-300 ease-in-out max-[768px]:h-[calc(100vh-60px)] max-[600px]:h-screen ${!to ? 'max-[768px]:hidden' : ''}`}>
             <ChatHeader
               to={to}
               isGroup={isGroup}

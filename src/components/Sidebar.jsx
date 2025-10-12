@@ -36,38 +36,62 @@ const Sidebar = ({
   onToggleSidebar,
   myActiveRooms = [],
   currentRoomCode,
-  onRoomSelect
+  onRoomSelect,
+  to
 }) => {
   return (
-    <div className="w-[669.85px] min-w-[669.85px] max-w-[669.85px] flex flex-row h-screen overflow-hidden max-[1024px]:w-[550px] max-[1024px]:min-w-[550px] max-[1024px]:max-w-[550px] max-[768px]:fixed max-[768px]:left-0 max-[768px]:top-0 max-[768px]:h-screen max-[768px]:z-[100] max-[768px]:w-[320px] max-[768px]:min-w-[320px] max-[768px]:max-w-[320px] max-[768px]:transition-transform max-[768px]:duration-300 max-[768px]:ease-in-out max-[768px]:shadow-[2px_0_15px_rgba(0,0,0,0.3)] bg-white">
-      
-      {/* Sidebar izquierdo - Menú azul (233.22px) */}
-      <LeftSidebar
-        user={user}
-        onShowCreateRoom={onShowCreateRoom}
-        onShowJoinRoom={onShowJoinRoom}
-        onShowAdminRooms={onShowAdminRooms}
-        onShowCreateConversation={onShowCreateConversation}
-        onShowManageConversations={onShowManageConversations}
-        showAdminMenu={showAdminMenu}
-        setShowAdminMenu={setShowAdminMenu}
-        onLogout={onLogout}
-        onToggleSidebar={onToggleSidebar}
-      />
+    <>
+      {/* Desktop: Ambos sidebars juntos */}
+      <div className="w-[669.85px] min-w-[669.85px] max-w-[669.85px] flex flex-row h-screen overflow-hidden max-[1280px]:w-[450px] max-[1280px]:min-w-[450px] max-[1280px]:max-w-[450px] max-[1024px]:w-[420px] max-[1024px]:min-w-[420px] max-[1024px]:max-w-[420px] max-[768px]:hidden bg-white">
 
-      {/* Lista de conversaciones - Columna derecha (436.63px) */}
-      <ConversationList
-        user={user}
-        userList={userList}
-        assignedConversations={assignedConversations}
-        myActiveRooms={myActiveRooms}
-        currentRoomCode={currentRoomCode}
-        isGroup={isGroup}
-        onUserSelect={onUserSelect}
-        onRoomSelect={onRoomSelect}
-        unreadMessages={unreadMessages}
-      />
-    </div>
+        {/* Sidebar izquierdo - Menú azul (233.22px) */}
+        <LeftSidebar
+          user={user}
+          onShowCreateRoom={onShowCreateRoom}
+          onShowJoinRoom={onShowJoinRoom}
+          onShowAdminRooms={onShowAdminRooms}
+          onShowCreateConversation={onShowCreateConversation}
+          onShowManageConversations={onShowManageConversations}
+          showAdminMenu={showAdminMenu}
+          setShowAdminMenu={setShowAdminMenu}
+          onLogout={onLogout}
+          onToggleSidebar={onToggleSidebar}
+        />
+
+        {/* Lista de conversaciones - Columna derecha (436.63px) */}
+        <ConversationList
+          user={user}
+          userList={userList}
+          assignedConversations={assignedConversations}
+          myActiveRooms={myActiveRooms}
+          currentRoomCode={currentRoomCode}
+          isGroup={isGroup}
+          onUserSelect={onUserSelect}
+          onRoomSelect={onRoomSelect}
+          unreadMessages={unreadMessages}
+          onToggleSidebar={onToggleSidebar}
+        />
+      </div>
+
+      {/* Mobile: Solo ConversationList (LeftSidebar se muestra como overlay desde ChatLayout) */}
+      {/* Se oculta cuando hay un chat seleccionado (to existe) */}
+      {!to && (
+        <div className="hidden max-[768px]:block w-full h-screen bg-white">
+          <ConversationList
+            user={user}
+            userList={userList}
+            assignedConversations={assignedConversations}
+            myActiveRooms={myActiveRooms}
+            currentRoomCode={currentRoomCode}
+            isGroup={isGroup}
+            onUserSelect={onUserSelect}
+            onRoomSelect={onRoomSelect}
+            unreadMessages={unreadMessages}
+            onToggleSidebar={onToggleSidebar}
+          />
+        </div>
+      )}
+    </>
   );
 };
 

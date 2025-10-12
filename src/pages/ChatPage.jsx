@@ -690,11 +690,6 @@ const ChatPage = () => {
     clearMessages();
   };
 
-  // Función para toggle del menú (ocultar/mostrar sidebar)
-  const handleToggleMenu = () => {
-    setShowSidebar(!showSidebar);
-  };
-
   // Función para cerrar el chat (volver al sidebar)
   const handleCloseChat = () => {
     // En desktop, cerrar el chat significa limpiar la selección
@@ -703,11 +698,23 @@ const ChatPage = () => {
     setCurrentRoomCode(null);
     currentRoomCodeRef.current = null;
     setRoomUsers([]);
+    setAdminViewConversation(null);
     clearMessages();
 
     // En mobile, mostrar el sidebar
-    if (window.innerWidth <= 600) {
+    if (window.innerWidth <= 768) {
       setShowSidebar(true);
+    }
+  };
+
+  // Función para toggle del menú (ocultar/mostrar sidebar)
+  const handleToggleMenu = () => {
+    // En mobile, si hay un chat seleccionado y el sidebar está cerrado,
+    // el botón de "regresar" debe cerrar el chat en lugar de abrir el sidebar
+    if (window.innerWidth <= 768 && to && !showSidebar) {
+      handleCloseChat();
+    } else {
+      setShowSidebar(!showSidebar);
     }
   };
 
