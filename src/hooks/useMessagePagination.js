@@ -71,6 +71,10 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         fileSize: msg.fileSize, // Tamaño del archivo en bytes
         id: msg.id,
         sentAt: msg.sentAt,
+        // Campos de respuesta
+        replyToMessageId: msg.replyToMessageId,
+        replyToSender: msg.replyToSender,
+        replyToText: msg.replyToText,
       }));
 
       // Los mensajes ya vienen en orden cronológico correcto del backend
@@ -155,6 +159,10 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         fileSize: msg.fileSize, // Tamaño del archivo en bytes
         id: msg.id,
         sentAt: msg.sentAt,
+        // Campos de respuesta
+        replyToMessageId: msg.replyToMessageId,
+        replyToSender: msg.replyToSender,
+        replyToText: msg.replyToText,
       }));
 
       // Agregar mensajes más antiguos al inicio (estilo WhatsApp)
@@ -224,6 +232,17 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     return hours * 60 + minutes;
   };
 
+  // Actualizar un mensaje específico
+  const updateMessage = useCallback((messageId, updates) => {
+    setMessages(prevMessages =>
+      prevMessages.map(msg =>
+        msg.id === messageId
+          ? { ...msg, ...updates }
+          : msg
+      )
+    );
+  }, []);
+
   // Limpiar mensajes
   const clearMessages = useCallback(() => {
     setMessages([]);
@@ -249,6 +268,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     loadInitialMessages,
     loadMoreMessages,
     addNewMessage,
+    updateMessage,
     clearMessages,
   };
 };

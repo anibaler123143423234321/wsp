@@ -4,7 +4,7 @@ import { MessageSquare, Home, UserCheck } from 'lucide-react';
 import clsx from 'clsx';
 
 // Componente reutilizable para cada pestaña (botón)
-const TabButton = ({ isActive, onClick, label, icon: Icon, notificationCount }) => {
+const TabButton = ({ isActive, onClick, label, shortLabel, icon: Icon, notificationCount }) => {
   return (
     <button
       onClick={onClick}
@@ -20,7 +20,7 @@ const TabButton = ({ isActive, onClick, label, icon: Icon, notificationCount }) 
         'max-[1280px]:px-2 max-[1280px]:py-1.5 max-[1280px]:text-xs max-[1280px]:gap-1.5',
         'max-[1024px]:px-2 max-[1024px]:py-1 max-[1024px]:text-[11px] max-[1024px]:gap-1',
         // Responsive mobile
-        'max-[768px]:px-3 max-[768px]:py-1.5 max-[768px]:text-xs max-[768px]:gap-1'
+        'max-[768px]:px-2.5 max-[768px]:py-1.5 max-[768px]:text-xs max-[768px]:gap-1'
       )}
       style={{
         fontFamily: 'Inter, sans-serif',
@@ -29,11 +29,16 @@ const TabButton = ({ isActive, onClick, label, icon: Icon, notificationCount }) 
     >
       {/* El componente Icono se pasa como prop */}
       <Icon size={18} strokeWidth={2} className="max-[1280px]:w-4 max-[1280px]:h-4 max-[1024px]:w-3.5 max-[1024px]:h-3.5 max-[768px]:w-4 max-[768px]:h-4" />
-      <span className="max-[1280px]:text-[11px] max-[1024px]:text-[10px] max-[768px]:text-[11px]">{label}</span>
 
-      {/* Badge de notificaciones */}
+      {/* Texto del label - usa shortLabel en pantallas pequeñas si está disponible */}
+      <span className="max-[1280px]:text-[11px] max-[1024px]:text-[10px] max-[768px]:text-[11px]">
+        <span className="max-[1024px]:hidden">{label}</span>
+        <span className="hidden max-[1024px]:inline">{shortLabel || label}</span>
+      </span>
+
+      {/* Badge de notificaciones - posicionado absolutamente para no afectar el layout */}
       {notificationCount > 0 && (
-        <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue-600 px-1.5 text-[10px] font-bold text-white max-[1280px]:h-4 max-[1280px]:min-w-[16px] max-[1280px]:text-[8px] max-[1024px]:h-3.5 max-[1024px]:min-w-[14px] max-[1024px]:text-[7px] max-[768px]:h-4 max-[768px]:min-w-[16px] max-[768px]:text-[8px] max-[768px]:px-1">
+        <span className="absolute -top-2 -right-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue-600 px-1.5 text-[10px] font-bold text-white shadow-md max-[1280px]:h-4 max-[1280px]:min-w-[16px] max-[1280px]:text-[8px] max-[1280px]:-top-1.5 max-[1280px]:-right-1.5 max-[1024px]:h-3.5 max-[1024px]:min-w-[14px] max-[1024px]:text-[7px] max-[1024px]:-top-1 max-[1024px]:-right-1 max-[768px]:h-4 max-[768px]:min-w-[16px] max-[768px]:text-[8px] max-[768px]:-top-1.5 max-[768px]:-right-1.5">
           {notificationCount}
         </span>
       )}
@@ -93,6 +98,7 @@ const ConversationList = ({
     {
       id: 'conversations',
       label: 'Conversaciones',
+      shortLabel: 'Chats', // Label corto para pantallas pequeñas
       icon: MessageSquare,
       notificationCount: 0,
       adminOnly: false,
@@ -100,6 +106,7 @@ const ConversationList = ({
     {
       id: 'rooms',
       label: 'Salas Activas',
+      shortLabel: 'Salas', // Label corto para pantallas pequeñas
       icon: Home,
       notificationCount: myActiveRooms?.length || 0,
       adminOnly: true,
@@ -107,9 +114,11 @@ const ConversationList = ({
     {
       id: 'assigned',
       label: 'Chats Asignados',
+      shortLabel: 'Asignados', // Label corto para pantallas pequeñas
       icon: UserCheck,
       notificationCount: assignedConversations?.length || 0,
-      adminOnly: true,
+      adminOnly: false, // Cambiar a false para que todos puedan ver sus chats asignados
+      showOnlyIfHasConversations: true, // Solo mostrar si tiene conversaciones asignadas
     },
   ];
 
@@ -129,15 +138,24 @@ const ConversationList = ({
       </div>
 
       {/* Pestañas de módulos */}
-      <div className="flex gap-2 bg-white overflow-x-auto scrollbar-hide max-[1280px]:!px-3 max-[1280px]:!py-2 max-[1280px]:!gap-1.5 max-[1024px]:!px-2 max-[1024px]:!py-1.5 max-[1024px]:!gap-1 max-[768px]:!gap-1 max-[768px]:!px-2 max-[768px]:!py-2" style={{ paddingLeft: '27.21px', paddingRight: '27.21px', paddingTop: '12px', paddingBottom: '8px' }}>
+      <div className="flex gap-2 bg-white overflow-x-auto scrollbar-hide max-[1280px]:!px-3 max-[1280px]:!py-2 max-[1280px]:!gap-1.5 max-[1024px]:!px-2 max-[1024px]:!py-1.5 max-[1024px]:!gap-1 max-[768px]:!gap-1 max-[768px]:!px-2 max-[768px]:!py-2 max-[768px]:!mt-2" style={{ paddingLeft: '27.21px', paddingRight: '27.21px', paddingTop: '20px', paddingBottom: '8px', marginTop: '8px' }}>
         {tabs
-          // Filtramos las pestañas que solo son para admins
-          .filter(tab => !tab.adminOnly || isAdmin)
+          // Filtramos las pestañas según permisos y condiciones
+          .filter(tab => {
+            // Si es solo para admins, verificar que sea admin
+            if (tab.adminOnly && !isAdmin) return false;
+
+            // Si solo se muestra cuando hay conversaciones, verificar que haya conversaciones
+            if (tab.showOnlyIfHasConversations && assignedConversations?.length === 0 && !isAdmin) return false;
+
+            return true;
+          })
           // Mapeamos el array para renderizar cada botón
           .map((tab) => (
             <TabButton
               key={tab.id}
               label={tab.label}
+              shortLabel={tab.shortLabel}
               icon={tab.icon}
               notificationCount={tab.notificationCount}
               isActive={activeModule === tab.id}
@@ -333,7 +351,7 @@ const ConversationList = ({
         </div>
       )}
 
-      {activeModule === 'assigned' && isAdmin && (
+      {activeModule === 'assigned' && (
         <div className="flex-1 overflow-y-auto bg-white px-4">
           {(() => {
             return filteredAssigned.length > 0 ? (
@@ -363,7 +381,7 @@ const ConversationList = ({
                         minHeight: '60px'
                       }}
                       onClick={() => {
-                        console.log('Admin viendo conversación:', conv);
+                        console.log('Usuario viendo conversación asignada:', conv);
                         // Llamar a onUserSelect con los datos de la conversación
                         if (onUserSelect) {
                           onUserSelect(conv.name, null, conv);

@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { FaPaperclip, FaPaperPlane, FaEdit, FaTimes } from 'react-icons/fa';
+import { FaPaperclip, FaPaperPlane, FaEdit, FaTimes, FaReply } from 'react-icons/fa';
 import LoadMoreMessages from './LoadMoreMessages';
 import WelcomeScreen from './WelcomeScreen';
 import './ChatContent.css';
-import backgroundImage from '../assets/login.png';
 
 const ChatContent = ({
   messages,
@@ -11,15 +10,12 @@ const ChatContent = ({
   setInput,
   onSendMessage,
   onFileSelect,
-  onRecordAudio,
-  onStopRecording,
   isRecording,
   mediaFiles,
   mediaPreviews,
   onCancelMediaUpload,
   onRemoveMediaFile,
   to,
-  isGroup,
   hasMoreMessages,
   isLoadingMore,
   onLoadMoreMessages,
@@ -28,7 +24,9 @@ const ChatContent = ({
   socket,
   highlightMessageId,
   onMessageHighlighted,
-  canSendMessages = true
+  canSendMessages = true,
+  replyingTo,
+  onCancelReply
 }) => {
   const chatHistoryRef = useRef(null);
   const isUserScrollingRef = useRef(false);
@@ -40,7 +38,7 @@ const ChatContent = ({
   const [isDragging, setIsDragging] = useState(false);
 
   // Función para descargar archivos
-  const handleDownload = (url, fileName) => {
+  const handleDownload = (url) => {
     // Abrir en nueva pestaña
     window.open(url, '_blank');
   };
@@ -395,7 +393,28 @@ const ChatContent = ({
               {message.sender}
             </div>
           )}
-          
+
+          {/* Preview del mensaje al que se responde */}
+          {message.replyToMessageId && (
+            <div
+              style={{
+                backgroundColor: isOwnMessage ? 'rgba(0, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0.3)',
+                borderLeft: '3px solid #00a884',
+                padding: '6px 8px',
+                borderRadius: '5px',
+                marginBottom: '6px',
+                fontSize: '12px'
+              }}
+            >
+              <div style={{ color: '#00a884', fontWeight: '600', marginBottom: '2px' }}>
+                {message.replyToSender}
+              </div>
+              <div style={{ color: '#8696a0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {message.replyToText || 'Archivo multimedia'}
+              </div>
+            </div>
+          )}
+
           {message.mediaType && message.mediaData ? (
             <div
               className="media-message"
@@ -626,10 +645,15 @@ const ChatContent = ({
                   </span>
                 )}
               </div>
-              {/* Botón de editar solo para mensajes propios sin multimedia */}
-              {isOwnMessage && !message.mediaType && (
+              {/* Botones de acción del mensaje */}
+              <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                {/* Botón de responder - disponible para todos los mensajes */}
                 <button
-                  onClick={() => handleStartEdit(message)}
+                  onClick={() => {
+                    if (window.handleReplyMessage) {
+                      window.handleReplyMessage(message);
+                    }
+                  }}
                   style={{
                     backgroundColor: 'transparent',
                     border: 'none',
@@ -639,14 +663,34 @@ const ChatContent = ({
                     padding: '4px 0',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px',
-                    marginTop: '4px'
+                    gap: '4px'
                   }}
-                  title="Editar mensaje"
+                  title="Responder mensaje"
                 >
-                  <FaEdit /> Editar
+                  <FaReply /> Responder
                 </button>
-              )}
+
+                {/* Botón de editar solo para mensajes propios sin multimedia */}
+                {isOwnMessage && !message.mediaType && (
+                  <button
+                    onClick={() => handleStartEdit(message)}
+                    style={{
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      color: '#8696a0',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      padding: '4px 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    title="Editar mensaje"
+                  >
+                    <FaEdit /> Editar
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
@@ -792,7 +836,47 @@ const ChatContent = ({
             </button>
           </div>
         )}
-        
+
+        {/* Preview del mensaje al que se está respondiendo */}
+        {replyingTo && (
+          <div
+            style={{
+              backgroundColor: '#202c33',
+              borderLeft: '3px solid #00a884',
+              padding: '8px 12px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '8px'
+            }}
+          >
+            <div style={{ flex: 1 }}>
+              <div style={{ color: '#00a884', fontSize: '12px', fontWeight: '600', marginBottom: '2px' }}>
+                Respondiendo a {replyingTo.sender}
+              </div>
+              <div style={{ color: '#8696a0', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {replyingTo.text || 'Archivo multimedia'}
+              </div>
+            </div>
+            <button
+              onClick={onCancelReply}
+              style={{
+                backgroundColor: 'transparent',
+                border: 'none',
+                color: '#8696a0',
+                cursor: 'pointer',
+                fontSize: '18px',
+                padding: '4px 8px',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+              title="Cancelar respuesta"
+            >
+              <FaTimes />
+            </button>
+          </div>
+        )}
+
         <div className="input-group">
           <label className={`btn-attach ${!canSendMessages ? 'disabled' : ''}`} title={canSendMessages ? "Adjuntar archivos (imágenes, PDFs, documentos - máx. 5, 10MB cada uno)" : "No puedes enviar mensajes en esta conversación"}>
             <input

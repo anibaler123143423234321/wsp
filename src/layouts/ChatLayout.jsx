@@ -37,7 +37,10 @@ const ChatLayout = ({
   currentUsername,
 
   // Props de búsqueda
-  highlightMessageId, onMessageHighlighted
+  highlightMessageId, onMessageHighlighted,
+
+  // Props de respuesta a mensajes
+  replyingTo, onCancelReply
 }) => {
   // Función para obtener el picture del usuario con el que se está chateando
   const getUserPicture = () => {
@@ -170,6 +173,8 @@ const ChatLayout = ({
           highlightMessageId={highlightMessageId}
           onMessageHighlighted={onMessageHighlighted}
           canSendMessages={canSendMessages}
+          replyingTo={replyingTo}
+          onCancelReply={onCancelReply}
         />
       </div>
       

@@ -79,6 +79,7 @@ const ChatPage = () => {
     loadInitialMessages,
     loadMoreMessages,
     addNewMessage,
+    updateMessage,
     clearMessages
   } = useMessagePagination(currentRoomCode, username, to, isGroup);
 
@@ -89,6 +90,7 @@ const ChatPage = () => {
   const [isTyping, setIsTyping] = useState(false); // El otro usuario está escribiendo
   const [typingTimeout, setTypingTimeout] = useState(null); // Timeout para detectar cuando deja de escribir
   const [adminViewConversation, setAdminViewConversation] = useState(null); // Conversación que el admin está viendo
+  const [replyingTo, setReplyingTo] = useState(null); // Mensaje al que se está respondiendo
 
   // Estados de UI
   const [showAdminMenu, setShowAdminMenu] = useState(false);
@@ -234,6 +236,10 @@ const ChatPage = () => {
           fileSize: msg.fileSize,
           id: msg.id,
           sentAt: msg.sentAt,
+          // Campos de respuesta
+          replyToMessageId: msg.replyToMessageId,
+          replyToSender: msg.replyToSender,
+          replyToText: msg.replyToText,
         }));
 
         // Actualizar los mensajes manualmente (no usar el hook)
@@ -415,6 +421,13 @@ const ChatPage = () => {
           newMessage.fileSize = data.fileSize;
         }
 
+        // Agregar información de respuesta si existe
+        if (data.replyToMessageId) {
+          newMessage.replyToMessageId = data.replyToMessageId;
+          newMessage.replyToSender = data.replyToSender;
+          newMessage.replyToText = data.replyToText;
+        }
+
         addNewMessage(newMessage);
 
         if (data.from !== username) {
@@ -443,6 +456,13 @@ const ChatPage = () => {
           newMessage.fileSize = data.fileSize;
         }
 
+        // Agregar información de respuesta si existe
+        if (data.replyToMessageId) {
+          newMessage.replyToMessageId = data.replyToMessageId;
+          newMessage.replyToSender = data.replyToSender;
+          newMessage.replyToText = data.replyToText;
+        }
+
         addNewMessage(newMessage);
 
         if (data.from !== username) {
@@ -456,13 +476,7 @@ const ChatPage = () => {
       const { messageId, newText, editedAt, isEdited } = data;
 
       // Actualizar el mensaje en la lista de mensajes
-      setMessages(prevMessages =>
-        prevMessages.map(msg =>
-          msg.id === messageId
-            ? { ...msg, text: newText, isEdited, editedAt }
-            : msg
-        )
-      );
+      updateMessage(messageId, { text: newText, isEdited, editedAt });
     });
 
     s.on('connect', () => {
@@ -916,8 +930,27 @@ const ChatPage = () => {
         fromId: user.id
       };
 
+      // Si es una conversación asignada, agregar información adicional
+      if (assignedConv) {
+        messageObj.isAssignedConversation = true;
+        messageObj.conversationId = assignedConv.id;
+        messageObj.participants = assignedConv.participants;
+        // El destinatario real es el otro participante
+        const otherParticipant = assignedConv.participants?.find(p => p !== currentUserFullName);
+        if (otherParticipant) {
+          messageObj.actualRecipient = otherParticipant;
+        }
+      }
+
       if (input) {
         messageObj.message = input;
+      }
+
+      // Agregar información de respuesta si existe
+      if (replyingTo) {
+        messageObj.replyToMessageId = replyingTo.id;
+        messageObj.replyToSender = replyingTo.sender;
+        messageObj.replyToText = replyingTo.text;
       }
 
       // 🔥 NUEVO: Subir archivo al servidor primero
@@ -957,6 +990,13 @@ const ChatPage = () => {
           fileSize: messageObj.fileSize || null
         };
 
+        // Agregar información de respuesta si existe
+        if (replyingTo) {
+          newMessage.replyToMessageId = replyingTo.id;
+          newMessage.replyToSender = replyingTo.sender;
+          newMessage.replyToText = replyingTo.text;
+        }
+
         // Guardar en la base de datos
         try {
           await apiService.createMessage({
@@ -970,7 +1010,10 @@ const ChatPage = () => {
             fileName: newMessage.fileName,
             fileSize: newMessage.fileSize,
             time: timeString,
-            sentAt: new Date().toISOString()
+            sentAt: new Date().toISOString(),
+            replyToMessageId: replyingTo?.id,
+            replyToSender: replyingTo?.sender,
+            replyToText: replyingTo?.text
           });
           console.log('✅ Mensaje personal guardado en BD');
         } catch (error) {
@@ -979,6 +1022,7 @@ const ChatPage = () => {
 
         addNewMessage(newMessage);
         clearInput();
+        setReplyingTo(null); // Limpiar el estado de respuesta
         return;
       }
 
@@ -1009,11 +1053,19 @@ const ChatPage = () => {
         newMessage.fileSize = messageObj.fileSize;
       }
 
+      // Agregar información de respuesta al mensaje local si existe
+      if (replyingTo) {
+        newMessage.replyToMessageId = replyingTo.id;
+        newMessage.replyToSender = replyingTo.sender;
+        newMessage.replyToText = replyingTo.text;
+      }
+
       addNewMessage(newMessage);
       playMessageSound(soundsEnabled);
     }
 
     clearInput();
+    setReplyingTo(null); // Limpiar el estado de respuesta
   };
 
   const handleEditMessage = async (messageId, newText) => {
@@ -1039,18 +1091,34 @@ const ChatPage = () => {
       }
 
       // Actualizar localmente
-      setMessages(prevMessages =>
-        prevMessages.map(msg =>
-          msg.id === messageId
-            ? { ...msg, text: newText, isEdited: true, editedAt: new Date() }
-            : msg
-        )
-      );
+      updateMessage(messageId, { text: newText, isEdited: true, editedAt: new Date() });
     } catch (error) {
       console.error('Error al editar mensaje:', error);
       await showErrorAlert('Error', 'Error al editar el mensaje. Inténtalo de nuevo.');
     }
   };
+
+  // Función para manejar la respuesta a un mensaje
+  const handleReplyMessage = (message) => {
+    setReplyingTo({
+      id: message.id,
+      sender: message.sender,
+      text: message.text || (message.fileName ? `📎 ${message.fileName}` : 'Archivo multimedia')
+    });
+  };
+
+  // Función para cancelar la respuesta
+  const handleCancelReply = () => {
+    setReplyingTo(null);
+  };
+
+  // Exponer la función globalmente para que ChatContent pueda acceder a ella
+  useEffect(() => {
+    window.handleReplyMessage = handleReplyMessage;
+    return () => {
+      delete window.handleReplyMessage;
+    };
+  }, []);
 
   const handleShowAdminRooms = async () => {
     setLoadingAdminRooms(true);
@@ -1473,6 +1541,8 @@ const ChatPage = () => {
       isTyping={isTyping}
       highlightMessageId={highlightMessageId}
       onMessageHighlighted={() => setHighlightMessageId(null)}
+      replyingTo={replyingTo}
+      onCancelReply={handleCancelReply}
 
       // Props de modales
       showCreateRoomModal={showCreateRoomModal}
