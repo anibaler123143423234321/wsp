@@ -1,8 +1,8 @@
 // Servicio para conectar con la API (mismo host para CRM y Chat por ahora)
 // Temporalmente hardcodeadas hasta resolver el problema con .env
  const API_BASE_URL = "https://apisozarusac.com/BackendJava/";
- const API_BASECHAT_URL = "http://localhost:8747/";
-// const API_BASECHAT_URL = "https://apisozarusac.com/BackendChat/";
+// const API_BASECHAT_URL = "http://localhost:8747/";
+ const API_BASECHAT_URL = "https://apisozarusac.com/BackendChat/";
 
 class ApiService {
   constructor() {
