@@ -732,8 +732,15 @@ class ApiService {
         );
       }
 
-      const result = await response.json();
-      return result;
+      // Verificar si hay contenido en la respuesta antes de parsear JSON
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const result = await response.json();
+        return result;
+      }
+
+      // Si no hay contenido JSON, retornar true indicando éxito
+      return { success: true };
     } catch (error) {
       console.error("Error al eliminar conversación:", error);
       throw error;
@@ -768,6 +775,170 @@ class ApiService {
       return result;
     } catch (error) {
       console.error("Error al buscar mensajes:", error);
+      return [];
+    }
+  }
+
+  // Marcar un mensaje como leído
+  async markMessageAsRead(messageId, username) {
+    try {
+      const response = await fetch(
+        `${this.baseChatUrl}api/messages/${messageId}/read`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ username }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Error del servidor: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al marcar mensaje como leído:", error);
+      throw error;
+    }
+  }
+
+  // Marcar múltiples mensajes como leídos
+  async markMultipleMessagesAsRead(messageIds, username) {
+    try {
+      const response = await fetch(
+        `${this.baseChatUrl}api/messages/mark-read`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ messageIds, username }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Error del servidor: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al marcar mensajes como leídos:", error);
+      throw error;
+    }
+  }
+
+  // Marcar toda una conversación como leída
+  async markConversationAsRead(from, to) {
+    try {
+      const response = await fetch(
+        `${this.baseChatUrl}api/messages/mark-conversation-read`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ from, to }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Error del servidor: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al marcar conversación como leída:", error);
+      throw error;
+    }
+  }
+
+  // ===== MÉTODOS PARA OBTENER USUARIOS DEL BACKEND JAVA =====
+
+  // Obtener lista de usuarios del backend Java con paginación
+  async getUsersFromBackend(page = 0, size = 10) {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `${this.baseUrl}api/user/listar?page=${page}&size=${size}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Error del servidor al obtener usuarios:", errorData);
+        throw new Error(
+          errorData.msg || `Error del servidor: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+
+      // Validar que la respuesta sea exitosa (rpta === 1)
+      if (result.rpta !== 1) {
+        console.warn("Respuesta no exitosa del servidor:", result.msg);
+        return [];
+      }
+
+      // Retornar solo los usuarios del data, filtrando usuarios válidos
+      const users = result.data?.users || [];
+      return users.filter(user => user && user.username); // Filtrar usuarios inválidos
+    } catch (error) {
+      console.error("Error al obtener usuarios del backend:", error);
+      return [];
+    }
+  }
+
+  // Buscar usuarios en el backend Java
+  async searchUsersFromBackend(query, page = 0, size = 10) {
+    try {
+      if (!query || query.trim().length === 0) {
+        return [];
+      }
+
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `${this.baseUrl}api/user/buscar?page=${page}&size=${size}&query=${encodeURIComponent(query)}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.msg || `Error del servidor: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+      // Retornar solo los usuarios del data
+      return result.data?.users || [];
+    } catch (error) {
+      console.error("Error al buscar usuarios en backend:", error);
       return [];
     }
   }

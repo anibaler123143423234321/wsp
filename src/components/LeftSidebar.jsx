@@ -2,7 +2,7 @@ import { FaPlus, FaSignInAlt, FaDoorOpen, FaUserFriends, FaClipboardList, FaCog,
 import logoutIcon from '../assets/mbrilogout_99583.svg';
 
 const LeftSidebar = ({
-  user, 
+  user,
   onShowCreateRoom,
   onShowJoinRoom,
   onShowAdminRooms,
@@ -18,12 +18,12 @@ const LeftSidebar = ({
       <div className="flex-1 flex flex-col max-[768px]:h-full">
         {/* Header con título "Chat corporativo" */}
         <div
-          className="max-[1280px]:!pt-6 max-[1280px]:!px-4 max-[1280px]:!pb-6 max-[1024px]:!pt-4 max-[1024px]:!px-3 max-[1024px]:!pb-4 max-[768px]:flex max-[768px]:items-start max-[768px]:justify-between max-[768px]:!pt-4 max-[768px]:!px-4 max-[768px]:!pb-4"
+          className="max-[1280px]:!pt-4 max-[1280px]:!px-4 max-[1280px]:!pb-4 max-[1024px]:!pt-3 max-[1024px]:!px-3 max-[1024px]:!pb-3 max-[768px]:flex max-[768px]:items-start max-[768px]:justify-between max-[768px]:!pt-4 max-[768px]:!px-4 max-[768px]:!pb-4"
           style={{
-            paddingTop: '50px',
+            paddingTop: '30px',
             paddingLeft: '41px',
             paddingRight: '41px',
-            paddingBottom: '41.81px'
+            paddingBottom: '30px'
           }}
         >
           <h1
@@ -97,187 +97,219 @@ const LeftSidebar = ({
         </div>
 
         {/* Línea separadora */}
-        <div 
-          className="mx-[19.64px] mb-[15px] max-[768px]:mx-4 max-[768px]:mb-3"
+        <div
+          className="mx-[19.64px] mb-[20px] max-[768px]:mx-4 max-[768px]:mb-4"
           style={{
-            borderTop: '1px solid #FFFFFF'
+            borderTop: '1px solid rgba(255, 255, 255, 0.2)',
+            marginBottom: '24px'
           }}
         ></div>
+
+        {/* Botón Unirse a Sala - VISIBLE PARA TODOS */}
+        <div
+          className="flex flex-col max-[1280px]:!px-3 max-[1280px]:!gap-2 max-[1024px]:!px-2 max-[1024px]:!gap-1.5 max-[768px]:!px-4 max-[768px]:!gap-2"
+          style={{
+            paddingLeft: '27.08px',
+            paddingRight: '27.08px',
+            paddingTop: '4px',
+            gap: '10px'
+          }}
+        >
+          <button
+            className="group bg-white/5 border-none flex items-center cursor-pointer transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] rounded-lg max-[1280px]:!h-10 max-[1280px]:!px-3 max-[1280px]:!gap-2.5 max-[1024px]:!h-9 max-[1024px]:!px-2 max-[1024px]:!gap-2 max-[768px]:!w-full max-[768px]:!justify-start max-[768px]:!h-12 max-[768px]:!px-4 max-[768px]:!gap-3"
+            onClick={onShowJoinRoom}
+            title="Unirse a sala"
+            style={{
+              width: '180.35px',
+              height: '42px',
+              borderRadius: '10px',
+              padding: '10px 12px',
+              gap: '10px',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+            }}
+          >
+            <div className="flex items-center justify-center w-7 h-7 bg-white/10 rounded-lg group-hover:bg-white/20 transition-all duration-200">
+              <FaSignInAlt
+                className="max-[1280px]:!w-3.5 max-[1280px]:!h-3.5 max-[1024px]:!w-3 max-[1024px]:!h-3 max-[768px]:!text-base max-[768px]:!shrink-0"
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  color: '#FFFFFF'
+                }}
+              />
+            </div>
+            <span
+              className="max-[1280px]:!text-xs max-[1024px]:!text-[11px] max-[1024px]:!hidden max-[768px]:!inline max-[768px]:!text-sm max-[768px]:!flex-1 max-[768px]:!text-left max-[768px]:!font-medium"
+              style={{
+                fontFamily: 'Inter, sans-serif',
+                fontWeight: 500,
+                fontSize: '14px',
+                lineHeight: '100%',
+                color: '#FFFFFF'
+              }}
+            >
+              Unirse a sala
+            </span>
+          </button>
+        </div>
 
         {/* Botones de acción - Solo para ADMIN y JEFEPISO */}
         {(user?.role === 'ADMIN' || user?.role === 'JEFEPISO') && (
           <div
-            className="flex flex-col max-[1280px]:!px-3 max-[1280px]:!gap-1 max-[1024px]:!px-2 max-[1024px]:!gap-1 max-[768px]:!px-4"
+            className="flex flex-col max-[1280px]:!px-3 max-[1280px]:!gap-2 max-[1024px]:!px-2 max-[1024px]:!gap-1.5 max-[768px]:!px-4 max-[768px]:!gap-2"
             style={{
               paddingLeft: '27.08px',
               paddingRight: '27.08px',
-              gap: '6.48px'
+              paddingTop: '4px',
+              gap: '10px'
             }}
           >
+            {/* Botón Crear Sala */}
             <button
-              className="bg-transparent border-none flex items-center cursor-pointer transition-all duration-200 hover:bg-white/5 rounded-lg max-[1280px]:!h-9 max-[1280px]:!px-2 max-[1280px]:!gap-2 max-[1024px]:!h-8 max-[1024px]:!px-1.5 max-[1024px]:!gap-1.5 max-[768px]:!w-full max-[768px]:!justify-start max-[768px]:!h-12 max-[768px]:!px-3 max-[768px]:!gap-3"
+              className="group bg-white/5 border-none flex items-center cursor-pointer transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] rounded-lg max-[1280px]:!h-10 max-[1280px]:!px-3 max-[1280px]:!gap-2.5 max-[1024px]:!h-9 max-[1024px]:!px-2 max-[1024px]:!gap-2 max-[768px]:!w-full max-[768px]:!justify-start max-[768px]:!h-12 max-[768px]:!px-4 max-[768px]:!gap-3"
               onClick={onShowCreateRoom}
               title="Crear Sala"
               style={{
                 width: '180.35px',
-                height: '38.87px',
-                borderRadius: '7.77px',
-                padding: '6.48px',
-                gap: '6.48px'
+                height: '42px',
+                borderRadius: '10px',
+                padding: '10px 12px',
+                gap: '10px',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
               }}
             >
-              <FaPlus
-                className="max-[1280px]:!w-4 max-[1280px]:!h-4 max-[1024px]:!w-3.5 max-[1024px]:!h-3.5 max-[768px]:!text-[18px] max-[768px]:!shrink-0"
-                style={{
-                  width: '25.91px',
-                  height: '25.91px',
-                  color: '#FFFFFF'
-                }}
-              />
+              <div className="flex items-center justify-center w-7 h-7 bg-white/10 rounded-lg group-hover:bg-white/20 transition-all duration-200">
+                <FaPlus
+                  className="max-[1280px]:!w-3.5 max-[1280px]:!h-3.5 max-[1024px]:!w-3 max-[1024px]:!h-3 max-[768px]:!text-base max-[768px]:!shrink-0"
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    color: '#FFFFFF'
+                  }}
+                />
+              </div>
               <span
                 className="max-[1280px]:!text-xs max-[1024px]:!text-[11px] max-[1024px]:!hidden max-[768px]:!inline max-[768px]:!text-sm max-[768px]:!flex-1 max-[768px]:!text-left max-[768px]:!font-medium"
                 style={{
                   fontFamily: 'Inter, sans-serif',
-                  fontWeight: 400,
-                  fontSize: '16.84px',
+                  fontWeight: 500,
+                  fontSize: '14px',
                   lineHeight: '100%',
-                  color: 'rgba(255, 255, 255, 0.7)'
+                  color: '#FFFFFF'
                 }}
               >
                 Crear Sala
               </span>
             </button>
 
+            {/* Botón Mis Salas */}
             <button
-              className="bg-transparent border-none flex items-center cursor-pointer transition-all duration-200 hover:bg-white/5 rounded-lg max-[1280px]:!h-9 max-[1280px]:!px-2 max-[1280px]:!gap-2 max-[1024px]:!h-8 max-[1024px]:!px-1.5 max-[1024px]:!gap-1.5 max-[768px]:!w-full max-[768px]:!justify-start max-[768px]:!h-12 max-[768px]:!px-3 max-[768px]:!gap-3"
-              onClick={onShowJoinRoom}
-              title="Unirse a sala"
-              style={{
-                width: '180.35px',
-                height: '38.87px',
-                borderRadius: '7.77px',
-                padding: '6.48px',
-                gap: '6.48px'
-              }}
-            >
-              <FaSignInAlt
-                className="max-[1280px]:!w-4 max-[1280px]:!h-4 max-[1024px]:!w-3.5 max-[1024px]:!h-3.5 max-[768px]:!text-[18px] max-[768px]:!shrink-0"
-                style={{
-                  width: '25.91px',
-                  height: '25.91px',
-                  color: '#FFFFFF'
-                }}
-              />
-              <span
-                className="max-[1280px]:!text-xs max-[1024px]:!text-[11px] max-[1024px]:!hidden max-[768px]:!inline max-[768px]:!text-sm max-[768px]:!flex-1 max-[768px]:!text-left max-[768px]:!font-medium"
-                style={{
-                  fontFamily: 'Inter, sans-serif',
-                  fontWeight: 400,
-                  fontSize: '16.84px',
-                  lineHeight: '100%',
-                  color: 'rgba(255, 255, 255, 0.7)'
-                }}
-              >
-                Unirse a sala
-              </span>
-            </button>
-
-            <button
-              className="bg-transparent border-none flex items-center cursor-pointer transition-all duration-200 hover:bg-white/5 rounded-lg max-[1280px]:!h-9 max-[1280px]:!px-2 max-[1280px]:!gap-2 max-[1024px]:!h-8 max-[1024px]:!px-1.5 max-[1024px]:!gap-1.5 max-[768px]:!w-full max-[768px]:!justify-start max-[768px]:!h-12 max-[768px]:!px-3 max-[768px]:!gap-3"
+              className="group bg-white/5 border-none flex items-center cursor-pointer transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] rounded-lg max-[1280px]:!h-10 max-[1280px]:!px-3 max-[1280px]:!gap-2.5 max-[1024px]:!h-9 max-[1024px]:!px-2 max-[1024px]:!gap-2 max-[768px]:!w-full max-[768px]:!justify-start max-[768px]:!h-12 max-[768px]:!px-4 max-[768px]:!gap-3"
               onClick={onShowAdminRooms}
               title="Mis salas"
               style={{
                 width: '180.35px',
-                height: '38.87px',
-                borderRadius: '7.77px',
-                padding: '6.48px',
-                gap: '6.48px'
+                height: '42px',
+                borderRadius: '10px',
+                padding: '10px 12px',
+                gap: '10px',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
               }}
             >
-              <FaDoorOpen
-                className="max-[1280px]:!w-4 max-[1280px]:!h-4 max-[1024px]:!w-3.5 max-[1024px]:!h-3.5 max-[768px]:!text-[18px] max-[768px]:!shrink-0"
-                style={{
-                  width: '25.91px',
-                  height: '25.91px',
-                  color: '#FFFFFF'
-                }}
-              />
+              <div className="flex items-center justify-center w-7 h-7 bg-white/10 rounded-lg group-hover:bg-white/20 transition-all duration-200">
+                <FaDoorOpen
+                  className="max-[1280px]:!w-3.5 max-[1280px]:!h-3.5 max-[1024px]:!w-3 max-[1024px]:!h-3 max-[768px]:!text-base max-[768px]:!shrink-0"
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    color: '#FFFFFF'
+                  }}
+                />
+              </div>
               <span
                 className="max-[1280px]:!text-xs max-[1024px]:!text-[11px] max-[1024px]:!hidden max-[768px]:!inline max-[768px]:!text-sm max-[768px]:!flex-1 max-[768px]:!text-left max-[768px]:!font-medium"
                 style={{
                   fontFamily: 'Inter, sans-serif',
-                  fontWeight: 400,
-                  fontSize: '16.84px',
+                  fontWeight: 500,
+                  fontSize: '14px',
                   lineHeight: '100%',
-                  color: 'rgba(255, 255, 255, 0.7)'
+                  color: '#FFFFFF'
                 }}
               >
                 Mis salas
               </span>
             </button>
 
+            {/* Botón Asignar Chat */}
             <button
-              className="bg-transparent border-none flex items-center cursor-pointer transition-all duration-200 hover:bg-white/5 rounded-lg max-[1280px]:!h-9 max-[1280px]:!px-2 max-[1280px]:!gap-2 max-[1024px]:!h-8 max-[1024px]:!px-1.5 max-[1024px]:!gap-1.5 max-[768px]:!w-full max-[768px]:!justify-start max-[768px]:!h-12 max-[768px]:!px-3 max-[768px]:!gap-3"
+              className="group bg-white/5 border-none flex items-center cursor-pointer transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] rounded-lg max-[1280px]:!h-10 max-[1280px]:!px-3 max-[1280px]:!gap-2.5 max-[1024px]:!h-9 max-[1024px]:!px-2 max-[1024px]:!gap-2 max-[768px]:!w-full max-[768px]:!justify-start max-[768px]:!h-12 max-[768px]:!px-4 max-[768px]:!gap-3"
               onClick={onShowCreateConversation}
               title="Asignar Chat"
               style={{
                 width: '180.35px',
-                height: '38.87px',
-                borderRadius: '7.77px',
-                padding: '6.48px',
-                gap: '6.48px'
+                height: '42px',
+                borderRadius: '10px',
+                padding: '10px 12px',
+                gap: '10px',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
               }}
             >
-              <FaUserFriends
-                className="max-[1280px]:!w-4 max-[1280px]:!h-4 max-[1024px]:!w-3.5 max-[1024px]:!h-3.5 max-[768px]:!text-[18px] max-[768px]:!shrink-0"
-                style={{
-                  width: '25.91px',
-                  height: '25.91px',
-                  color: '#FFFFFF'
-                }}
-              />
+              <div className="flex items-center justify-center w-7 h-7 bg-white/10 rounded-lg group-hover:bg-white/20 transition-all duration-200">
+                <FaUserFriends
+                  className="max-[1280px]:!w-3.5 max-[1280px]:!h-3.5 max-[1024px]:!w-3 max-[1024px]:!h-3 max-[768px]:!text-base max-[768px]:!shrink-0"
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    color: '#FFFFFF'
+                  }}
+                />
+              </div>
               <span
                 className="max-[1280px]:!text-xs max-[1024px]:!text-[11px] max-[1024px]:!hidden max-[768px]:!inline max-[768px]:!text-sm max-[768px]:!flex-1 max-[768px]:!text-left max-[768px]:!font-medium"
                 style={{
                   fontFamily: 'Inter, sans-serif',
-                  fontWeight: 400,
-                  fontSize: '16.84px',
+                  fontWeight: 500,
+                  fontSize: '14px',
                   lineHeight: '100%',
-                  color: 'rgba(255, 255, 255, 0.7)'
+                  color: '#FFFFFF'
                 }}
               >
                 Asignar Chat
               </span>
             </button>
 
+            {/* Botón Gestionar Chats */}
             <button
-              className="bg-transparent border-none flex items-center cursor-pointer transition-all duration-200 hover:bg-white/5 rounded-lg max-[1280px]:!h-9 max-[1280px]:!px-2 max-[1280px]:!gap-2 max-[1024px]:!h-8 max-[1024px]:!px-1.5 max-[1024px]:!gap-1.5 max-[768px]:!w-full max-[768px]:!justify-start max-[768px]:!h-12 max-[768px]:!px-3 max-[768px]:!gap-3"
+              className="group bg-white/5 border-none flex items-center cursor-pointer transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] rounded-lg max-[1280px]:!h-10 max-[1280px]:!px-3 max-[1280px]:!gap-2.5 max-[1024px]:!h-9 max-[1024px]:!px-2 max-[1024px]:!gap-2 max-[768px]:!w-full max-[768px]:!justify-start max-[768px]:!h-12 max-[768px]:!px-4 max-[768px]:!gap-3"
               onClick={onShowManageConversations}
               title="Gestionar Chats"
               style={{
                 width: '180.35px',
-                height: '38.87px',
-                borderRadius: '7.77px',
-                padding: '6.48px',
-                gap: '6.48px'
+                height: '42px',
+                borderRadius: '10px',
+                padding: '10px 12px',
+                gap: '10px',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
               }}
             >
-              <FaClipboardList
-                className="max-[1280px]:!w-4 max-[1280px]:!h-4 max-[1024px]:!w-3.5 max-[1024px]:!h-3.5 max-[768px]:!text-[18px] max-[768px]:!shrink-0"
-                style={{
-                  width: '25.91px',
-                  height: '25.91px',
-                  color: '#FFFFFF'
-                }}
-              />
+              <div className="flex items-center justify-center w-7 h-7 bg-white/10 rounded-lg group-hover:bg-white/20 transition-all duration-200">
+                <FaClipboardList
+                  className="max-[1280px]:!w-3.5 max-[1280px]:!h-3.5 max-[1024px]:!w-3 max-[1024px]:!h-3 max-[768px]:!text-base max-[768px]:!shrink-0"
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    color: '#FFFFFF'
+                  }}
+                />
+              </div>
               <span
                 className="max-[1280px]:!text-xs max-[1024px]:!text-[11px] max-[1024px]:!hidden max-[768px]:!inline max-[768px]:!text-sm max-[768px]:!flex-1 max-[768px]:!text-left max-[768px]:!font-medium"
                 style={{
                   fontFamily: 'Inter, sans-serif',
-                  fontWeight: 400,
-                  fontSize: '16.84px',
+                  fontWeight: 500,
+                  fontSize: '14px',
                   lineHeight: '100%',
-                  color: 'rgba(255, 255, 255, 0.7)'
+                  color: '#FFFFFF'
                 }}
               >
                 Gestionar Chats

@@ -22,8 +22,8 @@ const RoomCreatedModal = ({ isOpen, onClose, roomData }) => {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content room-created-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay">
+      <div className="modal-content room-created-modal">
         <div className="modal-header">
           <h2><FaCheckCircle style={{color:'green',marginRight:6}}/> Sala Creada Exitosamente</h2>
           <button className="modal-close" onClick={onClose}><FaTimes /></button>

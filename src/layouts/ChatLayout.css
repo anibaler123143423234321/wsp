@@ -1,0 +1,153 @@
+/* Layout principal del chat */
+.chat-layout-container {
+  display: flex;
+  gap: 0;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  height: 100vh;
+  border-radius: 0;
+  overflow: hidden;
+  box-shadow: none;
+  background: white;
+}
+
+/* Botón hamburguesa flotante */
+.hamburger-btn {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .hamburger-btn {
+    display: flex;
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 101;
+    width: 48px;
+    height: 48px;
+    align-items: center;
+    justify-content: center;
+    background: #13467A;
+    color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .hamburger-btn:hover {
+    background: #0f3660;
+  }
+
+  .hamburger-btn:active {
+    transform: scale(0.95);
+  }
+
+  .hamburger-btn.hidden {
+    display: none;
+  }
+}
+
+/* Overlay para mobile */
+.sidebar-overlay {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .sidebar-overlay.hidden {
+    display: none;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* LeftSidebar overlay para mobile */
+.left-sidebar-mobile {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .left-sidebar-mobile {
+    display: block;
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    z-index: 100;
+    transition: transform 0.3s ease-in-out;
+  }
+
+  .left-sidebar-mobile.open {
+    transform: translateX(0);
+  }
+
+  .left-sidebar-mobile.closed {
+    transform: translateX(-100%);
+  }
+}
+
+/* Contenedor del chat */
+.chat-content-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  position: relative;
+  transition: all 0.3s ease-in-out;
+}
+
+@media (max-width: 768px) {
+  .chat-content-container {
+    height: 100vh;
+  }
+
+  .chat-content-container.no-chat {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .chat-content-container {
+    height: 100vh;
+  }
+}
+
+/* Ajustes para el layout completo */
+@media (max-width: 768px) {
+  .chat-layout-container {
+    overflow-x: hidden;
+  }
+}
+
+/* Asegurar que el contenido no se desborde */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+}
+

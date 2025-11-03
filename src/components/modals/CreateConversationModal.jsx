@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { FaTimes, FaUser, FaComments, FaInfoCircle, FaSearch } from 'react-icons/fa';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { FaTimes, FaUser, FaComments, FaInfoCircle, FaSearch, FaGlobe, FaLink } from 'react-icons/fa';
 import './Modal.css';
 import './CreateConversationModal.css';
+import apiService from '../../apiService';
 
 const CreateConversationModal = ({
   isOpen,
@@ -18,18 +19,121 @@ const CreateConversationModal = ({
   const [searchUser2, setSearchUser2] = useState('');
   const [pageUser1, setPageUser1] = useState(1);
   const [pageUser2, setPageUser2] = useState(1);
+  const [userSource, setUserSource] = useState('connected'); // 'connected' o 'backend'
+  const [backendUsers, setBackendUsers] = useState([]);
+  const [searchResults1, setSearchResults1] = useState([]);
+  const [searchResults2, setSearchResults2] = useState([]);
+  const [loadingBackendUsers, setLoadingBackendUsers] = useState(false);
+  const debounceTimer1 = useRef(null);
+  const debounceTimer2 = useRef(null);
   const ITEMS_PER_PAGE = 10;
+  const DEBOUNCE_DELAY = 500; // 500ms de delay
+
+  // Obtener usuarios según la fuente seleccionada
+  const sourceUsers = useMemo(() => {
+    if (userSource === 'backend') {
+      return backendUsers;
+    }
+    return userList;
+  }, [userSource, userList, backendUsers]);
 
   // Filtrar usuarios para excluir al usuario actual
   const availableUsers = useMemo(() => {
-    return userList.filter(user => {
+    return sourceUsers.filter(user => {
       const username = typeof user === 'string' ? user : user.username;
       return username !== currentUser?.username;
     });
-  }, [userList, currentUser]);
+  }, [sourceUsers, currentUser]);
+
+  // Cargar usuarios del backend cuando se abre el modal
+  useEffect(() => {
+    if (isOpen && userSource === 'backend' && backendUsers.length === 0) {
+      loadBackendUsers();
+    }
+  }, [isOpen, userSource]);
+
+  // Cargar usuarios del backend
+  const loadBackendUsers = async () => {
+    setLoadingBackendUsers(true);
+    try {
+      // Usar tamaño de página más pequeño para evitar problemas de paginación
+      const users = await apiService.getUsersFromBackend(0, 10);
+      setBackendUsers(users);
+    } catch (err) {
+      console.error('Error al cargar usuarios del backend:', err);
+      setError('Error al cargar usuarios del backend');
+    } finally {
+      setLoadingBackendUsers(false);
+    }
+  };
+
+  // Función para buscar usuarios en el backend con debounce
+  const handleSearchUser1 = (value) => {
+    setSearchUser1(value);
+    setPageUser1(1);
+
+    // Limpiar timer anterior
+    if (debounceTimer1.current) {
+      clearTimeout(debounceTimer1.current);
+    }
+
+    // Si está vacío, limpiar resultados de búsqueda
+    if (!value.trim()) {
+      setSearchResults1([]);
+      return;
+    }
+
+    // Solo buscar en backend si estamos en modo "Listado General"
+    if (userSource !== 'backend') {
+      return;
+    }
+
+    // Establecer nuevo timer
+    debounceTimer1.current = setTimeout(async () => {
+      try {
+        const results = await apiService.searchUsersFromBackend(value, 0, 10);
+        setSearchResults1(results);
+      } catch (err) {
+        console.error('Error al buscar usuarios:', err);
+      }
+    }, DEBOUNCE_DELAY);
+  };
+
+  // Función para buscar usuarios en el backend con debounce (Usuario 2)
+  const handleSearchUser2 = (value) => {
+    setSearchUser2(value);
+    setPageUser2(1);
+
+    // Limpiar timer anterior
+    if (debounceTimer2.current) {
+      clearTimeout(debounceTimer2.current);
+    }
+
+    // Si está vacío, limpiar resultados de búsqueda
+    if (!value.trim()) {
+      setSearchResults2([]);
+      return;
+    }
+
+    // Solo buscar en backend si estamos en modo "Listado General"
+    if (userSource !== 'backend') {
+      return;
+    }
+
+    // Establecer nuevo timer
+    debounceTimer2.current = setTimeout(async () => {
+      try {
+        const results = await apiService.searchUsersFromBackend(value, 0, 10);
+        setSearchResults2(results);
+      } catch (err) {
+        console.error('Error al buscar usuarios:', err);
+      }
+    }, DEBOUNCE_DELAY);
+  };
 
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) {
+      // Limpiar el modal cuando se cierra
       setSelectedUser1('');
       setSelectedUser2('');
       setConversationName('');
@@ -38,18 +142,24 @@ const CreateConversationModal = ({
       setSearchUser2('');
       setPageUser1(1);
       setPageUser2(1);
+      setUserSource('connected');
+      setSearchResults1([]);
+      setSearchResults2([]);
     }
   }, [isOpen]);
 
   // Generar nombre automático cuando se seleccionan ambos usuarios
   useEffect(() => {
     if (selectedUser1 && selectedUser2) {
+      // Combinar todas las fuentes de usuarios para buscar
+      const allUsers = [...sourceUsers, ...searchResults1, ...searchResults2];
+
       // Buscar los objetos de usuario completos
-      const user1Obj = availableUsers.find(u => {
+      const user1Obj = allUsers.find(u => {
         const username = typeof u === 'string' ? u : u.username;
         return username === selectedUser1;
       });
-      const user2Obj = availableUsers.find(u => {
+      const user2Obj = allUsers.find(u => {
         const username = typeof u === 'string' ? u : u.username;
         return username === selectedUser2;
       });
@@ -70,12 +180,19 @@ const CreateConversationModal = ({
       // Limpiar el nombre si se deselecciona algún usuario
       setConversationName('');
     }
-  }, [selectedUser1, selectedUser2, availableUsers]);
+  }, [selectedUser1, selectedUser2, sourceUsers, searchResults1, searchResults2]);
 
   // Filtrar usuarios para el primer select con búsqueda
   const filteredUsers1 = useMemo(() => {
+    // Si hay resultados de búsqueda del backend, usarlos
+    if (searchResults1.length > 0) {
+      return searchResults1;
+    }
+
+    // Si no hay búsqueda, usar usuarios disponibles
     if (!searchUser1) return availableUsers;
 
+    // Búsqueda local en usuarios disponibles
     return availableUsers.filter(user => {
       const username = typeof user === 'string' ? user : user.username;
       const nombre = typeof user === 'object' ? user.nombre : '';
@@ -85,10 +202,19 @@ const CreateConversationModal = ({
 
       return username.toLowerCase().includes(search) || fullName.includes(search);
     });
-  }, [availableUsers, searchUser1]);
+  }, [availableUsers, searchUser1, searchResults1]);
 
   // Filtrar usuarios para el segundo select con búsqueda
   const filteredUsers2 = useMemo(() => {
+    // Si hay resultados de búsqueda del backend, usarlos
+    if (searchResults2.length > 0) {
+      return searchResults2.filter(user => {
+        const username = typeof user === 'string' ? user : user.username;
+        return username !== selectedUser1;
+      });
+    }
+
+    // Si no hay búsqueda, usar usuarios disponibles
     const filtered = availableUsers.filter(user => {
       const username = typeof user === 'string' ? user : user.username;
       return username !== selectedUser1;
@@ -96,6 +222,7 @@ const CreateConversationModal = ({
 
     if (!searchUser2) return filtered;
 
+    // Búsqueda local en usuarios disponibles
     return filtered.filter(user => {
       const username = typeof user === 'string' ? user : user.username;
       const nombre = typeof user === 'object' ? user.nombre : '';
@@ -105,7 +232,7 @@ const CreateConversationModal = ({
 
       return username.toLowerCase().includes(search) || fullName.includes(search);
     });
-  }, [availableUsers, selectedUser1, searchUser2]);
+  }, [availableUsers, selectedUser1, searchUser2, searchResults2]);
 
   // Paginación para usuario 1
   const paginatedUsers1 = useMemo(() => {
@@ -137,9 +264,32 @@ const CreateConversationModal = ({
       return;
     }
 
+    // Obtener los nombres completos de los usuarios seleccionados
+    const getFullNameForUser = (username) => {
+      // Buscar en searchResults primero
+      let userObj = searchResults1.find(u => (typeof u === 'string' ? u : u.username) === username);
+      if (!userObj) {
+        userObj = searchResults2.find(u => (typeof u === 'string' ? u : u.username) === username);
+      }
+      // Si no está en searchResults, buscar en sourceUsers
+      if (!userObj) {
+        userObj = sourceUsers.find(u => (typeof u === 'string' ? u : u.username) === username);
+      }
+
+      // Si encontramos el objeto y tiene nombre y apellido, retornar nombre completo
+      if (userObj && typeof userObj === 'object' && userObj.nombre && userObj.apellido) {
+        return `${userObj.nombre} ${userObj.apellido}`;
+      }
+      // Si no, retornar el username
+      return username;
+    };
+
+    const user1FullName = getFullNameForUser(selectedUser1);
+    const user2FullName = getFullNameForUser(selectedUser2);
+
     onCreateConversation({
-      user1: selectedUser1,
-      user2: selectedUser2,
+      user1: user1FullName,
+      user2: user2FullName,
       name: conversationName
     });
   };
@@ -151,13 +301,13 @@ const CreateConversationModal = ({
       <div className="conversation-modal-container" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="conversation-modal-header">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <div className="icon-wrapper">
-              <FaComments className="text-xl" />
+              <FaComments className="text-lg" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-white">Crear Conversación Individual</h2>
-              <p className="text-sm text-gray-400 mt-1">Asigna una conversación entre dos usuarios</p>
+              <h2 className="text-lg font-semibold text-white">Crear Conversación Individual</h2>
+              <p className="text-xs text-gray-400">Asigna una conversación entre dos usuarios</p>
             </div>
           </div>
           <button
@@ -178,6 +328,47 @@ const CreateConversationModal = ({
               </div>
             )}
 
+            {/* Selector de fuente de usuarios */}
+            <div className="user-source-selector">
+              <label className="section-label">Seleccionar usuarios de:</label>
+              <div className="source-buttons">
+                <button
+                  type="button"
+                  className={`source-btn ${userSource === 'connected' ? 'active' : ''}`}
+                  onClick={() => {
+                    setUserSource('connected');
+                    setSelectedUser1('');
+                    setSelectedUser2('');
+                    setSearchUser1('');
+                    setSearchUser2('');
+                    setPageUser1(1);
+                    setPageUser2(1);
+                  }}
+                  disabled={loadingBackendUsers}
+                >
+                  <FaLink className="source-icon" />
+                  Usuarios Conectados
+                </button>
+                <button
+                  type="button"
+                  className={`source-btn ${userSource === 'backend' ? 'active' : ''}`}
+                  onClick={() => {
+                    setUserSource('backend');
+                    setSelectedUser1('');
+                    setSelectedUser2('');
+                    setSearchUser1('');
+                    setSearchUser2('');
+                    setPageUser1(1);
+                    setPageUser2(1);
+                  }}
+                  disabled={loadingBackendUsers}
+                >
+                  <FaGlobe className="source-icon" />
+                  {loadingBackendUsers ? 'Cargando...' : 'Listado General'}
+                </button>
+              </div>
+            </div>
+
             {/* Usuario 1 */}
             <div className="user-selection-card">
               <div className="card-header">
@@ -193,17 +384,18 @@ const CreateConversationModal = ({
                     type="text"
                     placeholder="Buscar por nombre o usuario..."
                     value={searchUser1}
-                    onChange={(e) => {
-                      setSearchUser1(e.target.value);
-                      setPageUser1(1);
-                    }}
+                    onChange={(e) => handleSearchUser1(e.target.value)}
                     className="search-input"
                   />
                 </div>
 
                 {/* Lista de usuarios */}
                 <div className="modal-users-list">
-                  {paginatedUsers1.length === 0 ? (
+                  {loadingBackendUsers && userSource === 'backend' ? (
+                    <div className="modal-empty-state">
+                      <p>⏳ Cargando usuarios...</p>
+                    </div>
+                  ) : paginatedUsers1.length === 0 ? (
                     <div className="modal-empty-state">
                       <p>No se encontraron usuarios</p>
                     </div>
@@ -278,17 +470,18 @@ const CreateConversationModal = ({
                     type="text"
                     placeholder="Buscar por nombre o usuario..."
                     value={searchUser2}
-                    onChange={(e) => {
-                      setSearchUser2(e.target.value);
-                      setPageUser2(1);
-                    }}
+                    onChange={(e) => handleSearchUser2(e.target.value)}
                     className="search-input"
                   />
                 </div>
 
                 {/* Lista de usuarios */}
                 <div className="modal-users-list">
-                  {paginatedUsers2.length === 0 ? (
+                  {loadingBackendUsers && userSource === 'backend' ? (
+                    <div className="modal-empty-state">
+                      <p>⏳ Cargando usuarios...</p>
+                    </div>
+                  ) : paginatedUsers2.length === 0 ? (
                     <div className="modal-empty-state">
                       <p>No se encontraron usuarios</p>
                     </div>
@@ -369,10 +562,10 @@ const CreateConversationModal = ({
 
             {/* Info */}
             <div className="info-banner">
-              <FaInfoCircle className="text-lg text-blue-400" />
+              <FaInfoCircle className="text-base text-blue-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium text-white mb-1">Conversación Administrada</p>
-                <p className="text-sm text-gray-400">
+                <p className="font-medium text-white text-sm mb-0.5">Conversación Administrada</p>
+                <p className="text-xs text-gray-400">
                   Los usuarios podrán chatear entre sí, pero solo el administrador puede eliminar la conversación.
                 </p>
               </div>

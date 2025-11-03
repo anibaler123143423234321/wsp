@@ -152,6 +152,7 @@ const ChatPage = () => {
   // Los usuarios solo deben unirse a salas cuando:
   // 1. Crean una sala nueva
   // 2. Ingresan manualmente el código de una sala
+  // 3. Acceden mediante un enlace directo (URL con hash)
   useEffect(() => {
     if (!isAuthenticated || !username) return;
 
@@ -165,6 +166,29 @@ const ChatPage = () => {
       loadMyActiveRooms();
     }
   }, [isAuthenticated, username, user]);
+
+  // Efecto para detectar código de sala en URL y abrir modal de unirse
+  useEffect(() => {
+    if (!isAuthenticated || !username) return;
+
+    // Verificar si hay un código de sala en la URL hash
+    const hash = window.location.hash;
+    const roomMatch = hash.match(/#\/room\/([A-Z0-9]+)/);
+
+    if (roomMatch && roomMatch[1]) {
+      const roomCode = roomMatch[1];
+      console.log(`🔗 Detectado código de sala en URL: ${roomCode}`);
+
+      // Pre-llenar el formulario con el código de la sala
+      setJoinRoomForm({ roomCode: roomCode });
+
+      // Abrir el modal de "Unirse a sala"
+      setShowJoinRoomModal(true);
+
+      // Limpiar el hash de la URL
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, [isAuthenticated, username]);
 
   // Función para cargar las salas activas del usuario (solo para ADMIN y JEFEPISO)
   const loadMyActiveRooms = async () => {

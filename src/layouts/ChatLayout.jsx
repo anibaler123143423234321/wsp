@@ -7,6 +7,7 @@ import ChatContent from '../components/ChatContent';
 import CreateRoomModal from '../components/modals/CreateRoomModal';
 import JoinRoomModal from '../components/modals/JoinRoomModal';
 import AdminRoomsModal from '../components/modals/AdminRoomsModal';
+import './ChatLayout.css';
 
 const ChatLayout = ({
   // Props del sidebar

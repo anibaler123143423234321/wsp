@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FaTimes, FaBars } from 'react-icons/fa';
+import { FaTimes, FaBars, FaSignInAlt } from 'react-icons/fa';
 import { MessageSquare, Home, UserCheck } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -56,7 +56,8 @@ const ConversationList = ({
   onUserSelect,
   onRoomSelect,
   unreadMessages,
-  onToggleSidebar
+  onToggleSidebar,
+  onShowJoinRoom
 }) => {
   const [activeModule, setActiveModule] = useState('conversations');
   const [searchTerm, setSearchTerm] = useState('');
