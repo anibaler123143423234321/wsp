@@ -26,7 +26,7 @@ const ChatLayout = ({
   // Props de modales
   showCreateRoomModal, setShowCreateRoomModal, roomForm, setRoomForm, onCreateRoom,
   showJoinRoomModal, setShowJoinRoomModal, joinRoomForm, setJoinRoomForm, onJoinRoom,
-  showAdminRoomsModal, setShowAdminRoomsModal, adminRooms, onDeleteRoom, onDeactivateRoom, onEditRoom, onViewRoomUsers,
+  showAdminRoomsModal, setShowAdminRoomsModal, adminRooms, onDeleteRoom, onDeactivateRoom, onActivateRoom, onEditRoom, onViewRoomUsers,
 
   // Props de notificaciones
   unreadMessages,
@@ -41,10 +41,13 @@ const ChatLayout = ({
   highlightMessageId, onMessageHighlighted,
 
   // Props de respuesta a mensajes
-  replyingTo, onCancelReply
+  replyingTo, onCancelReply,
+
+  // Props para agregar usuarios a sala
+  onAddUsersToRoom
 }) => {
-  // Función para obtener el picture del usuario con el que se está chateando
-  const getUserPicture = () => {
+  // Función para obtener el usuario completo con el que se está chateando
+  const getTargetUser = () => {
     if (!to || isGroup) return null;
 
     // Buscar el usuario en userList
@@ -56,7 +59,13 @@ const ChatLayout = ({
       return uFullName === to || uName === to;
     });
 
-    return typeof targetUser === 'object' ? targetUser.picture : null;
+    return typeof targetUser === 'object' ? targetUser : null;
+  };
+
+  // Función para obtener el picture del usuario con el que se está chateando
+  const getUserPicture = () => {
+    const targetUser = getTargetUser();
+    return targetUser?.picture || null;
   };
 
   return (
@@ -142,12 +151,14 @@ const ChatLayout = ({
               soundsEnabled={soundsEnabled}
               onEnableSounds={onEnableSounds}
               userPicture={getUserPicture()}
+              targetUser={getTargetUser()}
               onStartCall={onStartCall}
               onStartVideoCall={onStartVideoCall}
               hasCamera={hasCamera}
               onBack={onToggleMenu}
               isTyping={isTyping}
               adminViewConversation={adminViewConversation}
+              onAddUsersToRoom={onAddUsersToRoom}
             />
         
         <ChatContent
@@ -207,6 +218,7 @@ const ChatLayout = ({
           adminRooms={adminRooms}
           onDeleteRoom={onDeleteRoom}
           onDeactivateRoom={onDeactivateRoom}
+          onActivateRoom={onActivateRoom}
           onEditRoom={onEditRoom}
           onViewRoomUsers={onViewRoomUsers}
           currentUser={user}

@@ -77,22 +77,37 @@ const LeftSidebar = ({
               </div>
             )}
           </div>
-          <div
-            className="font-['Inter',-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] max-[1280px]:!text-xs max-[1024px]:!text-[11px] max-[768px]:!text-sm"
-            style={{
-              fontSize: '13px',
-              fontWeight: 400,
-              lineHeight: '16px',
-              letterSpacing: '0px',
-              color: '#FFFFFF',
-              flex: 1,
-              wordWrap: 'break-word',
-              overflowWrap: 'break-word'
-            }}
-          >
-            {user?.nombre && user?.apellido
-              ? `${user.nombre} ${user.apellido}`
-              : user?.username || 'Usuario'}
+          <div className="flex flex-col flex-1 gap-1">
+            <div
+              className="font-['Inter',-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] max-[1280px]:!text-xs max-[1024px]:!text-[11px] max-[768px]:!text-sm"
+              style={{
+                fontSize: '13px',
+                fontWeight: 400,
+                lineHeight: '16px',
+                letterSpacing: '0px',
+                color: '#FFFFFF',
+                wordWrap: 'break-word',
+                overflowWrap: 'break-word'
+              }}
+            >
+              {user?.nombre && user?.apellido
+                ? `${user.nombre} ${user.apellido}`
+                : user?.username || 'Usuario'}
+            </div>
+            <div
+              className="font-['Inter',-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] max-[1280px]:!text-[10px] max-[1024px]:!text-[9px] max-[768px]:!text-xs"
+              style={{
+                fontSize: '11px',
+                fontWeight: 300,
+                lineHeight: '14px',
+                letterSpacing: '0px',
+                color: '#B8D4F1',
+                wordWrap: 'break-word',
+                overflowWrap: 'break-word'
+              }}
+            >
+             N° Agente: {user?.numeroAgente || 'No tiene número agente'}
+            </div>
           </div>
         </div>
 

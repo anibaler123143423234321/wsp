@@ -22,13 +22,38 @@ class ApiService {
       formData.append('category', category);
 
       const token = localStorage.getItem('token');
-      const response = await fetch(`${this.baseUrl}api/files/upload`, {
+
+      // Para FormData, no podemos usar fetchWithAuth directamente porque necesita headers especiales
+      // Pero podemos manejar el refresh manualmente
+      let response = await fetch(`${this.baseUrl}api/files/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
         },
         body: formData,
       });
+
+      // Si falla con 401 o 403, intentar renovar token
+      if (response.status === 401 || response.status === 403) {
+        console.log('🔄 Error al subir archivo, renovando token...');
+        try {
+          const newToken = await this.refreshToken();
+
+          // Reintentar con el nuevo token
+          response = await fetch(`${this.baseUrl}api/files/upload`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${newToken}`,
+            },
+            body: formData,
+          });
+        } catch (refreshError) {
+          console.error('❌ Error al renovar token para subir archivo:', refreshError);
+          this.logout();
+          window.location.href = '/';
+          throw new Error('Sesión expirada');
+        }
+      }
 
       if (!response.ok) {
         throw new Error('Error al subir archivo');
@@ -79,6 +104,7 @@ class ApiService {
         picture: data.data.picture,
         email: data.data.email,
         tipoTrabajo: data.data.tipoTrabajo,
+        numeroAgente: data.data.numeroAgente,
       };
 
       // Guardar en localStorage como lo hace Angular
@@ -124,6 +150,89 @@ class ApiService {
     return !!(token && user);
   }
 
+  // Variable para evitar múltiples intentos de refresh simultáneos
+  _refreshPromise = null;
+
+  // Método para renovar el token
+  async refreshToken() {
+    // Si ya hay un refresh en progreso, esperar a que termine
+    if (this._refreshPromise) {
+      console.log('⏳ Ya hay un refresh en progreso, esperando...');
+      return this._refreshPromise;
+    }
+
+    console.log('🔄 Iniciando renovación de token...');
+
+    this._refreshPromise = (async () => {
+      try {
+        const currentToken = localStorage.getItem("token");
+        if (!currentToken) {
+          throw new Error('No hay token para renovar');
+        }
+
+        // Intentar renovar con el endpoint del backend de Java
+        const refreshResp = await fetch(
+          `${this.baseUrl}api/authentication/refresh-token`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${currentToken}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (!refreshResp.ok) {
+          throw new Error(`Error ${refreshResp.status} al renovar token`);
+        }
+
+        const refreshData = await refreshResp.json();
+
+        if (refreshData?.rpta === 1 && refreshData?.data?.token) {
+          const newToken = refreshData.data.token;
+          console.log('✅ Token renovado exitosamente');
+
+          // Actualizar token en localStorage
+          localStorage.setItem("token", newToken);
+
+          // Actualizar usuario si viene información adicional
+          if (refreshData.data.user || refreshData.data.userId) {
+            const existingUserStr = localStorage.getItem("user");
+            const existingUser = existingUserStr ? JSON.parse(existingUserStr) : {};
+
+            const updatedUser = {
+              ...existingUser,
+              token: newToken,
+              id: refreshData.data.userId || existingUser.id,
+              username: refreshData.data.username || existingUser.username,
+              nombre: refreshData.data.nombre || existingUser.nombre,
+              apellido: refreshData.data.apellido || existingUser.apellido,
+              role: refreshData.data.role || existingUser.role,
+              email: refreshData.data.email || existingUser.email,
+              numeroAgente: refreshData.data.numeroAgente !== undefined ? refreshData.data.numeroAgente : existingUser.numeroAgente,
+            };
+
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+          }
+
+          return newToken;
+        } else {
+          throw new Error('Respuesta de refresh token inválida');
+        }
+      } catch (error) {
+        console.error('❌ Error al renovar token:', error);
+        throw error;
+      } finally {
+        // Limpiar la promesa después de 1 segundo
+        setTimeout(() => {
+          this._refreshPromise = null;
+        }, 1000);
+      }
+    })();
+
+    return this._refreshPromise;
+  }
+
   // Helper: fetch con Authorization y reintento usando refresh-token (estilo interceptor)
   async fetchWithAuth(endpoint, options = {}) {
     const token = localStorage.getItem("token");
@@ -144,52 +253,36 @@ class ApiService {
 
     let response = await doRequest(headers);
 
-    // Temporalmente deshabilitado el refresh token para el backend de chat
-    // if (response.status === 401) {
-    //   // Intentar refrescar token como en Angular (GET refresh-token)
-    //   try {
-    //     const currentToken = localStorage.getItem("token");
-    //     const refreshResp = await fetch(
-    //       `${this.baseUrl}api/authentication/refresh-token`,
-    //       {
-    //         method: "GET",
-    //         headers: {
-    //           Authorization: currentToken
-    //             ? `Bearer ${currentToken}`
-    //             : undefined,
-    //         },
-    //       }
-    //     );
+    // ✅ Renovar token automáticamente en caso de 401 o 403
+    if (response.status === 401 || response.status === 403) {
+      console.log(`🔄 Error ${response.status} detectado, intentando renovar token...`);
 
-    //     if (refreshResp.ok) {
-    //       const refreshData = await refreshResp.json();
-    //       if (
-    //         refreshData?.rpta === 1 &&
-    //         (refreshData?.data?.token || refreshData?.token)
-    //       ) {
-    //         const newToken = refreshData?.data?.token || refreshData?.token;
-    //         // actualizar token y user si viene
-    //         localStorage.setItem("token", newToken);
-    //         if (refreshData?.data) {
-    //           const existingUserStr = localStorage.getItem("user");
-    //           const existingUser = existingUserStr
-    //             ? JSON.parse(existingUserStr)
-    //             : {};
-    //           const mergedUser = { ...existingUser, ...refreshData.data };
-    //           localStorage.setItem("user", JSON.stringify(mergedUser));
-    //         }
-    //         // reintentar la petición original con el nuevo token
-    //         const retryHeaders = {
-    //           ...headers,
-    //           Authorization: `Bearer ${newToken}`,
-    //         };
-    //         response = await doRequest(retryHeaders);
-    //       }
-    //     }
-    //   } catch {
-    //     // Si falla el refresh, propagar 401
-    //   }
-    // }
+      try {
+        // Intentar renovar el token
+        const newToken = await this.refreshToken();
+
+        // Reintentar la petición original con el nuevo token
+        const retryHeaders = {
+          ...headers,
+          Authorization: `Bearer ${newToken}`,
+        };
+
+        response = await doRequest(retryHeaders);
+        console.log('✅ Petición reintentada con nuevo token');
+
+        // Si aún falla después del refresh, cerrar sesión
+        if (response.status === 401 || response.status === 403) {
+          console.error('❌ Aún sin autorización después de renovar token');
+          this.logout();
+          window.location.href = '/';
+        }
+      } catch (error) {
+        console.error('❌ Error al renovar token:', error);
+        // Si falla el refresh, limpiar sesión
+        this.logout();
+        window.location.href = '/';
+      }
+    }
 
     return response;
   }
@@ -352,6 +445,27 @@ class ApiService {
     }
   }
 
+  async activateRoom(roomId) {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/temporary-rooms/${roomId}/activate`,
+        {
+          method: "PATCH",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al activar sala:", error);
+      throw error;
+    }
+  }
+
   // Método para obtener configuración del sistema
   async getSystemConfig() {
     try {
@@ -484,13 +598,11 @@ class ApiService {
   // Obtener mensajes entre usuarios
   async getUserMessages(from, to, limit = 50, offset = 0) {
     try {
-      const response = await fetch(
+      // ✅ Usar fetchWithAuth para renovación automática de token
+      const response = await this.fetchWithAuth(
         `${API_BASECHAT_URL}api/messages/user/${from}/${to}?limit=${limit}&offset=${offset}`,
         {
           method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
         }
       );
 
@@ -628,13 +740,11 @@ class ApiService {
 
       console.log('🔍 Buscando conversaciones para:', displayName);
 
-      const response = await fetch(
+      // ✅ Usar fetchWithAuth para renovación automática de token
+      const response = await this.fetchWithAuth(
         `${this.baseChatUrl}api/temporary-conversations/my-conversations?username=${encodeURIComponent(displayName)}`,
         {
           method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
         }
       );
 
@@ -658,13 +768,11 @@ class ApiService {
   // Obtener TODAS las conversaciones asignadas (solo para admin)
   async getAllAssignedConversations() {
     try {
-      const response = await fetch(
+      // ✅ Usar fetchWithAuth para renovación automática de token
+      const response = await this.fetchWithAuth(
         `${this.baseChatUrl}api/temporary-conversations/all`,
         {
           method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
         }
       );
 
@@ -686,13 +794,11 @@ class ApiService {
   // Actualizar una conversación asignada
   async updateAssignedConversation(conversationId, data) {
     try {
-      const response = await fetch(
+      // ✅ Usar fetchWithAuth para renovación automática de token
+      const response = await this.fetchWithAuth(
         `${this.baseChatUrl}api/temporary-conversations/${conversationId}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
           body: JSON.stringify(data),
         }
       );
@@ -715,13 +821,11 @@ class ApiService {
   // Eliminar una conversación asignada
   async deleteAssignedConversation(conversationId) {
     try {
-      const response = await fetch(
+      // ✅ Usar fetchWithAuth para renovación automática de token
+      const response = await this.fetchWithAuth(
         `${this.baseChatUrl}api/temporary-conversations/${conversationId}`,
         {
           method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
         }
       );
 
@@ -743,6 +847,50 @@ class ApiService {
       return { success: true };
     } catch (error) {
       console.error("Error al eliminar conversación:", error);
+      throw error;
+    }
+  }
+
+  // Desactivar una conversación asignada
+  async deactivateAssignedConversation(conversationId) {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/temporary-conversations/${conversationId}/deactivate`,
+        {
+          method: "PATCH",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al desactivar conversación:", error);
+      throw error;
+    }
+  }
+
+  // Activar una conversación asignada
+  async activateAssignedConversation(conversationId) {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/temporary-conversations/${conversationId}/activate`,
+        {
+          method: "PATCH",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al activar conversación:", error);
       throw error;
     }
   }
@@ -871,15 +1019,11 @@ class ApiService {
   // Obtener lista de usuarios del backend Java con paginación
   async getUsersFromBackend(page = 0, size = 10) {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(
+      // ✅ Usar fetchWithAuth para renovación automática de token
+      const response = await this.fetchWithAuth(
         `${this.baseUrl}api/user/listar?page=${page}&size=${size}`,
         {
           method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
-          },
         }
       );
 
@@ -915,15 +1059,11 @@ class ApiService {
         return [];
       }
 
-      const token = localStorage.getItem('token');
-      const response = await fetch(
+      // ✅ Usar fetchWithAuth para renovación automática de token
+      const response = await this.fetchWithAuth(
         `${this.baseUrl}api/user/buscar?page=${page}&size=${size}&query=${encodeURIComponent(query)}`,
         {
           method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
-          },
         }
       );
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FaSignOutAlt, FaPhone, FaVideo, FaArrowLeft, FaKeyboard } from 'react-icons/fa';
+import { FaSignOutAlt, FaPhone, FaVideo, FaArrowLeft, FaKeyboard, FaUserPlus } from 'react-icons/fa';
 import './ChatHeader.css';
 
 const ChatHeader = ({
@@ -9,12 +9,14 @@ const ChatHeader = ({
   roomUsers,
   onLeaveRoom,
   userPicture,
+  targetUser,
   onStartCall,
   onStartVideoCall,
   hasCamera = true,
   onBack,
   isTyping,
-  adminViewConversation
+  adminViewConversation,
+  onAddUsersToRoom
 }) => {
 
   // No mostrar el header si no hay chat seleccionado
@@ -79,11 +81,47 @@ const ChatHeader = ({
                     está escribiendo...
                   </span>
                 ) : (
-                  'Conversación asignada'
+                  <>
+                    {targetUser?.numeroAgente ? (
+                      `N° Agente: ${targetUser.numeroAgente} • Conversación asignada`
+                    ) : (
+                      'N° Agente: No tiene número agente • Conversación asignada'
+                    )}
+                  </>
                 )
               )}
             </div>
           </div>
+
+          {/* Avatares de miembros de la sala (solo para grupos) */}
+          {isGroup && roomUsers && roomUsers.length > 0 && (
+            <div className="room-members-avatars">
+              {roomUsers.slice(0, 5).map((user, index) => {
+                const username = typeof user === 'string' ? user : user.username;
+                const picture = typeof user === 'object' ? user.picture : null;
+                const nombre = typeof user === 'object' ? user.nombre : null;
+                const apellido = typeof user === 'object' ? user.apellido : null;
+                const displayName = nombre && apellido ? `${nombre} ${apellido}` : username;
+
+                return (
+                  <div key={index} className="member-avatar" title={displayName}>
+                    {picture ? (
+                      <img src={picture} alt={displayName} />
+                    ) : (
+                      <div className="member-avatar-placeholder">
+                        {displayName?.[0]?.toUpperCase() || '?'}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {roomUsers.length > 5 && (
+                <div className="member-avatar member-avatar-more" title={`+${roomUsers.length - 5} más`}>
+                  +{roomUsers.length - 5}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Botones de acción */}
@@ -107,6 +145,17 @@ const ChatHeader = ({
                 <FaVideo />
               </button>
             </>
+          )}
+
+          {/* Botón para agregar usuarios a la sala */}
+          {isGroup && currentRoomCode && onAddUsersToRoom && (
+            <button
+              className="header-icon-btn add-users-btn"
+              onClick={onAddUsersToRoom}
+              title="Agregar usuarios a la sala"
+            >
+              <FaUserPlus />
+            </button>
           )}
 
           <button className="header-icon-btn" title="Información">

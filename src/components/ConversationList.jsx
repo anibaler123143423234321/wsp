@@ -573,19 +573,32 @@ const ConversationList = ({
                   </div>
 
                   {/* Info */}
-                  <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '4px' }}>
+                  <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px' }}>
                     <div className="flex items-center justify-between">
-                      <h3
-                        className="font-semibold text-[#111] truncate"
-                        style={{
-                          fontSize: '14px',
-                          lineHeight: '18px',
-                          fontFamily: 'Inter, sans-serif',
-                          fontWeight: 600
-                        }}
-                      >
-                        {displayName}
-                      </h3>
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <h3
+                          className="font-semibold text-[#111] truncate"
+                          style={{
+                            fontSize: '14px',
+                            lineHeight: '18px',
+                            fontFamily: 'Inter, sans-serif',
+                            fontWeight: 600
+                          }}
+                        >
+                          {displayName}
+                        </h3>
+                        <span
+                          className="text-gray-500 truncate"
+                          style={{
+                            fontSize: '10px',
+                            lineHeight: '12px',
+                            fontFamily: 'Inter, sans-serif',
+                            fontWeight: 300
+                          }}
+                        >
+                          N° Agente: {conversation.numeroAgente || 'No tiene número agente'}
+                        </span>
+                      </div>
                       <span
                         className="text-gray-500 ml-2 flex-shrink-0"
                         style={{

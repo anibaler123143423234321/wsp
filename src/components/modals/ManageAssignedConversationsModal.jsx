@@ -100,6 +100,48 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
     }
   };
 
+  const handleDeactivate = async (conv) => {
+    const result = await showConfirmAlert(
+      '¿Desactivar conversación?',
+      `¿Estás seguro de que deseas desactivar la conversación "${conv.name}"?`
+    );
+
+    if (result.isConfirmed) {
+      try {
+        await apiService.deactivateAssignedConversation(conv.id);
+        await showSuccessAlert('¡Desactivado!', 'La conversación ha sido desactivada correctamente');
+        loadConversations();
+        if (onConversationUpdated) {
+          onConversationUpdated();
+        }
+      } catch (error) {
+        console.error('Error al desactivar conversación:', error);
+        await showErrorAlert('Error', 'No se pudo desactivar la conversación: ' + error.message);
+      }
+    }
+  };
+
+  const handleActivate = async (conv) => {
+    const result = await showConfirmAlert(
+      '¿Activar conversación?',
+      `¿Estás seguro de que deseas activar la conversación "${conv.name}"?`
+    );
+
+    if (result.isConfirmed) {
+      try {
+        await apiService.activateAssignedConversation(conv.id);
+        await showSuccessAlert('¡Activado!', 'La conversación ha sido activada correctamente');
+        loadConversations();
+        if (onConversationUpdated) {
+          onConversationUpdated();
+        }
+      } catch (error) {
+        console.error('Error al activar conversación:', error);
+        await showErrorAlert('Error', 'No se pudo activar la conversación: ' + error.message);
+      }
+    }
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('es-ES', {
@@ -193,7 +235,14 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
                     // Modo vista
                     <>
                       <div className="conversation-header">
-                        <h3>{conv.name}</h3>
+                        <h3>
+                          {conv.name}
+                          {!conv.isActive && (
+                            <span style={{ marginLeft: '10px', fontSize: '12px', color: '#999', fontWeight: 'normal' }}>
+                              (Inactiva)
+                            </span>
+                          )}
+                        </h3>
                         <div className="conversation-actions">
                           <button
                             className="action-btn edit-btn"
@@ -202,11 +251,31 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
                           >
                             <FaEdit />
                           </button>
+                          {canDelete && conv.isActive && (
+                            <button
+                              className="action-btn"
+                              onClick={() => handleDeactivate(conv)}
+                              title="Desactivar"
+                              style={{ color: '#f59e0b' }}
+                            >
+                              ⏸️
+                            </button>
+                          )}
+                          {canDelete && !conv.isActive && (
+                            <button
+                              className="action-btn"
+                              onClick={() => handleActivate(conv)}
+                              title="Activar"
+                              style={{ color: '#10b981' }}
+                            >
+                              ▶️
+                            </button>
+                          )}
                           {canDelete && (
                             <button
                               className="action-btn delete-btn"
                               onClick={() => handleDelete(conv)}
-                              title="Eliminar"
+                              title="Eliminar permanentemente"
                             >
                               <FaTrash />
                             </button>

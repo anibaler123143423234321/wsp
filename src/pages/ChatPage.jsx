@@ -9,6 +9,7 @@ import RoomCreatedModal from '../components/modals/RoomCreatedModal';
 import EditRoomModal from '../components/modals/EditRoomModal';
 import CreateConversationModal from '../components/modals/CreateConversationModal';
 import ManageAssignedConversationsModal from '../components/modals/ManageAssignedConversationsModal';
+import AddUsersToRoomModal from '../components/modals/AddUsersToRoomModal';
 import CallWindow from '../components/CallWindow';
 import { useAuth } from '../hooks/useAuth';
 import { useSocket } from '../hooks/useSocket';
@@ -103,6 +104,7 @@ const ChatPage = () => {
   const [showEditRoomModal, setShowEditRoomModal] = useState(false);
   const [showCreateConversationModal, setShowCreateConversationModal] = useState(false);
   const [showManageConversationsModal, setShowManageConversationsModal] = useState(false);
+  const [showAddUsersToRoomModal, setShowAddUsersToRoomModal] = useState(false);
   const [createdRoomData, setCreatedRoomData] = useState(null);
   const [adminRooms, setAdminRooms] = useState([]);
   const [loadingAdminRooms, setLoadingAdminRooms] = useState(false);
@@ -1265,6 +1267,42 @@ const ChatPage = () => {
     }
   };
 
+  const handleActivateRoom = async (roomId, roomName) => {
+    const result = await showConfirmAlert(
+      '¿Activar sala?',
+      `¿Estás seguro de que quieres activar la sala "${roomName}"?`
+    );
+
+    if (result.isConfirmed) {
+      try {
+        await apiService.activateRoom(roomId);
+        await showSuccessAlert('Éxito', 'Sala activada correctamente');
+
+        // Actualizar la lista de salas en el modal de administración
+        const rooms = await apiService.getAdminRooms();
+        setAdminRooms(rooms);
+
+        // ✅ Actualizar también la lista de salas activas en el sidebar
+        await loadMyActiveRooms();
+      } catch (error) {
+        console.error('Error al activar sala:', error);
+        await showErrorAlert('Error', 'Error al activar la sala: ' + error.message);
+      }
+    }
+  };
+
+  const handleAddUsersToRoom = () => {
+    if (currentRoomCode) {
+      setShowAddUsersToRoomModal(true);
+    }
+  };
+
+  const handleUsersAdded = (usernames) => {
+    console.log('Usuarios agregados:', usernames);
+    // Aquí puedes agregar lógica adicional si es necesario
+    // Por ejemplo, emitir un evento de socket para notificar a los usuarios
+  };
+
 
 
   const handleCreateConversation = async (data) => {
@@ -1567,6 +1605,7 @@ const ChatPage = () => {
       onMessageHighlighted={() => setHighlightMessageId(null)}
       replyingTo={replyingTo}
       onCancelReply={handleCancelReply}
+      onAddUsersToRoom={handleAddUsersToRoom}
 
       // Props de modales
       showCreateRoomModal={showCreateRoomModal}
@@ -1584,6 +1623,7 @@ const ChatPage = () => {
       adminRooms={adminRooms}
       onDeleteRoom={handleDeleteRoom}
       onDeactivateRoom={handleDeactivateRoom}
+      onActivateRoom={handleActivateRoom}
       onEditRoom={handleEditRoom}
       onViewRoomUsers={handleViewRoomUsers}
     />
@@ -1625,6 +1665,15 @@ const ChatPage = () => {
         loadAssignedConversations();
       }}
       currentUser={user}
+    />
+
+    <AddUsersToRoomModal
+      isOpen={showAddUsersToRoomModal}
+      onClose={() => setShowAddUsersToRoomModal(false)}
+      roomCode={currentRoomCode}
+      roomName={to}
+      currentMembers={roomUsers}
+      onUserAdded={handleUsersAdded}
     />
 
     <CallWindow

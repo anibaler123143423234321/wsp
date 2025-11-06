@@ -551,12 +551,20 @@ const CreateConversationModal = ({
                 type="text"
                 value={conversationName}
                 onChange={(e) => setConversationName(e.target.value)}
-                placeholder="Se genera automáticamente..."
+                placeholder="Selecciona ambos usuarios para generar el nombre..."
                 className="conversation-name-input"
                 required
               />
               <p className="input-hint">
-                El nombre se genera automáticamente al seleccionar ambos usuarios
+                {conversationName ? (
+                  <>
+                    ✏️ Puedes editar el nombre si lo deseas
+                  </>
+                ) : (
+                  <>
+                    El nombre se genera automáticamente al seleccionar ambos usuarios
+                  </>
+                )}
               </p>
             </div>
 

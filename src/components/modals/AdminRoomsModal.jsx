@@ -2,7 +2,7 @@ import React from 'react';
 import { FaUsers, FaUser, FaTrash, FaEdit, FaEye, FaExclamationTriangle } from 'react-icons/fa';
 import './Modal.css';
 
-const AdminRoomsModal = ({ isOpen, onClose, adminRooms, onDeleteRoom, onDeactivateRoom, onViewRoomUsers, onEditRoom, currentUser }) => {
+const AdminRoomsModal = ({ isOpen, onClose, adminRooms, onDeleteRoom, onDeactivateRoom, onActivateRoom, onViewRoomUsers, onEditRoom, currentUser }) => {
   if (!isOpen) return null;
 
   // Verificar si el usuario puede eliminar (solo ADMIN)
@@ -61,6 +61,15 @@ const AdminRoomsModal = ({ isOpen, onClose, adminRooms, onDeleteRoom, onDeactiva
                         title="Desactivar sala"
                       >
                         ⏸️
+                      </button>
+                    )}
+                    {canDelete && !room.isActive && (
+                      <button
+                        className="btn btn-success"
+                        onClick={() => onActivateRoom(room.id, room.name)}
+                        title="Activar sala"
+                      >
+                        ▶️
                       </button>
                     )}
                     {canDelete && (
