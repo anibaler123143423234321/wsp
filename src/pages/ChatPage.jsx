@@ -197,7 +197,7 @@ const ChatPage = () => {
   const loadMyActiveRooms = async () => {
     try {
       // Si es ADMIN o JEFEPISO, cargar todas las salas activas
-      if (user?.role === 'ADMIN' || user?.role === 'JEFEPISO') {
+      if (user?.role === 'ADMIN' || user?.role === 'JEFEPISO' || user?.role === 'PROGRAMADOR') {
         const rooms = await apiService.getAdminRooms();
         // Filtrar solo las salas activas
         const activeRooms = rooms.filter(room => room.isActive);
@@ -205,9 +205,12 @@ const ChatPage = () => {
       } else {
         // Para usuarios normales, cargar su sala activa
         const response = await apiService.getCurrentUserRoom();
+        console.log('📥 Respuesta getCurrentUserRoom:', response);
         if (response && response.inRoom && response.room) {
+          console.log('✅ Sala encontrada, agregando a myActiveRooms:', response.room);
           setMyActiveRooms([response.room]);
         } else {
+          console.log('❌ No se encontró sala activa para el usuario');
           setMyActiveRooms([]);
         }
       }

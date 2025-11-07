@@ -729,16 +729,7 @@ const ChatContent = ({
   if (!to) {
     return (
       <div className="chat-content max-[768px]:hidden">
-        <div className="welcome-screen">
-          <div className="welcome-icon">💬</div>
-          <div className="welcome-title">Bienvenido al Chat</div>
-          <div className="welcome-subtitle">
-            Selecciona un chat para comenzar a conversar
-          </div>
-          <div className="welcome-description">
-            Usa el menú lateral para ver usuarios y grupos disponibles
-          </div>
-        </div>
+        <WelcomeScreen />
       </div>
     );
   }

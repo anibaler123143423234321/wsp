@@ -486,8 +486,14 @@ class ApiService {
   // Método para obtener la sala actual del usuario
   async getCurrentUserRoom() {
     try {
+      // Obtener username (displayName) desde localStorage
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const displayName = user.nombre && user.apellido
+        ? `${user.nombre} ${user.apellido}`
+        : user.username;
+
       const response = await this.fetchWithAuth(
-        `${this.baseChatUrl}api/temporary-rooms/user/current-room`,
+        `${this.baseChatUrl}api/temporary-rooms/user/current-room?username=${encodeURIComponent(displayName)}`,
         {
           method: "GET",
         }

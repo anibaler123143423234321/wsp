@@ -35,7 +35,21 @@
   align-items: center;
   text-align: center;
   width: 100%;
-  gap: 12px;
+  gap: 0;
+}
+
+.welcome-main-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  max-width: 1200px;
+  background: #F5F7FB;
+  border-radius: 24px;
+  padding: 48px 60px;
+  position: relative;
+  overflow: visible;
 }
 
 .welcome-logo {
@@ -45,11 +59,12 @@
 
 .welcome-bottom {
   display: flex;
-  gap: 40px;
-  align-items: center;
+  gap: 80px;
+  align-items: flex-start;
   justify-content: center;
   width: 100%;
-  margin-top: 20px;
+  margin-top: 40px;
+  position: relative;
 }
 
 @keyframes slideDown {
@@ -73,7 +88,7 @@
   font-size: 32px;
   font-weight: 800;
   color: #1f2937;
-  margin: 0;
+  margin: 0 0 40px 0;
   line-height: 1.2;
   letter-spacing: -0.5px;
   text-align: center;
@@ -83,18 +98,23 @@
 .welcome-options {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  width: 100%;
-  max-width: 340px;
+  gap: 15px;
+  width: 230.53px;
+  height: auto;
+  z-index: 1;
+  position: relative;
+  flex-shrink: 0;
 }
 
 .welcome-option {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px 22px;
-  background: #f9fafb;
-  border-radius: 12px;
+  gap: 13.42px;
+  padding: 12.08px 20.13px;
+  width: 100%;
+  height: auto;
+  background: #ffffff;
+  border-radius: 5.37px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
   animation: slideIn 0.6s ease-out both;
@@ -146,28 +166,43 @@
 }
 
 .option-text {
-  font-size: 14px;
+  font-size: 15px;
   color: #374151;
   font-weight: 500;
   text-align: left;
+  display: flex;
+  align-items: center;
 }
 
 .welcome-image {
   animation: fadeIn 1s ease-in-out 0.6s both;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-shrink: 0;
   position: relative;
+  width: 237.08px;
+  height: 216.35px;
+}
+
+.welcome-image::before {
+  content: '';
+  position: absolute;
+  width: 237.08px;
+  height: 216.35px;
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  border-radius: 30.8px;
+  box-shadow: 0 10px 30px rgba(220, 38, 38, 0.3);
+  z-index: 1;
+  top: 10px;
+  left: 73.92px;
 }
 
 .teleoperadora-image {
   width: 320px;
-  height: 320px;
-  object-fit: cover;
-  border-radius: 24px;
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
-  padding: 20px;
-  box-shadow: 0 10px 30px rgba(220, 38, 38, 0.2);
+  height: 1200px;
+  object-fit: contain;
+  position: absolute;
+  top: -492px;
+  left: 15.5px;
+  z-index: 10;
 }
 
 /* Responsive */
@@ -175,6 +210,24 @@
   .welcome-bottom {
     flex-direction: column;
     gap: 30px;
+    align-items: center;
+  }
+
+  .welcome-options-container {
+    flex-direction: column;
+  }
+
+  .welcome-options {
+    padding: 32px 40px;
+    padding-right: 40px;
+  }
+
+  .welcome-image {
+    position: relative;
+    right: 0;
+    top: 0;
+    transform: none;
+    margin-top: 20px;
   }
 
   .teleoperadora-image {

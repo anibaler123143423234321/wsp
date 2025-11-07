@@ -10,10 +10,10 @@ const TabButton = ({ isActive, onClick, label, shortLabel, icon: Icon, notificat
       onClick={onClick}
       className={clsx(
         // Clases base para todos los botones
-        'relative flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm transition-all duration-200 whitespace-nowrap flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
+        'relative flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm transition-all duration-200 whitespace-nowrap flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2',
         // Clases condicionales
         {
-          'bg-blue-50 text-blue-600 font-semibold shadow-sm': isActive,
+          'bg-red-50 text-red-600 font-semibold shadow-sm': isActive,
           'text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium': !isActive,
         },
         // Responsive MacBook Air y tablets
@@ -38,7 +38,7 @@ const TabButton = ({ isActive, onClick, label, shortLabel, icon: Icon, notificat
 
       {/* Badge de notificaciones - posicionado absolutamente para no afectar el layout */}
       {notificationCount > 0 && (
-        <span className="absolute -top-2 -right-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue-600 px-1.5 text-[10px] font-bold text-white shadow-md max-[1280px]:h-4 max-[1280px]:min-w-[16px] max-[1280px]:text-[8px] max-[1280px]:-top-1.5 max-[1280px]:-right-1.5 max-[1024px]:h-3.5 max-[1024px]:min-w-[14px] max-[1024px]:text-[7px] max-[1024px]:-top-1 max-[1024px]:-right-1 max-[768px]:h-4 max-[768px]:min-w-[16px] max-[768px]:text-[8px] max-[768px]:-top-1.5 max-[768px]:-right-1.5">
+        <span className="absolute -top-2 -right-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white shadow-md max-[1280px]:h-4 max-[1280px]:min-w-[16px] max-[1280px]:text-[8px] max-[1280px]:-top-1.5 max-[1280px]:-right-1.5 max-[1024px]:h-3.5 max-[1024px]:min-w-[14px] max-[1024px]:text-[7px] max-[1024px]:-top-1 max-[1024px]:-right-1 max-[768px]:h-4 max-[768px]:min-w-[16px] max-[768px]:text-[8px] max-[768px]:-top-1.5 max-[768px]:-right-1.5">
           {notificationCount}
         </span>
       )}
@@ -289,7 +289,7 @@ const ConversationList = ({
       </div>
 
       {/* Contenido según módulo activo */}
-      {activeModule === 'rooms' && isAdmin && (
+      {activeModule === 'rooms' && (
         <div className="flex-1 overflow-y-auto bg-white px-4">
           {myActiveRooms && myActiveRooms.length > 0 ? (
             <>

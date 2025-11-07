@@ -1,5 +1,6 @@
 import { FaPlus, FaSignInAlt, FaDoorOpen, FaUserFriends, FaClipboardList, FaCog, FaTimes } from 'react-icons/fa';
 import logoutIcon from '../assets/mbrilogout_99583.svg';
+import menuBackground from '../assets/menu.png';
 
 const LeftSidebar = ({
   user,
@@ -14,7 +15,15 @@ const LeftSidebar = ({
   onToggleSidebar
 }) => {
   return (
-    <div className="w-[233.22px] flex flex-col p-0 max-[1280px]:w-[180px] max-[1024px]:w-[160px] max-[768px]:w-full max-[768px]:h-screen bg-[#13467A]">
+    <div
+      className="w-[233.22px] flex flex-col p-0 max-[1280px]:w-[180px] max-[1024px]:w-[160px] max-[768px]:w-full max-[768px]:h-screen"
+      style={{
+        backgroundImage: `url(${menuBackground})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
       <div className="flex-1 flex flex-col max-[768px]:h-full">
         {/* Header con título "Chat corporativo" */}
         <div
