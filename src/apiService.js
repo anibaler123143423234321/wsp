@@ -35,7 +35,6 @@ class ApiService {
 
       // Si falla con 401 o 403, intentar renovar token
       if (response.status === 401 || response.status === 403) {
-        console.log('🔄 Error al subir archivo, renovando token...');
         try {
           const newToken = await this.refreshToken();
 
@@ -157,11 +156,8 @@ class ApiService {
   async refreshToken() {
     // Si ya hay un refresh en progreso, esperar a que termine
     if (this._refreshPromise) {
-      console.log('⏳ Ya hay un refresh en progreso, esperando...');
       return this._refreshPromise;
     }
-
-    console.log('🔄 Iniciando renovación de token...');
 
     this._refreshPromise = (async () => {
       try {
@@ -190,7 +186,6 @@ class ApiService {
 
         if (refreshData?.rpta === 1 && refreshData?.data?.token) {
           const newToken = refreshData.data.token;
-          console.log('✅ Token renovado exitosamente');
 
           // Actualizar token en localStorage
           localStorage.setItem("token", newToken);
@@ -255,8 +250,6 @@ class ApiService {
 
     // ✅ Renovar token automáticamente en caso de 401 o 403
     if (response.status === 401 || response.status === 403) {
-      console.log(`🔄 Error ${response.status} detectado, intentando renovar token...`);
-
       try {
         // Intentar renovar el token
         const newToken = await this.refreshToken();
@@ -268,11 +261,9 @@ class ApiService {
         };
 
         response = await doRequest(retryHeaders);
-        console.log('✅ Petición reintentada con nuevo token');
 
         // Si aún falla después del refresh, cerrar sesión
         if (response.status === 401 || response.status === 403) {
-          console.error('❌ Aún sin autorización después de renovar token');
           this.logout();
           window.location.href = '/';
         }
@@ -309,12 +300,6 @@ class ApiService {
   // Método para crear sala temporal
   async createTemporaryRoom(data) {
     try {
-      console.log(
-        "Enviando petición a:",
-        `${this.baseChatUrl}api/temporary-rooms`
-      );
-      console.log("Datos enviados:", data);
-
       const response = await this.fetchWithAuth(
         `${this.baseChatUrl}api/temporary-rooms`,
         {
@@ -323,19 +308,14 @@ class ApiService {
         }
       );
 
-      console.log("Status de respuesta:", response.status);
-      console.log("Headers de respuesta:", response.headers);
-
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Error del servidor:", errorText);
         throw new Error(
           `Error del servidor: ${response.status} - ${errorText}`
         );
       }
 
       const result = await response.json();
-      console.log("Resultado parseado:", result);
       return result;
     } catch (error) {
       console.error("Error al crear sala temporal:", error);
@@ -726,10 +706,8 @@ class ApiService {
     try {
       // Obtener el usuario actual
       const user = this.getCurrentUser();
-      console.log('👤 Usuario actual para conversaciones:', user);
 
       if (!user) {
-        console.warn("No hay usuario autenticado");
         return [];
       }
 
@@ -737,8 +715,6 @@ class ApiService {
       const displayName = user.nombre && user.apellido
         ? `${user.nombre} ${user.apellido}`
         : (user.username || user.email);
-
-      console.log('🔍 Buscando conversaciones para:', displayName);
 
       // ✅ Usar fetchWithAuth para renovación automática de token
       const response = await this.fetchWithAuth(
@@ -750,14 +726,12 @@ class ApiService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('❌ Error en respuesta:', errorData);
         throw new Error(
           errorData.message || `Error del servidor: ${response.status}`
         );
       }
 
       const result = await response.json();
-      console.log('✅ Conversaciones obtenidas:', result);
       return result;
     } catch (error) {
       console.error("Error al obtener conversaciones asignadas:", error);
@@ -854,10 +828,14 @@ class ApiService {
   // Desactivar una conversación asignada
   async deactivateAssignedConversation(conversationId) {
     try {
+      const user = this.getCurrentUser();
       const response = await this.fetchWithAuth(
         `${this.baseChatUrl}api/temporary-conversations/${conversationId}/deactivate`,
         {
           method: "PATCH",
+          body: JSON.stringify({
+            userRole: user?.role || 'ASESOR'
+          })
         }
       );
 
@@ -876,10 +854,14 @@ class ApiService {
   // Activar una conversación asignada
   async activateAssignedConversation(conversationId) {
     try {
+      const user = this.getCurrentUser();
       const response = await this.fetchWithAuth(
         `${this.baseChatUrl}api/temporary-conversations/${conversationId}/activate`,
         {
           method: "PATCH",
+          body: JSON.stringify({
+            userRole: user?.role || 'ASESOR'
+          })
         }
       );
 

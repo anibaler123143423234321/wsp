@@ -15,6 +15,7 @@ const ChatLayout = ({
   onUserSelect, onGroupSelect, onPersonalNotes, onLogout,
   onShowCreateRoom, onShowJoinRoom, onShowAdminRooms, onShowCreateConversation, onShowManageConversations,
   onShowManageUsers, onShowSystemConfig, loadingAdminRooms, myActiveRooms, onRoomSelect, onKickUser,
+  userListHasMore, userListLoading, onLoadMoreUsers,
 
       // Props del chat
       to, isGroup, currentRoomCode, roomUsers, messages, input, setInput,
@@ -50,7 +51,38 @@ const ChatLayout = ({
   const getTargetUser = () => {
     if (!to || isGroup) return null;
 
-    // Buscar el usuario en userList
+    // Si es una conversación asignada (adminViewConversation), buscar en los participantes
+    if (adminViewConversation && adminViewConversation.participants) {
+      // Obtener el nombre completo del usuario actual
+      const currentUserFullName = user?.nombre && user?.apellido
+        ? `${user.nombre} ${user.apellido}`
+        : user?.username;
+
+      // Buscar en userList por cada participante
+      for (const participant of adminViewConversation.participants) {
+        const targetUser = userList?.find(u => {
+          const uName = typeof u === 'string' ? u : u.username;
+          const uFullName = typeof u === 'object' && u.nombre && u.apellido
+            ? `${u.nombre} ${u.apellido}`
+            : uName;
+
+          return uFullName === participant || uName === participant;
+        });
+
+        // Retornar el primer participante que NO sea el usuario actual
+        if (targetUser && typeof targetUser === 'object') {
+          const targetFullName = targetUser.nombre && targetUser.apellido
+            ? `${targetUser.nombre} ${targetUser.apellido}`
+            : targetUser.username;
+
+          if (targetFullName !== currentUserFullName) {
+            return targetUser;
+          }
+        }
+      }
+    }
+
+    // Buscar el usuario en userList (conversación normal)
     const targetUser = userList?.find(u => {
       const uName = typeof u === 'string' ? u : u.username;
       const uFullName = typeof u === 'object' && u.nombre && u.apellido
@@ -120,6 +152,9 @@ const ChatLayout = ({
         currentRoomCode={currentRoomCode}
         onKickUser={onKickUser}
         to={to}
+        userListHasMore={userListHasMore}
+        userListLoading={userListLoading}
+        onLoadMoreUsers={onLoadMoreUsers}
       />
 
       {/* LeftSidebar overlay para mobile */}
@@ -159,6 +194,7 @@ const ChatLayout = ({
               isTyping={isTyping}
               adminViewConversation={adminViewConversation}
               onAddUsersToRoom={onAddUsersToRoom}
+              user={user}
             />
         
         <ChatContent

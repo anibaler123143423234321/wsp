@@ -134,12 +134,17 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
     }
   };
 
-  const handleToggleUser = (username) => {
+  const handleToggleUser = (user) => {
+    // Usar displayName (nombre completo) para que coincida con el registro del socket
+    const displayName = user.nombre && user.apellido
+      ? `${user.nombre} ${user.apellido}`
+      : user.username;
+
     setSelectedUsers(prev => {
-      if (prev.includes(username)) {
-        return prev.filter(u => u !== username);
+      if (prev.includes(displayName)) {
+        return prev.filter(u => u !== displayName);
       } else {
-        return [...prev, username];
+        return [...prev, displayName];
       }
     });
   };
@@ -151,21 +156,29 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
     }
 
     try {
-      // Aquí llamaremos al endpoint del backend para agregar usuarios
-      // Por ahora, solo mostramos un mensaje de éxito
+      // Agregar cada usuario a la sala usando el endpoint joinRoom
+      const promises = selectedUsers.map(username =>
+        apiService.joinRoom({
+          roomCode: roomCode,
+          username: username
+        })
+      );
+
+      await Promise.all(promises);
+
       await showSuccessAlert(
         '¡Usuarios agregados!',
         `Se han agregado ${selectedUsers.length} usuario(s) a la sala`
       );
-      
+
       if (onUserAdded) {
         onUserAdded(selectedUsers);
       }
-      
+
       onClose();
     } catch (error) {
       console.error('Error al agregar usuarios:', error);
-      await showErrorAlert('Error', 'No se pudieron agregar los usuarios');
+      await showErrorAlert('Error', 'No se pudieron agregar los usuarios a la sala');
     }
   };
 
@@ -173,10 +186,10 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px', maxHeight: '85vh' }}>
         <div className="modal-header">
-          <h2>
-            <FaUserPlus style={{ marginRight: '8px' }} />
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FaUserPlus />
             Agregar Usuarios a la Sala
           </h2>
           <button className="modal-close" onClick={onClose}>
@@ -185,28 +198,53 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
         </div>
 
         <div className="modal-body">
-          <div className="room-info" style={{ marginBottom: '16px', padding: '12px', background: '#f3f4f6', borderRadius: '8px' }}>
-            <div style={{ fontWeight: 600, color: '#1f2937' }}>{roomName}</div>
-            <div style={{ fontSize: '12px', color: '#6b7280' }}>Código: {roomCode}</div>
-            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+          <div style={{
+            marginBottom: '20px',
+            padding: '16px',
+            background: '#2a3942',
+            borderRadius: '8px',
+            border: '1px solid #374045'
+          }}>
+            <div style={{ fontWeight: 600, color: '#e9edef', fontSize: '15px', marginBottom: '6px' }}>{roomName}</div>
+            <div style={{ fontSize: '13px', color: '#8696a0', marginBottom: '2px' }}>
+              <span style={{ fontFamily: 'monospace', background: '#374045', padding: '2px 6px', borderRadius: '4px' }}>
+                {roomCode}
+              </span>
+            </div>
+            <div style={{ fontSize: '13px', color: '#00a884', marginTop: '6px' }}>
               {currentMembers.length} miembro{currentMembers.length !== 1 ? 's' : ''} actual{currentMembers.length !== 1 ? 'es' : ''}
+            </div>
+            <div style={{
+              fontSize: '12px',
+              color: '#8696a0',
+              marginTop: '8px',
+              padding: '8px',
+              background: '#374045',
+              borderRadius: '6px',
+              fontStyle: 'italic'
+            }}>
+              💡 Solo se muestran usuarios que no están en la sala
             </div>
           </div>
 
           {/* Buscador */}
-          <div className="search-box" style={{ marginBottom: '16px' }}>
-            <FaSearch style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+          <div style={{ marginBottom: '20px', position: 'relative' }}>
+            <FaSearch style={{
+              position: 'absolute',
+              left: '14px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: '#8696a0',
+              fontSize: '14px'
+            }} />
             <input
               type="text"
               placeholder="Buscar usuarios..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              className="form-input"
               style={{
-                width: '100%',
-                padding: '10px 10px 10px 36px',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                fontSize: '14px'
+                paddingLeft: '40px'
               }}
             />
           </div>
@@ -217,36 +255,63 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
             onScroll={handleScroll}
           >
             {loading ? (
-              <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
+              <div style={{ textAlign: 'center', padding: '20px', color: '#8696a0' }}>
                 Cargando usuarios...
               </div>
             ) : users.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
-                {searchTerm ? 'No se encontraron usuarios' : 'No hay usuarios disponibles'}
+              <div style={{
+                textAlign: 'center',
+                padding: '40px 20px',
+                color: '#8696a0',
+                background: '#2a3942',
+                borderRadius: '8px',
+                border: '1px solid #374045'
+              }}>
+                <div style={{ fontSize: '48px', marginBottom: '12px', opacity: 0.5 }}>
+                  {searchTerm ? '🔍' : '👥'}
+                </div>
+                <div style={{ fontSize: '15px', fontWeight: 500, marginBottom: '6px' }}>
+                  {searchTerm ? 'No se encontraron usuarios' : 'No hay usuarios disponibles'}
+                </div>
+                {!searchTerm && (
+                  <div style={{ fontSize: '13px', marginTop: '8px' }}>
+                    Todos los usuarios ya están en la sala
+                  </div>
+                )}
               </div>
             ) : (
               <>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {users.map((user) => {
                   const displayName = user.nombre && user.apellido
                     ? `${user.nombre} ${user.apellido}`
                     : user.username;
-                  const isSelected = selectedUsers.includes(user.username);
+                  const isSelected = selectedUsers.includes(displayName);
 
                   return (
                     <div
                       key={user.username}
-                      onClick={() => handleToggleUser(user.username)}
+                      onClick={() => handleToggleUser(user)}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: '12px',
-                        padding: '12px',
-                        border: `2px solid ${isSelected ? '#10b981' : '#e5e7eb'}`,
+                        padding: '14px',
+                        border: `2px solid ${isSelected ? '#00a884' : '#374045'}`,
                         borderRadius: '8px',
                         cursor: 'pointer',
-                        background: isSelected ? '#ecfdf5' : '#ffffff',
+                        background: isSelected ? 'rgba(0, 168, 132, 0.1)' : '#2a3942',
                         transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.background = '#374045';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.background = '#2a3942';
+                        }
                       }}
                     >
                       {/* Avatar */}
@@ -282,10 +347,10 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
 
                       {/* Info */}
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, color: '#1f2937' }}>{displayName}</div>
-                        <div style={{ fontSize: '12px', color: '#6b7280' }}>@{user.username}</div>
+                        <div style={{ fontWeight: 600, color: '#e9edef', fontSize: '15px' }}>{displayName}</div>
+                        <div style={{ fontSize: '13px', color: '#8696a0', marginTop: '2px' }}>@{user.username}</div>
                         {user.numeroAgente && (
-                          <div style={{ fontSize: '11px', color: '#10b981' }}>
+                          <div style={{ fontSize: '12px', color: '#00a884', marginTop: '4px', fontWeight: 500 }}>
                             N° Agente: {user.numeroAgente}
                           </div>
                         )}
@@ -297,13 +362,14 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
                           width: '24px',
                           height: '24px',
                           borderRadius: '6px',
-                          border: `2px solid ${isSelected ? '#10b981' : '#d1d5db'}`,
-                          background: isSelected ? '#10b981' : '#ffffff',
+                          border: `2px solid ${isSelected ? '#00a884' : '#8696a0'}`,
+                          background: isSelected ? '#00a884' : 'transparent',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           color: 'white',
-                          fontWeight: 'bold'
+                          fontWeight: 'bold',
+                          fontSize: '14px'
                         }}
                       >
                         {isSelected && '✓'}
@@ -315,14 +381,14 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
 
               {/* Indicador de carga de más usuarios */}
               {loadingMore && (
-                <div style={{ textAlign: 'center', padding: '12px', color: '#6b7280', fontSize: '14px' }}>
+                <div style={{ textAlign: 'center', padding: '16px', color: '#8696a0', fontSize: '14px' }}>
                   Cargando más usuarios...
                 </div>
               )}
 
               {/* Mensaje de no hay más usuarios */}
               {!hasMore && users.length > 0 && (
-                <div style={{ textAlign: 'center', padding: '12px', color: '#9ca3af', fontSize: '12px' }}>
+                <div style={{ textAlign: 'center', padding: '16px', color: '#8696a0', fontSize: '13px' }}>
                   No hay más usuarios
                 </div>
               )}
@@ -332,43 +398,37 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
 
           {/* Usuarios seleccionados */}
           {selectedUsers.length > 0 && (
-            <div style={{ marginTop: '16px', padding: '12px', background: '#ecfdf5', borderRadius: '8px', border: '1px solid #10b981' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#059669', marginBottom: '4px' }}>
+            <div style={{
+              marginTop: '20px',
+              padding: '14px',
+              background: 'rgba(0, 168, 132, 0.1)',
+              borderRadius: '8px',
+              border: '1px solid #00a884'
+            }}>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#00a884', marginBottom: '6px' }}>
                 {selectedUsers.length} usuario{selectedUsers.length !== 1 ? 's' : ''} seleccionado{selectedUsers.length !== 1 ? 's' : ''}
               </div>
-              <div style={{ fontSize: '11px', color: '#047857' }}>
+              <div style={{ fontSize: '12px', color: '#8696a0' }}>
                 {selectedUsers.join(', ')}
               </div>
             </div>
           )}
         </div>
 
-        <div className="modal-footer" style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+        <div className="modal-actions">
           <button
             onClick={onClose}
-            style={{
-              padding: '10px 20px',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              background: '#ffffff',
-              color: '#374151',
-              cursor: 'pointer',
-              fontWeight: 600
-            }}
+            className="btn btn-secondary"
           >
             Cancelar
           </button>
           <button
             onClick={handleAddUsers}
             disabled={selectedUsers.length === 0}
+            className="btn btn-primary"
             style={{
-              padding: '10px 20px',
-              border: 'none',
-              borderRadius: '8px',
-              background: selectedUsers.length > 0 ? '#10b981' : '#d1d5db',
-              color: 'white',
-              cursor: selectedUsers.length > 0 ? 'pointer' : 'not-allowed',
-              fontWeight: 600
+              opacity: selectedUsers.length === 0 ? 0.5 : 1,
+              cursor: selectedUsers.length === 0 ? 'not-allowed' : 'pointer'
             }}
           >
             Agregar {selectedUsers.length > 0 && `(${selectedUsers.length})`}

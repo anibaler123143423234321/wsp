@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import apiService from "../apiService";
 
-export const useMessagePagination = (roomCode, username, to = null, isGroup = false) => {
+export const useMessagePagination = (roomCode, username, to = null, isGroup = false, socket = null, user = null) => {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
@@ -38,6 +38,29 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
           MESSAGES_PER_PAGE,
           0
         );
+
+        // Marcar la conversación como leída (solo para chats individuales)
+        // Esto marca todos los mensajes del otro usuario como leídos
+        try {
+          await apiService.markConversationAsRead(to, username);
+          console.log(`✅ Conversación con ${to} marcada como leída en BD`);
+
+          // 🔥 EMITIR EVENTO WEBSOCKET para notificar en tiempo real
+          if (socket && socket.connected && user) {
+            // Construir el displayName igual que en useSocket
+            const displayName = user.nombre && user.apellido
+              ? `${user.nombre} ${user.apellido}`
+              : user.username || user.email;
+
+            socket.emit('markConversationAsRead', {
+              from: to,
+              to: displayName
+            });
+            console.log(`📡 Evento WebSocket 'markConversationAsRead' emitido: from=${to}, to=${displayName}`);
+          }
+        } catch (error) {
+          console.error("Error al marcar conversación como leída:", error);
+        }
       }
 
       // Verificar si hay error en la respuesta
@@ -65,6 +88,8 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
           }),
         isSent: msg.from === username,
         isSelf: msg.from === username,
+        isRead: msg.isRead || false, // Estado de lectura del mensaje
+        readBy: msg.readBy || [], // Lista de usuarios que leyeron el mensaje
         mediaType: msg.mediaType,
         mediaData: msg.mediaData, // Ahora es URL en lugar de Base64
         fileName: msg.fileName,
@@ -92,7 +117,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     } finally {
       setIsLoading(false);
     }
-  }, [roomCode, username, to, isGroup]);
+  }, [roomCode, username, to, isGroup, socket, user]);
 
   // Cargar más mensajes antiguos (paginación estilo WhatsApp)
   const loadMoreMessages = useCallback(async () => {
@@ -153,6 +178,8 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
           }),
         isSent: msg.from === username,
         isSelf: msg.from === username,
+        isRead: msg.isRead || false, // Estado de lectura del mensaje
+        readBy: msg.readBy || [], // Lista de usuarios que leyeron el mensaje
         mediaType: msg.mediaType,
         mediaData: msg.mediaData, // Ahora es URL en lugar de Base64
         fileName: msg.fileName,

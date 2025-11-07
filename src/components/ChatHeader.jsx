@@ -16,7 +16,8 @@ const ChatHeader = ({
   onBack,
   isTyping,
   adminViewConversation,
-  onAddUsersToRoom
+  onAddUsersToRoom,
+  user
 }) => {
 
   // No mostrar el header si no hay chat seleccionado
@@ -69,26 +70,51 @@ const ChatHeader = ({
                 ) : (
                   `Grupo • ${roomUsers.length} miembro${roomUsers.length !== 1 ? 's' : ''}`
                 )
-              ) : adminViewConversation ? (
-                // Vista de admin
-                <span style={{ color: '#3b82f6', fontWeight: 500 }}>
-                  👁️ Monitoreando conversación
+              ) : isTyping ? (
+                <span className="typing-status">
+                  <FaKeyboard className="typing-icon" />
+                  está escribiendo...
                 </span>
-              ) : (
-                isTyping ? (
-                  <span className="typing-status">
-                    <FaKeyboard className="typing-icon" />
-                    está escribiendo...
+              ) : adminViewConversation && (user?.role === 'ADMIN' || user?.role === 'PROGRAMADOR' || user?.role === 'JEFEPISO') ? (
+                // Vista de admin: mostrar "Monitoreando" + rol y número de agente
+                <>
+                  <span style={{ color: '#3b82f6', fontWeight: 500 }}>
+                    👁️ Monitoreando conversación
                   </span>
-                ) : (
-                  <>
-                    {targetUser?.numeroAgente ? (
-                      `N° Agente: ${targetUser.numeroAgente} • Conversación asignada`
+                  {targetUser && (targetUser.role || targetUser.numeroAgente) && (
+                    <span style={{ color: '#666', marginLeft: '8px' }}>
+                      •{' '}
+                      {targetUser.numeroAgente ? (
+                        targetUser.role ? (
+                          `Rol: ${targetUser.role} • N° Agente: ${targetUser.numeroAgente}`
+                        ) : (
+                          `N° Agente: ${targetUser.numeroAgente}`
+                        )
+                      ) : (
+                        `Rol: ${targetUser.role}`
+                      )}
+                    </span>
+                  )}
+                </>
+              ) : (
+                // Conversación normal: mostrar rol y número de agente
+                <>
+                  {targetUser?.numeroAgente ? (
+                    // Si tiene número de agente, mostrar rol y número de agente
+                    targetUser?.role ? (
+                      `Rol: ${targetUser.role} • N° Agente: ${targetUser.numeroAgente}`
                     ) : (
-                      'N° Agente: No tiene número agente • Conversación asignada'
-                    )}
-                  </>
-                )
+                      `N° Agente: ${targetUser.numeroAgente}`
+                    )
+                  ) : (
+                    // Si NO tiene número de agente, mostrar solo el rol
+                    targetUser?.role ? (
+                      `Rol: ${targetUser.role}`
+                    ) : (
+                      'Sin información'
+                    )
+                  )}
+                </>
               )}
             </div>
           </div>

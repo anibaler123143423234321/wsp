@@ -247,10 +247,11 @@ const ChatContent = ({
   };
 
   const renderMessage = (message, index) => {
-    // Determinar si es mensaje propio comparando con el username actual
-    const isOwnMessage = message.sender === 'Tú' ||
-                        message.sender === currentUsername ||
-                        message.isSent;
+    // 🔥 Usar isSelf si está definido (mensajes históricos), sino usar la lógica anterior
+    const isOwnMessage = message.isSelf !== undefined
+      ? message.isSelf
+      : (message.sender === 'Tú' || message.sender === currentUsername);
+
     const isInfoMessage = message.type === 'info';
     const isErrorMessage = message.type === 'error';
 
@@ -712,7 +713,7 @@ const ChatContent = ({
               <span
                 className="message-status"
                 style={{
-                  color: '#53bdeb',
+                  color: message.isRead ? '#53bdeb' : '#8696a0', // Azul si leído, gris si no
                   fontSize: '12px'
                 }}
               >

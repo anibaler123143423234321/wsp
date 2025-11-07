@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { FaTimes, FaBars, FaSignInAlt } from 'react-icons/fa';
 import { MessageSquare, Home, UserCheck } from 'lucide-react';
 import clsx from 'clsx';
@@ -57,7 +57,10 @@ const ConversationList = ({
   onRoomSelect,
   unreadMessages,
   onToggleSidebar,
-  onShowJoinRoom
+  onShowJoinRoom,
+  userListHasMore,
+  userListLoading,
+  onLoadMoreUsers
 }) => {
   const [activeModule, setActiveModule] = useState('conversations');
   const [searchTerm, setSearchTerm] = useState('');
@@ -65,8 +68,23 @@ const ConversationList = ({
   const [assignedSearchTerm, setAssignedSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [isSearching] = useState(false);
+  const conversationsListRef = useRef(null);
 
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'JEFEPISO';
+
+  // Manejar scroll infinito para cargar más usuarios
+  const handleScroll = useCallback((e) => {
+    if (!onLoadMoreUsers || !userListHasMore || userListLoading) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
+
+    // Cargar más cuando llegue al 80% del scroll
+    if (scrollPercentage > 0.8) {
+      console.log('📄 Cargando más usuarios...');
+      onLoadMoreUsers();
+    }
+  }, [onLoadMoreUsers, userListHasMore, userListLoading]);
 
   // Filtrar conversaciones según búsqueda
   const filteredConversations = userList?.filter(conversation => {
@@ -110,7 +128,8 @@ const ConversationList = ({
       shortLabel: 'Salas', // Label corto para pantallas pequeñas
       icon: Home,
       notificationCount: myActiveRooms?.length || 0,
-      adminOnly: true,
+      adminOnly: false, // Permitir que todos vean sus salas activas
+      showOnlyIfHasRooms: true, // Solo mostrar si tiene salas activas
     },
     {
       id: 'assigned',
@@ -148,6 +167,9 @@ const ConversationList = ({
 
             // Si solo se muestra cuando hay conversaciones, verificar que haya conversaciones
             if (tab.showOnlyIfHasConversations && assignedConversations?.length === 0 && !isAdmin) return false;
+
+            // Si solo se muestra cuando hay salas activas, verificar que haya salas
+            if (tab.showOnlyIfHasRooms && myActiveRooms?.length === 0) return false;
 
             return true;
           })
@@ -445,20 +467,8 @@ const ConversationList = ({
                           >
                             {participant1Name} ↔️ {participant2Name}
                           </h3>
-                        </div>
-                        <div className="flex items-center justify-between gap-2">
-                          <p
-                            className="text-gray-600 truncate flex-1 min-w-0"
-                            style={{
-                              fontSize: '12px',
-                              lineHeight: '16px',
-                              fontFamily: 'Inter, sans-serif',
-                              fontWeight: 400
-                            }}
-                          >
-                            {conv.lastMessage || 'Conversación asignada'}
-                          </p>
-                          {conv.createdAt && (
+                          {/* Hora del último mensaje */}
+                          {conv.lastMessageTime && (
                             <span
                               className="text-gray-500 flex-shrink-0"
                               style={{
@@ -468,11 +478,83 @@ const ConversationList = ({
                                 fontWeight: 400
                               }}
                             >
-                              {new Date(conv.createdAt).toLocaleDateString('es-ES', {
-                                day: '2-digit',
-                                month: '2-digit'
+                              {new Date(conv.lastMessageTime).toLocaleTimeString('es-ES', {
+                                hour: '2-digit',
+                                minute: '2-digit'
                               })}
                             </span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          {/* Último mensaje con remitente */}
+                          <div className="flex-1 min-w-0 flex items-center gap-1">
+                            {conv.lastMessage ? (
+                              <>
+                                {conv.lastMessageFrom && (
+                                  <span
+                                    className="font-semibold flex-shrink-0"
+                                    style={{
+                                      fontSize: '12px',
+                                      lineHeight: '16px',
+                                      fontFamily: 'Inter, sans-serif',
+                                      fontWeight: 600,
+                                      color: '#00a884'
+                                    }}
+                                  >
+                                    {conv.lastMessageFrom.split(' ')[0]}:
+                                  </span>
+                                )}
+                                <p
+                                  className="text-gray-600 truncate"
+                                  style={{
+                                    fontSize: '12px',
+                                    lineHeight: '16px',
+                                    fontFamily: 'Inter, sans-serif',
+                                    fontWeight: 400
+                                  }}
+                                >
+                                  {conv.lastMessageMediaType ? (
+                                    <span className="flex items-center gap-1">
+                                      {conv.lastMessageMediaType === 'image' && '📷 Imagen'}
+                                      {conv.lastMessageMediaType === 'video' && '🎥 Video'}
+                                      {conv.lastMessageMediaType === 'audio' && '🎵 Audio'}
+                                      {conv.lastMessageMediaType === 'document' && '📄 Documento'}
+                                      {!['image', 'video', 'audio', 'document'].includes(conv.lastMessageMediaType) && '📎 Archivo'}
+                                    </span>
+                                  ) : (
+                                    conv.lastMessage
+                                  )}
+                                </p>
+                              </>
+                            ) : (
+                              <p
+                                className="text-gray-400 italic truncate"
+                                style={{
+                                  fontSize: '12px',
+                                  lineHeight: '16px',
+                                  fontFamily: 'Inter, sans-serif',
+                                  fontWeight: 400
+                                }}
+                              >
+                                Sin mensajes aún
+                              </p>
+                            )}
+                          </div>
+                          {/* Badge de mensajes no leídos */}
+                          {conv.unreadCount > 0 && (
+                            <div
+                              className="flex-shrink-0 rounded-full bg-[#00a884] text-white flex items-center justify-center"
+                              style={{
+                                minWidth: '20px',
+                                height: '20px',
+                                padding: '0 6px',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                fontFamily: 'Inter, sans-serif'
+                              }}
+                            >
+                              {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -494,7 +576,11 @@ const ConversationList = ({
 
       {/* Lista de conversaciones */}
       {activeModule === 'conversations' && (
-        <div className="flex-1 overflow-y-auto bg-white px-4">
+        <div
+          ref={conversationsListRef}
+          className="flex-1 overflow-y-auto bg-white px-4"
+          onScroll={handleScroll}
+        >
           {isSearching ? (
             <div className="p-5 text-center text-[#00a884] text-sm">
               <p>🔍 Buscando mensajes...</p>
@@ -515,7 +601,8 @@ const ConversationList = ({
               )}
             </div>
           ) : (
-            filteredConversations.map((conversation) => {
+            <>
+              {filteredConversations.map((conversation) => {
               const unreadCount = unreadMessages?.[conversation.username] || 0;
 
               // Determinar el nombre a mostrar
@@ -596,7 +683,13 @@ const ConversationList = ({
                             fontWeight: 300
                           }}
                         >
-                          N° Agente: {conversation.numeroAgente || 'No tiene número agente'}
+                          {conversation.role && conversation.numeroAgente ? (
+                            <>Rol: {conversation.role} • N° Agente: {conversation.numeroAgente}</>
+                          ) : conversation.numeroAgente ? (
+                            <>N° Agente: {conversation.numeroAgente}</>
+                          ) : (
+                            <>Rol: {conversation.role || 'Sin rol'}</>
+                          )}
                         </span>
                       </div>
                       <span
@@ -640,7 +733,22 @@ const ConversationList = ({
                   </div>
                 </div>
               );
-            })
+              })}
+
+              {/* Indicador de carga al final de la lista */}
+              {userListLoading && (
+                <div className="p-4 text-center text-gray-500 text-sm">
+                  <p>⏳ Cargando más usuarios...</p>
+                </div>
+              )}
+
+              {/* Mensaje cuando no hay más usuarios */}
+              {!userListHasMore && !searchTerm && filteredConversations.length > 0 && (
+                <div className="p-4 text-center text-gray-400 text-xs">
+                  <p>✓ Todos los usuarios cargados</p>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

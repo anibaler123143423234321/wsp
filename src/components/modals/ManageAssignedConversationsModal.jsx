@@ -4,7 +4,7 @@ import './ManageAssignedConversationsModal.css';
 import apiService from '../../apiService';
 import { showSuccessAlert, showErrorAlert, showConfirmAlert } from '../../sweetalert2';
 
-const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated, currentUser }) => {
+const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated, currentUser, socket }) => {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editingConv, setEditingConv] = useState(null);
@@ -50,8 +50,21 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
 
   const handleSaveEdit = async (convId) => {
     try {
+      // Encontrar la conversación que se está editando
+      const conv = conversations.find(c => c.id === convId);
+
       await apiService.updateAssignedConversation(convId, editForm);
       await showSuccessAlert('¡Actualizado!', 'La conversación ha sido actualizada correctamente');
+
+      // Emitir evento WebSocket para notificar a los participantes
+      if (socket && socket.connected && conv) {
+        socket.emit('conversationUpdated', {
+          conversationId: convId,
+          conversationName: editForm.name,
+          participants: conv.participants || []
+        });
+      }
+
       setEditingConv(null);
       setEditForm({ name: '', description: '' });
       loadConversations();

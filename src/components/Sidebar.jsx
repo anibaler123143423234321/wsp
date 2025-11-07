@@ -32,6 +32,9 @@ const Sidebar = ({
   onShowAdminRooms,
   onShowCreateConversation,
   onShowManageConversations,
+  userListHasMore,
+  userListLoading,
+  onLoadMoreUsers,
   unreadMessages,
   onToggleSidebar,
   myActiveRooms = [],
@@ -70,6 +73,9 @@ const Sidebar = ({
           onRoomSelect={onRoomSelect}
           unreadMessages={unreadMessages}
           onToggleSidebar={onToggleSidebar}
+          userListHasMore={userListHasMore}
+          userListLoading={userListLoading}
+          onLoadMoreUsers={onLoadMoreUsers}
         />
       </div>
 
@@ -88,6 +94,9 @@ const Sidebar = ({
             onRoomSelect={onRoomSelect}
             unreadMessages={unreadMessages}
             onToggleSidebar={onToggleSidebar}
+            userListHasMore={userListHasMore}
+            userListLoading={userListLoading}
+            onLoadMoreUsers={onLoadMoreUsers}
           />
         </div>
       )}

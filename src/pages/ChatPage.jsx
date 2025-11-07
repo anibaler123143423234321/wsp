@@ -67,6 +67,9 @@ const ChatPage = () => {
   const [to, setTo] = useState('');
   const [isGroup, setIsGroup] = useState(false);
   const [userList, setUserList] = useState([]);
+  const [userListPage, setUserListPage] = useState(0);
+  const [userListHasMore, setUserListHasMore] = useState(true);
+  const [userListLoading, setUserListLoading] = useState(false);
   const [groupList] = useState([]);
   const [roomUsers, setRoomUsers] = useState([]);
   const [currentRoomCode, setCurrentRoomCode] = useState(null);
@@ -82,7 +85,7 @@ const ChatPage = () => {
     addNewMessage,
     updateMessage,
     clearMessages
-  } = useMessagePagination(currentRoomCode, username, to, isGroup);
+  } = useMessagePagination(currentRoomCode, username, to, isGroup, socket, user);
 
   // Estados adicionales del chat
   const [unreadMessages] = useState({});
@@ -163,10 +166,8 @@ const ChatPage = () => {
       hasRestoredRoom.current = true;
     }
 
-    // Cargar las salas activas solo para ADMIN y JEFEPISO
-    if (user?.role === 'ADMIN' || user?.role === 'JEFEPISO') {
-      loadMyActiveRooms();
-    }
+    // Cargar las salas activas para todos los usuarios
+    loadMyActiveRooms();
   }, [isAuthenticated, username, user]);
 
   // Efecto para detectar código de sala en URL y abrir modal de unirse
@@ -194,17 +195,22 @@ const ChatPage = () => {
 
   // Función para cargar las salas activas del usuario (solo para ADMIN y JEFEPISO)
   const loadMyActiveRooms = async () => {
-    // Verificar que el usuario tenga permisos
-    if (user?.role !== 'ADMIN' && user?.role !== 'JEFEPISO') {
-      setMyActiveRooms([]);
-      return;
-    }
-
     try {
-      const rooms = await apiService.getAdminRooms();
-      // Filtrar solo las salas activas
-      const activeRooms = rooms.filter(room => room.isActive);
-      setMyActiveRooms(activeRooms);
+      // Si es ADMIN o JEFEPISO, cargar todas las salas activas
+      if (user?.role === 'ADMIN' || user?.role === 'JEFEPISO') {
+        const rooms = await apiService.getAdminRooms();
+        // Filtrar solo las salas activas
+        const activeRooms = rooms.filter(room => room.isActive);
+        setMyActiveRooms(activeRooms);
+      } else {
+        // Para usuarios normales, cargar su sala activa
+        const response = await apiService.getCurrentUserRoom();
+        if (response && response.inRoom && response.room) {
+          setMyActiveRooms([response.room]);
+        } else {
+          setMyActiveRooms([]);
+        }
+      }
     } catch (error) {
       console.error('Error al cargar salas activas:', error);
       setMyActiveRooms([]);
@@ -234,9 +240,8 @@ const ChatPage = () => {
 
       try {
         const [participant1, participant2] = adminViewConversation.participants;
-        console.log(`👁️ Admin viendo conversación entre: ${participant1} y ${participant2}`);
 
-        // Cargar mensajes entre los dos participantes
+        // 🔥 PRIMERO: Cargar mensajes para ver cuáles NO están leídos
         const historicalMessages = await apiService.getUserMessages(
           participant1,
           participant2,
@@ -244,29 +249,82 @@ const ChatPage = () => {
           0
         );
 
-        // Convertir mensajes al formato del frontend
-        const formattedMessages = historicalMessages.map((msg) => ({
-          sender: msg.from,
-          receiver: msg.to,
-          text: msg.message || "",
-          isGroup: false,
-          time: msg.time || new Date(msg.sentAt).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          isSent: false, // El admin no es el remitente
-          isSelf: false, // El admin no es el remitente
-          mediaType: msg.mediaType,
-          mediaData: msg.mediaData,
-          fileName: msg.fileName,
-          fileSize: msg.fileSize,
-          id: msg.id,
-          sentAt: msg.sentAt,
-          // Campos de respuesta
-          replyToMessageId: msg.replyToMessageId,
-          replyToSender: msg.replyToSender,
-          replyToText: msg.replyToText,
-        }));
+        // 🔥 SEGUNDO: Marcar como leídos SOLO si el usuario es ADMIN, PROGRAMADOR o JEFEPISO
+        // Los ASESORES NO deben marcar mensajes como leídos automáticamente
+        const canMarkAsRead = user?.role === 'ADMIN' || user?.role === 'PROGRAMADOR' || user?.role === 'JEFEPISO';
+
+        if (canMarkAsRead) {
+          const unreadMessages = historicalMessages.filter(msg => !msg.isRead);
+
+          if (unreadMessages.length > 0) {
+            try {
+              // Marcar mensajes de participant1 a participant2 como leídos por participant2
+              const unreadFromP1 = unreadMessages.filter(msg => msg.from === participant1);
+              if (unreadFromP1.length > 0) {
+                await apiService.markConversationAsRead(participant1, participant2);
+
+                if (socket && socket.connected) {
+                  socket.emit('markConversationAsRead', {
+                    from: participant1,
+                    to: participant2
+                  });
+                }
+              }
+
+              // Marcar mensajes de participant2 a participant1 como leídos por participant1
+              const unreadFromP2 = unreadMessages.filter(msg => msg.from === participant2);
+              if (unreadFromP2.length > 0) {
+                await apiService.markConversationAsRead(participant2, participant1);
+
+                if (socket && socket.connected) {
+                  socket.emit('markConversationAsRead', {
+                    from: participant2,
+                    to: participant1
+                  });
+                }
+              }
+            } catch (error) {
+              console.error("Error al marcar conversación como leída:", error);
+            }
+          }
+        }
+
+        // 🔥 TERCERO: Convertir mensajes al formato del frontend
+        // Obtener el nombre completo del usuario actual logueado
+        const currentUserFullName = user?.nombre && user?.apellido
+          ? `${user.nombre} ${user.apellido}`
+          : username;
+
+        const formattedMessages = historicalMessages.map((msg) => {
+          // 🔥 El mensaje es propio si fue enviado por el usuario actual logueado
+          const isOwnMessage = msg.from === currentUserFullName;
+
+          return {
+            sender: msg.from,
+            receiver: msg.to,
+            text: msg.message || "",
+            isGroup: false,
+            time: msg.time || new Date(msg.sentAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            isSent: true, // 🔥 Marcar como enviado para que muestre los checks
+            isSelf: isOwnMessage, // 🔥 Mensajes del usuario actual a la derecha, otros a la izquierda
+            mediaType: msg.mediaType,
+            mediaData: msg.mediaData,
+            fileName: msg.fileName,
+            fileSize: msg.fileSize,
+            id: msg.id,
+            sentAt: msg.sentAt,
+            isRead: msg.isRead, // 🔥 Estado de lectura desde la BD (ya actualizado)
+            readAt: msg.readAt,
+            readBy: msg.readBy,
+            // Campos de respuesta
+            replyToMessageId: msg.replyToMessageId,
+            replyToSender: msg.replyToSender,
+            replyToText: msg.replyToText,
+          };
+        });
 
         // Actualizar los mensajes manualmente (no usar el hook)
         clearMessages();
@@ -279,7 +337,7 @@ const ChatPage = () => {
     if (adminViewConversation) {
       loadAdminViewMessages();
     }
-  }, [adminViewConversation, clearMessages, addNewMessage]);
+  }, [adminViewConversation, clearMessages, addNewMessage, socket]);
 
   // Función para cargar conversaciones asignadas
   const loadAssignedConversations = useCallback(async () => {
@@ -339,29 +397,33 @@ const ChatPage = () => {
     s.on('userList', (data) => {
       if (currentRoomCode) return;
 
-      // El backend ya envía la lista correcta según el rol del usuario
-      // Para admin: lista completa de usuarios
-      // Para no-admin: solo su propio nombre
+      // El backend ahora envía la primera página (10 usuarios)
       setUserList(data.users);
+      setUserListPage(data.page || 0);
+      setUserListHasMore(data.hasMore || false);
+      setUserListLoading(false);
+    });
+
+    // Nuevo evento para recibir páginas adicionales
+    s.on('userListPage', (data) => {
+      if (currentRoomCode) return;
+
+      // Agregar usuarios a la lista existente
+      setUserList(prev => [...prev, ...data.users]);
+      setUserListPage(data.page);
+      setUserListHasMore(data.hasMore || false);
+      setUserListLoading(false);
     });
 
         s.on('roomUsers', (data) => {
-          console.log('📨 Recibido roomUsers:', data);
-          console.log('🔍 currentRoomCodeRef.current:', currentRoomCodeRef.current);
-          console.log('🔍 data.roomCode:', data.roomCode);
-
           // Actualizar lista de usuarios si estamos en la sala
           if (data.roomCode === currentRoomCodeRef.current) {
-            console.log('✅ Actualizando roomUsers con:', data.users);
             setRoomUsers(data.users);
-          } else {
-            console.log('❌ No actualizando roomUsers porque no coincide el roomCode');
           }
 
           // SIEMPRE actualizar el contador en "Mis Salas Activas"
           // Contar solo usuarios conectados (isOnline === true)
           const connectedCount = data.users.filter(u => u.isOnline).length;
-          console.log('📊 Contador de conectados:', connectedCount);
           setMyActiveRooms(prevRooms =>
             prevRooms.map(room =>
               room.roomCode === data.roomCode
@@ -407,8 +469,6 @@ const ChatPage = () => {
 
     // Escuchar evento de expulsión
     s.on('kicked', async (data) => {
-      console.log('👢 Has sido expulsado de la sala:', data);
-
       // Limpiar estado de la sala
       setTo('');
       setIsGroup(false);
@@ -424,10 +484,15 @@ const ChatPage = () => {
     s.on('message', (data) => {
       const timeString = data.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+      // Obtener el nombre completo del usuario actual para comparar
+      const currentUserFullName = user?.nombre && user?.apellido
+        ? `${user.nombre} ${user.apellido}`
+        : username;
+
       if (data.isGroup) {
         // Ignorar mensajes que vienen del servidor si son nuestros propios mensajes
         // (ya los tenemos localmente)
-        if (data.from === username) {
+        if (data.from === username || data.from === currentUserFullName) {
           return;
         }
         const newMessage = {
@@ -456,12 +521,12 @@ const ChatPage = () => {
 
         addNewMessage(newMessage);
 
-        if (data.from !== username) {
+        if (data.from !== username && data.from !== currentUserFullName) {
           playMessageSound(soundsEnabled);
         }
       } else {
         // Ignorar mensajes individuales que vienen del servidor si son nuestros propios mensajes
-        if (data.from === username) {
+        if (data.from === username || data.from === currentUserFullName) {
           return;
         }
 
@@ -472,7 +537,11 @@ const ChatPage = () => {
           text: data.message || '',
           isGroup: false,
           time: timeString,
-          isSent: false
+          isSent: false,
+          isSelf: false, // 🔥 Mensaje recibido, siempre a la izquierda
+          isRead: data.isRead || false,
+          readAt: data.readAt,
+          sentAt: data.sentAt
         };
 
         if (data.mediaType) {
@@ -491,7 +560,7 @@ const ChatPage = () => {
 
         addNewMessage(newMessage);
 
-        if (data.from !== username) {
+        if (data.from !== username && data.from !== currentUserFullName) {
           playMessageSound(soundsEnabled);
         }
       }
@@ -519,11 +588,6 @@ const ChatPage = () => {
 
     // Recibir llamada entrante
     s.on('callUser', (data) => {
-      console.log('📞 ¡LLAMADA ENTRANTE RECIBIDA!');
-      console.log('📞 Datos de la llamada:', data);
-      console.log('📞 De:', data.from);
-      console.log('📞 Tipo:', data.callType);
-
       setCallerName(data.from);
       setCallType(data.callType);
       setIsIncoming(true);
@@ -531,13 +595,10 @@ const ChatPage = () => {
 
       // Guardar la señal para cuando se acepte la llamada
       window.incomingCallSignal = data.signal;
-
-      console.log('✅ Estado actualizado - debería mostrar CallWindow');
     });
 
     // Llamada aceptada (el caller recibe la respuesta)
     s.on('callAccepted', (data) => {
-      console.log('✅ Llamada aceptada - señal recibida');
       setCallStatus('connecting');
 
       // Señalar al peer con la respuesta
@@ -548,28 +609,23 @@ const ChatPage = () => {
 
     // Llamada rechazada
     s.on('callRejected', async (data) => {
-      console.log('❌ Llamada rechazada por:', data.from);
       await showErrorAlert('Llamada rechazada', `${data.from} rechazó la llamada`);
       endCall();
     });
 
     // Llamada finalizada
     s.on('callEnded', () => {
-      console.log('📴 Llamada finalizada por el otro usuario');
       endCall();
     });
 
     // Llamada fallida
     s.on('callFailed', async (data) => {
-      console.log('❌ Llamada fallida:', data.reason);
       await showErrorAlert('Llamada fallida', `No se pudo realizar la llamada: ${data.reason}`);
       endCall();
     });
 
     // Nueva conversación asignada
     s.on('newConversationAssigned', async (data) => {
-      console.log('💬 Nueva conversación asignada:', data);
-
       // Recargar conversaciones asignadas
       try {
         // Si el usuario es admin, obtener TODAS las conversaciones
@@ -605,6 +661,38 @@ const ChatPage = () => {
       }
     });
 
+    // Evento: Conversación actualizada (nombre, descripción, etc.)
+    s.on('conversationDataUpdated', async (data) => {
+      try {
+        // Recargar conversaciones asignadas
+        await loadAssignedConversations();
+
+        // Mostrar notificación
+        await showSuccessAlert(
+          '🔄 Conversación actualizada',
+          data.message || 'La conversación ha sido actualizada'
+        );
+      } catch (error) {
+        console.error('Error al recargar conversaciones:', error);
+      }
+    });
+
+    // Evento: Conversación marcada como leída (actualizar checks)
+    s.on('conversationRead', (data) => {
+      const { readBy, messageIds, readAt } = data;
+
+      // Actualizar todos los mensajes que fueron leídos
+      if (messageIds && Array.isArray(messageIds)) {
+        messageIds.forEach(messageId => {
+          updateMessage(messageId, {
+            isRead: true,
+            readAt: readAt,
+            readBy: [readBy] // Agregar el usuario que leyó el mensaje
+          });
+        });
+      }
+    });
+
     // Evento: El otro usuario está escribiendo
     s.on('userTyping', (data) => {
       const { from, isTyping: typing } = data;
@@ -630,7 +718,6 @@ const ChatPage = () => {
 
     // 🔥 Evento: Sala eliminada/desactivada (notificación global)
     s.on('roomDeleted', (data) => {
-      console.log('🗑️ Sala eliminada/desactivada:', data);
       const { roomCode, roomId } = data;
 
       // Actualizar la lista de salas activas eliminando la sala
@@ -655,6 +742,24 @@ const ChatPage = () => {
       }
     });
 
+    // 🔥 Evento: Usuario agregado a una sala
+    s.on('addedToRoom', async (data) => {
+      const { message } = data;
+
+      // Recargar la lista de salas activas del usuario
+      try {
+        const response = await apiService.getCurrentUserRoom();
+        if (response && response.inRoom && response.room) {
+          setMyActiveRooms([response.room]);
+        }
+      } catch (error) {
+        console.error('Error al recargar sala activa:', error);
+      }
+
+      // Mostrar notificación
+      showSuccessAlert('Agregado a sala', message);
+    });
+
         return () => {
           s.off('userList');
           s.off('roomUsers');
@@ -675,6 +780,19 @@ const ChatPage = () => {
 
   // Estado para el mensaje a resaltar
   const [highlightMessageId, setHighlightMessageId] = useState(null);
+
+  // Función para cargar más usuarios (paginación)
+  const loadMoreUsers = () => {
+    if (!socket || !socket.connected || userListLoading || !userListHasMore) {
+      return;
+    }
+
+    setUserListLoading(true);
+    socket.emit('requestUserListPage', {
+      page: userListPage + 1,
+      pageSize: 10
+    });
+  };
 
   // Handlers
   const handleUserSelect = (userName, messageId = null, conversationData = null) => {
@@ -983,7 +1101,6 @@ const ChatPage = () => {
       if (mediaFiles.length === 1) {
         try {
           const file = mediaFiles[0];
-          console.log('📤 Subiendo archivo al servidor:', file.name);
 
           // Subir archivo y obtener URL
           const uploadResult = await apiService.uploadFile(file, 'chat');
@@ -992,8 +1109,6 @@ const ChatPage = () => {
           messageObj.mediaData = uploadResult.fileUrl; // ✅ Ahora es URL, no base64
           messageObj.fileName = uploadResult.fileName;
           messageObj.fileSize = uploadResult.fileSize;
-
-          console.log('✅ Archivo subido exitosamente:', uploadResult.fileUrl);
         } catch (error) {
           console.error('❌ Error al subir archivo:', error);
           await showErrorAlert('Error', 'Error al subir el archivo. Inténtalo de nuevo.');
@@ -1041,7 +1156,6 @@ const ChatPage = () => {
             replyToSender: replyingTo?.sender,
             replyToText: replyingTo?.text
           });
-          console.log('✅ Mensaje personal guardado en BD');
         } catch (error) {
           console.error('❌ Error al guardar mensaje personal en BD:', error);
         }
@@ -1298,9 +1412,25 @@ const ChatPage = () => {
   };
 
   const handleUsersAdded = (usernames) => {
-    console.log('Usuarios agregados:', usernames);
-    // Aquí puedes agregar lógica adicional si es necesario
-    // Por ejemplo, emitir un evento de socket para notificar a los usuarios
+    // Emitir evento de socket para que los usuarios agregados se unan a la sala
+    if (socket && socket.connected && currentRoomCode) {
+      usernames.forEach(username => {
+        socket.emit('joinRoom', {
+          roomCode: currentRoomCode,
+          roomName: to,
+          from: username
+        });
+      });
+
+      // Recargar la lista de usuarios de la sala
+      if (currentRoomCode) {
+        apiService.getRoomUsers(currentRoomCode).then(roomUsers => {
+          setRoomUsers(roomUsers || []);
+        }).catch(error => {
+          console.error('Error al recargar usuarios de la sala:', error);
+        });
+      }
+    }
   };
 
 
@@ -1566,6 +1696,9 @@ const ChatPage = () => {
       myActiveRooms={myActiveRooms}
       onRoomSelect={handleRoomSelect}
       onKickUser={handleKickUser}
+      userListHasMore={userListHasMore}
+      userListLoading={userListLoading}
+      onLoadMoreUsers={loadMoreUsers}
 
       // Props del chat
           to={to}
@@ -1665,6 +1798,7 @@ const ChatPage = () => {
         loadAssignedConversations();
       }}
       currentUser={user}
+      socket={socket}
     />
 
     <AddUsersToRoomModal

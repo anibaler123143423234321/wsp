@@ -73,7 +73,9 @@ export const useSocket = (isAuthenticated, username, user) => {
               apellido: user.apellido,
               email: user.email,
               sede: user.sede,
-              picture: user.picture || null, // ✅ Agregar picture
+              sede_id: user.sede_id,
+              picture: user.picture || null,
+              numeroAgente: user.numeroAgente || null,
             },
           });
 
@@ -122,7 +124,9 @@ export const useSocket = (isAuthenticated, username, user) => {
               apellido: user.apellido,
               email: user.email,
               sede: user.sede,
+              sede_id: user.sede_id,
               picture: user.picture || null,
+              numeroAgente: user.numeroAgente || null,
             },
           });
         });

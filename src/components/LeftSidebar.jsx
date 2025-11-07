@@ -106,7 +106,13 @@ const LeftSidebar = ({
                 overflowWrap: 'break-word'
               }}
             >
-             N° Agente: {user?.numeroAgente || 'No tiene número agente'}
+              {user?.role && user?.numeroAgente ? (
+                <>Rol: {user.role} • N° Agente: {user.numeroAgente}</>
+              ) : user?.numeroAgente ? (
+                <>N° Agente: {user.numeroAgente}</>
+              ) : (
+                <>Rol: {user?.role || 'Sin rol'}</>
+              )}
             </div>
           </div>
         </div>
