@@ -81,8 +81,26 @@ const ChatHeader = ({
           <div className="chat-user-info">
             <div className="chat-title">
               {adminViewConversation && adminViewConversation.participants ? (
-                // Vista de admin: mostrar ambos participantes
-                `${adminViewConversation.participants[0]} ↔ ${adminViewConversation.participants[1]}`
+                // 🔥 Calcular el nombre a mostrar según el usuario actual
+                (() => {
+                  const participants = adminViewConversation.participants || [];
+                  const participant1Name = participants[0] || 'Usuario 1';
+                  const participant2Name = participants[1] || 'Usuario 2';
+
+                  const currentUserFullName = user?.nombre && user?.apellido
+                    ? `${user.nombre} ${user.apellido}`
+                    : user?.username;
+
+                  // Si el usuario actual es uno de los participantes, mostrar solo el nombre del otro
+                  if (currentUserFullName === participant1Name) {
+                    return participant2Name;
+                  } else if (currentUserFullName === participant2Name) {
+                    return participant1Name;
+                  } else {
+                    // Si el usuario no es participante (admin monitoreando), mostrar ambos
+                    return adminViewConversation.name || `${participant1Name} ↔ ${participant2Name}`;
+                  }
+                })()
               ) : (
                 // Vista normal: mostrar solo el destinatario
                 <>

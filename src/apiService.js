@@ -837,13 +837,20 @@ class ApiService {
   // Obtener TODAS las conversaciones asignadas (solo para admin)
   async getAllAssignedConversations() {
     try {
-      // ✅ Usar fetchWithAuth para renovación automática de token
-      const response = await this.fetchWithAuth(
-        `${this.baseChatUrl}api/temporary-conversations/all`,
-        {
-          method: "GET",
-        }
-      );
+      // Obtener el usuario actual para calcular unreadCount correctamente
+      const user = this.getCurrentUser();
+      const displayName = user?.nombre && user?.apellido
+        ? `${user.nombre} ${user.apellido}`
+        : (user?.username || user?.email);
+
+      // ✅ Pasar username como query param para calcular unreadCount correctamente
+      const url = displayName
+        ? `${this.baseChatUrl}api/temporary-conversations/all?username=${encodeURIComponent(displayName)}`
+        : `${this.baseChatUrl}api/temporary-conversations/all`;
+
+      const response = await this.fetchWithAuth(url, {
+        method: "GET",
+      });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));

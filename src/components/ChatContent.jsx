@@ -46,6 +46,7 @@ const ChatContent = ({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showMessageInfo, setShowMessageInfo] = useState(null); // Mensaje seleccionado para ver info
   const [showReactionPicker, setShowReactionPicker] = useState(null); // ID del mensaje para mostrar selector de reacciones
+  const [imagePreview, setImagePreview] = useState(null); // Estado para vista previa de imagen en pantalla completa
   const emojiPickerRef = useRef(null);
   const reactionPickerRef = useRef(null);
 
@@ -315,6 +316,29 @@ const ChatContent = ({
     });
   }, [messages, socket, isGroup, currentRoomCode, currentUsername]);
 
+  // 🔥 NUEVO: Marcar mensajes de conversaciones individuales como leídos
+  useEffect(() => {
+    if (!socket || !socket.connected || isGroup || !to || !currentUsername) return;
+
+    // Filtrar mensajes no leídos que no son del usuario actual
+    const unreadMessages = messages.filter(msg =>
+      msg.id &&
+      msg.sender !== currentUsername &&
+      msg.sender !== 'Tú' &&
+      !msg.isRead
+    );
+
+    if (unreadMessages.length === 0) return;
+
+    console.log(`📖 Marcando ${unreadMessages.length} mensajes como leídos en conversación con ${to}`);
+
+    // Marcar toda la conversación como leída
+    socket.emit('markConversationAsRead', {
+      from: to,  // El remitente de los mensajes
+      to: currentUsername  // El usuario actual que está leyendo
+    });
+  }, [messages, socket, isGroup, to, currentUsername]);
+
   // Detectar cuando el usuario está haciendo scroll manual
   const handleScroll = () => {
     if (!chatHistoryRef.current) return;
@@ -533,7 +557,7 @@ const ChatContent = ({
                         display: 'block',
                         cursor: 'pointer'
                       }}
-                      onClick={() => handleDownload(message.mediaData, message.fileName || 'imagen')}
+                      onClick={() => setImagePreview({ url: message.mediaData, fileName: message.fileName || 'imagen' })}
                     />
                     <button
                       onClick={(e) => {
@@ -599,6 +623,11 @@ const ChatContent = ({
                     src={message.mediaData}
                     fileName={message.fileName}
                     onDownload={handleDownload}
+                    time={message.time}
+                    isOwnMessage={isOwnMessage}
+                    isRead={message.isRead}
+                    isSent={message.isSent}
+                    readBy={message.readBy}
                   />
                 ) : (
                   <div
@@ -1494,6 +1523,107 @@ const ChatContent = ({
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Modal de vista previa de imagen en pantalla completa */}
+      {imagePreview && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}
+          onClick={() => setImagePreview(null)}
+        >
+          {/* Botón de cerrar */}
+          <button
+            onClick={() => setImagePreview(null)}
+            style={{
+              position: 'absolute',
+              top: '20px',
+              right: '20px',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              border: 'none',
+              color: '#fff',
+              fontSize: '24px',
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
+          >
+            ✕
+          </button>
+
+          {/* Botón de descargar */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDownload(imagePreview.url, imagePreview.fileName);
+            }}
+            style={{
+              position: 'absolute',
+              top: '20px',
+              right: '80px',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              border: 'none',
+              color: '#fff',
+              fontSize: '16px',
+              padding: '10px 20px',
+              borderRadius: '20px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
+          >
+            ⬇️ Descargar
+          </button>
+
+          {/* Imagen */}
+          <img
+            src={imagePreview.url}
+            alt={imagePreview.fileName}
+            style={{
+              maxWidth: '90%',
+              maxHeight: '90%',
+              objectFit: 'contain',
+              borderRadius: '8px'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          {/* Nombre del archivo */}
+          <p style={{
+            position: 'absolute',
+            bottom: '20px',
+            color: '#fff',
+            fontSize: '14px',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            padding: '8px 16px',
+            borderRadius: '20px'
+          }}>
+            {imagePreview.fileName}
+          </p>
         </div>
       )}
     </div>

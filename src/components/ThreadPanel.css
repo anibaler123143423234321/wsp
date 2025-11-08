@@ -3,16 +3,31 @@
   right: 0;
   top: 0;
   bottom: 0;
-  width: 25%;
-  min-width: 320px;
-  max-width: 450px;
+  width: 30%;
+  min-width: 350px;
+  max-width: 500px;
   background: white;
   border-left: 1px solid #e0e0e0;
   display: flex;
   flex-direction: column;
-  z-index: 1000;
+  z-index: 999;
   box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
   animation: slideInRight 0.3s ease-out;
+}
+
+/* Desktop: El panel se ajusta al lado del chat sin taparlo */
+@media (min-width: 1200px) {
+  .thread-panel {
+    width: 35%;
+    max-width: 450px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1199px) {
+  .thread-panel {
+    width: 40%;
+    max-width: 400px;
+  }
 }
 
 @keyframes slideInRight {
@@ -91,6 +106,10 @@
   line-height: 1.5;
   margin-bottom: 8px;
   word-wrap: break-word;
+}
+
+.thread-main-message-media {
+  margin-bottom: 8px;
 }
 
 .thread-replies-count {
@@ -266,6 +285,16 @@
     width: 100%;
     max-width: 100%;
     min-width: 100%;
+    z-index: 1001; /* Mayor que el chat para taparlo en mobile */
+  }
+}
+
+/* Tablet */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .thread-panel {
+    width: 45%;
+    min-width: 320px;
+    max-width: 380px;
   }
 }
 

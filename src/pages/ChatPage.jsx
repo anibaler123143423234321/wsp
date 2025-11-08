@@ -335,6 +335,9 @@ const ChatPage = () => {
             replyToMessageId: msg.replyToMessageId,
             replyToSender: msg.replyToSender,
             replyToText: msg.replyToText,
+            // Campos de hilos
+            threadCount: msg.threadCount || 0,
+            lastReplyFrom: msg.lastReplyFrom || null,
           };
         });
 
@@ -368,6 +371,12 @@ const ChatPage = () => {
       } else {
         conversations = await apiService.getMyAssignedConversations();
       }
+
+      // 🔍 DEBUG: Ver qué nombres tienen las conversaciones
+      console.log('📋 Conversaciones cargadas desde el backend:');
+      conversations?.forEach(conv => {
+        console.log(`  - ID ${conv.id}: name="${conv.name}", participants=`, conv.participants);
+      });
 
       setAssignedConversations(conversations || []);
 
@@ -533,6 +542,10 @@ const ChatPage = () => {
           newMessage.replyToText = data.replyToText;
         }
 
+        // Agregar información de hilos
+        newMessage.threadCount = data.threadCount || 0;
+        newMessage.lastReplyFrom = data.lastReplyFrom || null;
+
         addNewMessage(newMessage);
 
         if (data.from !== username && data.from !== currentUserFullName) {
@@ -571,6 +584,10 @@ const ChatPage = () => {
           newMessage.replyToSender = data.replyToSender;
           newMessage.replyToText = data.replyToText;
         }
+
+        // Agregar información de hilos
+        newMessage.threadCount = data.threadCount || 0;
+        newMessage.lastReplyFrom = data.lastReplyFrom || null;
 
         addNewMessage(newMessage);
 
@@ -681,11 +698,9 @@ const ChatPage = () => {
         // Recargar conversaciones asignadas
         await loadAssignedConversations();
 
-        // Mostrar notificación
-        await showSuccessAlert(
-          '🔄 Conversación actualizada',
-          data.message || 'La conversación ha sido actualizada'
-        );
+        // 🔥 NO mostrar alerta aquí para evitar duplicados
+        // La alerta ya se muestra en el modal de edición
+        console.log('✅ Conversación actualizada:', data.conversationName);
       } catch (error) {
         console.error('Error al recargar conversaciones:', error);
       }
@@ -913,19 +928,17 @@ const ChatPage = () => {
     // Evento: Contador de hilo actualizado
     s.on('threadCountUpdated', (data) => {
       const { messageId, lastReplyFrom } = data;
+      console.log('🔢 Evento threadCountUpdated recibido:', data);
 
-      // Actualizar el mensaje con el nuevo contador y último usuario
-      setMessages(prevMessages =>
-        prevMessages.map(msg =>
-          msg.id === messageId
-            ? {
-                ...msg,
-                threadCount: (msg.threadCount || 0) + 1,
-                lastReplyFrom: lastReplyFrom
-              }
-            : msg
-        )
-      );
+      // Buscar el mensaje en la lista actual
+      const messageToUpdate = messages.find(msg => msg.id === messageId);
+      if (messageToUpdate) {
+        console.log('📝 Actualizando contador de hilo para mensaje:', messageId);
+        updateMessage(messageId, {
+          threadCount: (messageToUpdate.threadCount || 0) + 1,
+          lastReplyFrom: lastReplyFrom
+        });
+      }
     });
 
         return () => {
@@ -976,8 +989,9 @@ const ChatPage = () => {
     // Si es una conversación de admin (conversationData presente), guardarla
     if (conversationData) {
       setAdminViewConversation(conversationData);
-      // Para conversaciones de admin, usar el nombre de la conversación como "to"
-      setTo(conversationData.name || userName);
+      // 🔥 IMPORTANTE: Usar userName (que es el displayName del otro participante)
+      // NO usar conversationData.name porque puede ser el nombre de cualquiera de los dos
+      setTo(userName);
       // No limpiar mensajes aquí, el useEffect se encargará
     } else {
       setAdminViewConversation(null);
@@ -1242,8 +1256,23 @@ const ChatPage = () => {
     // Buscar si esta conversación es asignada
     const assignedConv = assignedConversations?.find(conv => {
       const otherUser = conv.participants?.find(p => p !== currentUserFullName);
-      return otherUser === to || conv.name === to;
+      console.log('🔍 Buscando conversación asignada:', {
+        to,
+        currentUserFullName,
+        convName: conv.name,
+        participants: conv.participants,
+        otherUser,
+        match: otherUser === to || conv.name === to
+      });
+      // 🔥 Comparación case-insensitive para nombres
+      const toNormalized = to?.toLowerCase().trim();
+      const otherUserNormalized = otherUser?.toLowerCase().trim();
+      const convNameNormalized = conv.name?.toLowerCase().trim();
+
+      return otherUserNormalized === toNormalized || convNameNormalized === toNormalized;
     });
+
+    console.log('📧 Conversación asignada encontrada:', assignedConv);
 
     // Si es una conversación asignada y el usuario NO está en ella, no permitir enviar
     if (assignedConv && !assignedConv.participants?.includes(currentUserFullName)) {
@@ -1275,10 +1304,14 @@ const ChatPage = () => {
         messageObj.isAssignedConversation = true;
         messageObj.conversationId = assignedConv.id;
         messageObj.participants = assignedConv.participants;
-        // El destinatario real es el otro participante
-        const otherParticipant = assignedConv.participants?.find(p => p !== currentUserFullName);
+        // El destinatario real es el otro participante (comparación case-insensitive)
+        const currentUserNormalized = currentUserFullName?.toLowerCase().trim();
+        const otherParticipant = assignedConv.participants?.find(
+          p => p?.toLowerCase().trim() !== currentUserNormalized
+        );
         if (otherParticipant) {
           messageObj.actualRecipient = otherParticipant;
+          console.log('📧 Mensaje a conversación asignada. Destinatario real:', otherParticipant);
         }
       }
 
@@ -1333,6 +1366,10 @@ const ChatPage = () => {
           newMessage.replyToSender = replyingTo.sender;
           newMessage.replyToText = replyingTo.text;
         }
+
+        // Agregar información de hilos
+        newMessage.threadCount = 0;
+        newMessage.lastReplyFrom = null;
 
         // Guardar en la base de datos
         try {
@@ -1395,6 +1432,10 @@ const ChatPage = () => {
         newMessage.replyToSender = replyingTo.sender;
         newMessage.replyToText = replyingTo.text;
       }
+
+      // Agregar información de hilos
+      newMessage.threadCount = 0;
+      newMessage.lastReplyFrom = null;
 
       addNewMessage(newMessage);
       playMessageSound(soundsEnabled);
@@ -1460,6 +1501,19 @@ const ChatPage = () => {
       const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
+      // 🔥 Verificar si es una conversación asignada
+      const currentUserFullName = user?.nombre && user?.apellido
+        ? `${user.nombre} ${user.apellido}`
+        : user?.username;
+
+      const assignedConv = assignedConversations?.find(conv => {
+        const otherUser = conv.participants?.find(p => p !== currentUserFullName);
+        const toNormalized = to?.toLowerCase().trim();
+        const otherUserNormalized = otherUser?.toLowerCase().trim();
+        const convNameNormalized = conv.name?.toLowerCase().trim();
+        return otherUserNormalized === toNormalized || convNameNormalized === toNormalized;
+      });
+
       const messageObj = {
         id: messageId,
         to,
@@ -1470,8 +1524,24 @@ const ChatPage = () => {
         mediaType: 'audio',
         mediaData: uploadResult.fileUrl,
         fileName: uploadResult.fileName,
-        fileSize: uploadResult.fileSize
+        fileSize: uploadResult.fileSize,
+        message: '' // Mensaje vacío para audios
       };
+
+      // 🔥 Si es una conversación asignada, agregar información adicional
+      if (assignedConv) {
+        messageObj.isAssignedConversation = true;
+        messageObj.conversationId = assignedConv.id;
+        messageObj.participants = assignedConv.participants;
+        const currentUserNormalized = currentUserFullName?.toLowerCase().trim();
+        const otherParticipant = assignedConv.participants?.find(
+          p => p?.toLowerCase().trim() !== currentUserNormalized
+        );
+        if (otherParticipant) {
+          messageObj.actualRecipient = otherParticipant;
+          console.log('🎤 Audio a conversación asignada. Destinatario real:', otherParticipant);
+        }
+      }
 
       // Si hay un mensaje al que se está respondiendo
       if (replyingTo) {
@@ -1483,13 +1553,10 @@ const ChatPage = () => {
       // Si es una sala activa
       if (isGroup && currentRoomCode) {
         messageObj.roomCode = currentRoomCode;
-        messageObj.message = ''; // Mensaje vacío para audios
-        socket.emit('sendGroupMessage', messageObj);
-      } else {
-        // Mensaje privado o conversación asignada
-        messageObj.message = '';
-        socket.emit('sendMessage', messageObj);
       }
+
+      // 🔥 Emitir evento 'message' (igual que los mensajes de texto)
+      socket.emit('message', messageObj);
 
       // Agregar mensaje localmente
       const newMessage = {
@@ -1512,7 +1579,7 @@ const ChatPage = () => {
         newMessage.replyToText = replyingTo.text;
       }
 
-      addMessage(newMessage);
+      addNewMessage(newMessage);
 
       // Limpiar respuesta si existe
       if (replyingTo) {
@@ -1538,7 +1605,16 @@ const ChatPage = () => {
       sentAt: message.sentAt || message.time,
       threadCount: message.threadCount || 0,
       isGroup,
-      roomCode: currentRoomCode
+      roomCode: currentRoomCode,
+      // 🔥 Incluir campos multimedia
+      mediaType: message.mediaType,
+      mediaData: message.mediaData,
+      fileName: message.fileName,
+      fileSize: message.fileSize,
+      time: message.time,
+      isRead: message.isRead,
+      isSent: message.isSent,
+      readBy: message.readBy
     });
   };
 
@@ -1588,9 +1664,10 @@ const ChatPage = () => {
         socket.emit('threadCountUpdated', {
           messageId: messageData.threadId,
           lastReplyFrom: messageData.from,
+          from: messageData.from,
+          to: messageData.to,
           roomCode: messageData.roomCode,
-          isGroup: messageData.isGroup,
-          to: messageData.to
+          isGroup: messageData.isGroup
         });
       }
 
@@ -1602,17 +1679,14 @@ const ChatPage = () => {
       }));
 
       // Actualizar el contador en la lista de mensajes del chat principal
-      setMessages(prevMessages =>
-        prevMessages.map(msg =>
-          msg.id === messageData.threadId
-            ? {
-                ...msg,
-                threadCount: (msg.threadCount || 0) + 1,
-                lastReplyFrom: messageData.from
-              }
-            : msg
-        )
-      );
+      // Buscar el mensaje en la lista actual y actualizarlo
+      const messageToUpdate = messages.find(msg => msg.id === messageData.threadId);
+      if (messageToUpdate) {
+        updateMessage(messageData.threadId, {
+          threadCount: (messageToUpdate.threadCount || 0) + 1,
+          lastReplyFrom: messageData.from
+        });
+      }
 
     } catch (error) {
       console.error('Error al enviar mensaje en hilo:', error);

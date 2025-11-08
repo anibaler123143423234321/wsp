@@ -39,28 +39,9 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
           0
         );
 
-        // Marcar la conversación como leída (solo para chats individuales)
-        // Esto marca todos los mensajes del otro usuario como leídos
-        try {
-          await apiService.markConversationAsRead(to, username);
-          console.log(`✅ Conversación con ${to} marcada como leída en BD`);
-
-          // 🔥 EMITIR EVENTO WEBSOCKET para notificar en tiempo real
-          if (socket && socket.connected && user) {
-            // Construir el displayName igual que en useSocket
-            const displayName = user.nombre && user.apellido
-              ? `${user.nombre} ${user.apellido}`
-              : user.username || user.email;
-
-            socket.emit('markConversationAsRead', {
-              from: to,
-              to: displayName
-            });
-            console.log(`📡 Evento WebSocket 'markConversationAsRead' emitido: from=${to}, to=${displayName}`);
-          }
-        } catch (error) {
-          console.error("Error al marcar conversación como leída:", error);
-        }
+        // 🔥 NO marcar automáticamente como leída al cargar mensajes
+        // La conversación se marcará como leída solo cuando el usuario vea los mensajes
+        // (esto se hace en ChatPage.jsx cuando se cargan los mensajes iniciales)
       }
 
       // Verificar si hay error en la respuesta
@@ -100,6 +81,9 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         replyToMessageId: msg.replyToMessageId,
         replyToSender: msg.replyToSender,
         replyToText: msg.replyToText,
+        // Campos de hilos
+        threadCount: msg.threadCount || 0,
+        lastReplyFrom: msg.lastReplyFrom || null,
       }));
 
       // Los mensajes ya vienen en orden cronológico correcto del backend
@@ -190,10 +174,18 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         replyToMessageId: msg.replyToMessageId,
         replyToSender: msg.replyToSender,
         replyToText: msg.replyToText,
+        // Campos de hilos
+        threadCount: msg.threadCount || 0,
+        lastReplyFrom: msg.lastReplyFrom || null,
       }));
 
       // Agregar mensajes más antiguos al inicio (estilo WhatsApp)
-      setMessages((prevMessages) => [...formattedMessages, ...prevMessages]);
+      // 🔥 Filtrar duplicados por ID antes de agregar
+      setMessages((prevMessages) => {
+        const existingIds = new Set(prevMessages.map(m => m.id));
+        const newMessages = formattedMessages.filter(m => !existingIds.has(m.id));
+        return [...newMessages, ...prevMessages];
+      });
       currentOffset.current += MESSAGES_PER_PAGE;
 
       // Si recibimos menos mensajes de los esperados, no hay más mensajes

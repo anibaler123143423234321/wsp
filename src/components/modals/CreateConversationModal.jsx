@@ -175,12 +175,35 @@ const CreateConversationModal = ({
       const name1 = getFullName(user1Obj);
       const name2 = getFullName(user2Obj);
 
-      setConversationName(`${name1} ↔ ${name2}`);
+      // 🔥 Si uno de los usuarios es el usuario actual, mostrar solo el nombre del otro
+      // Obtener el nombre completo del usuario actual
+      const currentUserFullName = currentUser?.nombre && currentUser?.apellido
+        ? `${currentUser.nombre} ${currentUser.apellido}`
+        : currentUser?.username;
+
+      console.log('🔍 DEBUG CreateConversationModal:');
+      console.log('  - currentUserFullName:', currentUserFullName);
+      console.log('  - name1:', name1);
+      console.log('  - name2:', name2);
+
+      if (currentUserFullName === name1) {
+        // El usuario actual es user1, mostrar solo user2
+        console.log('  ✅ Usuario actual es user1, mostrando solo:', name2);
+        setConversationName(name2);
+      } else if (currentUserFullName === name2) {
+        // El usuario actual es user2, mostrar solo user1
+        console.log('  ✅ Usuario actual es user2, mostrando solo:', name1);
+        setConversationName(name1);
+      } else {
+        // Ninguno es el usuario actual (admin creando conversación entre otros)
+        console.log('  ✅ Admin creando entre otros, mostrando:', `${name1} ↔ ${name2}`);
+        setConversationName(`${name1} ↔ ${name2}`);
+      }
     } else {
       // Limpiar el nombre si se deselecciona algún usuario
       setConversationName('');
     }
-  }, [selectedUser1, selectedUser2, sourceUsers, searchResults1, searchResults2]);
+  }, [selectedUser1, selectedUser2, sourceUsers, searchResults1, searchResults2, currentUser]);
 
   // Filtrar usuarios para el primer select con búsqueda
   const filteredUsers1 = useMemo(() => {

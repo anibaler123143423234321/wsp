@@ -2,12 +2,27 @@ import { useState, useRef, useEffect } from 'react';
 import { FaPlay, FaPause, FaDownload } from 'react-icons/fa';
 import './AudioPlayer.css';
 
-const AudioPlayer = ({ src, fileName, onDownload }) => {
+const AudioPlayer = ({ src, fileName, onDownload, time, isOwnMessage, isRead, isSent, readBy }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const audioRef = useRef(null);
+
+  // Función para formatear la hora del mensaje
+  const formatMessageTime = (timeString) => {
+    if (!timeString) return '';
+
+    // Si ya viene en formato HH:MM, devolverlo tal cual
+    if (typeof timeString === 'string' && timeString.match(/^\d{1,2}:\d{2}/)) {
+      return timeString;
+    }
+
+    // Si es un timestamp o fecha, convertirlo
+    const date = new Date(timeString);
+    if (isNaN(date.getTime())) return timeString; // Si no es válido, devolver el original
+    return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  };
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -131,12 +146,27 @@ const AudioPlayer = ({ src, fileName, onDownload }) => {
         </button>
       </div>
 
-      {/* Nombre del archivo */}
-      {fileName && (
-        <div className="audio-file-name">
-          🎵 {fileName}
+      {/* Nombre del archivo con hora y checks */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', paddingTop: '4px' }}>
+        {fileName && (
+          <div className="audio-file-name" style={{ fontSize: '10px', color: '#8696a0', flex: 1 }}>
+            🎵 {fileName}
+          </div>
+        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#8696a0', whiteSpace: 'nowrap' }}>
+          {time && <span>{formatMessageTime(time)}</span>}
+          {isOwnMessage && (
+            <span
+              style={{
+                color: (readBy && readBy.length > 0) || isRead ? '#53bdeb' : '#8696a0',
+                fontSize: '11px'
+              }}
+            >
+              {isSent ? '✓✓' : '⏳'}
+            </span>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };

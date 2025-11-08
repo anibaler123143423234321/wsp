@@ -54,7 +54,15 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
       const conv = conversations.find(c => c.id === convId);
 
       await apiService.updateAssignedConversation(convId, editForm);
-      await showSuccessAlert('¡Actualizado!', 'La conversación ha sido actualizada correctamente');
+
+      // 🔥 Actualizar la lista local inmediatamente (sin recargar desde el servidor)
+      setConversations(prevConversations =>
+        prevConversations.map(c =>
+          c.id === convId
+            ? { ...c, name: editForm.name, description: editForm.description }
+            : c
+        )
+      );
 
       // Emitir evento WebSocket para notificar a los participantes
       if (socket && socket.connected && conv) {
@@ -67,7 +75,11 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
 
       setEditingConv(null);
       setEditForm({ name: '', description: '' });
-      loadConversations();
+
+      // 🔥 Mostrar alerta de éxito UNA SOLA VEZ
+      await showSuccessAlert('¡Actualizado!', 'La conversación ha sido actualizada correctamente');
+
+      // Notificar al componente padre (sin mostrar otra alerta)
       if (onConversationUpdated) {
         onConversationUpdated();
       }

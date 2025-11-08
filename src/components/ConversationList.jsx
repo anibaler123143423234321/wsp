@@ -613,6 +613,46 @@ const ConversationList = ({
                   const participant1Name = participants[0] || 'Usuario 1';
                   const participant2Name = participants[1] || 'Usuario 2';
 
+                  // 🔥 Calcular el nombre a mostrar según el usuario actual
+                  const currentUserFullName = user?.nombre && user?.apellido
+                    ? `${user.nombre} ${user.apellido}`
+                    : user?.username;
+
+                  // Si el usuario actual es uno de los participantes, mostrar solo el nombre del otro
+                  let displayName = conv.name; // Por defecto, usar el nombre de la conversación
+                  let otherParticipantName = null; // Nombre del otro participante
+
+                  // 🔥 Comparación case-insensitive
+                  const currentUserNormalized = currentUserFullName?.toLowerCase().trim();
+                  const participant1Normalized = participant1Name?.toLowerCase().trim();
+                  const participant2Normalized = participant2Name?.toLowerCase().trim();
+
+                  if (currentUserNormalized === participant1Normalized) {
+                    // El usuario actual es participant1, mostrar solo participant2
+                    displayName = participant2Name;
+                    otherParticipantName = participant2Name;
+                  } else if (currentUserNormalized === participant2Normalized) {
+                    // El usuario actual es participant2, mostrar solo participant1
+                    displayName = participant1Name;
+                    otherParticipantName = participant1Name;
+                  } else if (!conv.name) {
+                    // Si no hay nombre y el usuario no es participante, mostrar ambos
+                    displayName = `${participant1Name} ↔️ ${participant2Name}`;
+                  }
+
+                  // 🔥 Buscar la foto del otro participante en la lista de usuarios
+                  let otherParticipantPicture = null;
+                  if (otherParticipantName) {
+                    const otherParticipantNormalized = otherParticipantName?.toLowerCase().trim();
+                    const otherUser = userList.find(u => {
+                      const fullName = u.nombre && u.apellido
+                        ? `${u.nombre} ${u.apellido}`
+                        : u.username;
+                      return fullName?.toLowerCase().trim() === otherParticipantNormalized;
+                    });
+                    otherParticipantPicture = otherUser?.picture || null;
+                  }
+
                   // Obtener iniciales
                   const getInitials = (name) => {
                     const parts = name.split(' ');
@@ -635,45 +675,36 @@ const ConversationList = ({
                       }}
                       onClick={() => {
                         console.log('Usuario viendo conversación asignada:', conv);
-                        // Llamar a onUserSelect con los datos de la conversación
+                        console.log('  - displayName:', displayName);
+                        // Llamar a onUserSelect con el displayName correcto
                         if (onUserSelect) {
-                          onUserSelect(conv.name, null, conv);
+                          onUserSelect(displayName, null, conv);
                         }
                       }}
                     >
-                      {/* Avatar doble para conversación */}
+                      {/* Avatar único para el otro participante */}
                       <div className="relative flex-shrink-0" style={{ width: '40px', height: '40px' }}>
-                        <div className="relative" style={{ width: '40px', height: '40px' }}>
-                          {/* Avatar 1 */}
-                          <div
-                            className="absolute rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-white font-bold"
-                            style={{
-                              width: '26px',
-                              height: '26px',
-                              border: '1.3px solid rgba(0, 0, 0, 0.1)',
-                              fontSize: '10px',
-                              top: '0',
-                              left: '0',
-                              zIndex: 2
-                            }}
-                          >
-                            {getInitials(participant1Name)}
-                          </div>
-                          {/* Avatar 2 */}
-                          <div
-                            className="absolute rounded-full overflow-hidden bg-gradient-to-br from-pink-500 to-pink-700 flex items-center justify-center text-white font-bold"
-                            style={{
-                              width: '26px',
-                              height: '26px',
-                              border: '1.3px solid rgba(0, 0, 0, 0.1)',
-                              fontSize: '10px',
-                              bottom: '0',
-                              right: '0',
-                              zIndex: 1
-                            }}
-                          >
-                            {getInitials(participant2Name)}
-                          </div>
+                        <div
+                          className="rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-white font-bold"
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            fontSize: '16px'
+                          }}
+                        >
+                          {otherParticipantPicture ? (
+                            <img
+                              src={otherParticipantPicture}
+                              alt={displayName}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.parentElement.innerHTML = getInitials(displayName);
+                              }}
+                            />
+                          ) : (
+                            getInitials(displayName)
+                          )}
                         </div>
                       </div>
 
@@ -711,9 +742,9 @@ const ConversationList = ({
                                   overflow: 'hidden',
                                   wordBreak: 'break-word'
                                 }}
-                                title={`${participant1Name} ↔️ ${participant2Name}`}
+                                title={displayName}
                               >
-                                {participant1Name} ↔️ {participant2Name}
+                                {displayName}
                               </h3>
                               {/* Botón de favorito */}
                               <button
@@ -987,9 +1018,9 @@ const ConversationList = ({
                                 overflow: 'hidden',
                                 wordBreak: 'break-word'
                               }}
-                              title={`${participant1Name} ↔️ ${participant2Name}`}
+                              title={conv.name || `${participant1Name} ↔️ ${participant2Name}`}
                             >
-                              {participant1Name} ↔️ {participant2Name}
+                              {conv.name || `${participant1Name} ↔️ ${participant2Name}`}
                             </h3>
                             {/* Botón de favorito */}
                             <button

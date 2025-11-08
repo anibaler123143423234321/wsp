@@ -2,7 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { FaTimes, FaPaperPlane, FaPaperclip, FaSmile } from 'react-icons/fa';
 import EmojiPicker from 'emoji-picker-react';
 import apiService from '../apiService';
+import AudioPlayer from './AudioPlayer';
 import './ThreadPanel.css';
+import './ThreadPanelWrapper.css';
 
 const ThreadPanel = ({
   message,
@@ -19,9 +21,18 @@ const ThreadPanel = ({
   const messagesEndRef = useRef(null);
   const emojiPickerRef = useRef(null);
 
+  // Agregar clase al body cuando el hilo está abierto
+  useEffect(() => {
+    document.body.classList.add('thread-open');
+    return () => {
+      document.body.classList.remove('thread-open');
+    };
+  }, []);
+
   // Cargar mensajes del hilo
   useEffect(() => {
     if (message?.id) {
+      console.log('📋 Mensaje del hilo:', message);
       loadThreadMessages();
     }
   }, [message?.id]);
@@ -138,7 +149,63 @@ const ThreadPanel = ({
           <strong>{message.from}</strong>
           <span className="thread-main-message-time">{formatTime(message.sentAt)}</span>
         </div>
-        <div className="thread-main-message-text">{message.text}</div>
+
+        {/* Mostrar contenido según el tipo de mensaje */}
+        {message.mediaType === 'audio' && message.mediaData ? (
+          <div className="thread-main-message-media">
+            <AudioPlayer
+              src={message.mediaData}
+              fileName={message.fileName}
+              onDownload={(src, fileName) => {
+                const link = document.createElement('a');
+                link.href = src;
+                link.download = fileName || 'audio';
+                link.click();
+              }}
+              time={message.time || message.sentAt}
+              isOwnMessage={message.from === currentUsername}
+              isRead={message.isRead}
+              isSent={message.isSent}
+              readBy={message.readBy}
+            />
+          </div>
+        ) : message.mediaType === 'image' && message.mediaData ? (
+          <div className="thread-main-message-media">
+            <img
+              src={message.mediaData}
+              alt={message.fileName || 'Imagen'}
+              style={{ maxWidth: '100%', borderRadius: '8px' }}
+            />
+            {message.text && <div className="thread-main-message-text">{message.text}</div>}
+          </div>
+        ) : message.mediaType === 'video' && message.mediaData ? (
+          <div className="thread-main-message-media">
+            <video
+              src={message.mediaData}
+              controls
+              style={{ maxWidth: '100%', borderRadius: '8px' }}
+            />
+            {message.text && <div className="thread-main-message-text">{message.text}</div>}
+          </div>
+        ) : message.mediaType && message.mediaData ? (
+          <div className="thread-main-message-media">
+            <div style={{
+              padding: '8px 12px',
+              backgroundColor: '#f0f0f0',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span>📎</span>
+              <span style={{ fontSize: '13px' }}>{message.fileName || 'Archivo'}</span>
+            </div>
+            {message.text && <div className="thread-main-message-text">{message.text}</div>}
+          </div>
+        ) : (
+          <div className="thread-main-message-text">{message.text}</div>
+        )}
+
         <div className="thread-replies-count">
           {currentThreadCount} {currentThreadCount === 1 ? 'respuesta' : 'respuestas'}
         </div>
