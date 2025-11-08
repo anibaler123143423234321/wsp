@@ -3,11 +3,26 @@ import Peer from 'simple-peer';
 
 const ICE_SERVERS = {
   iceServers: [
-    // Servidores STUN de Google
+    // Servidores STUN de Google (múltiples para redundancia)
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' },
 
-    // Servidores TURN públicos gratuitos - Metered
+    // Servidores TURN públicos gratuitos - OpenRelay (más confiable)
+    {
+      urls: [
+        'turn:openrelay.metered.ca:80',
+        'turn:openrelay.metered.ca:80?transport=tcp',
+        'turn:openrelay.metered.ca:443',
+        'turn:openrelay.metered.ca:443?transport=tcp'
+      ],
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+
+    // Servidor TURN alternativo - Metered
     {
       urls: [
         'turn:a.relay.metered.ca:80',
@@ -27,15 +42,13 @@ const ICE_SERVERS = {
       ],
       username: 'webrtc@live.com',
       credential: 'muazkh'
-    },
-
-    // Servidor TURN alternativo - Twilio (público)
-    {
-      urls: 'turn:global.turn.twilio.com:3478?transport=udp',
-      username: 'f4b4035eaa76f4a55de5f4351567653ee4ff6fa97b50b6b334fcc1be9c27212d',
-      credential: 'w1uxM55V9yVoqyVFjt+mxDBV0F87AUCemaYVQGxsPLw='
     }
-  ]
+  ],
+  // Configuración adicional para mejorar la conectividad
+  iceCandidatePoolSize: 10,
+  iceTransportPolicy: 'all', // Intentar todos los métodos (relay, srflx, host)
+  bundlePolicy: 'max-bundle',
+  rtcpMuxPolicy: 'require'
 };
 
 export const useWebRTC = (socket, username) => {
@@ -124,9 +137,13 @@ export const useWebRTC = (socket, username) => {
       // Crear peer como iniciador
       const peer = new Peer({
         initiator: true,
-        trickle: false,
+        trickle: true, // ✅ Habilitar ICE trickling para mejor conectividad
         stream: stream,
-        config: ICE_SERVERS
+        config: ICE_SERVERS,
+        offerOptions: {
+          offerToReceiveAudio: true,
+          offerToReceiveVideo: type === 'video'
+        }
       });
 
       // Cuando se genera la señal (offer)
@@ -177,9 +194,45 @@ export const useWebRTC = (socket, username) => {
       // Errores
       peer.on('error', (err) => {
         console.error('❌ Error en peer:', err);
-        alert('Error en la conexión: ' + err.message);
+        console.error('❌ Detalles del error:', {
+          message: err.message,
+          code: err.code,
+          name: err.name
+        });
+
+        // Mensajes de error más descriptivos
+        let errorMessage = 'Error en la conexión';
+        if (err.message.includes('Connection failed')) {
+          errorMessage = 'No se pudo establecer la conexión. Verifica tu conexión a internet o intenta de nuevo.';
+        } else if (err.message.includes('Ice connection failed')) {
+          errorMessage = 'Error de conectividad de red. Puede que tu firewall esté bloqueando la conexión.';
+        }
+
+        alert(errorMessage);
         endCall();
       });
+
+      // 🔥 NUEVO: Monitorear estado de ICE para debugging
+      peer._pc.oniceconnectionstatechange = () => {
+        console.log('🧊 ICE Connection State:', peer._pc.iceConnectionState);
+        if (peer._pc.iceConnectionState === 'failed') {
+          console.error('❌ ICE connection failed - intentando reconectar...');
+          // Intentar reiniciar ICE
+          peer._pc.restartIce();
+        }
+      };
+
+      peer._pc.onicegatheringstatechange = () => {
+        console.log('🧊 ICE Gathering State:', peer._pc.iceGatheringState);
+      };
+
+      peer._pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          console.log('🧊 ICE Candidate:', event.candidate.type, event.candidate.protocol);
+        } else {
+          console.log('🧊 ICE Gathering completado');
+        }
+      };
 
       peerConnection.current = peer;
 
@@ -200,9 +253,13 @@ export const useWebRTC = (socket, username) => {
       // Crear peer como receptor
       const peer = new Peer({
         initiator: false,
-        trickle: false,
+        trickle: true, // ✅ Habilitar ICE trickling para mejor conectividad
         stream: stream,
-        config: ICE_SERVERS
+        config: ICE_SERVERS,
+        answerOptions: {
+          offerToReceiveAudio: true,
+          offerToReceiveVideo: callType === 'video'
+        }
       });
 
       // Cuando se genera la señal (answer)
@@ -236,9 +293,45 @@ export const useWebRTC = (socket, username) => {
       // Errores
       peer.on('error', (err) => {
         console.error('❌ Error en peer:', err);
-        alert('Error en la conexión: ' + err.message);
+        console.error('❌ Detalles del error:', {
+          message: err.message,
+          code: err.code,
+          name: err.name
+        });
+
+        // Mensajes de error más descriptivos
+        let errorMessage = 'Error en la conexión';
+        if (err.message.includes('Connection failed')) {
+          errorMessage = 'No se pudo establecer la conexión. Verifica tu conexión a internet o intenta de nuevo.';
+        } else if (err.message.includes('Ice connection failed')) {
+          errorMessage = 'Error de conectividad de red. Puede que tu firewall esté bloqueando la conexión.';
+        }
+
+        alert(errorMessage);
         endCall();
       });
+
+      // 🔥 NUEVO: Monitorear estado de ICE para debugging
+      peer._pc.oniceconnectionstatechange = () => {
+        console.log('🧊 ICE Connection State:', peer._pc.iceConnectionState);
+        if (peer._pc.iceConnectionState === 'failed') {
+          console.error('❌ ICE connection failed - intentando reconectar...');
+          // Intentar reiniciar ICE
+          peer._pc.restartIce();
+        }
+      };
+
+      peer._pc.onicegatheringstatechange = () => {
+        console.log('🧊 ICE Gathering State:', peer._pc.iceGatheringState);
+      };
+
+      peer._pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          console.log('🧊 ICE Candidate:', event.candidate.type, event.candidate.protocol);
+        } else {
+          console.log('🧊 ICE Gathering completado');
+        }
+      };
 
       // Señalar con la oferta recibida
       peer.signal(signalData);

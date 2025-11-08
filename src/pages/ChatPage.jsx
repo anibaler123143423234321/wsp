@@ -418,9 +418,8 @@ const ChatPage = () => {
     const s = socket;
 
     s.on('userList', (data) => {
-      if (currentRoomCode) return;
-
-      // El backend ahora envía la primera página (10 usuarios)
+      // ✅ SIEMPRE actualizar userList para que los indicadores de estado online/offline funcionen en tiempo real
+      // No importa si el usuario está en una sala o no
       setUserList(data.users);
       setUserListPage(data.page || 0);
       setUserListHasMore(data.hasMore || false);
@@ -429,8 +428,7 @@ const ChatPage = () => {
 
     // Nuevo evento para recibir páginas adicionales
     s.on('userListPage', (data) => {
-      if (currentRoomCode) return;
-
+      // ✅ SIEMPRE actualizar userList para que los indicadores de estado online/offline funcionen en tiempo real
       // Agregar usuarios a la lista existente
       setUserList(prev => [...prev, ...data.users]);
       setUserListPage(data.page);

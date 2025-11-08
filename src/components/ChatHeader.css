@@ -4,7 +4,8 @@
   background: #ffffff;
   border-bottom: 1px solid #e0e0e0;
   padding: 0;
-  height: 56px;
+  width: 100%;
+  height: 65.23px;
   display: flex;
   align-items: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
@@ -82,6 +83,7 @@
 
 .chat-header-content {
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
   width: 100%;

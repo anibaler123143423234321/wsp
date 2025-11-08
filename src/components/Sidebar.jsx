@@ -46,7 +46,12 @@ const Sidebar = ({
   return (
     <>
       {/* Desktop: Ambos sidebars juntos */}
-      <div className="w-[669.85px] min-w-[669.85px] max-w-[669.85px] flex flex-row h-screen overflow-hidden max-[1280px]:w-[450px] max-[1280px]:min-w-[450px] max-[1280px]:max-w-[450px] max-[1024px]:w-[420px] max-[1024px]:min-w-[420px] max-[1024px]:max-w-[420px] max-[768px]:hidden bg-white">
+      <div
+        className="w-[669.85px] min-w-[669.85px] max-w-[669.85px] flex flex-row h-screen overflow-hidden max-[1400px]:w-[550px] max-[1400px]:min-w-[550px] max-[1400px]:max-w-[550px] max-[1280px]:w-[480px] max-[1280px]:min-w-[480px] max-[1280px]:max-w-[480px] max-[1024px]:w-[420px] max-[1024px]:min-w-[420px] max-[1024px]:max-w-[420px] max-[768px]:hidden bg-white"
+        style={{
+          borderRight: '1.3px solid #EEEEEE'
+        }}
+      >
 
         {/* Sidebar izquierdo - Menú azul (233.22px) */}
         <LeftSidebar

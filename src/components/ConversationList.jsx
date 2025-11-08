@@ -3,6 +3,7 @@ import { FaTimes, FaBars, FaSignInAlt, FaStar, FaRegStar } from 'react-icons/fa'
 import { MessageSquare, Home, UserCheck } from 'lucide-react';
 import clsx from 'clsx';
 import apiService from '../apiService';
+import './ConversationList.css';
 
 // Componente reutilizable para cada pestaña (botón)
 const TabButton = ({ isActive, onClick, label, shortLabel, icon: Icon, notificationCount }) => {
@@ -88,9 +89,16 @@ const ConversationList = ({
 
   // Actualizar cache de usuarios cuando cambie la lista
   useEffect(() => {
-    if (userList && userList.length > 0) {
-      setUserCache(prevCache => {
-        const newCache = { ...prevCache };
+    setUserCache(prevCache => {
+      const newCache = { ...prevCache };
+
+      // Primero, marcar todos los usuarios del cache como offline
+      Object.keys(newCache).forEach(key => {
+        newCache[key].isOnline = false;
+      });
+
+      // Luego, actualizar con los usuarios que están online
+      if (userList && userList.length > 0) {
         userList.forEach(u => {
           const fullName = u.nombre && u.apellido
             ? `${u.nombre} ${u.apellido}`
@@ -106,9 +114,10 @@ const ConversationList = ({
             };
           }
         });
-        return newCache;
-      });
-    }
+      }
+
+      return newCache;
+    });
   }, [userList]);
 
   // Cargar favoritos al montar el componente
@@ -289,7 +298,12 @@ const ConversationList = ({
   ];
 
   return (
-    <div className="flex-1 flex flex-col bg-white max-[768px]:w-full">
+    <div
+      className="flex-1 flex flex-col bg-white max-[768px]:w-full"
+      style={{
+        borderRight: '1.3px solid #EEEEEE'
+      }}
+    >
       {/* Botón de menú hamburguesa para mobile - solo visible en mobile */}
       <div className="hidden max-[768px]:flex items-center justify-between bg-white px-3 py-2 border-b border-gray-200">
         <button
@@ -398,7 +412,7 @@ const ConversationList = ({
         </div>
 
         {/* Ordenar por */}
-        {activeModule === 'conversations' && (
+        {(activeModule === 'conversations' || activeModule === 'assigned' || activeModule === 'monitoring') && (
           <div className="flex items-center gap-2 max-[1280px]:!mt-2 max-[1280px]:!gap-1.5 max-[1024px]:!mt-1.5 max-[1024px]:!gap-1" style={{ marginTop: '12px' }}>
             <span
               className="text-gray-600 max-[1280px]:!text-sm max-[1024px]:!text-xs"
@@ -621,7 +635,7 @@ const ConversationList = ({
             return myConversations.length > 0 ? (
               <>
                 {myConversations
-                  // Ordenar: favoritas primero, luego por fecha
+                  // Ordenar: favoritas primero, luego según sortBy
                   .sort((a, b) => {
                     const aIsFavorite = favoriteConversationIds.includes(a.id);
                     const bIsFavorite = favoriteConversationIds.includes(b.id);
@@ -630,8 +644,17 @@ const ConversationList = ({
                     if (aIsFavorite && !bIsFavorite) return -1;
                     if (!aIsFavorite && bIsFavorite) return 1;
 
-                    // Si ambas son favoritas o ninguna lo es, ordenar por fecha del último mensaje
-                    return new Date(b.lastMessageTime || b.createdAt) - new Date(a.lastMessageTime || a.createdAt);
+                    // Si ambas son favoritas o ninguna lo es, ordenar según sortBy
+                    if (sortBy === 'newest') {
+                      return new Date(b.lastMessageTime || b.createdAt) - new Date(a.lastMessageTime || a.createdAt);
+                    } else if (sortBy === 'oldest') {
+                      return new Date(a.lastMessageTime || a.createdAt) - new Date(b.lastMessageTime || b.createdAt);
+                    } else if (sortBy === 'name') {
+                      const aName = (a.name || '').toLowerCase();
+                      const bName = (b.name || '').toLowerCase();
+                      return aName.localeCompare(bName);
+                    }
+                    return 0;
                   })
                   .map((conv) => {
                   // Obtener nombres de los participantes desde el array participants
@@ -953,7 +976,7 @@ const ConversationList = ({
             return filteredMonitoring.length > 0 ? (
             <>
               {filteredMonitoring
-                // Ordenar: favoritas primero, luego por fecha
+                // Ordenar: favoritas primero, luego según sortBy
                 .sort((a, b) => {
                   const aIsFavorite = favoriteConversationIds.includes(a.id);
                   const bIsFavorite = favoriteConversationIds.includes(b.id);
@@ -962,8 +985,17 @@ const ConversationList = ({
                   if (aIsFavorite && !bIsFavorite) return -1;
                   if (!aIsFavorite && bIsFavorite) return 1;
 
-                  // Si ambas son favoritas o ninguna lo es, ordenar por fecha del último mensaje
-                  return new Date(b.lastMessageTime || b.createdAt) - new Date(a.lastMessageTime || a.createdAt);
+                  // Si ambas son favoritas o ninguna lo es, ordenar según sortBy
+                  if (sortBy === 'newest') {
+                    return new Date(b.lastMessageTime || b.createdAt) - new Date(a.lastMessageTime || a.createdAt);
+                  } else if (sortBy === 'oldest') {
+                    return new Date(a.lastMessageTime || a.createdAt) - new Date(b.lastMessageTime || b.createdAt);
+                  } else if (sortBy === 'name') {
+                    const aName = (a.name || '').toLowerCase();
+                    const bName = (b.name || '').toLowerCase();
+                    return aName.localeCompare(bName);
+                  }
+                  return 0;
                 })
                 .map((conv) => {
                 // Obtener nombres de los participantes desde el array participants
