@@ -61,23 +61,6 @@ body {
   position: relative;
 }
 
-/* Overlay para mejorar legibilidad en login */
-.login-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(11, 20, 26, 0.75);
-  z-index: 1;
-}
-
-.login-container > * {
-  position: relative;
-  z-index: 2;
-}
-
 /* Responsive para el contenedor de login */
 @media (max-width: 768px) {
   .login-container {

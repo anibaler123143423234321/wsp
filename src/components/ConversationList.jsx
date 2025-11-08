@@ -74,6 +74,7 @@ const ConversationList = ({
   const conversationsListRef = useRef(null);
   const [favoriteRoomCodes, setFavoriteRoomCodes] = useState([]); // Códigos de salas favoritas
   const [favoriteConversationIds, setFavoriteConversationIds] = useState([]); // IDs de conversaciones favoritas
+  const [userCache, setUserCache] = useState({}); // Cache de información de usuarios (incluyendo desconectados)
 
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'JEFEPISO';
 
@@ -84,6 +85,31 @@ const ConversationList = ({
       ? `${user.nombre} ${user.apellido}`
       : user.username;
   };
+
+  // Actualizar cache de usuarios cuando cambie la lista
+  useEffect(() => {
+    if (userList && userList.length > 0) {
+      setUserCache(prevCache => {
+        const newCache = { ...prevCache };
+        userList.forEach(u => {
+          const fullName = u.nombre && u.apellido
+            ? `${u.nombre} ${u.apellido}`
+            : u.username;
+          const key = fullName?.toLowerCase().trim();
+          if (key) {
+            newCache[key] = {
+              picture: u.picture,
+              username: u.username,
+              nombre: u.nombre,
+              apellido: u.apellido,
+              isOnline: true // Si está en userList, está online
+            };
+          }
+        });
+        return newCache;
+      });
+    }
+  }, [userList]);
 
   // Cargar favoritos al montar el componente
   useEffect(() => {
@@ -640,17 +666,32 @@ const ConversationList = ({
                     displayName = `${participant1Name} ↔️ ${participant2Name}`;
                   }
 
-                  // 🔥 Buscar la foto del otro participante en la lista de usuarios
+                  // 🔥 Buscar la foto del otro participante en la lista de usuarios o en el cache
                   let otherParticipantPicture = null;
+                  let isOtherParticipantOnline = false;
                   if (otherParticipantName) {
                     const otherParticipantNormalized = otherParticipantName?.toLowerCase().trim();
+
+                    // Primero buscar en la lista de usuarios conectados
                     const otherUser = userList.find(u => {
                       const fullName = u.nombre && u.apellido
                         ? `${u.nombre} ${u.apellido}`
                         : u.username;
                       return fullName?.toLowerCase().trim() === otherParticipantNormalized;
                     });
-                    otherParticipantPicture = otherUser?.picture || null;
+
+                    if (otherUser) {
+                      // Usuario está online
+                      otherParticipantPicture = otherUser.picture || null;
+                      isOtherParticipantOnline = true;
+                    } else {
+                      // Usuario está offline, buscar en el cache
+                      const cachedUser = userCache[otherParticipantNormalized];
+                      if (cachedUser) {
+                        otherParticipantPicture = cachedUser.picture || null;
+                        isOtherParticipantOnline = false;
+                      }
+                    }
                   }
 
                   // Obtener iniciales
@@ -706,6 +747,16 @@ const ConversationList = ({
                             getInitials(displayName)
                           )}
                         </div>
+                        {/* Indicador de estado online/offline */}
+                        <div
+                          className="absolute bottom-0 right-0 rounded-full border-2 border-white"
+                          style={{
+                            width: '12px',
+                            height: '12px',
+                            backgroundColor: isOtherParticipantOnline ? '#10b981' : '#9ca3af'
+                          }}
+                          title={isOtherParticipantOnline ? 'En línea' : 'Desconectado'}
+                        />
                       </div>
 
                       {/* Info de la conversación */}
