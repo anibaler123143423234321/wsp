@@ -10,6 +10,7 @@ import EditRoomModal from '../components/modals/EditRoomModal';
 import CreateConversationModal from '../components/modals/CreateConversationModal';
 import ManageAssignedConversationsModal from '../components/modals/ManageAssignedConversationsModal';
 import AddUsersToRoomModal from '../components/modals/AddUsersToRoomModal';
+import RemoveUsersFromRoomModal from '../components/modals/RemoveUsersFromRoomModal';
 import CallWindow from '../components/CallWindow';
 import { useAuth } from '../hooks/useAuth';
 import { useSocket } from '../hooks/useSocket';
@@ -93,6 +94,7 @@ const ChatPage = () => {
   const [soundsEnabled, setSoundsEnabled] = useState(false);
   const [isTyping, setIsTyping] = useState(false); // El otro usuario está escribiendo
   const [typingTimeout, setTypingTimeout] = useState(null); // Timeout para detectar cuando deja de escribir
+  const [roomTypingUsers, setRoomTypingUsers] = useState({}); // Usuarios escribiendo en cada sala { roomCode: [username1, username2] }
   const [adminViewConversation, setAdminViewConversation] = useState(null); // Conversación que el admin está viendo
   const [replyingTo, setReplyingTo] = useState(null); // Mensaje al que se está respondiendo
 
@@ -108,6 +110,7 @@ const ChatPage = () => {
   const [showCreateConversationModal, setShowCreateConversationModal] = useState(false);
   const [showManageConversationsModal, setShowManageConversationsModal] = useState(false);
   const [showAddUsersToRoomModal, setShowAddUsersToRoomModal] = useState(false);
+  const [showRemoveUsersFromRoomModal, setShowRemoveUsersFromRoomModal] = useState(false);
   const [createdRoomData, setCreatedRoomData] = useState(null);
   const [adminRooms, setAdminRooms] = useState([]);
   const [loadingAdminRooms, setLoadingAdminRooms] = useState(false);
@@ -719,6 +722,49 @@ const ChatPage = () => {
       }
     });
 
+    // Evento: Alguien está escribiendo en una sala
+    s.on('roomTyping', (data) => {
+      const { from, roomCode, isTyping: typing } = data;
+
+      setRoomTypingUsers(prev => {
+        const currentTyping = prev[roomCode] || [];
+
+        if (typing) {
+          // Agregar usuario si no está ya en la lista
+          if (!currentTyping.includes(from)) {
+            return {
+              ...prev,
+              [roomCode]: [...currentTyping, from]
+            };
+          }
+        } else {
+          // Remover usuario de la lista
+          const filtered = currentTyping.filter(user => user !== from);
+          if (filtered.length === 0) {
+            const { [roomCode]: _, ...rest } = prev;
+            return rest;
+          }
+          return {
+            ...prev,
+            [roomCode]: filtered
+          };
+        }
+
+        return prev;
+      });
+    });
+
+    // Evento: Mensaje de sala marcado como leído
+    s.on('roomMessageRead', (data) => {
+      const { messageId, readBy, readAt } = data;
+
+      // Actualizar el mensaje con el array completo de lectores
+      updateMessage(messageId, {
+        readBy: readBy, // readBy es el array completo desde el backend
+        readAt: readAt
+      });
+    });
+
     // 🔥 Evento: Sala eliminada/desactivada (notificación global)
     s.on('roomDeleted', (data) => {
       const { roomCode, roomId } = data;
@@ -747,7 +793,7 @@ const ChatPage = () => {
 
     // 🔥 Evento: Usuario agregado a una sala
     s.on('addedToRoom', async (data) => {
-      const { message } = data;
+      const { message, roomCode } = data;
 
       // Recargar la lista de salas activas del usuario
       try {
@@ -759,8 +805,83 @@ const ChatPage = () => {
         console.error('Error al recargar sala activa:', error);
       }
 
+      // Solo mostrar notificación si NO estamos actualmente en esa sala
+      // (para evitar mostrar la alerta cuando el usuario se une manualmente)
+      if (currentRoomCodeRef.current !== roomCode) {
+        showSuccessAlert('Agregado a sala', message);
+      }
+    });
+
+    // 🔥 Evento: Usuario eliminado de una sala
+    s.on('removedFromRoom', async (data) => {
+      const { message, roomCode } = data;
+
+      // Si estamos en la sala de la que fuimos eliminados, salir
+      if (currentRoomCodeRef.current === roomCode) {
+        setTo(null);
+        setIsGroup(false);
+        setCurrentRoomCode(null);
+        currentRoomCodeRef.current = null;
+        setRoomUsers([]);
+        setMessages([]);
+      }
+
+      // Recargar la lista de salas activas del usuario
+      try {
+        const response = await apiService.getCurrentUserRoom();
+        if (response && response.inRoom && response.room) {
+          setMyActiveRooms([response.room]);
+        } else {
+          setMyActiveRooms([]);
+        }
+      } catch (error) {
+        console.error('Error al recargar sala activa:', error);
+      }
+
       // Mostrar notificación
-      showSuccessAlert('Agregado a sala', message);
+      showErrorAlert('Eliminado de sala', message);
+    });
+
+    // 🔥 Evento: Sala desactivada por el administrador
+    s.on('roomDeactivated', async (data) => {
+      const { message, roomCode } = data;
+
+      console.log('🚫 Sala desactivada:', roomCode);
+
+      // Si estamos en la sala desactivada, salir
+      if (currentRoomCodeRef.current === roomCode) {
+        setTo(null);
+        setIsGroup(false);
+        setCurrentRoomCode(null);
+        currentRoomCodeRef.current = null;
+        setRoomUsers([]);
+        setMessages([]);
+      }
+
+      // Recargar la lista de salas activas del usuario
+      try {
+        const response = await apiService.getCurrentUserRoom();
+        if (response && response.inRoom && response.room) {
+          setMyActiveRooms([response.room]);
+        } else {
+          setMyActiveRooms([]);
+        }
+      } catch (error) {
+        console.error('Error al recargar sala activa:', error);
+      }
+
+      // Mostrar notificación
+      showErrorAlert('Sala desactivada', message);
+    });
+
+    // Evento: Reacción actualizada en un mensaje
+    s.on('reactionUpdated', (data) => {
+      const { messageId, reactions } = data;
+
+      // Actualizar el mensaje con las nuevas reacciones
+      updateMessage(messageId, {
+        reactions: reactions
+      });
     });
 
         return () => {
@@ -777,7 +898,12 @@ const ChatPage = () => {
           s.off('callFailed');
           s.off('newConversationAssigned');
           s.off('userTyping');
+          s.off('roomTyping');
+          s.off('roomMessageRead');
+          s.off('reactionUpdated');
           s.off('roomDeleted');
+          s.off('removedFromRoom');
+          s.off('roomDeactivated');
         };
       }, [socket, currentRoomCode, to, isGroup, username, isAdmin, soundsEnabled, typingTimeout]);
 
@@ -936,7 +1062,8 @@ const ChatPage = () => {
 
     } catch (error) {
       console.error('Error al crear sala:', error);
-      await showErrorAlert('Error', 'Error al crear la sala: ' + error.message);
+      const errorMessage = error.response?.data?.message || error.message || 'Error desconocido';
+      await showErrorAlert('Error al crear sala', errorMessage);
     }
   };
 
@@ -985,12 +1112,19 @@ const ChatPage = () => {
       });
     }
 
-    setTo(username);
+    // Limpiar el chat y regresar al WelcomeScreen
+    setTo('');
     setIsGroup(false);
     setRoomUsers([]);
     setCurrentRoomCode(null);
     currentRoomCodeRef.current = null;
+    setAdminViewConversation(null);
     clearMessages();
+
+    // En mobile, mostrar el sidebar
+    if (window.innerWidth <= 768) {
+      setShowSidebar(true);
+    }
   };
 
   // Función para seleccionar una sala del sidebar
@@ -1414,7 +1548,7 @@ const ChatPage = () => {
     }
   };
 
-  const handleUsersAdded = (usernames) => {
+  const handleUsersAdded = async (usernames) => {
     // Emitir evento de socket para que los usuarios agregados se unan a la sala
     if (socket && socket.connected && currentRoomCode) {
       usernames.forEach(username => {
@@ -1425,13 +1559,40 @@ const ChatPage = () => {
         });
       });
 
-      // Recargar la lista de usuarios de la sala
+      // Esperar un momento para que el backend procese los eventos
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Recargar la lista de usuarios de la sala desde la API
       if (currentRoomCode) {
-        apiService.getRoomUsers(currentRoomCode).then(roomUsers => {
+        try {
+          const roomUsers = await apiService.getRoomUsers(currentRoomCode);
+          console.log('🔄 Usuarios recargados después de agregar:', roomUsers);
           setRoomUsers(roomUsers || []);
-        }).catch(error => {
+        } catch (error) {
           console.error('Error al recargar usuarios de la sala:', error);
-        });
+        }
+      }
+    }
+  };
+
+  const handleRemoveUsersFromRoom = () => {
+    if (currentRoomCode) {
+      setShowRemoveUsersFromRoomModal(true);
+    }
+  };
+
+  const handleUsersRemoved = async (usernames) => {
+    // Esperar un momento para que el backend procese los eventos
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Recargar la lista de usuarios de la sala desde la API
+    if (currentRoomCode) {
+      try {
+        const roomUsers = await apiService.getRoomUsers(currentRoomCode);
+        console.log('🔄 Usuarios recargados después de eliminar:', roomUsers);
+        setRoomUsers(roomUsers || []);
+      } catch (error) {
+        console.error('Error al recargar usuarios de la sala:', error);
       }
     }
   };
@@ -1702,6 +1863,7 @@ const ChatPage = () => {
       userListHasMore={userListHasMore}
       userListLoading={userListLoading}
       onLoadMoreUsers={loadMoreUsers}
+      roomTypingUsers={roomTypingUsers}
 
       // Props del chat
           to={to}
@@ -1742,6 +1904,7 @@ const ChatPage = () => {
       replyingTo={replyingTo}
       onCancelReply={handleCancelReply}
       onAddUsersToRoom={handleAddUsersToRoom}
+      onRemoveUsersFromRoom={handleRemoveUsersFromRoom}
 
       // Props de modales
       showCreateRoomModal={showCreateRoomModal}
@@ -1811,6 +1974,16 @@ const ChatPage = () => {
       roomName={to}
       currentMembers={roomUsers}
       onUserAdded={handleUsersAdded}
+    />
+
+    <RemoveUsersFromRoomModal
+      isOpen={showRemoveUsersFromRoomModal}
+      onClose={() => setShowRemoveUsersFromRoomModal(false)}
+      roomCode={currentRoomCode}
+      roomName={to}
+      currentMembers={roomUsers}
+      currentUser={username}
+      onUsersRemoved={handleUsersRemoved}
     />
 
     <CallWindow

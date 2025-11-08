@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FaSignOutAlt, FaPhone, FaVideo, FaArrowLeft, FaKeyboard, FaUserPlus } from 'react-icons/fa';
+import { FaSignOutAlt, FaPhone, FaVideo, FaArrowLeft, FaKeyboard, FaUserPlus, FaUserMinus } from 'react-icons/fa';
 import './ChatHeader.css';
 
 const ChatHeader = ({
@@ -17,6 +17,7 @@ const ChatHeader = ({
   isTyping,
   adminViewConversation,
   onAddUsersToRoom,
+  onRemoveUsersFromRoom,
   user
 }) => {
 
@@ -184,9 +185,19 @@ const ChatHeader = ({
             </button>
           )}
 
-          <button className="header-icon-btn" title="Información">
-            ℹ️
-          </button>
+          {/* Botón para eliminar usuarios de la sala */}
+          {isGroup && currentRoomCode && onRemoveUsersFromRoom && (
+            <button
+              className="header-icon-btn remove-users-btn"
+              onClick={onRemoveUsersFromRoom}
+              title="Eliminar usuarios de la sala"
+              style={{
+                color: '#ef4444'
+              }}
+            >
+              <FaUserMinus />
+            </button>
+          )}
 
           {isGroup && currentRoomCode && (
             <button

@@ -15,7 +15,7 @@ const ChatLayout = ({
   onUserSelect, onGroupSelect, onPersonalNotes, onLogout,
   onShowCreateRoom, onShowJoinRoom, onShowAdminRooms, onShowCreateConversation, onShowManageConversations,
   onShowManageUsers, onShowSystemConfig, loadingAdminRooms, myActiveRooms, onRoomSelect, onKickUser,
-  userListHasMore, userListLoading, onLoadMoreUsers,
+  userListHasMore, userListLoading, onLoadMoreUsers, roomTypingUsers,
 
       // Props del chat
       to, isGroup, currentRoomCode, roomUsers, messages, input, setInput,
@@ -45,7 +45,8 @@ const ChatLayout = ({
   replyingTo, onCancelReply,
 
   // Props para agregar usuarios a sala
-  onAddUsersToRoom
+  onAddUsersToRoom,
+  onRemoveUsersFromRoom
 }) => {
   // Función para obtener el usuario completo con el que se está chateando
   const getTargetUser = () => {
@@ -155,6 +156,7 @@ const ChatLayout = ({
         userListHasMore={userListHasMore}
         userListLoading={userListLoading}
         onLoadMoreUsers={onLoadMoreUsers}
+        roomTypingUsers={roomTypingUsers}
       />
 
       {/* LeftSidebar overlay para mobile */}
@@ -194,6 +196,7 @@ const ChatLayout = ({
               isTyping={isTyping}
               adminViewConversation={adminViewConversation}
               onAddUsersToRoom={onAddUsersToRoom}
+              onRemoveUsersFromRoom={onRemoveUsersFromRoom}
               user={user}
             />
         
@@ -212,6 +215,7 @@ const ChatLayout = ({
           onRemoveMediaFile={onRemoveMediaFile}
           to={to}
           isGroup={isGroup}
+          currentRoomCode={currentRoomCode}
           currentUsername={currentUsername}
           onEditMessage={onEditMessage}
           hasMoreMessages={hasMoreMessages}

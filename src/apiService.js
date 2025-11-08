@@ -309,10 +309,17 @@ class ApiService {
       );
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Error del servidor: ${response.status} - ${errorText}`
-        );
+        let errorMessage = `Error del servidor: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          const errorText = await response.text();
+          errorMessage = errorText || errorMessage;
+        }
+        const error = new Error(errorMessage);
+        error.response = { data: { message: errorMessage } };
+        throw error;
       }
 
       const result = await response.json();
@@ -338,6 +345,29 @@ class ApiService {
       return result;
     } catch (error) {
       console.error("Error al unirse a sala:", error);
+      throw error;
+    }
+  }
+
+  // Método para eliminar un usuario de una sala
+  async removeUserFromRoom(roomCode, username) {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/temporary-rooms/${roomCode}/remove-user`,
+        {
+          method: "POST",
+          body: JSON.stringify({ username }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al eliminar usuario de sala:", error);
       throw error;
     }
   }
@@ -1068,6 +1098,97 @@ class ApiService {
     } catch (error) {
       console.error("Error al buscar usuarios en backend:", error);
       return [];
+    }
+  }
+
+  // ==================== FAVORITOS DE SALAS ====================
+
+  // Alternar favorito (agregar o quitar)
+  async toggleRoomFavorite(username, roomCode, roomId) {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/room-favorites/toggle`,
+        {
+          method: "POST",
+          body: JSON.stringify({ username, roomCode, roomId }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al alternar favorito:", error);
+      throw error;
+    }
+  }
+
+  // Obtener favoritos de un usuario
+  async getUserFavorites(username) {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/room-favorites/user/${encodeURIComponent(username)}`,
+        {
+          method: "GET",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al obtener favoritos:", error);
+      throw error;
+    }
+  }
+
+  // Obtener códigos de salas favoritas
+  async getUserFavoriteRoomCodes(username) {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/room-favorites/codes/${encodeURIComponent(username)}`,
+        {
+          method: "GET",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result.roomCodes || [];
+    } catch (error) {
+      console.error("Error al obtener códigos de favoritos:", error);
+      return [];
+    }
+  }
+
+  // Verificar si una sala es favorita
+  async isRoomFavorite(username, roomCode) {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/room-favorites/check?username=${encodeURIComponent(username)}&roomCode=${encodeURIComponent(roomCode)}`,
+        {
+          method: "GET",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result.isFavorite || false;
+    } catch (error) {
+      console.error("Error al verificar favorito:", error);
+      return false;
     }
   }
 }

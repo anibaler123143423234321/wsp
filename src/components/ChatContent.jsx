@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { FaPaperclip, FaPaperPlane, FaEdit, FaTimes, FaReply } from 'react-icons/fa';
+import { FaPaperclip, FaPaperPlane, FaEdit, FaTimes, FaReply, FaSmile, FaInfoCircle } from 'react-icons/fa';
+import EmojiPicker from 'emoji-picker-react';
 import LoadMoreMessages from './LoadMoreMessages';
 import WelcomeScreen from './WelcomeScreen';
 import './ChatContent.css';
@@ -16,6 +17,8 @@ const ChatContent = ({
   onCancelMediaUpload,
   onRemoveMediaFile,
   to,
+  isGroup,
+  currentRoomCode,
   hasMoreMessages,
   isLoadingMore,
   onLoadMoreMessages,
@@ -36,6 +39,11 @@ const ChatContent = ({
   const typingTimeoutRef = useRef(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showMessageInfo, setShowMessageInfo] = useState(null); // Mensaje seleccionado para ver info
+  const [showReactionPicker, setShowReactionPicker] = useState(null); // ID del mensaje para mostrar selector de reacciones
+  const emojiPickerRef = useRef(null);
+  const reactionPickerRef = useRef(null);
 
   // Función para descargar archivos
   const handleDownload = (url) => {
@@ -142,12 +150,19 @@ const ChatContent = ({
 
     // Emitir evento "typing" si hay un destinatario y socket conectado
     if (socket && socket.connected && to && currentUsername) {
-      // Emitir que está escribiendo
-      socket.emit('typing', {
+      // Si es una sala, incluir roomCode en el evento
+      const typingData = {
         from: currentUsername,
         to: to,
         isTyping: true
-      });
+      };
+
+      if (isGroup && currentRoomCode) {
+        typingData.roomCode = currentRoomCode;
+      }
+
+      // Emitir que está escribiendo
+      socket.emit('typing', typingData);
 
       // Limpiar timeout anterior
       if (typingTimeoutRef.current) {
@@ -156,11 +171,17 @@ const ChatContent = ({
 
       // Después de 2 segundos sin escribir, emitir que dejó de escribir
       typingTimeoutRef.current = setTimeout(() => {
-        socket.emit('typing', {
+        const stopTypingData = {
           from: currentUsername,
           to: to,
           isTyping: false
-        });
+        };
+
+        if (isGroup && currentRoomCode) {
+          stopTypingData.roomCode = currentRoomCode;
+        }
+
+        socket.emit('typing', stopTypingData);
       }, 2000);
     }
   };
@@ -181,6 +202,47 @@ const ChatContent = ({
     } else if (e.key === 'Escape') {
       handleCancelEdit();
     }
+  };
+
+  // Manejar selección de emoji
+  const handleEmojiClick = (emojiData) => {
+    setInput(prevInput => prevInput + emojiData.emoji);
+    setShowEmojiPicker(false);
+  };
+
+  // Cerrar emoji picker al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
+        setShowEmojiPicker(false);
+      }
+      if (reactionPickerRef.current && !reactionPickerRef.current.contains(event.target)) {
+        setShowReactionPicker(null);
+      }
+    };
+
+    if (showEmojiPicker || showReactionPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showEmojiPicker, showReactionPicker]);
+
+  // Manejar reacción a mensaje
+  const handleReaction = (message, emoji) => {
+    if (!socket || !socket.connected || !currentUsername) return;
+
+    socket.emit('toggleReaction', {
+      messageId: message.id,
+      username: currentUsername,
+      emoji: emoji,
+      roomCode: isGroup ? currentRoomCode : undefined,
+      to: isGroup ? undefined : message.sender === currentUsername ? message.receiver : message.sender
+    });
+
+    setShowReactionPicker(null);
   };
 
 
@@ -226,6 +288,28 @@ const ChatContent = ({
 
     lastMessageCountRef.current = messages.length;
   }, [messages]);
+
+  // Marcar mensajes de sala como leídos cuando se visualizan
+  useEffect(() => {
+    if (!socket || !socket.connected || !isGroup || !currentRoomCode || !currentUsername) return;
+
+    // Filtrar mensajes no leídos que no son del usuario actual
+    const unreadMessages = messages.filter(msg =>
+      msg.id &&
+      msg.sender !== currentUsername &&
+      msg.sender !== 'Tú' &&
+      (!msg.readBy || !msg.readBy.includes(currentUsername))
+    );
+
+    // Marcar cada mensaje como leído
+    unreadMessages.forEach(msg => {
+      socket.emit('markRoomMessageAsRead', {
+        messageId: msg.id,
+        username: currentUsername,
+        roomCode: currentRoomCode
+      });
+    });
+  }, [messages, socket, isGroup, currentRoomCode, currentUsername]);
 
   // Detectar cuando el usuario está haciendo scroll manual
   const handleScroll = () => {
@@ -334,9 +418,9 @@ const ChatContent = ({
           display: 'flex',
           justifyContent: isOwnMessage ? 'flex-end' : 'flex-start',
           alignItems: 'flex-end',
-          margin: '4px 0',
-          padding: '0 16px',
-          gap: '8px',
+          margin: '2px 0',
+          padding: '0 8px',
+          gap: '6px',
           transition: 'all 0.3s ease'
         }}
       >
@@ -345,14 +429,14 @@ const ChatContent = ({
           <div
             className="message-avatar"
             style={{
-              width: '32px',
-              height: '32px',
+              width: '28px',
+              height: '28px',
               borderRadius: '50%',
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '14px',
+              fontSize: '12px',
               flexShrink: 0,
               marginBottom: '2px'
             }}
@@ -365,14 +449,23 @@ const ChatContent = ({
           className="message-content"
           style={{
             backgroundColor: isHighlighted
-              ? (isOwnMessage ? '#007a5e' : '#2a3942')
-              : (isOwnMessage ? '#005c4b' : '#202c33'),
-            color: '#e9edef',
-            padding: '6px 12px 8px 12px',
-            borderRadius: '7.5px',
-            maxWidth: '65%',
-            minWidth: '100px',
+              ? (isOwnMessage ? '#c9e8ba' : '#d4d2e0')
+              : (isOwnMessage ? '#E1F4D6' : '#E8E6F0'),
+            color: '#1f2937',
+            padding: '6px 19.25px',
+            borderRadius: isOwnMessage ? '17.11px 17.11px 17.11px 17.11px' : '17.11px 17.11px 17.11px 4px',
+            borderTopRightRadius: '17.11px',
+            borderBottomRightRadius: '17.11px',
+            borderBottomLeftRadius: '17.11px',
+            borderTopLeftRadius: isOwnMessage ? '17.11px' : '4px',
+            maxWidth: message.mediaType ? '400px' : '65%',
+            minWidth: '80px',
+            width: 'fit-content',
+            height: 'fit-content',
             position: 'relative',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4.28px',
             boxShadow: isHighlighted
               ? '0 0 15px rgba(0, 168, 132, 0.5)'
               : '0 1px 0.5px rgba(0,0,0,.13)',
@@ -386,9 +479,9 @@ const ChatContent = ({
               className="message-sender"
               style={{
                 color: '#00a884',
-                fontSize: '12.8px',
+                fontSize: '11px',
                 fontWeight: '600',
-                marginBottom: '2px'
+                marginBottom: '1px'
               }}
             >
               {message.sender}
@@ -400,14 +493,14 @@ const ChatContent = ({
             <div
               style={{
                 backgroundColor: isOwnMessage ? 'rgba(0, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0.3)',
-                borderLeft: '3px solid #00a884',
-                padding: '6px 8px',
-                borderRadius: '5px',
-                marginBottom: '6px',
-                fontSize: '12px'
+                borderLeft: '2px solid #00a884',
+                padding: '4px 6px',
+                borderRadius: '4px',
+                marginBottom: '4px',
+                fontSize: '11px'
               }}
             >
-              <div style={{ color: '#00a884', fontWeight: '600', marginBottom: '2px' }}>
+              <div style={{ color: '#00a884', fontWeight: '600', marginBottom: '1px' }}>
                 {message.replyToSender}
               </div>
               <div style={{ color: '#8696a0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -420,7 +513,7 @@ const ChatContent = ({
             <div
               className="media-message"
               style={{
-                marginBottom: '4px'
+                marginBottom: '2px'
               }}
             >
               {message.mediaType === 'image' ? (
@@ -444,17 +537,17 @@ const ChatContent = ({
                     }}
                     style={{
                       position: 'absolute',
-                      bottom: '8px',
-                      right: '8px',
+                      bottom: '6px',
+                      right: '6px',
                       backgroundColor: 'rgba(0,0,0,0.6)',
                       color: '#fff',
-                      padding: '6px 12px',
-                      borderRadius: '15px',
-                      fontSize: '12px',
+                      padding: '4px 8px',
+                      borderRadius: '12px',
+                      fontSize: '10px',
                       border: 'none',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '4px',
+                      gap: '3px',
                       cursor: 'pointer',
                       transition: 'background-color 0.2s'
                     }}
@@ -480,12 +573,12 @@ const ChatContent = ({
                     onClick={() => handleDownload(message.mediaData, message.fileName || 'video')}
                     style={{
                       display: 'inline-block',
-                      marginTop: '8px',
+                      marginTop: '4px',
                       backgroundColor: 'rgba(0,0,0,0.6)',
                       color: '#fff',
-                      padding: '6px 12px',
-                      borderRadius: '15px',
-                      fontSize: '12px',
+                      padding: '4px 8px',
+                      borderRadius: '12px',
+                      fontSize: '10px',
                       border: 'none',
                       cursor: 'pointer',
                       transition: 'background-color 0.2s'
@@ -493,7 +586,7 @@ const ChatContent = ({
                     onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.8)'}
                     onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.6)'}
                   >
-                    ⬇️ Descargar video
+                    ⬇️ Descargar
                   </button>
                 </div>
               ) : message.mediaType === 'audio' ? (
@@ -511,12 +604,12 @@ const ChatContent = ({
                     onClick={() => handleDownload(message.mediaData, message.fileName || 'audio')}
                     style={{
                       display: 'inline-block',
-                      marginTop: '8px',
+                      marginTop: '4px',
                       backgroundColor: 'rgba(0,0,0,0.6)',
                       color: '#fff',
-                      padding: '6px 12px',
-                      borderRadius: '15px',
-                      fontSize: '12px',
+                      padding: '4px 8px',
+                      borderRadius: '12px',
+                      fontSize: '10px',
                       border: 'none',
                       cursor: 'pointer',
                       transition: 'background-color 0.2s'
@@ -524,7 +617,7 @@ const ChatContent = ({
                     onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.8)'}
                     onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.6)'}
                   >
-                    ⬇️ Descargar audio
+                    ⬇️ Descargar
                   </button>
                 </div>
               ) : (
@@ -534,10 +627,10 @@ const ChatContent = ({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
-                    padding: '12px',
+                    gap: '4px',
+                    padding: '3px 5px',
                     backgroundColor: 'rgba(255,255,255,0.1)',
-                    borderRadius: '7.5px',
+                    borderRadius: '5px',
                     border: '1px solid rgba(255,255,255,0.2)',
                     cursor: 'pointer',
                     transition: 'background-color 0.2s'
@@ -545,25 +638,45 @@ const ChatContent = ({
                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)'}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'}
                 >
-                  <div className="file-icon" style={{ fontSize: '24px' }}>📎</div>
-                  <div style={{ flex: 1 }}>
+                  <div className="file-icon" style={{ fontSize: '14px' }}>📎</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div
                       className="file-name"
                       style={{
-                        color: '#e9edef',
-                        fontSize: '14px',
-                        fontWeight: '500'
+                        color: '#000000D9',
+                        fontSize: '10.5px',
+                        fontWeight: '500',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        marginBottom: '1px'
                       }}
                     >
                       {message.fileName}
                     </div>
-                    {message.fileSize && (
-                      <div style={{ color: '#8696a0', fontSize: '12px', marginTop: '2px' }}>
-                        {(message.fileSize / 1024 / 1024).toFixed(2)} MB
-                      </div>
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {message.fileSize && (
+                        <span style={{ color: '#8696a0', fontSize: '8.5px' }}>
+                          {(message.fileSize / 1024 / 1024).toFixed(1)} MB
+                        </span>
+                      )}
+                      <span style={{ color: '#8696a0', fontSize: '8.5px' }}>•</span>
+                      <span style={{ color: '#8696a0', fontSize: '8.5px' }}>
+                        {formatTime(message.time)}
+                      </span>
+                      {isOwnMessage && (
+                        <span
+                          style={{
+                            color: message.isRead ? '#53bdeb' : '#8696a0',
+                            fontSize: '9px'
+                          }}
+                        >
+                          {message.isSent ? '✓✓' : '⏳'}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div style={{ color: '#00a884', fontSize: '20px' }}>⬇️</div>
+                  <div style={{ color: '#00a884', fontSize: '13px' }}>⬇️</div>
                 </div>
               )}
             </div>
@@ -625,29 +738,70 @@ const ChatContent = ({
               <div
                 className="message-text"
                 style={{
-                  color: '#e9edef',
-                  fontSize: '14.2px',
-                  lineHeight: '19px',
-                  marginBottom: '2px',
-                  whiteSpace: 'pre-wrap'
+                  color: '#000000D9',
+                  fontSize: '14.97px',
+                  lineHeight: '100%',
+                  letterSpacing: '0%',
+                  fontFamily: 'Inter, sans-serif',
+                  fontWeight: '400',
+                  fontStyle: 'Regular',
+                  marginBottom: '1px',
+                  whiteSpace: 'pre-wrap',
+                  display: 'inline'
                 }}
               >
                 {message.text}
                 {message.isEdited && (
                   <span
                     style={{
-                      fontSize: '11px',
+                      fontSize: '10px',
                       color: '#8696a0',
-                      marginLeft: '6px',
+                      marginLeft: '4px',
                       fontStyle: 'italic'
                     }}
                   >
                     (editado)
                   </span>
                 )}
+                {/* Hora y checks inline */}
+                <span
+                  className="message-time-inline"
+                  style={{
+                    fontSize: '10px',
+                    color: '#8696a0',
+                    marginLeft: '6px',
+                    whiteSpace: 'nowrap',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    verticalAlign: 'bottom'
+                  }}
+                >
+                  <span>{formatTime(message.time)}</span>
+                  {isOwnMessage && (
+                    <>
+                      <span
+                        className="message-status"
+                        style={{
+                          color: (message.readBy && message.readBy.length > 0) ? '#53bdeb' : '#8696a0',
+                          fontSize: '11px',
+                          cursor: isGroup ? 'pointer' : 'default'
+                        }}
+                        onClick={() => {
+                          if (isGroup && message.id) {
+                            setShowMessageInfo(message);
+                          }
+                        }}
+                        title={isGroup ? 'Ver información de lectura' : ''}
+                      >
+                        {message.isSent ? '✓✓' : '⏳'}
+                      </span>
+                    </>
+                  )}
+                </span>
               </div>
               {/* Botones de acción del mensaje */}
-              <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>
                 {/* Botón de responder - disponible para todos los mensajes */}
                 <button
                   onClick={() => {
@@ -660,16 +814,37 @@ const ChatContent = ({
                     border: 'none',
                     color: '#8696a0',
                     cursor: 'pointer',
-                    fontSize: '12px',
-                    padding: '4px 0',
+                    fontSize: '11px',
+                    padding: '2px 0',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px'
+                    gap: '3px'
                   }}
                   title="Responder mensaje"
                 >
                   <FaReply /> Responder
                 </button>
+
+                {/* Botón de info - solo para mensajes propios en salas */}
+                {isOwnMessage && isGroup && message.id && (
+                  <button
+                    onClick={() => setShowMessageInfo(message)}
+                    style={{
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      color: '#8696a0',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      padding: '2px 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '3px'
+                    }}
+                    title="Ver quién leyó este mensaje"
+                  >
+                    <FaInfoCircle /> Info
+                  </button>
+                )}
 
                 {/* Botón de editar solo para mensajes propios sin multimedia */}
                 {isOwnMessage && !message.mediaType && (
@@ -680,47 +855,136 @@ const ChatContent = ({
                       border: 'none',
                       color: '#8696a0',
                       cursor: 'pointer',
-                      fontSize: '12px',
-                      padding: '4px 0',
+                      fontSize: '11px',
+                      padding: '2px 0',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '4px'
+                      gap: '3px'
                     }}
                     title="Editar mensaje"
                   >
                     <FaEdit /> Editar
                   </button>
                 )}
+
+                {/* Botón de reacción - disponible para todos los mensajes */}
+                {message.id && (
+                  <div style={{ position: 'relative' }}>
+                    <button
+                      onClick={() => setShowReactionPicker(showReactionPicker === message.id ? null : message.id)}
+                      style={{
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        color: '#8696a0',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        padding: '2px 0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '3px'
+                      }}
+                      title="Reaccionar"
+                    >
+                      <FaSmile />
+                    </button>
+
+                    {/* Selector de reacciones rápidas */}
+                    {showReactionPicker === message.id && (
+                      <div
+                        ref={reactionPickerRef}
+                        style={{
+                          position: 'absolute',
+                          bottom: '100%',
+                          left: isOwnMessage ? 'auto' : '0',
+                          right: isOwnMessage ? '0' : 'auto',
+                          backgroundColor: '#fff',
+                          borderRadius: '20px',
+                          padding: '8px 12px',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                          display: 'flex',
+                          gap: '8px',
+                          zIndex: 1000,
+                          marginBottom: '4px'
+                        }}
+                      >
+                        {['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji) => (
+                          <button
+                            key={emoji}
+                            onClick={() => handleReaction(message, emoji)}
+                            style={{
+                              backgroundColor: 'transparent',
+                              border: 'none',
+                              fontSize: '20px',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              borderRadius: '50%',
+                              transition: 'transform 0.2s, background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = 'scale(1.3)';
+                              e.currentTarget.style.backgroundColor = '#f5f6f6';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = 'scale(1)';
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                            }}
+                            title={emoji}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
+
+              {/* Mostrar reacciones del mensaje */}
+              {message.reactions && message.reactions.length > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '4px',
+                    marginTop: '4px'
+                  }}
+                >
+                  {/* Agrupar reacciones por emoji */}
+                  {Object.entries(
+                    message.reactions.reduce((acc, reaction) => {
+                      if (!acc[reaction.emoji]) {
+                        acc[reaction.emoji] = [];
+                      }
+                      acc[reaction.emoji].push(reaction.username);
+                      return acc;
+                    }, {})
+                  ).map(([emoji, users]) => (
+                    <div
+                      key={emoji}
+                      style={{
+                        backgroundColor: users.includes(currentUsername) ? '#e1f4d6' : '#f5f6f6',
+                        border: users.includes(currentUsername) ? '1px solid #00a884' : '1px solid #ddd',
+                        borderRadius: '12px',
+                        padding: '2px 8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '12px',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => handleReaction(message, emoji)}
+                      title={users.join(', ')}
+                    >
+                      <span style={{ fontSize: '14px' }}>{emoji}</span>
+                      <span style={{ fontSize: '11px', color: '#667781', fontWeight: '500' }}>
+                        {users.length}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
-
-          <div
-            className="message-time"
-            style={{
-              fontSize: '11px',
-              color: isOwnMessage ? '#8696a0' : '#8696a0',
-              textAlign: 'right',
-              marginTop: '2px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'flex-end',
-              gap: '4px'
-            }}
-          >
-            <span>{formatTime(message.time)}</span>
-            {isOwnMessage && (
-              <span
-                className="message-status"
-                style={{
-                  color: message.isRead ? '#53bdeb' : '#8696a0', // Azul si leído, gris si no
-                  fontSize: '12px'
-                }}
-              >
-                {message.isSent ? '✓✓' : '⏳'}
-              </span>
-            )}
-          </div>
         </div>
       </div>
     );
@@ -882,6 +1146,48 @@ const ChatContent = ({
             <FaPaperclip className="attach-icon" />
           </label>
 
+          {/* Botón de emoji picker */}
+          <div style={{ position: 'relative' }} ref={emojiPickerRef}>
+            <button
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className={`btn-attach ${!canSendMessages ? 'disabled' : ''}`}
+              disabled={!canSendMessages}
+              title="Emojis"
+              style={{
+                backgroundColor: 'transparent',
+                border: 'none',
+                cursor: canSendMessages ? 'pointer' : 'not-allowed',
+                padding: '0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <FaSmile className="attach-icon" style={{ color: showEmojiPicker ? '#00a884' : '#8696a0' }} />
+            </button>
+
+            {/* Emoji Picker */}
+            {showEmojiPicker && (
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: '50px',
+                  left: '0',
+                  zIndex: 1000
+                }}
+              >
+                <EmojiPicker
+                  onEmojiClick={handleEmojiClick}
+                  width={320}
+                  height={400}
+                  theme="light"
+                  searchPlaceholder="Buscar emoji..."
+                  previewConfig={{ showPreview: false }}
+                />
+              </div>
+            )}
+          </div>
+
           <input
             type="text"
             value={input}
@@ -903,6 +1209,137 @@ const ChatContent = ({
           </button>
         </div>
       </div>
+
+      {/* Modal de información de lectura */}
+      {showMessageInfo && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2000
+          }}
+          onClick={() => setShowMessageInfo(null)}
+        >
+          <div
+            style={{
+              backgroundColor: '#fff',
+              borderRadius: '12px',
+              padding: '24px',
+              maxWidth: '400px',
+              width: '90%',
+              maxHeight: '80vh',
+              overflow: 'auto',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#111' }}>
+                Información del mensaje
+              </h3>
+              <button
+                onClick={() => setShowMessageInfo(null)}
+                style={{
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  color: '#8696a0',
+                  padding: '4px'
+                }}
+              >
+                <FaTimes />
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <div
+                style={{
+                  backgroundColor: '#E1F4D6',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  marginBottom: '16px'
+                }}
+              >
+                <p style={{ margin: 0, fontSize: '14px', color: '#111', wordBreak: 'break-word' }}>
+                  {showMessageInfo.text || '📎 Archivo multimedia'}
+                </p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#8696a0' }}>
+                  {formatTime(showMessageInfo.time)}
+                </p>
+              </div>
+
+              <div style={{ marginBottom: '12px' }}>
+                <h4 style={{ fontSize: '13px', fontWeight: '600', color: '#00a884', marginBottom: '8px' }}>
+                  ✓✓ Leído por ({showMessageInfo.readBy?.length || 0})
+                </h4>
+                {showMessageInfo.readBy && showMessageInfo.readBy.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {showMessageInfo.readBy.map((reader, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          padding: '8px',
+                          backgroundColor: '#f5f6f6',
+                          borderRadius: '8px'
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '14px',
+                            color: '#fff',
+                            fontWeight: '600'
+                          }}
+                        >
+                          {reader.charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ margin: 0, fontSize: '14px', fontWeight: '500', color: '#111' }}>
+                            {reader}
+                          </p>
+                        </div>
+                        <div style={{ fontSize: '16px', color: '#53bdeb' }}>
+                          ✓✓
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ fontSize: '13px', color: '#8696a0', fontStyle: 'italic' }}>
+                    Aún no ha sido leído por nadie
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <h4 style={{ fontSize: '13px', fontWeight: '600', color: '#8696a0', marginBottom: '8px' }}>
+                  ✓ Entregado
+                </h4>
+                <p style={{ fontSize: '13px', color: '#8696a0' }}>
+                  Enviado a todos los miembros de la sala
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

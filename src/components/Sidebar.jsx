@@ -40,7 +40,8 @@ const Sidebar = ({
   myActiveRooms = [],
   currentRoomCode,
   onRoomSelect,
-  to
+  to,
+  roomTypingUsers = {}
 }) => {
   return (
     <>
@@ -76,6 +77,7 @@ const Sidebar = ({
           userListHasMore={userListHasMore}
           userListLoading={userListLoading}
           onLoadMoreUsers={onLoadMoreUsers}
+          roomTypingUsers={roomTypingUsers}
         />
       </div>
 
@@ -97,6 +99,7 @@ const Sidebar = ({
             userListHasMore={userListHasMore}
             userListLoading={userListLoading}
             onLoadMoreUsers={onLoadMoreUsers}
+            roomTypingUsers={roomTypingUsers}
           />
         </div>
       )}

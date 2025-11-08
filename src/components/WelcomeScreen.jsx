@@ -1,5 +1,4 @@
 import './WelcomeScreen.css';
-import logo from '../assets/Logotipo +34.svg';
 import teleoperadora from '../assets/teleoperadora.png';
 
 const WelcomeScreen = () => {
@@ -8,12 +7,8 @@ const WelcomeScreen = () => {
       <div className="welcome-content">
         <div className="welcome-center">
           <div className="welcome-main-container">
-            <div className="welcome-logo">
-              <img src={logo} alt="+34 Logo" className="logo-image" />
-            </div>
-
-            <h1 className="welcome-title">Te damos la bienvenida</h1>
-
+            <h1 className="welcome-title">Te damos la bienvenida al Chat Corporativo</h1>
+            <h2 className="welcome-subtitle">¡Únete a la comunidad de Chats y conversaciones!</h2>
             <div className="welcome-bottom">
               <div className="welcome-options">
                 <div className="welcome-option">

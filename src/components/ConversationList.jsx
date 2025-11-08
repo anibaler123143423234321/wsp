@@ -1,7 +1,8 @@
-import { useState, useRef, useCallback } from 'react';
-import { FaTimes, FaBars, FaSignInAlt } from 'react-icons/fa';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { FaTimes, FaBars, FaSignInAlt, FaStar, FaRegStar } from 'react-icons/fa';
 import { MessageSquare, Home, UserCheck } from 'lucide-react';
 import clsx from 'clsx';
+import apiService from '../apiService';
 
 // Componente reutilizable para cada pestaña (botón)
 const TabButton = ({ isActive, onClick, label, shortLabel, icon: Icon, notificationCount }) => {
@@ -60,17 +61,66 @@ const ConversationList = ({
   onShowJoinRoom,
   userListHasMore,
   userListLoading,
-  onLoadMoreUsers
+  onLoadMoreUsers,
+  roomTypingUsers = {} // Nuevo prop: objeto con roomCode como key y array de usuarios escribiendo
 }) => {
-  const [activeModule, setActiveModule] = useState('conversations');
+  // 🔥 Módulo activo por defecto: 'assigned' (Chats Asignados)
+  const [activeModule, setActiveModule] = useState('assigned');
   const [searchTerm, setSearchTerm] = useState('');
   const [roomsSearchTerm, setRoomsSearchTerm] = useState('');
   const [assignedSearchTerm, setAssignedSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [isSearching] = useState(false);
   const conversationsListRef = useRef(null);
+  const [favoriteRoomCodes, setFavoriteRoomCodes] = useState([]); // Códigos de salas favoritas
 
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'JEFEPISO';
+
+  // Obtener el displayName del usuario
+  const getDisplayName = () => {
+    if (!user) return '';
+    return user.nombre && user.apellido
+      ? `${user.nombre} ${user.apellido}`
+      : user.username;
+  };
+
+  // Cargar favoritos al montar el componente
+  useEffect(() => {
+    const loadFavorites = async () => {
+      const displayName = getDisplayName();
+      if (!displayName) return;
+
+      try {
+        const roomCodes = await apiService.getUserFavoriteRoomCodes(displayName);
+        setFavoriteRoomCodes(roomCodes);
+      } catch (error) {
+        console.error('Error al cargar favoritos:', error);
+      }
+    };
+
+    loadFavorites();
+  }, [user]);
+
+  // Función para alternar favorito
+  const handleToggleFavorite = async (room, e) => {
+    e.stopPropagation(); // Evitar que se seleccione la sala al hacer click en la estrella
+
+    const displayName = getDisplayName();
+    if (!displayName) return;
+
+    try {
+      const result = await apiService.toggleRoomFavorite(displayName, room.roomCode, room.id);
+
+      // Actualizar la lista de favoritos
+      if (result.isFavorite) {
+        setFavoriteRoomCodes(prev => [...prev, room.roomCode]);
+      } else {
+        setFavoriteRoomCodes(prev => prev.filter(code => code !== room.roomCode));
+      }
+    } catch (error) {
+      console.error('Error al alternar favorito:', error);
+    }
+  };
 
   // Manejar scroll infinito para cargar más usuarios
   const handleScroll = useCallback((e) => {
@@ -113,14 +163,16 @@ const ConversationList = ({
   });
 
   // Definimos las pestañas como un array de objetos
+  // 🔥 ORDEN: Chats Asignados primero, luego Salas Activas (Conversaciones eliminado)
   const tabs = [
     {
-      id: 'conversations',
-      label: 'Conversaciones',
-      shortLabel: 'Chats', // Label corto para pantallas pequeñas
-      icon: MessageSquare,
-      notificationCount: 0,
-      adminOnly: false,
+      id: 'assigned',
+      label: 'Chats Asignados',
+      shortLabel: 'Asignados', // Label corto para pantallas pequeñas
+      icon: UserCheck,
+      notificationCount: assignedConversations?.length || 0,
+      adminOnly: false, // Cambiar a false para que todos puedan ver sus chats asignados
+      showOnlyIfHasConversations: true, // Solo mostrar si tiene conversaciones asignadas
     },
     {
       id: 'rooms',
@@ -130,15 +182,6 @@ const ConversationList = ({
       notificationCount: myActiveRooms?.length || 0,
       adminOnly: false, // Permitir que todos vean sus salas activas
       showOnlyIfHasRooms: true, // Solo mostrar si tiene salas activas
-    },
-    {
-      id: 'assigned',
-      label: 'Chats Asignados',
-      shortLabel: 'Asignados', // Label corto para pantallas pequeñas
-      icon: UserCheck,
-      notificationCount: assignedConversations?.length || 0,
-      adminOnly: false, // Cambiar a false para que todos puedan ver sus chats asignados
-      showOnlyIfHasConversations: true, // Solo mostrar si tiene conversaciones asignadas
     },
   ];
 
@@ -153,7 +196,7 @@ const ConversationList = ({
         >
           <FaBars className="text-lg" />
         </button>
-        <span className="text-sm font-semibold text-gray-700">Conversaciones</span>
+        <span className="text-sm font-semibold text-gray-700">Chats</span>
         <div className="w-10"></div> {/* Spacer para centrar el título */}
       </div>
 
@@ -206,11 +249,7 @@ const ConversationList = ({
           <span className="text-gray-500 flex-shrink-0 max-[1280px]:!text-sm max-[1024px]:!text-xs max-[768px]:!text-sm" style={{ fontSize: '15.55px' }}>🔍</span>
           <input
             type="text"
-            placeholder={
-              activeModule === 'rooms' ? 'Buscar salas...' :
-              activeModule === 'assigned' ? 'Buscar chats asignados...' :
-              'Buscar'
-            }
+            placeholder="Buscar..."
             className="flex-1 bg-transparent border-none text-gray-800 outline-none placeholder:text-gray-400 max-[1280px]:!text-sm max-[1280px]:placeholder:!text-xs max-[1024px]:!text-xs max-[1024px]:placeholder:!text-[11px] max-[768px]:!text-sm max-[768px]:placeholder:!text-xs"
             style={{
               fontSize: '15.55px',
@@ -299,69 +338,131 @@ const ConversationList = ({
                   room.name.toLowerCase().includes(roomsSearchTerm.toLowerCase()) ||
                   room.roomCode.toLowerCase().includes(roomsSearchTerm.toLowerCase())
                 )
-                .map((room) => (
-                  <div
-                    key={room.id}
-                    className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer ${currentRoomCode === room.roomCode ? 'bg-[#e7f3f0]' : ''}`}
-                    style={{
-                      padding: '8px 12px',
-                      gap: '10px',
-                      minHeight: '60px'
-                    }}
-                    onClick={() => onRoomSelect && onRoomSelect(room)}
-                  >
-                    {/* Icono de sala */}
-                    <div className="relative flex-shrink-0" style={{ width: '40px', height: '40px' }}>
-                      <div
-                        className="rounded-full overflow-hidden bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center text-white font-bold"
-                        style={{
-                          width: '40px',
-                          height: '40px',
-                          border: '1.3px solid rgba(0, 0, 0, 0.1)',
-                          fontSize: '18px'
-                        }}
-                      >
-                        🏠
-                      </div>
-                    </div>
+                // Ordenar: favoritas primero, luego por fecha
+                .sort((a, b) => {
+                  const aIsFavorite = favoriteRoomCodes.includes(a.roomCode);
+                  const bIsFavorite = favoriteRoomCodes.includes(b.roomCode);
 
-                    {/* Info de la sala */}
-                    <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '4px' }}>
-                      <div className="flex items-center justify-between">
-                        <h3
-                          className="font-semibold text-[#111] truncate"
+                  // Si una es favorita y la otra no, la favorita va primero
+                  if (aIsFavorite && !bIsFavorite) return -1;
+                  if (!aIsFavorite && bIsFavorite) return 1;
+
+                  // Si ambas son favoritas o ninguna lo es, ordenar por fecha
+                  return new Date(b.createdAt) - new Date(a.createdAt);
+                })
+                .map((room) => {
+                  // Obtener usuarios escribiendo en esta sala
+                  const typingUsers = roomTypingUsers[room.roomCode] || [];
+                  const isTypingInRoom = typingUsers.length > 0;
+                  const isFavorite = favoriteRoomCodes.includes(room.roomCode);
+
+                  return (
+                    <div
+                      key={room.id}
+                      className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer ${currentRoomCode === room.roomCode ? 'bg-[#e7f3f0]' : ''}`}
+                      style={{
+                        padding: '8px 12px',
+                        gap: '10px',
+                        minHeight: '56px'
+                      }}
+                      onClick={() => onRoomSelect && onRoomSelect(room)}
+                    >
+                      {/* Icono de sala */}
+                      <div className="relative flex-shrink-0" style={{ width: '36px', height: '36px' }}>
+                        <div
+                          className="rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold"
                           style={{
-                            fontSize: '14px',
-                            lineHeight: '18px',
-                            fontFamily: 'Inter, sans-serif',
-                            fontWeight: 600
+                            width: '36px',
+                            height: '36px',
+                            border: '1.3px solid rgba(0, 0, 0, 0.1)',
+                            fontSize: '16px'
                           }}
                         >
-                          {room.name}
-                        </h3>
-                        <span
-                          className="ml-2 flex-shrink-0"
-                          style={{ fontSize: '20px' }}
-                        >
-                          {room.isActive ? '🟢' : '🔴'}
-                        </span>
+                          🏠
+                        </div>
+                        {/* Indicador de sala activa - más pequeño y en la esquina */}
+                        {room.isActive && (
+                          <div
+                            className="absolute bottom-0 right-0 rounded-full bg-white flex items-center justify-center"
+                            style={{
+                              width: '12px',
+                              height: '12px',
+                              border: '2px solid white'
+                            }}
+                          >
+                            <div
+                              className="rounded-full bg-green-500"
+                              style={{
+                                width: '8px',
+                                height: '8px'
+                              }}
+                            />
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center justify-between">
-                        <p
-                          className="text-gray-600 truncate"
-                          style={{
-                            fontSize: '12px',
-                            lineHeight: '16px',
-                            fontFamily: 'Inter, sans-serif',
-                            fontWeight: 400
-                          }}
-                        >
-                          Código: {room.roomCode} • {room.currentMembers}/{room.maxCapacity} usuarios
-                        </p>
+
+                      {/* Info de la sala */}
+                      <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px' }}>
+                        <div className="flex items-center justify-between gap-2">
+                          <h3
+                            className="font-semibold text-[#111] truncate flex-1"
+                            style={{
+                              fontSize: '14px',
+                              lineHeight: '18px',
+                              fontFamily: 'Inter, sans-serif',
+                              fontWeight: 600
+                            }}
+                          >
+                            {room.name}
+                          </h3>
+                          {/* Botón de favorito */}
+                          <button
+                            onClick={(e) => handleToggleFavorite(room, e)}
+                            className="flex-shrink-0 p-1 hover:bg-gray-200 rounded-full transition-colors"
+                            title={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+                            style={{
+                              color: isFavorite ? '#fbbf24' : '#9ca3af',
+                              fontSize: '16px'
+                            }}
+                          >
+                            {isFavorite ? <FaStar /> : <FaRegStar />}
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          {isTypingInRoom ? (
+                            <p
+                              className="text-green-600 italic truncate flex items-center gap-1"
+                              style={{
+                                fontSize: '11px',
+                                lineHeight: '14px',
+                                fontFamily: 'Inter, sans-serif',
+                                fontWeight: 400
+                              }}
+                            >
+                              <span className="animate-pulse">✍️</span>
+                              {typingUsers.length === 1
+                                ? `${typingUsers[0]} está escribiendo...`
+                                : `${typingUsers.length} personas están escribiendo...`
+                              }
+                            </p>
+                          ) : (
+                            <p
+                              className="text-gray-600 truncate"
+                              style={{
+                                fontSize: '11px',
+                                lineHeight: '14px',
+                                fontFamily: 'Inter, sans-serif',
+                                fontWeight: 400
+                              }}
+                            >
+                              Código: {room.roomCode} • {room.currentMembers}/{room.maxCapacity} usuarios
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
             </>
           ) : (
             <div className="flex flex-col items-center justify-center py-[60px] px-5 text-center">
