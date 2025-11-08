@@ -12,6 +12,7 @@ import ManageAssignedConversationsModal from '../components/modals/ManageAssigne
 import AddUsersToRoomModal from '../components/modals/AddUsersToRoomModal';
 import RemoveUsersFromRoomModal from '../components/modals/RemoveUsersFromRoomModal';
 import CallWindow from '../components/CallWindow';
+import ThreadPanel from '../components/ThreadPanel';
 import { useAuth } from '../hooks/useAuth';
 import { useSocket } from '../hooks/useSocket';
 import { useMessages } from '../hooks/useMessages';
@@ -97,6 +98,7 @@ const ChatPage = () => {
   const [roomTypingUsers, setRoomTypingUsers] = useState({}); // Usuarios escribiendo en cada sala { roomCode: [username1, username2] }
   const [adminViewConversation, setAdminViewConversation] = useState(null); // Conversación que el admin está viendo
   const [replyingTo, setReplyingTo] = useState(null); // Mensaje al que se está respondiendo
+  const [threadMessage, setThreadMessage] = useState(null); // Mensaje del hilo abierto
 
   // Estados de UI
   const [showAdminMenu, setShowAdminMenu] = useState(false);
@@ -244,6 +246,8 @@ const ChatPage = () => {
         return;
       }
 
+      console.log('🔄 Cargando mensajes para conversación asignada:', adminViewConversation);
+
       try {
         const [participant1, participant2] = adminViewConversation.participants;
 
@@ -254,6 +258,8 @@ const ChatPage = () => {
           20,
           0
         );
+
+        console.log('✅ Mensajes cargados:', historicalMessages.length);
 
         // 🔥 SEGUNDO: Marcar como leídos SOLO si el usuario es ADMIN, PROGRAMADOR o JEFEPISO
         // Los ASESORES NO deben marcar mensajes como leídos automáticamente
@@ -335,6 +341,8 @@ const ChatPage = () => {
         // Actualizar los mensajes manualmente (no usar el hook)
         clearMessages();
         formattedMessages.forEach(msg => addNewMessage(msg));
+
+        console.log('✅ Mensajes actualizados en el estado');
       } catch (error) {
         console.error("❌ Error al cargar mensajes de admin view:", error);
       }
@@ -343,7 +351,7 @@ const ChatPage = () => {
     if (adminViewConversation) {
       loadAdminViewMessages();
     }
-  }, [adminViewConversation, clearMessages, addNewMessage, socket]);
+  }, [adminViewConversation, user?.role, username, socket]);
 
   // Función para cargar conversaciones asignadas
   const loadAssignedConversations = useCallback(async () => {
@@ -765,6 +773,24 @@ const ChatPage = () => {
       });
     });
 
+    // 🔥 Evento: Nueva sala creada (notificación global para ADMIN y JEFEPISO)
+    s.on('roomCreated', (data) => {
+      console.log('✨ Nueva sala creada:', data);
+
+      // Solo agregar si el usuario es ADMIN o JEFEPISO
+      if (user?.role === 'ADMIN' || user?.role === 'JEFEPISO') {
+        // Agregar la nueva sala a la lista de salas activas
+        setMyActiveRooms(prevRooms => {
+          // Verificar que no exista ya en la lista
+          const exists = prevRooms.some(room => room.id === data.id);
+          if (!exists) {
+            return [data, ...prevRooms];
+          }
+          return prevRooms;
+        });
+      }
+    });
+
     // 🔥 Evento: Sala eliminada/desactivada (notificación global)
     s.on('roomDeleted', (data) => {
       const { roomCode, roomId } = data;
@@ -884,6 +910,24 @@ const ChatPage = () => {
       });
     });
 
+    // Evento: Contador de hilo actualizado
+    s.on('threadCountUpdated', (data) => {
+      const { messageId, lastReplyFrom } = data;
+
+      // Actualizar el mensaje con el nuevo contador y último usuario
+      setMessages(prevMessages =>
+        prevMessages.map(msg =>
+          msg.id === messageId
+            ? {
+                ...msg,
+                threadCount: (msg.threadCount || 0) + 1,
+                lastReplyFrom: lastReplyFrom
+              }
+            : msg
+        )
+      );
+    });
+
         return () => {
           s.off('userList');
           s.off('roomUsers');
@@ -901,6 +945,8 @@ const ChatPage = () => {
           s.off('roomTyping');
           s.off('roomMessageRead');
           s.off('reactionUpdated');
+          s.off('threadCountUpdated');
+          s.off('roomCreated');
           s.off('roomDeleted');
           s.off('removedFromRoom');
           s.off('roomDeactivated');
@@ -925,21 +971,25 @@ const ChatPage = () => {
 
   // Handlers
   const handleUserSelect = (userName, messageId = null, conversationData = null) => {
+    console.log('👤 Usuario seleccionado:', userName, 'conversationData:', conversationData);
+
     // Si es una conversación de admin (conversationData presente), guardarla
     if (conversationData) {
       setAdminViewConversation(conversationData);
       // Para conversaciones de admin, usar el nombre de la conversación como "to"
       setTo(conversationData.name || userName);
+      // No limpiar mensajes aquí, el useEffect se encargará
     } else {
       setAdminViewConversation(null);
       setTo(userName);
+      // Solo limpiar mensajes si NO es una conversación asignada
+      clearMessages();
     }
 
     setIsGroup(false);
     setCurrentRoomCode(null);
     currentRoomCodeRef.current = null;
     setRoomUsers([]);
-    clearMessages();
 
     // Si se proporciona un messageId, guardarlo para resaltarlo después de cargar los mensajes
     if (messageId) {
@@ -955,6 +1005,9 @@ const ChatPage = () => {
   };
 
   const handleGroupSelect = (group) => {
+    // Limpiar la vista de admin al seleccionar un grupo
+    setAdminViewConversation(null);
+
     setTo(group.name);
     setIsGroup(true);
     setCurrentRoomCode(null);
@@ -1074,15 +1127,18 @@ const ChatPage = () => {
         roomCode: joinRoomForm.roomCode,
         username: username
       };
-      
+
       const result = await apiService.joinRoom(joinData);
       setShowJoinRoomModal(false);
       setJoinRoomForm({ roomCode: '' });
 
-          setTo(result.name);
-          setIsGroup(true);
-          setCurrentRoomCode(result.roomCode);
-          currentRoomCodeRef.current = result.roomCode;
+      // Limpiar la vista de admin al unirse a una sala
+      setAdminViewConversation(null);
+
+      setTo(result.name);
+      setIsGroup(true);
+      setCurrentRoomCode(result.roomCode);
+      currentRoomCodeRef.current = result.roomCode;
       
       // Cargar mensajes históricos de la sala usando paginación
       await loadInitialMessages();
@@ -1142,6 +1198,9 @@ const ChatPage = () => {
           from: username
         });
       }
+
+      // Limpiar la vista de admin al seleccionar una sala
+      setAdminViewConversation(null);
 
       // Unirse a la sala seleccionada
       setTo(room.name);
@@ -1389,6 +1448,178 @@ const ChatPage = () => {
     setReplyingTo(null);
   };
 
+  // Función para enviar mensaje de voz
+  const handleSendVoiceMessage = async (audioFile) => {
+    if (!audioFile || !to) return;
+
+    try {
+      // Subir el archivo de audio al servidor
+      const uploadResult = await apiService.uploadFile(audioFile, 'chat');
+
+      const now = new Date();
+      const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
+      const messageObj = {
+        id: messageId,
+        to,
+        isGroup,
+        time: timeString,
+        from: username,
+        fromId: user.id,
+        mediaType: 'audio',
+        mediaData: uploadResult.fileUrl,
+        fileName: uploadResult.fileName,
+        fileSize: uploadResult.fileSize
+      };
+
+      // Si hay un mensaje al que se está respondiendo
+      if (replyingTo) {
+        messageObj.replyToMessageId = replyingTo.id;
+        messageObj.replyToSender = replyingTo.sender;
+        messageObj.replyToText = replyingTo.text;
+      }
+
+      // Si es una sala activa
+      if (isGroup && currentRoomCode) {
+        messageObj.roomCode = currentRoomCode;
+        messageObj.message = ''; // Mensaje vacío para audios
+        socket.emit('sendGroupMessage', messageObj);
+      } else {
+        // Mensaje privado o conversación asignada
+        messageObj.message = '';
+        socket.emit('sendMessage', messageObj);
+      }
+
+      // Agregar mensaje localmente
+      const newMessage = {
+        id: messageId,
+        sender: 'Tú',
+        receiver: to,
+        text: '',
+        isGroup: isGroup,
+        time: timeString,
+        isSent: true,
+        mediaType: 'audio',
+        mediaData: uploadResult.fileUrl,
+        fileName: uploadResult.fileName,
+        fileSize: uploadResult.fileSize
+      };
+
+      if (replyingTo) {
+        newMessage.replyToMessageId = replyingTo.id;
+        newMessage.replyToSender = replyingTo.sender;
+        newMessage.replyToText = replyingTo.text;
+      }
+
+      addMessage(newMessage);
+
+      // Limpiar respuesta si existe
+      if (replyingTo) {
+        setReplyingTo(null);
+      }
+
+      // Reproducir sonido
+      playMessageSound();
+
+    } catch (error) {
+      console.error('❌ Error al enviar mensaje de voz:', error);
+      await showErrorAlert('Error', 'Error al enviar el mensaje de voz. Inténtalo de nuevo.');
+    }
+  };
+
+  // Función para abrir un hilo
+  const handleOpenThread = (message) => {
+    setThreadMessage({
+      id: message.id,
+      from: message.sender || message.from,
+      to: message.receiver || message.to,
+      text: message.text || message.message,
+      sentAt: message.sentAt || message.time,
+      threadCount: message.threadCount || 0,
+      isGroup,
+      roomCode: currentRoomCode
+    });
+  };
+
+  // Función para cerrar el hilo
+  const handleCloseThread = () => {
+    setThreadMessage(null);
+  };
+
+  // Función para enviar mensaje en hilo
+  const handleSendThreadMessage = async (messageData) => {
+    try {
+      const messageObj = {
+        from: messageData.from,
+        to: messageData.to,
+        message: messageData.text,
+        isGroup: messageData.isGroup,
+        roomCode: messageData.roomCode,
+        threadId: messageData.threadId,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        fromId: user.id
+      };
+
+      // Guardar en BD
+      const savedMessage = await apiService.createMessage(messageObj);
+
+      // Incrementar contador del hilo
+      await apiService.incrementThreadCount(messageData.threadId);
+
+      // Emitir por socket
+      if (socket && socket.connected) {
+        if (messageData.isGroup) {
+          socket.emit('sendGroupMessage', {
+            ...messageObj,
+            roomCode: messageData.roomCode
+          });
+        } else {
+          socket.emit('sendMessage', messageObj);
+        }
+
+        // Emitir evento específico de hilo
+        socket.emit('threadMessage', {
+          ...savedMessage,
+          threadId: messageData.threadId
+        });
+
+        // Emitir evento para actualizar el contador en el mensaje original
+        socket.emit('threadCountUpdated', {
+          messageId: messageData.threadId,
+          lastReplyFrom: messageData.from,
+          roomCode: messageData.roomCode,
+          isGroup: messageData.isGroup,
+          to: messageData.to
+        });
+      }
+
+      // Actualizar el contador en el mensaje principal del ThreadPanel
+      setThreadMessage(prev => ({
+        ...prev,
+        threadCount: (prev.threadCount || 0) + 1,
+        lastReplyFrom: messageData.from
+      }));
+
+      // Actualizar el contador en la lista de mensajes del chat principal
+      setMessages(prevMessages =>
+        prevMessages.map(msg =>
+          msg.id === messageData.threadId
+            ? {
+                ...msg,
+                threadCount: (msg.threadCount || 0) + 1,
+                lastReplyFrom: messageData.from
+              }
+            : msg
+        )
+      );
+
+    } catch (error) {
+      console.error('Error al enviar mensaje en hilo:', error);
+      await showErrorAlert('Error', 'Error al enviar el mensaje en el hilo.');
+    }
+  };
+
   // Exponer la función globalmente para que ChatContent pueda acceder a ella
   useEffect(() => {
     window.handleReplyMessage = handleReplyMessage;
@@ -1564,12 +1795,11 @@ const ChatPage = () => {
 
       // Recargar la lista de usuarios de la sala desde la API
       if (currentRoomCode) {
-        try {
-          const roomUsers = await apiService.getRoomUsers(currentRoomCode);
-          console.log('🔄 Usuarios recargados después de agregar:', roomUsers);
-          setRoomUsers(roomUsers || []);
-        } catch (error) {
-          console.error('Error al recargar usuarios de la sala:', error);
+        const roomUsers = await apiService.getRoomUsers(currentRoomCode);
+        console.log('🔄 Usuarios recargados después de agregar:', roomUsers);
+        // Si la sala está inactiva, roomUsers será un array vacío
+        if (Array.isArray(roomUsers)) {
+          setRoomUsers(roomUsers);
         }
       }
     }
@@ -1587,12 +1817,11 @@ const ChatPage = () => {
 
     // Recargar la lista de usuarios de la sala desde la API
     if (currentRoomCode) {
-      try {
-        const roomUsers = await apiService.getRoomUsers(currentRoomCode);
-        console.log('🔄 Usuarios recargados después de eliminar:', roomUsers);
-        setRoomUsers(roomUsers || []);
-      } catch (error) {
-        console.error('Error al recargar usuarios de la sala:', error);
+      const roomUsers = await apiService.getRoomUsers(currentRoomCode);
+      console.log('🔄 Usuarios recargados después de eliminar:', roomUsers);
+      // Si la sala está inactiva, roomUsers será un array vacío
+      if (Array.isArray(roomUsers)) {
+        setRoomUsers(roomUsers);
       }
     }
   };
@@ -1659,7 +1888,13 @@ const ChatPage = () => {
   const handleViewRoomUsers = async (roomCode, roomName) => {
     try {
       const roomUsersData = await apiService.getRoomUsers(roomCode);
-      
+
+      // Si la sala está inactiva o no existe, mostrar mensaje informativo
+      if (!roomUsersData || roomUsersData.length === 0) {
+        await showErrorAlert('Sala inactiva', 'Esta sala ya no está activa o no existe.');
+        return;
+      }
+
       // Crear un modal personalizado en lugar de alert
       const modal = document.createElement('div');
       modal.style.cssText = `
@@ -1674,7 +1909,7 @@ const ChatPage = () => {
         align-items: center;
         z-index: 10000;
       `;
-      
+
       const modalContent = document.createElement('div');
       modalContent.style.cssText = `
         background: #2a3942;
@@ -1685,15 +1920,15 @@ const ChatPage = () => {
         color: white;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
       `;
-      
-      const usersList = roomUsersData.users.length > 0 
-        ? roomUsersData.users.map(user => 
-            typeof user === 'string' 
-              ? `• ${user}` 
+
+      const usersList = roomUsersData.users && roomUsersData.users.length > 0
+        ? roomUsersData.users.map(user =>
+            typeof user === 'string'
+              ? `• ${user}`
               : `• ${user.displayName || user.username} ${user.isOnline ? '🟢' : '🔴'}`
           ).join('\n')
         : 'No hay usuarios conectados';
-      
+
       modalContent.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
           <h3 style="margin: 0; color: #00a884;">👥 Usuarios en "${roomName}"</h3>
@@ -1709,15 +1944,15 @@ const ChatPage = () => {
           </div>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid #374045;">
-          <span style="color: #8696a0;">Total: ${roomUsersData.totalUsers}/${roomUsersData.maxCapacity}</span>
+          <span style="color: #8696a0;">Total: ${roomUsersData.totalUsers || 0}/${roomUsersData.maxCapacity || 0}</span>
           <button onclick="this.closest('.modal-overlay').remove()" style="background: #00a884; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Cerrar</button>
         </div>
       `;
-      
+
       modal.className = 'modal-overlay';
       modal.appendChild(modalContent);
       document.body.appendChild(modal);
-      
+
       // Cerrar al hacer clic fuera del modal
       modal.addEventListener('click', (e) => {
         if (e.target === modal) {
@@ -1727,7 +1962,7 @@ const ChatPage = () => {
 
     } catch (error) {
       console.error('Error al obtener usuarios de la sala:', error);
-      await showErrorAlert('Error', 'Error al obtener usuarios de la sala: ' + error.message);
+      // No mostrar error, ya que es esperado cuando la sala está inactiva
     }
   };
 
@@ -1905,6 +2140,8 @@ const ChatPage = () => {
       onCancelReply={handleCancelReply}
       onAddUsersToRoom={handleAddUsersToRoom}
       onRemoveUsersFromRoom={handleRemoveUsersFromRoom}
+      onOpenThread={handleOpenThread}
+      onSendVoiceMessage={handleSendVoiceMessage}
 
       // Props de modales
       showCreateRoomModal={showCreateRoomModal}
@@ -2003,6 +2240,17 @@ const ChatPage = () => {
       callStatus={callStatus}
       callDuration={callDuration}
     />
+
+    {/* Panel de hilos */}
+    {threadMessage && (
+      <ThreadPanel
+        message={threadMessage}
+        onClose={handleCloseThread}
+        onSendMessage={handleSendThreadMessage}
+        currentUsername={username}
+        socket={socket}
+      />
+    )}
     </>
   );
 };

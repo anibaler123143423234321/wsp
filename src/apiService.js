@@ -547,11 +547,22 @@ class ApiService {
         }
       );
 
+      // Si la sala está inactiva o no existe, retornar array vacío sin error
+      if (response.status === 404) {
+        console.log(`ℹ️ Sala ${roomCode} no encontrada o inactiva`);
+        return [];
+      }
+
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+
       const result = await response.json();
       return result;
     } catch (error) {
       console.error("Error al obtener usuarios de la sala:", error);
-      throw error;
+      // Retornar array vacío en lugar de lanzar error
+      return [];
     }
   }
 
@@ -667,6 +678,54 @@ class ApiService {
       return result;
     } catch (error) {
       console.error("Error al obtener mensajes de la sala:", error);
+      throw error;
+    }
+  }
+
+  // Obtener mensajes de un hilo
+  async getThreadMessages(threadId, limit = 50, offset = 0) {
+    try {
+      const response = await fetch(
+        `${API_BASECHAT_URL}api/messages/thread/${threadId}?limit=${limit}&offset=${offset}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error al obtener mensajes del hilo: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error al obtener mensajes del hilo:", error);
+      throw error;
+    }
+  }
+
+  // Incrementar contador de respuestas en hilo
+  async incrementThreadCount(messageId) {
+    try {
+      const response = await fetch(
+        `${API_BASECHAT_URL}api/messages/${messageId}/increment-thread`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error al incrementar contador de hilo: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error al incrementar contador de hilo:", error);
       throw error;
     }
   }
@@ -1188,6 +1247,97 @@ class ApiService {
       return result.isFavorite || false;
     } catch (error) {
       console.error("Error al verificar favorito:", error);
+      return false;
+    }
+  }
+
+  // ==================== FAVORITOS DE CONVERSACIONES ====================
+
+  // Alternar favorito de conversación (agregar o quitar)
+  async toggleConversationFavorite(username, conversationId) {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/conversation-favorites/toggle`,
+        {
+          method: "POST",
+          body: JSON.stringify({ username, conversationId }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al alternar favorito de conversación:", error);
+      throw error;
+    }
+  }
+
+  // Obtener favoritos de conversaciones de un usuario
+  async getUserConversationFavorites(username) {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/conversation-favorites/user/${encodeURIComponent(username)}`,
+        {
+          method: "GET",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al obtener favoritos de conversaciones:", error);
+      throw error;
+    }
+  }
+
+  // Obtener IDs de conversaciones favoritas
+  async getUserFavoriteConversationIds(username) {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/conversation-favorites/ids/${encodeURIComponent(username)}`,
+        {
+          method: "GET",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result.conversationIds || [];
+    } catch (error) {
+      console.error("Error al obtener IDs de favoritos de conversaciones:", error);
+      return [];
+    }
+  }
+
+  // Verificar si una conversación es favorita
+  async isConversationFavorite(username, conversationId) {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/conversation-favorites/check?username=${encodeURIComponent(username)}&conversationId=${conversationId}`,
+        {
+          method: "GET",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result.isFavorite || false;
+    } catch (error) {
+      console.error("Error al verificar favorito de conversación:", error);
       return false;
     }
   }

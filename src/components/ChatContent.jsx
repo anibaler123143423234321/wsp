@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { FaPaperclip, FaPaperPlane, FaEdit, FaTimes, FaReply, FaSmile, FaInfoCircle } from 'react-icons/fa';
+import { FaPaperclip, FaPaperPlane, FaEdit, FaTimes, FaReply, FaSmile, FaInfoCircle, FaComments } from 'react-icons/fa';
 import EmojiPicker from 'emoji-picker-react';
 import LoadMoreMessages from './LoadMoreMessages';
 import WelcomeScreen from './WelcomeScreen';
+import AudioPlayer from './AudioPlayer';
+import VoiceRecorder from './VoiceRecorder';
 import './ChatContent.css';
 
 const ChatContent = ({
@@ -29,7 +31,9 @@ const ChatContent = ({
   onMessageHighlighted,
   canSendMessages = true,
   replyingTo,
-  onCancelReply
+  onCancelReply,
+  onOpenThread,
+  onSendVoiceMessage
 }) => {
   const chatHistoryRef = useRef(null);
   const isUserScrollingRef = useRef(false);
@@ -510,175 +514,292 @@ const ChatContent = ({
           )}
 
           {message.mediaType && message.mediaData ? (
-            <div
-              className="media-message"
-              style={{
-                marginBottom: '2px'
-              }}
-            >
-              {message.mediaType === 'image' ? (
-                <div style={{ position: 'relative' }}>
-                  <img
+            <div>
+              <div
+                className="media-message"
+                style={{
+                  marginBottom: '2px'
+                }}
+              >
+                {message.mediaType === 'image' ? (
+                  <div style={{ position: 'relative' }}>
+                    <img
+                      src={message.mediaData}
+                      alt={message.fileName || 'Imagen'}
+                      className="media-image"
+                      style={{
+                        maxWidth: '100%',
+                        borderRadius: '7.5px',
+                        display: 'block',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => handleDownload(message.mediaData, message.fileName || 'imagen')}
+                    />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(message.mediaData, message.fileName || 'imagen');
+                      }}
+                      style={{
+                        position: 'absolute',
+                        bottom: '6px',
+                        right: '6px',
+                        backgroundColor: 'rgba(0,0,0,0.6)',
+                        color: '#fff',
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        fontSize: '10px',
+                        border: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.8)'}
+                      onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.6)'}
+                    >
+                      ⬇️ Descargar
+                    </button>
+                  </div>
+                ) : message.mediaType === 'video' ? (
+                  <div style={{ position: 'relative' }}>
+                    <video
+                      src={message.mediaData}
+                      controls
+                      className="media-video"
+                      style={{
+                        maxWidth: '100%',
+                        borderRadius: '7.5px',
+                        display: 'block'
+                      }}
+                    />
+                    <button
+                      onClick={() => handleDownload(message.mediaData, message.fileName || 'video')}
+                      style={{
+                        display: 'inline-block',
+                        marginTop: '4px',
+                        backgroundColor: 'rgba(0,0,0,0.6)',
+                        color: '#fff',
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        fontSize: '10px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.8)'}
+                      onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.6)'}
+                    >
+                      ⬇️ Descargar
+                    </button>
+                  </div>
+                ) : message.mediaType === 'audio' ? (
+                  <AudioPlayer
                     src={message.mediaData}
-                    alt={message.fileName || 'Imagen'}
-                    className="media-image"
-                    style={{
-                      maxWidth: '100%',
-                      borderRadius: '7.5px',
-                      display: 'block',
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => handleDownload(message.mediaData, message.fileName || 'imagen')}
+                    fileName={message.fileName}
+                    onDownload={handleDownload}
                   />
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownload(message.mediaData, message.fileName || 'imagen');
-                    }}
+                ) : (
+                  <div
+                    className="file-message"
+                    onClick={() => handleDownload(message.mediaData, message.fileName || 'archivo')}
                     style={{
-                      position: 'absolute',
-                      bottom: '6px',
-                      right: '6px',
-                      backgroundColor: 'rgba(0,0,0,0.6)',
-                      color: '#fff',
-                      padding: '4px 8px',
-                      borderRadius: '12px',
-                      fontSize: '10px',
-                      border: 'none',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '3px',
+                      gap: '4px',
+                      padding: '3px 5px',
+                      backgroundColor: 'rgba(255,255,255,0.1)',
+                      borderRadius: '5px',
+                      border: '1px solid rgba(255,255,255,0.2)',
                       cursor: 'pointer',
                       transition: 'background-color 0.2s'
                     }}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.8)'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.6)'}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'}
                   >
-                    ⬇️ Descargar
-                  </button>
-                </div>
-              ) : message.mediaType === 'video' ? (
-                <div style={{ position: 'relative' }}>
-                  <video
-                    src={message.mediaData}
-                    controls
-                    className="media-video"
-                    style={{
-                      maxWidth: '100%',
-                      borderRadius: '7.5px',
-                      display: 'block'
-                    }}
-                  />
-                  <button
-                    onClick={() => handleDownload(message.mediaData, message.fileName || 'video')}
-                    style={{
-                      display: 'inline-block',
-                      marginTop: '4px',
-                      backgroundColor: 'rgba(0,0,0,0.6)',
-                      color: '#fff',
-                      padding: '4px 8px',
-                      borderRadius: '12px',
-                      fontSize: '10px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.2s'
-                    }}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.8)'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.6)'}
-                  >
-                    ⬇️ Descargar
-                  </button>
-                </div>
-              ) : message.mediaType === 'audio' ? (
-                <div>
-                  <audio
-                    src={message.mediaData}
-                    controls
-                    className="media-audio"
-                    style={{
-                      width: '100%',
-                      maxWidth: '300px'
-                    }}
-                  />
-                  <button
-                    onClick={() => handleDownload(message.mediaData, message.fileName || 'audio')}
-                    style={{
-                      display: 'inline-block',
-                      marginTop: '4px',
-                      backgroundColor: 'rgba(0,0,0,0.6)',
-                      color: '#fff',
-                      padding: '4px 8px',
-                      borderRadius: '12px',
-                      fontSize: '10px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.2s'
-                    }}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.8)'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.6)'}
-                  >
-                    ⬇️ Descargar
-                  </button>
-                </div>
-              ) : (
-                <div
-                  className="file-message"
-                  onClick={() => handleDownload(message.mediaData, message.fileName || 'archivo')}
+                    <div className="file-icon" style={{ fontSize: '14px' }}>📎</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        className="file-name"
+                        style={{
+                          color: '#000000D9',
+                          fontSize: '10.5px',
+                          fontWeight: '500',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          marginBottom: '1px'
+                        }}
+                      >
+                        {message.fileName}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {message.fileSize && (
+                          <span style={{ color: '#8696a0', fontSize: '8.5px' }}>
+                            {(message.fileSize / 1024 / 1024).toFixed(1)} MB
+                          </span>
+                        )}
+                        <span style={{ color: '#8696a0', fontSize: '8.5px' }}>•</span>
+                        <span style={{ color: '#8696a0', fontSize: '8.5px' }}>
+                          {formatTime(message.time)}
+                        </span>
+                        {isOwnMessage && (
+                          <span
+                            style={{
+                              color: message.isRead ? '#53bdeb' : '#8696a0',
+                              fontSize: '9px'
+                            }}
+                          >
+                            {message.isSent ? '✓✓' : '⏳'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ color: '#00a884', fontSize: '13px' }}>⬇️</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Botones de acción para mensajes multimedia */}
+              <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                {/* Botón de responder */}
+                <button
+                  onClick={() => {
+                    if (window.handleReplyMessage) {
+                      window.handleReplyMessage(message);
+                    }
+                  }}
                   style={{
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    color: '#8696a0',
+                    cursor: 'pointer',
+                    fontSize: '11px',
+                    padding: '2px 0',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px',
-                    padding: '3px 5px',
-                    backgroundColor: 'rgba(255,255,255,0.1)',
-                    borderRadius: '5px',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s'
+                    gap: '3px'
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'}
+                  title="Responder mensaje"
                 >
-                  <div className="file-icon" style={{ fontSize: '14px' }}>📎</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      className="file-name"
-                      style={{
-                        color: '#000000D9',
-                        fontSize: '10.5px',
-                        fontWeight: '500',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        marginBottom: '1px'
-                      }}
-                    >
-                      {message.fileName}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      {message.fileSize && (
-                        <span style={{ color: '#8696a0', fontSize: '8.5px' }}>
-                          {(message.fileSize / 1024 / 1024).toFixed(1)} MB
-                        </span>
-                      )}
-                      <span style={{ color: '#8696a0', fontSize: '8.5px' }}>•</span>
-                      <span style={{ color: '#8696a0', fontSize: '8.5px' }}>
-                        {formatTime(message.time)}
+                  <FaReply /> Responder
+                </button>
+
+                {/* Botón de responder en hilo */}
+                {onOpenThread && (
+                  <button
+                    onClick={() => onOpenThread(message)}
+                    style={{
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      color: '#8696a0',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      padding: '2px 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '3px'
+                    }}
+                    title="Responder en hilo"
+                  >
+                    <FaComments />
+                    {message.threadCount > 0 ? (
+                      <span>
+                        {message.threadCount} {message.threadCount === 1 ? 'respuesta' : 'respuestas'}
+                        {message.lastReplyFrom && ` • ${message.lastReplyFrom}`}
                       </span>
-                      {isOwnMessage && (
-                        <span
-                          style={{
-                            color: message.isRead ? '#53bdeb' : '#8696a0',
-                            fontSize: '9px'
-                          }}
-                        >
-                          {message.isSent ? '✓✓' : '⏳'}
-                        </span>
-                      )}
-                    </div>
+                    ) : (
+                      <span>Hilo</span>
+                    )}
+                  </button>
+                )}
+
+                {/* Botón de info - solo para mensajes propios en salas */}
+                {isOwnMessage && isGroup && message.id && (
+                  <button
+                    onClick={() => setShowMessageInfo(message)}
+                    style={{
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      color: '#8696a0',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      padding: '2px 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '3px'
+                    }}
+                    title="Ver quién leyó este mensaje"
+                  >
+                    <FaInfoCircle /> Info
+                  </button>
+                )}
+
+                {/* Botón de reacción */}
+                {message.id && (
+                  <div style={{ position: 'relative' }}>
+                    <button
+                      onClick={() => setShowReactionPicker(showReactionPicker === message.id ? null : message.id)}
+                      style={{
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        color: '#8696a0',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        padding: '2px 0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '3px'
+                      }}
+                      title="Reaccionar"
+                    >
+                      <FaSmile />
+                    </button>
+
+                    {/* Selector de reacciones rápidas */}
+                    {showReactionPicker === message.id && (
+                      <div
+                        ref={reactionPickerRef}
+                        style={{
+                          position: 'absolute',
+                          bottom: '100%',
+                          left: isOwnMessage ? 'auto' : '0',
+                          right: isOwnMessage ? '0' : 'auto',
+                          backgroundColor: '#fff',
+                          borderRadius: '20px',
+                          padding: '8px',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                          display: 'flex',
+                          gap: '4px',
+                          zIndex: 1000,
+                          marginBottom: '4px'
+                        }}
+                      >
+                        {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(emoji => (
+                          <button
+                            key={emoji}
+                            onClick={() => handleReaction(message, emoji)}
+                            style={{
+                              backgroundColor: 'transparent',
+                              border: 'none',
+                              fontSize: '20px',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              borderRadius: '50%',
+                              transition: 'transform 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.target.style.transform = 'scale(1.2)'}
+                            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <div style={{ color: '#00a884', fontSize: '13px' }}>⬇️</div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           ) : editingMessageId === message.id ? (
             // Modo de edición
@@ -824,6 +945,35 @@ const ChatContent = ({
                 >
                   <FaReply /> Responder
                 </button>
+
+                {/* Botón de responder en hilo */}
+                {onOpenThread && (
+                  <button
+                    onClick={() => onOpenThread(message)}
+                    style={{
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      color: '#8696a0',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      padding: '2px 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '3px'
+                    }}
+                    title="Responder en hilo"
+                  >
+                    <FaComments />
+                    {message.threadCount > 0 ? (
+                      <span>
+                        {message.threadCount} {message.threadCount === 1 ? 'respuesta' : 'respuestas'}
+                        {message.lastReplyFrom && ` • ${message.lastReplyFrom}`}
+                      </span>
+                    ) : (
+                      <span>Hilo</span>
+                    )}
+                  </button>
+                )}
 
                 {/* Botón de info - solo para mensajes propios en salas */}
                 {isOwnMessage && isGroup && message.id && (
@@ -1187,6 +1337,12 @@ const ChatContent = ({
               </div>
             )}
           </div>
+
+          {/* Botón de grabación de voz */}
+          <VoiceRecorder
+            onSendAudio={onSendVoiceMessage}
+            canSendMessages={canSendMessages}
+          />
 
           <input
             type="text"

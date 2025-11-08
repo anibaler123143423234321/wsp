@@ -1,0 +1,222 @@
+/* Botón de micrófono normal */
+.voice-recorder-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  border-radius: 50%;
+}
+
+.voice-recorder-btn:hover:not(.disabled) {
+  background: rgba(0, 168, 132, 0.1);
+}
+
+.voice-recorder-btn:active:not(.disabled) {
+  transform: scale(0.95);
+}
+
+.voice-recorder-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.voice-recorder-icon-btn {
+  font-size: 20px;
+  color: #8696a0;
+  transition: color 0.2s ease;
+}
+
+.voice-recorder-btn:hover:not(.disabled) .voice-recorder-icon-btn {
+  color: #00a884;
+}
+
+/* Interfaz de grabación activa */
+.voice-recorder-active {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-radius: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.voice-recorder-cancel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.1);
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.voice-recorder-cancel:hover {
+  background: rgba(239, 68, 68, 0.2);
+  transform: scale(1.05);
+}
+
+.voice-recorder-cancel:active {
+  transform: scale(0.95);
+}
+
+.voice-recorder-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.voice-recorder-pulse {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: white;
+  position: relative;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+}
+
+.voice-recorder-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #00a884;
+  color: white;
+}
+
+.voice-recorder-time {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111;
+  font-family: 'Courier New', monospace;
+  min-width: 50px;
+}
+
+.voice-recorder-time.recording {
+  color: #ef4444;
+  animation: blink 1s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.voice-recorder-stop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #ef4444;
+  border: none;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.voice-recorder-stop:hover {
+  background: #dc2626;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+.voice-recorder-stop:active {
+  transform: scale(0.95);
+}
+
+.voice-recorder-send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #00a884;
+  border: none;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 168, 132, 0.3);
+}
+
+.voice-recorder-send:hover {
+  background: #008f6d;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.4);
+}
+
+.voice-recorder-send:active {
+  transform: scale(0.95);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .voice-recorder-active {
+    padding: 6px 12px;
+    gap: 8px;
+  }
+
+  .voice-recorder-cancel,
+  .voice-recorder-stop,
+  .voice-recorder-send {
+    width: 36px;
+    height: 36px;
+  }
+
+  .voice-recorder-pulse,
+  .voice-recorder-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .voice-recorder-time {
+    font-size: 14px;
+    min-width: 45px;
+  }
+}
+

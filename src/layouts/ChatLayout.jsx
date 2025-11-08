@@ -46,7 +46,13 @@ const ChatLayout = ({
 
   // Props para agregar usuarios a sala
   onAddUsersToRoom,
-  onRemoveUsersFromRoom
+  onRemoveUsersFromRoom,
+
+  // Props para hilos
+  onOpenThread,
+
+  // Props para mensajes de voz
+  onSendVoiceMessage
 }) => {
   // Función para obtener el usuario completo con el que se está chateando
   const getTargetUser = () => {
@@ -227,6 +233,8 @@ const ChatLayout = ({
           canSendMessages={canSendMessages}
           replyingTo={replyingTo}
           onCancelReply={onCancelReply}
+          onOpenThread={onOpenThread}
+          onSendVoiceMessage={onSendVoiceMessage}
         />
       </div>
       

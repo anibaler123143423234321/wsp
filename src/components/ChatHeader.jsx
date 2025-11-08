@@ -26,6 +26,37 @@ const ChatHeader = ({
     return null;
   }
 
+  // Verificar si el usuario actual es participante de la conversación
+  const isUserParticipant = () => {
+    if (!adminViewConversation || !adminViewConversation.participants) {
+      return false;
+    }
+
+    const currentUserFullName = user?.nombre && user?.apellido
+      ? `${user.nombre} ${user.apellido}`
+      : user?.username;
+
+    return adminViewConversation.participants.includes(currentUserFullName);
+  };
+
+  // Obtener el nombre del otro participante cuando eres participante de una conversación asignada
+  const getOtherParticipantName = () => {
+    if (!adminViewConversation || !adminViewConversation.participants) {
+      return null;
+    }
+
+    const currentUserFullName = user?.nombre && user?.apellido
+      ? `${user.nombre} ${user.apellido}`
+      : user?.username;
+
+    // Encontrar el participante que NO es el usuario actual
+    const otherParticipant = adminViewConversation.participants.find(
+      p => p !== currentUserFullName
+    );
+
+    return otherParticipant;
+  };
+
   return (
     <div className="chat-header">
       <div className="chat-header-content">
@@ -56,7 +87,7 @@ const ChatHeader = ({
                 // Vista normal: mostrar solo el destinatario
                 <>
                   {to}
-                  {isGroup && currentRoomCode && (
+                  {isGroup && currentRoomCode && (user?.role === 'ADMIN' || user?.role === 'JEFEPISO') && (
                     <span className="room-code">• {currentRoomCode}</span>
                   )}
                 </>
@@ -76,8 +107,8 @@ const ChatHeader = ({
                   <FaKeyboard className="typing-icon" />
                   está escribiendo...
                 </span>
-              ) : adminViewConversation && (user?.role === 'ADMIN' || user?.role === 'PROGRAMADOR' || user?.role === 'JEFEPISO') ? (
-                // Vista de admin: mostrar "Monitoreando" + rol y número de agente
+              ) : adminViewConversation && !isUserParticipant() && (user?.role === 'ADMIN' || user?.role === 'PROGRAMADOR' || user?.role === 'JEFEPISO') ? (
+                // Vista de admin: mostrar "Monitoreando" SOLO si NO es participante
                 <>
                   <span style={{ color: '#3b82f6', fontWeight: 500 }}>
                     👁️ Monitoreando conversación
@@ -107,13 +138,14 @@ const ChatHeader = ({
                     ) : (
                       `N° Agente: ${targetUser.numeroAgente}`
                     )
-                  ) : (
+                  ) : targetUser?.role ? (
                     // Si NO tiene número de agente, mostrar solo el rol
-                    targetUser?.role ? (
-                      `Rol: ${targetUser.role}`
-                    ) : (
-                      'Sin información'
-                    )
+                    `Rol: ${targetUser.role}`
+                  ) : isUserParticipant() && getOtherParticipantName() ? (
+                    // Si eres participante de una conversación asignada, mostrar el nombre del otro participante
+                    `Conversación con ${getOtherParticipantName()}`
+                  ) : (
+                    'Sin información'
                   )}
                 </>
               )}
