@@ -58,6 +58,9 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       // Convertir mensajes de BD al formato del frontend
       const formattedMessages = historicalMessages.map((msg) => ({
         sender: msg.from === username ? "Tú" : msg.from,
+        realSender: msg.from, // 🔥 Nombre real del remitente (sin convertir a "Tú")
+        senderRole: msg.senderRole || null, // 🔥 Incluir role del remitente
+        senderNumeroAgente: msg.senderNumeroAgente || null, // 🔥 Incluir numeroAgente del remitente
         receiver: msg.groupName || msg.to || username,
         text: msg.message || "",
         isGroup: msg.isGroup,
@@ -79,7 +82,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         sentAt: msg.sentAt,
         // Campos de respuesta
         replyToMessageId: msg.replyToMessageId,
-        replyToSender: msg.replyToSender,
+        replyToSender: msg.replyToSender, // 🔥 Mantener el valor original de la BD
         replyToText: msg.replyToText,
         // Campos de hilos
         threadCount: msg.threadCount || 0,
@@ -101,7 +104,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     } finally {
       setIsLoading(false);
     }
-  }, [roomCode, username, to, isGroup, socket, user]);
+  }, [roomCode, username, to, isGroup]);
 
   // Cargar más mensajes antiguos (paginación estilo WhatsApp)
   const loadMoreMessages = useCallback(async () => {
@@ -151,6 +154,9 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       // Convertir mensajes de BD al formato del frontend
       const formattedMessages = historicalMessages.map((msg) => ({
         sender: msg.from === username ? "Tú" : msg.from,
+        realSender: msg.from, // 🔥 Nombre real del remitente (sin convertir a "Tú")
+        senderRole: msg.senderRole || null, // 🔥 Incluir role del remitente
+        senderNumeroAgente: msg.senderNumeroAgente || null, // 🔥 Incluir numeroAgente del remitente
         receiver: msg.groupName || msg.to || username,
         text: msg.message || "",
         isGroup: msg.isGroup,
@@ -172,7 +178,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         sentAt: msg.sentAt,
         // Campos de respuesta
         replyToMessageId: msg.replyToMessageId,
-        replyToSender: msg.replyToSender,
+        replyToSender: msg.replyToSender, // 🔥 Mantener el valor original de la BD
         replyToText: msg.replyToText,
         // Campos de hilos
         threadCount: msg.threadCount || 0,

@@ -50,6 +50,60 @@ const ChatContent = ({
   const emojiPickerRef = useRef(null);
   const reactionPickerRef = useRef(null);
 
+  // Función para formatear la fecha del separador
+  const formatDateSeparator = (date) => {
+    const messageDate = new Date(date);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    // Resetear horas para comparación
+    messageDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    yesterday.setHours(0, 0, 0, 0);
+
+    if (messageDate.getTime() === today.getTime()) {
+      return 'Hoy';
+    } else if (messageDate.getTime() === yesterday.getTime()) {
+      return 'Ayer';
+    } else {
+      // Formato: "Sábado, 9 de noviembre"
+      return messageDate.toLocaleDateString('es-ES', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long'
+      });
+    }
+  };
+
+  // Función para agrupar mensajes por fecha
+  const groupMessagesByDate = (messages) => {
+    const groups = [];
+    let currentDate = null;
+
+    messages.forEach((message, index) => {
+      const messageDate = message.sentAt ? new Date(message.sentAt) : new Date();
+      messageDate.setHours(0, 0, 0, 0);
+
+      if (!currentDate || currentDate.getTime() !== messageDate.getTime()) {
+        currentDate = new Date(messageDate);
+        groups.push({
+          type: 'date-separator',
+          date: messageDate,
+          label: formatDateSeparator(messageDate)
+        });
+      }
+
+      groups.push({
+        type: 'message',
+        data: message,
+        index
+      });
+    });
+
+    return groups;
+  };
+
   // Función para descargar archivos
   const handleDownload = (url) => {
     // Abrir en nueva pestaña
@@ -481,7 +535,6 @@ const ChatContent = ({
               : (isOwnMessage ? '#E1F4D6' : '#E8E6F0'),
             color: '#1f2937',
             padding: '6px 19.25px',
-            borderRadius: isOwnMessage ? '17.11px 17.11px 17.11px 17.11px' : '17.11px 17.11px 17.11px 4px',
             borderTopRightRadius: '17.11px',
             borderBottomRightRadius: '17.11px',
             borderBottomLeftRadius: '17.11px',
@@ -513,6 +566,16 @@ const ChatContent = ({
               }}
             >
               {message.sender}
+              {message.senderNumeroAgente && (
+                <span style={{ color: '#666', fontWeight: '400', marginLeft: '4px' }}>
+                  • N° {message.senderNumeroAgente}
+                </span>
+              )}
+              {!message.senderNumeroAgente && message.senderRole && (
+                <span style={{ color: '#666', fontWeight: '400', marginLeft: '4px' }}>
+                  • {message.senderRole}
+                </span>
+              )}
             </div>
           )}
 
@@ -531,7 +594,7 @@ const ChatContent = ({
               <div style={{ color: '#00a884', fontWeight: '600', marginBottom: '1px' }}>
                 {message.replyToSender}
               </div>
-              <div style={{ color: '#8696a0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {message.replyToText || 'Archivo multimedia'}
               </div>
             </div>
@@ -1211,14 +1274,18 @@ const ChatContent = ({
           onLoadMore={onLoadMoreMessages}
         />
 
-        {/* Separador de fecha */}
-        {messages.length > 0 && (
-          <div className="date-separator">
-            <div className="date-separator-content">Hoy</div>
-          </div>
-        )}
-
-        {messages.map((message, index) => renderMessage(message, index))}
+        {/* Mensajes agrupados por fecha */}
+        {groupMessagesByDate(messages).map((item, idx) => {
+          if (item.type === 'date-separator') {
+            return (
+              <div key={`date-${idx}`} className="date-separator">
+                <div className="date-separator-content">{item.label}</div>
+              </div>
+            );
+          } else {
+            return renderMessage(item.data, item.index);
+          }
+        })}
       </div>
 
       <div className="chat-input-container">

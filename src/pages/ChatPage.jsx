@@ -25,6 +25,11 @@ const ChatPage = () => {
   // Hooks personalizados
   const { isAuthenticated, user, username, isAdmin, isLoading, logout, refreshAuth } = useAuth();
   const socket = useSocket(isAuthenticated, username, user);
+
+  // 🔥 Nombre completo del usuario actual (usado en múltiples lugares)
+  const currentUserFullName = user?.nombre && user?.apellido
+    ? `${user.nombre} ${user.apellido}`
+    : username;
   const {
     input,
     setInput,
@@ -295,6 +300,19 @@ const ChatPage = () => {
                   });
                 }
               }
+
+              // 🔥 Resetear el contador de mensajes no leídos en la lista de conversaciones
+              setAssignedConversations(prevConversations => {
+                return prevConversations.map(conv => {
+                  if (conv.id === selectedConversation.id) {
+                    return {
+                      ...conv,
+                      unreadCount: 0
+                    };
+                  }
+                  return conv;
+                });
+              });
             } catch (error) {
               console.error("Error al marcar conversación como leída:", error);
             }
@@ -302,17 +320,13 @@ const ChatPage = () => {
         }
 
         // 🔥 TERCERO: Convertir mensajes al formato del frontend
-        // Obtener el nombre completo del usuario actual logueado
-        const currentUserFullName = user?.nombre && user?.apellido
-          ? `${user.nombre} ${user.apellido}`
-          : username;
-
         const formattedMessages = historicalMessages.map((msg) => {
           // 🔥 El mensaje es propio si fue enviado por el usuario actual logueado
           const isOwnMessage = msg.from === currentUserFullName;
 
           return {
             sender: msg.from,
+            realSender: msg.from, // 🔥 Nombre real del remitente
             receiver: msg.to,
             text: msg.message || "",
             isGroup: false,
@@ -333,7 +347,7 @@ const ChatPage = () => {
             readBy: msg.readBy,
             // Campos de respuesta
             replyToMessageId: msg.replyToMessageId,
-            replyToSender: msg.replyToSender,
+            replyToSender: msg.replyToSender, // 🔥 Mantener el valor original de la BD
             replyToText: msg.replyToText,
             // Campos de hilos
             threadCount: msg.threadCount || 0,
@@ -505,11 +519,6 @@ const ChatPage = () => {
     s.on('message', (data) => {
       const timeString = data.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      // Obtener el nombre completo del usuario actual para comparar
-      const currentUserFullName = user?.nombre && user?.apellido
-        ? `${user.nombre} ${user.apellido}`
-        : username;
-
       if (data.isGroup) {
         // Ignorar mensajes que vienen del servidor si son nuestros propios mensajes
         // (ya los tenemos localmente)
@@ -519,6 +528,9 @@ const ChatPage = () => {
         const newMessage = {
           id: data.id,
           sender: data.from,
+          realSender: data.from, // 🔥 Nombre real del remitente
+          senderRole: data.senderRole || null, // 🔥 Incluir role del remitente
+          senderNumeroAgente: data.senderNumeroAgente || null, // 🔥 Incluir numeroAgente del remitente
           receiver: data.group,
           text: data.message || '',
           isGroup: true,
@@ -555,9 +567,60 @@ const ChatPage = () => {
           return;
         }
 
+        console.log('📨 Mensaje individual recibido:', {
+          from: data.from,
+          to: data.to,
+          currentTo: to,
+          isGroup: isGroup,
+          currentRoomCode: currentRoomCode,
+          message: data.message?.substring(0, 50)
+        });
+
+        // 🔥 IMPORTANTE: Solo agregar el mensaje si el usuario está viendo el chat correcto
+        // Verificar si el usuario está viendo el chat con el remitente
+        const isViewingCorrectChat =
+          !isGroup && // No está en un grupo
+          !currentRoomCode && // No está en una sala
+          to && // Hay un destinatario seleccionado
+          (to.toLowerCase().trim() === data.from.toLowerCase().trim()); // El destinatario es el remitente
+
+        console.log('🔍 ¿Está viendo el chat correcto?', isViewingCorrectChat);
+
+        if (!isViewingCorrectChat) {
+          console.log('⚠️ Usuario no está viendo el chat correcto. No se agrega el mensaje a la vista actual.');
+
+          // 🔥 Actualizar el preview del último mensaje en la lista de conversaciones asignadas
+          setAssignedConversations(prevConversations => {
+            return prevConversations.map(conv => {
+              // Buscar la conversación que corresponde a este mensaje
+              const otherUser = conv.participants?.find(p => p !== currentUserFullName);
+              const isThisConversation = otherUser?.toLowerCase().trim() === data.from.toLowerCase().trim();
+
+              if (isThisConversation) {
+                console.log('🔄 Actualizando preview de conversación:', conv.name);
+                return {
+                  ...conv,
+                  lastMessage: data.message || '',
+                  lastMessageTime: timeString,
+                  lastMessageFrom: data.from,
+                  unreadCount: (conv.unreadCount || 0) + 1 // Incrementar contador de no leídos
+                };
+              }
+
+              return conv;
+            });
+          });
+
+          playMessageSound(soundsEnabled);
+          return;
+        }
+
         const newMessage = {
           id: data.id,
           sender: data.from,
+          realSender: data.from, // 🔥 Nombre real del remitente
+          senderRole: data.senderRole || null, // 🔥 Incluir role del remitente
+          senderNumeroAgente: data.senderNumeroAgente || null, // 🔥 Incluir numeroAgente del remitente
           receiver: data.to || username,
           text: data.message || '',
           isGroup: false,
@@ -587,6 +650,7 @@ const ChatPage = () => {
         newMessage.threadCount = data.threadCount || 0;
         newMessage.lastReplyFrom = data.lastReplyFrom || null;
 
+        console.log('✅ Agregando mensaje a la vista actual');
         addNewMessage(newMessage);
 
         if (data.from !== username && data.from !== currentUserFullName) {
@@ -706,7 +770,7 @@ const ChatPage = () => {
 
     // Evento: Conversación marcada como leída (actualizar checks)
     s.on('conversationRead', (data) => {
-      const { readBy, messageIds, readAt } = data;
+      const { readBy, messageIds, readAt, from, to: readTo } = data;
 
       // Actualizar todos los mensajes que fueron leídos
       if (messageIds && Array.isArray(messageIds)) {
@@ -715,6 +779,26 @@ const ChatPage = () => {
             isRead: true,
             readAt: readAt,
             readBy: [readBy] // Agregar el usuario que leyó el mensaje
+          });
+        });
+      }
+
+      // 🔥 Resetear el contador de mensajes no leídos en la lista de conversaciones
+      if (from && readTo) {
+        setAssignedConversations(prevConversations => {
+          return prevConversations.map(conv => {
+            const otherUser = conv.participants?.find(p => p !== currentUserFullName);
+            const isThisConversation =
+              otherUser?.toLowerCase().trim() === from?.toLowerCase().trim() ||
+              otherUser?.toLowerCase().trim() === readTo?.toLowerCase().trim();
+
+            if (isThisConversation) {
+              return {
+                ...conv,
+                unreadCount: 0
+              };
+            }
+            return conv;
           });
         });
       }
@@ -983,6 +1067,11 @@ const ChatPage = () => {
   // Handlers
   const handleUserSelect = (userName, messageId = null, conversationData = null) => {
     console.log('👤 Usuario seleccionado:', userName, 'conversationData:', conversationData);
+    console.log('🔄 Estado ANTES de cambiar:', {
+      to,
+      isGroup,
+      currentRoomCode
+    });
 
     // Si es una conversación de admin (conversationData presente), guardarla
     if (conversationData) {
@@ -1002,6 +1091,12 @@ const ChatPage = () => {
     setCurrentRoomCode(null);
     currentRoomCodeRef.current = null;
     setRoomUsers([]);
+
+    console.log('✅ Estado DESPUÉS de cambiar (programado):', {
+      to: userName,
+      isGroup: false,
+      currentRoomCode: null
+    });
 
     // Si se proporciona un messageId, guardarlo para resaltarlo después de cargar los mensajes
     if (messageId) {
@@ -1246,10 +1341,13 @@ const ChatPage = () => {
   const handleSendMessage = async () => {
     if ((!input && mediaFiles.length === 0) || !to) return;
 
-    // Verificar si el usuario actual está en la conversación asignada
-    const currentUserFullName = user?.nombre && user?.apellido
-      ? `${user.nombre} ${user.apellido}`
-      : user?.username;
+    console.log('📤 handleSendMessage - Estado actual:', {
+      to,
+      isGroup,
+      currentRoomCode,
+      username,
+      input: input?.substring(0, 50)
+    });
 
     // Buscar si esta conversación es asignada
     const assignedConv = assignedConversations?.find(conv => {
@@ -1288,14 +1386,24 @@ const ChatPage = () => {
     const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
     if (input || mediaFiles.length === 1) {
+      // 🔥 Si es una conversación asignada, FORZAR isGroup a false
+      const effectiveIsGroup = assignedConv ? false : isGroup;
+
       const messageObj = {
         id: messageId,
         to,
-        isGroup,
+        isGroup: effectiveIsGroup, // 🔥 Usar el valor efectivo
         time: timeString,
         from: username,
         fromId: user.id
       };
+
+      console.log('📤 Creando messageObj:', {
+        to,
+        isGroup: effectiveIsGroup,
+        isAssignedConv: !!assignedConv,
+        originalIsGroup: isGroup
+      });
 
       // Si es una conversación asignada, agregar información adicional
       if (assignedConv) {
@@ -1347,6 +1455,7 @@ const ChatPage = () => {
         // Mensaje a ti mismo - guardar en BD y mostrar localmente
         const newMessage = {
           sender: 'Tú',
+          realSender: currentUserFullName, // 🔥 Nombre real del remitente
           receiver: username,
           text: input || (messageObj.fileName ? `📎 ${messageObj.fileName}` : ''),
           time: timeString,
@@ -1410,6 +1519,7 @@ const ChatPage = () => {
       const newMessage = {
         id: messageId,
         sender: 'Tú',
+        realSender: currentUserFullName, // 🔥 Nombre real del remitente
         receiver: to,
         text: input || '',
         isGroup: isGroup,
@@ -1437,6 +1547,24 @@ const ChatPage = () => {
 
       addNewMessage(newMessage);
       playMessageSound(soundsEnabled);
+
+      // 🔥 Actualizar el preview del último mensaje en la lista de conversaciones asignadas
+      if (assignedConv) {
+        setAssignedConversations(prevConversations => {
+          return prevConversations.map(conv => {
+            if (conv.id === assignedConv.id) {
+              console.log('🔄 Actualizando preview de conversación enviada:', conv.name);
+              return {
+                ...conv,
+                lastMessage: input || (messageObj.fileName ? `📎 ${messageObj.fileName}` : ''),
+                lastMessageTime: timeString,
+                lastMessageFrom: currentUserFullName
+              };
+            }
+            return conv;
+          });
+        });
+      }
     }
 
     clearInput();
@@ -1477,7 +1605,7 @@ const ChatPage = () => {
   const handleReplyMessage = (message) => {
     setReplyingTo({
       id: message.id,
-      sender: message.sender,
+      sender: message.realSender, // 🔥 SIEMPRE usar realSender (nunca "Tú")
       text: message.text || (message.fileName ? `📎 ${message.fileName}` : 'Archivo multimedia')
     });
   };
@@ -1500,10 +1628,6 @@ const ChatPage = () => {
       const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
       // 🔥 Verificar si es una conversación asignada
-      const currentUserFullName = user?.nombre && user?.apellido
-        ? `${user.nombre} ${user.apellido}`
-        : user?.username;
-
       const assignedConv = assignedConversations?.find(conv => {
         const otherUser = conv.participants?.find(p => p !== currentUserFullName);
         const toNormalized = to?.toLowerCase().trim();
@@ -1512,10 +1636,13 @@ const ChatPage = () => {
         return otherUserNormalized === toNormalized || convNameNormalized === toNormalized;
       });
 
+      // 🔥 Si es una conversación asignada, FORZAR isGroup a false
+      const effectiveIsGroup = assignedConv ? false : isGroup;
+
       const messageObj = {
         id: messageId,
         to,
-        isGroup,
+        isGroup: effectiveIsGroup, // 🔥 Usar el valor efectivo
         time: timeString,
         from: username,
         fromId: user.id,
@@ -1560,6 +1687,7 @@ const ChatPage = () => {
       const newMessage = {
         id: messageId,
         sender: 'Tú',
+        realSender: currentUserFullName, // 🔥 Nombre real del remitente
         receiver: to,
         text: '',
         isGroup: isGroup,
@@ -1578,6 +1706,24 @@ const ChatPage = () => {
       }
 
       addNewMessage(newMessage);
+
+      // 🔥 Actualizar el preview del último mensaje en la lista de conversaciones asignadas
+      if (assignedConv) {
+        setAssignedConversations(prevConversations => {
+          return prevConversations.map(conv => {
+            if (conv.id === assignedConv.id) {
+              console.log('🔄 Actualizando preview de conversación enviada (audio):', conv.name);
+              return {
+                ...conv,
+                lastMessage: '🎤 Audio',
+                lastMessageTime: timeString,
+                lastMessageFrom: currentUserFullName
+              };
+            }
+            return conv;
+          });
+        });
+      }
 
       // Limpiar respuesta si existe
       if (replyingTo) {

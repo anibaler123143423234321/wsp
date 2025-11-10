@@ -96,7 +96,7 @@ const ConversationList = ({
         newCache[key].isOnline = false;
       });
 
-      // Luego, actualizar con los usuarios que están online
+      // Luego, actualizar con los usuarios de la lista (pueden estar online u offline)
       if (userList && userList.length > 0) {
         userList.forEach(u => {
           const fullName = u.nombre && u.apellido
@@ -109,7 +109,7 @@ const ConversationList = ({
               username: u.username,
               nombre: u.nombre,
               apellido: u.apellido,
-              isOnline: true // Si está en userList, está online
+              isOnline: u.isOnline !== undefined ? u.isOnline : true // Usar isOnline del backend, o true por defecto
             };
           }
         });
