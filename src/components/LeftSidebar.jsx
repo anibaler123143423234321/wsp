@@ -132,13 +132,9 @@ const LeftSidebar = ({
         {/* Línea separadora */}
         <div
           style={{
-            height: '0px',
             border: '1.3px solid #FFFFFF',
-            marginLeft: '11.66px',
-            marginBottom: '24px',
             width: 'calc(100% - 40px)',
             height: '0px',
-            border: '1px solid rgba(255, 255, 255, 1)',
             marginLeft: '20px',
             marginRight: '20px',
             marginBottom: '16px'
