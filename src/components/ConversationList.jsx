@@ -8,39 +8,38 @@ import './ConversationList.css';
 // Componente reutilizable para cada pestaña (botón)
 const TabButton = ({ isActive, onClick, label, shortLabel, icon: Icon, notificationCount }) => {
   return (
-    <button
+<button
       onClick={onClick}
       className={clsx(
-        // Clases base para todos los botones - MÁS COMPACTO
-        'relative flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-all duration-200 whitespace-nowrap flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2',
+        // Clases base para todos los botones - EQUILIBRADO
+        'relative flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2',
         // Clases condicionales
         {
           'bg-red-50 text-red-600 font-semibold shadow-sm': isActive,
           'text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium': !isActive,
         },
         // Responsive MacBook Air y tablets
-        'max-[1280px]:px-2 max-[1280px]:py-1 max-[1280px]:text-xs max-[1280px]:gap-1.5',
-        'max-[1024px]:px-2 max-[1024px]:py-1 max-[1024px]:text-[11px] max-[1024px]:gap-1',
-        // Responsive mobile
-        'max-[768px]:px-1.5 max-[768px]:py-1 max-[768px]:text-[10px] max-[768px]:gap-1'
+        'max-[1280px]:px-3 max-[1280px]:py-1.5 max-[1280px]:gap-1.5',
+        'max-[1024px]:px-2.5 max-[1024px]:py-1.5 max-[1024px]:gap-1',
+        // Responsive mobile - SOLO ICONOS
+        'max-[768px]:px-2.5 max-[768px]:py-2 max-[768px]:gap-0 max-[768px]:flex-1'
       )}
       style={{
         fontFamily: 'Inter, sans-serif',
         fontSize: '13px',
       }}
     >
-      {/* El componente Icono se pasa como prop - MÁS PEQUEÑO */}
-      <Icon size={16} strokeWidth={2} className="max-[1280px]:w-4 max-[1280px]:h-4 max-[1024px]:w-3.5 max-[1024px]:h-3.5 max-[768px]:w-3 max-[768px]:h-3" />
-
-      {/* Texto del label - usa shortLabel en pantallas pequeñas si está disponible */}
-      <span className="font-medium max-[1280px]:text-xs max-[1024px]:text-[11px] max-[768px]:text-[10px]">
+      {/* El componente Icono se pasa como prop */}
+      <Icon size={16} strokeWidth={2} className="max-[1280px]:w-[15px] max-[1280px]:h-[15px] max-[1024px]:w-[14px] max-[1024px]:h-[14px] max-[768px]:w-[18px] max-[768px]:h-[18px]" />
+      {/* Texto del label - usa shortLabel en pantallas pequeñas si está disponible - OCULTO EN MOBILE */}
+      <span className="font-medium max-[1280px]:text-xs max-[1024px]:text-[11px] max-[768px]:hidden">
         <span className="max-[1024px]:hidden">{label}</span>
         <span className="hidden max-[1024px]:inline">{shortLabel || label}</span>
       </span>
 
       {/* Badge de notificaciones - MÁS COMPACTO */}
       {notificationCount > 0 && (
-        <span className="absolute -top-1.5 -right-1.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white shadow-md ring-2 ring-white max-[1280px]:h-4 max-[1280px]:min-w-[16px] max-[1280px]:text-[9px] max-[1280px]:-top-1 max-[1280px]:-right-1 max-[1024px]:h-4 max-[1024px]:min-w-[16px] max-[1024px]:text-[9px] max-[1024px]:-top-1 max-[1024px]:-right-1 max-[768px]:h-3.5 max-[768px]:min-w-[14px] max-[768px]:text-[8px] max-[768px]:-top-1 max-[768px]:-right-1">
+        <span className="absolute -top-1.5 -right-1.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white shadow-md ring-2 ring-white max-[1280px]:h-4 max-[1280px]:min-w-[16px] max-[1280px]:text-[9px] max-[1280px]:-top-1 max-[1280px]:-right-1 max-[1024px]:h-4 max-[1024px]:min-w-[16px] max-[1024px]:text-[9px] max-[1024px]:-top-1 max-[1024px]:-right-1 max-[768px]:h-[18px] max-[768px]:min-w-[18px] max-[768px]:text-[9px] max-[768px]:-top-1 max-[768px]:-right-1">
           {notificationCount}
         </span>
       )}
@@ -318,7 +317,7 @@ const ConversationList = ({
       </div>
 
       {/* Pestañas de módulos - MÁS COMPACTO */}
-      <div className="flex gap-1.5 bg-white overflow-x-auto scrollbar-hide max-[1280px]:!px-3 max-[1280px]:!py-1.5 max-[1280px]:!gap-1 max-[1024px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!gap-1 max-[768px]:!gap-1 max-[768px]:!px-2 max-[768px]:!py-1.5 max-[768px]:!mt-1" style={{ paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '6px', marginTop: '6px' }}>
+      <div className="flex flex-wrap gap-1.5 bg-white max-[1280px]:!px-3 max-[1280px]:!py-1.5 max-[1280px]:!gap-1 max-[1024px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!gap-1 max-[768px]:!gap-1 max-[768px]:!px-2 max-[768px]:!py-1.5 max-[768px]:!mt-1 max-[768px]:flex-nowrap max-[768px]:overflow-x-auto max-[768px]:scrollbar-hide" style={{ paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '6px', marginTop: '6px' }}>
         {tabs
           // Filtramos las pestañas según permisos y condiciones
           .filter(tab => {
