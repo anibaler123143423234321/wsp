@@ -190,7 +190,7 @@ const ChatPage = () => {
 
     if (roomMatch && roomMatch[1]) {
       const roomCode = roomMatch[1];
-      console.log(`🔗 Detectado código de sala en URL: ${roomCode}`);
+
 
       // Pre-llenar el formulario con el código de la sala
       setJoinRoomForm({ roomCode: roomCode });
@@ -215,12 +215,12 @@ const ChatPage = () => {
       } else {
         // Para usuarios normales, cargar su sala activa
         const response = await apiService.getCurrentUserRoom();
-        console.log('📥 Respuesta getCurrentUserRoom:', response);
+        // console.log('📥 Respuesta getCurrentUserRoom:', response);
         if (response && response.inRoom && response.room) {
-          console.log('✅ Sala encontrada, agregando a myActiveRooms:', response.room);
+          // console.log('✅ Sala encontrada, agregando a myActiveRooms:', response.room);
           setMyActiveRooms([response.room]);
         } else {
-          console.log('❌ No se encontró sala activa para el usuario');
+          // console.log('❌ No se encontró sala activa para el usuario');
           setMyActiveRooms([]);
         }
       }
@@ -251,7 +251,7 @@ const ChatPage = () => {
         return;
       }
 
-      console.log('🔄 Cargando mensajes para conversación asignada:', adminViewConversation);
+      // console.log('🔄 Cargando mensajes para conversación asignada:', adminViewConversation);
 
       try {
         const [participant1, participant2] = adminViewConversation.participants;
@@ -264,7 +264,7 @@ const ChatPage = () => {
           0
         );
 
-        console.log('✅ Mensajes cargados:', historicalMessages.length);
+        // console.log('✅ Mensajes cargados:', historicalMessages.length);
 
         // 🔥 SEGUNDO: Marcar como leídos SOLO si el usuario es ADMIN, PROGRAMADOR o JEFEPISO
         // Los ASESORES NO deben marcar mensajes como leídos automáticamente
@@ -359,7 +359,7 @@ const ChatPage = () => {
         clearMessages();
         formattedMessages.forEach(msg => addNewMessage(msg));
 
-        console.log('✅ Mensajes actualizados en el estado');
+        // console.log('✅ Mensajes actualizados en el estado');
       } catch (error) {
         console.error("❌ Error al cargar mensajes de admin view:", error);
       }
@@ -387,10 +387,10 @@ const ChatPage = () => {
       }
 
       // 🔍 DEBUG: Ver qué nombres tienen las conversaciones
-      console.log('📋 Conversaciones cargadas desde el backend:');
-      conversations?.forEach(conv => {
-        console.log(`  - ID ${conv.id}: name="${conv.name}", participants=`, conv.participants);
-      });
+      // console.log('📋 Conversaciones cargadas desde el backend:');
+      // conversations?.forEach(conv => {
+      //   console.log(`  - ID ${conv.id}: name="${conv.name}", participants=`, conv.participants);
+      // });
 
       setAssignedConversations(conversations || []);
 
@@ -567,14 +567,14 @@ const ChatPage = () => {
           return;
         }
 
-        console.log('📨 Mensaje individual recibido:', {
-          from: data.from,
-          to: data.to,
-          currentTo: to,
-          isGroup: isGroup,
-          currentRoomCode: currentRoomCode,
-          message: data.message?.substring(0, 50)
-        });
+        // console.log('📨 Mensaje individual recibido:', {
+        //   from: data.from,
+        //   to: data.to,
+        //   currentTo: to,
+        //   isGroup: isGroup,
+        //   currentRoomCode: currentRoomCode,
+        //   message: data.message?.substring(0, 50)
+        // });
 
         // 🔥 IMPORTANTE: Solo agregar el mensaje si el usuario está viendo el chat correcto
         // Verificar si el usuario está viendo el chat con el remitente
@@ -584,10 +584,10 @@ const ChatPage = () => {
           to && // Hay un destinatario seleccionado
           (to.toLowerCase().trim() === data.from.toLowerCase().trim()); // El destinatario es el remitente
 
-        console.log('🔍 ¿Está viendo el chat correcto?', isViewingCorrectChat);
+        // console.log('🔍 ¿Está viendo el chat correcto?', isViewingCorrectChat);
 
         if (!isViewingCorrectChat) {
-          console.log('⚠️ Usuario no está viendo el chat correcto. No se agrega el mensaje a la vista actual.');
+          // console.log('⚠️ Usuario no está viendo el chat correcto. No se agrega el mensaje a la vista actual.');
 
           // 🔥 Actualizar el preview del último mensaje en la lista de conversaciones asignadas
           setAssignedConversations(prevConversations => {
@@ -597,7 +597,7 @@ const ChatPage = () => {
               const isThisConversation = otherUser?.toLowerCase().trim() === data.from.toLowerCase().trim();
 
               if (isThisConversation) {
-                console.log('🔄 Actualizando preview de conversación:', conv.name);
+                // console.log('🔄 Actualizando preview de conversación:', conv.name);
                 return {
                   ...conv,
                   lastMessage: data.message || '',
@@ -650,7 +650,7 @@ const ChatPage = () => {
         newMessage.threadCount = data.threadCount || 0;
         newMessage.lastReplyFrom = data.lastReplyFrom || null;
 
-        console.log('✅ Agregando mensaje a la vista actual');
+        // console.log('✅ Agregando mensaje a la vista actual');
         addNewMessage(newMessage);
 
         if (data.from !== username && data.from !== currentUserFullName) {
@@ -762,7 +762,7 @@ const ChatPage = () => {
 
         // 🔥 NO mostrar alerta aquí para evitar duplicados
         // La alerta ya se muestra en el modal de edición
-        console.log('✅ Conversación actualizada:', data.conversationName);
+        // console.log('✅ Conversación actualizada:', data.conversationName);
       } catch (error) {
         console.error('Error al recargar conversaciones:', error);
       }
@@ -872,7 +872,7 @@ const ChatPage = () => {
 
     // 🔥 Evento: Nueva sala creada (notificación global para ADMIN y JEFEPISO)
     s.on('roomCreated', (data) => {
-      console.log('✨ Nueva sala creada:', data);
+      // console.log('✨ Nueva sala creada:', data);
 
       // Solo agregar si el usuario es ADMIN o JEFEPISO
       if (user?.role === 'ADMIN' || user?.role === 'JEFEPISO') {
@@ -969,7 +969,7 @@ const ChatPage = () => {
     s.on('roomDeactivated', async (data) => {
       const { message, roomCode } = data;
 
-      console.log('🚫 Sala desactivada:', roomCode);
+      // console.log('🚫 Sala desactivada:', roomCode);
 
       // Si estamos en la sala desactivada, salir
       if (currentRoomCodeRef.current === roomCode) {
@@ -1010,12 +1010,12 @@ const ChatPage = () => {
     // Evento: Contador de hilo actualizado
     s.on('threadCountUpdated', (data) => {
       const { messageId, lastReplyFrom } = data;
-      console.log('🔢 Evento threadCountUpdated recibido:', data);
+      // console.log('🔢 Evento threadCountUpdated recibido:', data);
 
       // Buscar el mensaje en la lista actual
       const messageToUpdate = messages.find(msg => msg.id === messageId);
       if (messageToUpdate) {
-        console.log('📝 Actualizando contador de hilo para mensaje:', messageId);
+        // console.log('📝 Actualizando contador de hilo para mensaje:', messageId);
         updateMessage(messageId, {
           threadCount: (messageToUpdate.threadCount || 0) + 1,
           lastReplyFrom: lastReplyFrom
@@ -1066,12 +1066,12 @@ const ChatPage = () => {
 
   // Handlers
   const handleUserSelect = (userName, messageId = null, conversationData = null) => {
-    console.log('👤 Usuario seleccionado:', userName, 'conversationData:', conversationData);
-    console.log('🔄 Estado ANTES de cambiar:', {
-      to,
-      isGroup,
-      currentRoomCode
-    });
+    // console.log('👤 Usuario seleccionado:', userName, 'conversationData:', conversationData);
+    // console.log('🔄 Estado ANTES de cambiar:', {
+    //   to,
+    //   isGroup,
+    //   currentRoomCode
+    // });
 
     // Si es una conversación de admin (conversationData presente), guardarla
     if (conversationData) {
@@ -1092,11 +1092,11 @@ const ChatPage = () => {
     currentRoomCodeRef.current = null;
     setRoomUsers([]);
 
-    console.log('✅ Estado DESPUÉS de cambiar (programado):', {
-      to: userName,
-      isGroup: false,
-      currentRoomCode: null
-    });
+    // console.log('✅ Estado DESPUÉS de cambiar (programado):', {
+    //   to: userName,
+    //   isGroup: false,
+    //   currentRoomCode: null
+    // });
 
     // Si se proporciona un messageId, guardarlo para resaltarlo después de cargar los mensajes
     if (messageId) {
@@ -1341,25 +1341,25 @@ const ChatPage = () => {
   const handleSendMessage = async () => {
     if ((!input && mediaFiles.length === 0) || !to) return;
 
-    console.log('📤 handleSendMessage - Estado actual:', {
-      to,
-      isGroup,
-      currentRoomCode,
-      username,
-      input: input?.substring(0, 50)
-    });
+    // console.log('📤 handleSendMessage - Estado actual:', {
+    //   to,
+    //   isGroup,
+    //   currentRoomCode,
+    //   username,
+    //   input: input?.substring(0, 50)
+    // });
 
     // Buscar si esta conversación es asignada
     const assignedConv = assignedConversations?.find(conv => {
       const otherUser = conv.participants?.find(p => p !== currentUserFullName);
-      console.log('🔍 Buscando conversación asignada:', {
-        to,
-        currentUserFullName,
-        convName: conv.name,
-        participants: conv.participants,
-        otherUser,
-        match: otherUser === to || conv.name === to
-      });
+      // console.log('🔍 Buscando conversación asignada:', {
+      //   to,
+      //   currentUserFullName,
+      //   convName: conv.name,
+      //   participants: conv.participants,
+      //   otherUser,
+      //   match: otherUser === to || conv.name === to
+      // });
       // 🔥 Comparación case-insensitive para nombres
       const toNormalized = to?.toLowerCase().trim();
       const otherUserNormalized = otherUser?.toLowerCase().trim();
@@ -1368,7 +1368,7 @@ const ChatPage = () => {
       return otherUserNormalized === toNormalized || convNameNormalized === toNormalized;
     });
 
-    console.log('📧 Conversación asignada encontrada:', assignedConv);
+    // console.log('📧 Conversación asignada encontrada:', assignedConv);
 
     // Si es una conversación asignada y el usuario NO está en ella, no permitir enviar
     if (assignedConv && !assignedConv.participants?.includes(currentUserFullName)) {
@@ -1398,12 +1398,12 @@ const ChatPage = () => {
         fromId: user.id
       };
 
-      console.log('📤 Creando messageObj:', {
-        to,
-        isGroup: effectiveIsGroup,
-        isAssignedConv: !!assignedConv,
-        originalIsGroup: isGroup
-      });
+      // console.log('📤 Creando messageObj:', {
+      //   to,
+      //   isGroup: effectiveIsGroup,
+      //   isAssignedConv: !!assignedConv,
+      //   originalIsGroup: isGroup
+      // });
 
       // Si es una conversación asignada, agregar información adicional
       if (assignedConv) {
@@ -1417,7 +1417,7 @@ const ChatPage = () => {
         );
         if (otherParticipant) {
           messageObj.actualRecipient = otherParticipant;
-          console.log('📧 Mensaje a conversación asignada. Destinatario real:', otherParticipant);
+          // console.log('📧 Mensaje a conversación asignada. Destinatario real:', otherParticipant);
         }
       }
 
@@ -1553,7 +1553,7 @@ const ChatPage = () => {
         setAssignedConversations(prevConversations => {
           return prevConversations.map(conv => {
             if (conv.id === assignedConv.id) {
-              console.log('🔄 Actualizando preview de conversación enviada:', conv.name);
+              // console.log('🔄 Actualizando preview de conversación enviada:', conv.name);
               return {
                 ...conv,
                 lastMessage: input || (messageObj.fileName ? `📎 ${messageObj.fileName}` : ''),
@@ -1664,7 +1664,7 @@ const ChatPage = () => {
         );
         if (otherParticipant) {
           messageObj.actualRecipient = otherParticipant;
-          console.log('🎤 Audio a conversación asignada. Destinatario real:', otherParticipant);
+          // console.log('🎤 Audio a conversación asignada. Destinatario real:', otherParticipant);
         }
       }
 
@@ -1712,7 +1712,7 @@ const ChatPage = () => {
         setAssignedConversations(prevConversations => {
           return prevConversations.map(conv => {
             if (conv.id === assignedConv.id) {
-              console.log('🔄 Actualizando preview de conversación enviada (audio):', conv.name);
+              // console.log('🔄 Actualizando preview de conversación enviada (audio):', conv.name);
               return {
                 ...conv,
                 lastMessage: '🎤 Audio',
@@ -2014,7 +2014,7 @@ const ChatPage = () => {
       // Recargar la lista de usuarios de la sala desde la API
       if (currentRoomCode) {
         const roomUsers = await apiService.getRoomUsers(currentRoomCode);
-        console.log('🔄 Usuarios recargados después de agregar:', roomUsers);
+        // console.log('🔄 Usuarios recargados después de agregar:', roomUsers);
         // Si la sala está inactiva, roomUsers será un array vacío
         if (Array.isArray(roomUsers)) {
           setRoomUsers(roomUsers);
@@ -2036,7 +2036,7 @@ const ChatPage = () => {
     // Recargar la lista de usuarios de la sala desde la API
     if (currentRoomCode) {
       const roomUsers = await apiService.getRoomUsers(currentRoomCode);
-      console.log('🔄 Usuarios recargados después de eliminar:', roomUsers);
+      // console.log('🔄 Usuarios recargados después de eliminar:', roomUsers);
       // Si la sala está inactiva, roomUsers será un array vacío
       if (Array.isArray(roomUsers)) {
         setRoomUsers(roomUsers);

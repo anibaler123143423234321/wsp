@@ -384,7 +384,7 @@ const ChatContent = ({
 
     if (unreadMessages.length === 0) return;
 
-    console.log(`📖 Marcando ${unreadMessages.length} mensajes como leídos en conversación con ${to}`);
+    // console.log(`📖 Marcando ${unreadMessages.length} mensajes como leídos en conversación con ${to}`);
 
     // Marcar toda la conversación como leída
     socket.emit('markConversationAsRead', {

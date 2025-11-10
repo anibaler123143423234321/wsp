@@ -121,24 +121,34 @@ const ConversationList = ({
 
   // Cargar favoritos al montar el componente
   useEffect(() => {
+    let isMounted = true;
+
     const loadFavorites = async () => {
       const displayName = getDisplayName();
-      if (!displayName) return;
+      if (!displayName || !isMounted) return;
 
       try {
         // Cargar favoritos de salas
         const roomCodes = await apiService.getUserFavoriteRoomCodes(displayName);
-        setFavoriteRoomCodes(roomCodes);
+        if (isMounted) {
+          setFavoriteRoomCodes(roomCodes);
+        }
 
         // Cargar favoritos de conversaciones
         const conversationIds = await apiService.getUserFavoriteConversationIds(displayName);
-        setFavoriteConversationIds(conversationIds);
+        if (isMounted) {
+          setFavoriteConversationIds(conversationIds);
+        }
       } catch (error) {
         console.error('Error al cargar favoritos:', error);
       }
     };
 
     loadFavorites();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user]);
 
   // Función para alternar favorito de sala
@@ -192,7 +202,7 @@ const ConversationList = ({
 
     // Cargar más cuando llegue al 80% del scroll
     if (scrollPercentage > 0.8) {
-      console.log('📄 Cargando más usuarios...');
+      // console.log('📄 Cargando más usuarios...');
       onLoadMoreUsers();
     }
   }, [onLoadMoreUsers, userListHasMore, userListLoading]);
@@ -737,8 +747,8 @@ const ConversationList = ({
                         minHeight: '60px'
                       }}
                       onClick={() => {
-                        console.log('Usuario viendo conversación asignada:', conv);
-                        console.log('  - displayName:', displayName);
+                        // console.log('Usuario viendo conversación asignada:', conv);
+                        // console.log('  - displayName:', displayName);
                         // Llamar a onUserSelect con el displayName correcto
                         if (onUserSelect) {
                           onUserSelect(displayName, null, conv);
@@ -1023,7 +1033,7 @@ const ConversationList = ({
                       minHeight: '60px'
                     }}
                     onClick={() => {
-                      console.log('Admin monitoreando conversación:', conv);
+                      // console.log('Admin monitoreando conversación:', conv);
                       // Llamar a onUserSelect con los datos de la conversación
                       if (onUserSelect) {
                         onUserSelect(conv.name, null, conv);
