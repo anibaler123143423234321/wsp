@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaUser } from 'react-icons/fa';
+import { FaUser, FaEye, FaEyeSlash } from 'react-icons/fa';
 import apiService from '../apiService';
 import './Login.css';
 
@@ -8,8 +8,10 @@ const Login = ({ onLoginSuccess }) => {
     username: '',
     password: ''
   });
+  const [selectedSede, setSelectedSede] = useState('CHICLAYO_PIURA');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -25,8 +27,9 @@ const Login = ({ onLoginSuccess }) => {
     setError('');
 
     try {
-      const result = await apiService.login(credentials);
-      
+      // Pasar la sede seleccionada al servicio de login
+      const result = await apiService.login(credentials, selectedSede);
+
       if (result.success) {
         onLoginSuccess(result.user);
       } else {
@@ -77,7 +80,7 @@ const Login = ({ onLoginSuccess }) => {
             </div>
             <div className="input-container">
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 id="password"
                 name="password"
                 value={credentials.password}
@@ -87,7 +90,32 @@ const Login = ({ onLoginSuccess }) => {
                 placeholder="contraseña"
               />
             </div>
+            <button
+              type="button"
+              className="password-toggle"
+              onClick={() => setShowPassword(!showPassword)}
+              tabIndex="-1"
+            >
+              {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+            </button>
           </div>
+        </div>
+
+        <div className="sede-buttons-group">
+          <button
+            type="button"
+            className={`sede-button ${selectedSede === 'CHICLAYO_PIURA' ? 'active' : ''}`}
+            onClick={() => setSelectedSede('CHICLAYO_PIURA')}
+          >
+            CHICLAYO / PIURA
+          </button>
+          <button
+            type="button"
+            className={`sede-button ${selectedSede === 'LIMA' ? 'active' : ''}`}
+            onClick={() => setSelectedSede('LIMA')}
+          >
+            LIMA
+          </button>
         </div>
 
         {error && (

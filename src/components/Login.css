@@ -4,7 +4,7 @@
   background: white;
   border-radius: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-  padding: 2.5rem;
+  padding: 1.5rem 2.5rem;
   width: 100%;
   max-width: 420px;
   min-width: 320px;
@@ -40,7 +40,7 @@
 
 .login-header {
   text-align: center;
-  margin-bottom: 2.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .welcome-title {
@@ -61,7 +61,7 @@
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .form-group {
@@ -73,16 +73,39 @@
   align-items: stretch;
   background: #f8f9fa;
   border-radius: 12px;
-  border: 1px solid #e9ecef;
-  transition: all 0.2s ease;
+  border: 2px solid #e0e0e0;
+  transition: all 0.3s ease;
   overflow: hidden;
   position: relative;
-  box-shadow: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .input-wrapper:focus-within {
   border-color: #c62d42;
-  box-shadow: 0 0 0 3px rgba(198, 45, 66, 0.1);
+  box-shadow: 0 0 0 3px rgba(198, 45, 66, 0.1), 0 2px 8px rgba(198, 45, 66, 0.15);
+}
+
+.password-toggle {
+  background: none;
+  border: none;
+  padding: 0 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  transition: color 0.2s ease;
+  flex-shrink: 0;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.password-toggle:hover {
+  color: #c62d42;
+}
+
+.password-toggle:focus {
+  outline: none;
 }
 
 .icon-container {
@@ -228,16 +251,16 @@
   background: #c62d42;
   color: white;
   border: none;
-  padding: 1rem 2rem;
+  padding: 0.625rem 2rem;
   border-radius: 12px;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  margin-top: 0.5rem;
+  margin-top: 0.25rem;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-  min-height: 44px;
+  min-height: 38px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -256,9 +279,49 @@
   box-shadow: none;
 }
 
+/* Estilos para el selector de sede */
+.sede-buttons-group {
+  display: flex;
+  gap: 0.4rem;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.sede-button {
+  flex: 1;
+  padding: 0.6rem 0.75rem;
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  color: #666;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sede-button:hover:not(.active) {
+  border-color: #c62d42;
+  background: #fff0f2;
+  color: #c62d42;
+}
+
+.sede-button.active {
+  background: #c62d42;
+  border-color: #c62d42;
+  color: white;
+  box-shadow: 0 2px 6px rgba(198, 45, 66, 0.2);
+}
+
+.sede-button:focus {
+  outline: none;
+}
+
 .forgot-password {
   text-align: center;
-  margin-top: 1.5rem;
+  margin-top: 0.75rem;
 }
 
 .forgot-password a {
@@ -276,14 +339,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 4px;
 }
 
 .loading-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid transparent;
-  border-top: 2px solid currentColor;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid transparent;
+  border-top: 1.5px solid currentColor;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }

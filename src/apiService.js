@@ -1,17 +1,43 @@
-// Servicio para conectar con la API (mismo host para CRM y Chat por ahora)
-// Temporalmente hardcodeadas hasta resolver el problema con .env
- const API_BASE_URL = "https://apisozarusac.com/BackendJava/";
-// const API_BASECHAT_URL = "http://localhost:8747/";
- const API_BASECHAT_URL = "https://apisozarusac.com/BackendChat/";
+// Servicio para conectar con la API (múltiples backends según sede)
+// URLs para CHICLAYO / PIURA
+const API_BASE_URL_CHICLAYO = "https://apisozarusac.com/BackendJava/";
+const API_BASECHAT_URL_CHICLAYO = "https://apisozarusac.com/BackendChat/";
+
+// URLs para LIMA
+const API_BASE_URL_LIMA = "https://apisozarusac.com/BackendJavaMidas/";
+const API_BASECHAT_URL_LIMA = "https://apisozarusac.com/BackendChat/";
 
 class ApiService {
   constructor() {
-    this.baseUrl = API_BASE_URL;
-    this.baseChatUrl = API_BASECHAT_URL;
+    // URLs por defecto (CHICLAYO/PIURA)
+    this.baseUrl = API_BASE_URL_CHICLAYO;
+    this.baseChatUrl = API_BASECHAT_URL_CHICLAYO;
+    this.currentSede = 'CHICLAYO_PIURA';
 
     // Debug: mostrar las URLs que se están usando (comentado para evitar logs duplicados)
     // console.log("API_BASE_URL:", this.baseUrl);
     // console.log("API_BASECHAT_URL:", this.baseChatUrl);
+  }
+
+  // Método para cambiar la sede y actualizar las URLs
+  setSede(sede) {
+    if (sede === 'LIMA') {
+      this.baseUrl = API_BASE_URL_LIMA;
+      this.baseChatUrl = API_BASECHAT_URL_LIMA;
+      this.currentSede = 'LIMA';
+    } else {
+      this.baseUrl = API_BASE_URL_CHICLAYO;
+      this.baseChatUrl = API_BASECHAT_URL_CHICLAYO;
+      this.currentSede = 'CHICLAYO_PIURA';
+    }
+    // Guardar la sede seleccionada en localStorage
+    localStorage.setItem('selectedSede', sede);
+    console.log(`✅ Sede cambiada a: ${this.currentSede}`);
+  }
+
+  // Método para obtener la sede actual
+  getCurrentSede() {
+    return this.currentSede;
   }
 
   // Método para subir archivos al servidor
@@ -71,8 +97,17 @@ class ApiService {
   }
 
   // Método para hacer login usando la API de Angular
-  async login(credentials) {
+  async login(credentials, sede = 'CHICLAYO_PIURA') {
     try {
+      // Cambiar la sede antes de hacer el login
+      this.setSede(sede);
+
+      // Crear objeto de credenciales sin la sede para enviar a la API
+      const loginCredentials = {
+        username: credentials.username,
+        password: credentials.password
+      };
+
       const response = await fetch(
         `${this.baseUrl}api/authentication/sign-in`,
         {
@@ -80,7 +115,7 @@ class ApiService {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(credentials),
+          body: JSON.stringify(loginCredentials),
         }
       );
 
@@ -104,11 +139,13 @@ class ApiService {
         email: data.data.email,
         tipoTrabajo: data.data.tipoTrabajo,
         numeroAgente: data.data.numeroAgente,
+        selectedSede: sede, // Guardar la sede seleccionada
       };
 
       // Guardar en localStorage como lo hace Angular
       localStorage.setItem("token", data.data.token);
       localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("selectedSede", sede);
 
       return {
         success: true,
@@ -140,13 +177,23 @@ class ApiService {
   logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("selectedSede");
+    // Resetear a la sede por defecto
+    this.setSede('CHICLAYO_PIURA');
   }
 
   // Método para verificar si hay un token válido
   isAuthenticated() {
     const token = localStorage.getItem("token");
     const user = this.getCurrentUser();
-    return !!(token && user);
+
+    // Si hay usuario autenticado, restaurar la sede guardada
+    if (token && user) {
+      const savedSede = localStorage.getItem("selectedSede") || 'CHICLAYO_PIURA';
+      this.setSede(savedSede);
+      return true;
+    }
+    return false;
   }
 
   // Variable para evitar múltiples intentos de refresh simultáneos
@@ -597,7 +644,7 @@ class ApiService {
   // Crear un mensaje
   async createMessage(messageData) {
     try {
-      const response = await fetch(`${API_BASECHAT_URL}api/messages`, {
+      const response = await fetch(`${this.baseChatUrl}api/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -627,7 +674,7 @@ class ApiService {
     try {
       // ✅ Usar fetchWithAuth para renovación automática de token
       const response = await this.fetchWithAuth(
-        `${API_BASECHAT_URL}api/messages/user/${from}/${to}?limit=${limit}&offset=${offset}`,
+        `${this.baseChatUrl}api/messages/user/${from}/${to}?limit=${limit}&offset=${offset}`,
         {
           method: "GET",
         }
@@ -655,7 +702,7 @@ class ApiService {
     try {
 
       const response = await fetch(
-        `${API_BASECHAT_URL}api/messages/room/${roomCode}?limit=${limit}&offset=${offset}`,
+        `${this.baseChatUrl}api/messages/room/${roomCode}?limit=${limit}&offset=${offset}`,
         {
           method: "GET",
           headers: {
@@ -686,7 +733,7 @@ class ApiService {
   async getThreadMessages(threadId, limit = 50, offset = 0) {
     try {
       const response = await fetch(
-        `${API_BASECHAT_URL}api/messages/thread/${threadId}?limit=${limit}&offset=${offset}`,
+        `${this.baseChatUrl}api/messages/thread/${threadId}?limit=${limit}&offset=${offset}`,
         {
           method: "GET",
           headers: {
@@ -710,7 +757,7 @@ class ApiService {
   async incrementThreadCount(messageId) {
     try {
       const response = await fetch(
-        `${API_BASECHAT_URL}api/messages/${messageId}/increment-thread`,
+        `${this.baseChatUrl}api/messages/${messageId}/increment-thread`,
         {
           method: "PATCH",
           headers: {
