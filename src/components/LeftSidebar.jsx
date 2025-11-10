@@ -17,8 +17,9 @@ const LeftSidebar = ({
 }) => {
   return (
     <div
-      className="w-[233.22px] flex flex-col p-0 max-[1400px]:w-[200px] max-[1280px]:w-[180px] max-[1024px]:w-[160px] max-[768px]:w-full max-[768px]:h-screen"
+      className="flex flex-col p-0 max-[768px]:w-full max-[768px]:h-screen"
       style={{
+        width: 'clamp(160px, 20vw, 233.22px)',
         backgroundImage: `url(${menuBackground})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
@@ -131,50 +132,46 @@ const LeftSidebar = ({
         {/* Línea separadora */}
         <div
           style={{
-            width: '208.6px',
             height: '0px',
             border: '1.3px solid #FFFFFF',
             marginLeft: '11.66px',
-            marginBottom: '24px'
+            marginBottom: '24px',
+            width: 'calc(100% - 40px)',
+            height: '0px',
+            border: '1px solid rgba(255, 255, 255, 1)',
+            marginLeft: '20px',
+            marginRight: '20px',
+            marginBottom: '16px'
           }}
         ></div>
 
         {/* Botón Unirse a Sala - VISIBLE PARA TODOS */}
         <div
-          className="flex flex-col max-[1280px]:!px-3 max-[1280px]:!gap-2 max-[1024px]:!px-2 max-[1024px]:!gap-1.5 max-[768px]:!px-4 max-[768px]:!gap-2"
+          className="flex flex-col items-center left-sidebar-button-container max-[1280px]:!px-3 max-[1280px]:!gap-2 max-[1024px]:!px-2 max-[1024px]:!gap-1.5 max-[768px]:!px-4 max-[768px]:!gap-2"
           style={{
-            paddingLeft: '27.08px',
-            paddingRight: '27.08px',
+            paddingLeft: 'clamp(12px, 5%, 27.08px)',
+            paddingRight: 'clamp(12px, 5%, 27.08px)',
             paddingTop: '4px',
             gap: '10px'
           }}
         >
           <button
-            className="left-sidebar-button group bg-white/5 border-none flex items-center cursor-pointer transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] rounded-lg max-[1280px]:!h-10 max-[1280px]:!px-3 max-[1280px]:!gap-2.5 max-[1024px]:!h-9 max-[1024px]:!px-2 max-[1024px]:!gap-2 max-[768px]:!w-full max-[768px]:!justify-start max-[768px]:!h-12 max-[768px]:!px-4 max-[768px]:!gap-3"
+            className="left-sidebar-button group bg-white/5 border-none flex items-center cursor-pointer transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] rounded-lg"
             onClick={onShowJoinRoom}
             title="Unirse a sala"
             style={{
-              width: '180.35px',
-              height: '42px',
               borderRadius: '10px',
-              padding: '10px 12px',
-              gap: '10px',
               boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
             }}
           >
             <FaSignInAlt
               className="left-sidebar-icon text-white max-[1280px]:!w-3.5 max-[1280px]:!h-3.5 max-[1024px]:!w-3 max-[1024px]:!h-3 max-[768px]:!text-base max-[768px]:!shrink-0"
-              style={{
-                width: '16px',
-                height: '16px'
-              }}
             />
             <span
-              className="left-sidebar-text text-white max-[1280px]:!text-xs max-[1024px]:!text-[11px] max-[1024px]:!hidden max-[768px]:!inline max-[768px]:!text-sm max-[768px]:!flex-1 max-[768px]:!text-left max-[768px]:!font-medium"
+              className="left-sidebar-text text-white"
               style={{
                 fontFamily: 'Inter, sans-serif',
                 fontWeight: 500,
-                fontSize: '14px',
                 lineHeight: '100%'
               }}
             >
@@ -186,44 +183,33 @@ const LeftSidebar = ({
         {/* Botones de acción - Solo para ADMIN y JEFEPISO */}
         {(user?.role === 'ADMIN' || user?.role === 'JEFEPISO') && (
           <div
-            className="flex flex-col max-[1280px]:!px-3 max-[1280px]:!gap-2 max-[1024px]:!px-2 max-[1024px]:!gap-1.5 max-[768px]:!px-4 max-[768px]:!gap-2"
+            className="flex flex-col items-center left-sidebar-button-container max-[1280px]:!px-3 max-[1280px]:!gap-2 max-[1024px]:!px-2 max-[1024px]:!gap-1.5 max-[768px]:!px-4 max-[768px]:!gap-2"
             style={{
-              paddingLeft: '27.08px',
-              paddingRight: '27.08px',
+              paddingLeft: 'clamp(12px, 5%, 27.08px)',
+              paddingRight: 'clamp(12px, 5%, 27.08px)',
               paddingTop: '4px',
               gap: '10px'
             }}
           >
             {/* Botón Crear Sala */}
             <button
-              className="group bg-white/5 border-none flex items-center cursor-pointer transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] rounded-lg max-[1280px]:!h-10 max-[1280px]:!px-3 max-[1280px]:!gap-2.5 max-[1024px]:!h-9 max-[1024px]:!px-2 max-[1024px]:!gap-2 max-[768px]:!w-full max-[768px]:!justify-start max-[768px]:!h-12 max-[768px]:!px-4 max-[768px]:!gap-3"
+              className="left-sidebar-button group bg-white/5 border-none flex items-center cursor-pointer transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] rounded-lg"
               onClick={onShowCreateRoom}
               title="Crear Sala"
               style={{
-                width: '180.35px',
-                height: '42px',
                 borderRadius: '10px',
-                padding: '10px 12px',
-                gap: '10px',
                 boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
               }}
             >
               <FaPlus
-                className="max-[1280px]:!w-3.5 max-[1280px]:!h-3.5 max-[1024px]:!w-3 max-[1024px]:!h-3 max-[768px]:!text-base max-[768px]:!shrink-0"
-                style={{
-                  width: '16px',
-                  height: '16px',
-                  color: '#FFFFFF'
-                }}
+                className="text-white"
               />
               <span
-                className="max-[1280px]:!text-xs max-[1024px]:!text-[11px] max-[1024px]:!hidden max-[768px]:!inline max-[768px]:!text-sm max-[768px]:!flex-1 max-[768px]:!text-left max-[768px]:!font-medium"
+                className="left-sidebar-text text-white"
                 style={{
                   fontFamily: 'Inter, sans-serif',
                   fontWeight: 500,
-                  fontSize: '14px',
-                  lineHeight: '100%',
-                  color: '#FFFFFF'
+                  lineHeight: '100%'
                 }}
               >
                 Crear Sala
@@ -232,34 +218,23 @@ const LeftSidebar = ({
 
             {/* Botón Mis Salas */}
             <button
-              className="group bg-white/5 border-none flex items-center cursor-pointer transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] rounded-lg max-[1280px]:!h-10 max-[1280px]:!px-3 max-[1280px]:!gap-2.5 max-[1024px]:!h-9 max-[1024px]:!px-2 max-[1024px]:!gap-2 max-[768px]:!w-full max-[768px]:!justify-start max-[768px]:!h-12 max-[768px]:!px-4 max-[768px]:!gap-3"
+              className="left-sidebar-button group bg-white/5 border-none flex items-center cursor-pointer transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] rounded-lg"
               onClick={onShowAdminRooms}
               title="Mis salas"
               style={{
-                width: '180.35px',
-                height: '42px',
                 borderRadius: '10px',
-                padding: '10px 12px',
-                gap: '10px',
                 boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
               }}
             >
               <FaDoorOpen
-                className="max-[1280px]:!w-3.5 max-[1280px]:!h-3.5 max-[1024px]:!w-3 max-[1024px]:!h-3 max-[768px]:!text-base max-[768px]:!shrink-0"
-                style={{
-                  width: '16px',
-                  height: '16px',
-                  color: '#FFFFFF'
-                }}
+                className="text-white"
               />
               <span
-                className="max-[1280px]:!text-xs max-[1024px]:!text-[11px] max-[1024px]:!hidden max-[768px]:!inline max-[768px]:!text-sm max-[768px]:!flex-1 max-[768px]:!text-left max-[768px]:!font-medium"
+                className="left-sidebar-text text-white"
                 style={{
                   fontFamily: 'Inter, sans-serif',
                   fontWeight: 500,
-                  fontSize: '14px',
-                  lineHeight: '100%',
-                  color: '#FFFFFF'
+                  lineHeight: '100%'
                 }}
               >
                 Mis salas
@@ -268,34 +243,23 @@ const LeftSidebar = ({
 
             {/* Botón Asignar Chat */}
             <button
-              className="group bg-white/5 border-none flex items-center cursor-pointer transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] rounded-lg max-[1280px]:!h-10 max-[1280px]:!px-3 max-[1280px]:!gap-2.5 max-[1024px]:!h-9 max-[1024px]:!px-2 max-[1024px]:!gap-2 max-[768px]:!w-full max-[768px]:!justify-start max-[768px]:!h-12 max-[768px]:!px-4 max-[768px]:!gap-3"
+              className="left-sidebar-button group bg-white/5 border-none flex items-center cursor-pointer transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] rounded-lg"
               onClick={onShowCreateConversation}
               title="Asignar Chat"
               style={{
-                width: '180.35px',
-                height: '42px',
                 borderRadius: '10px',
-                padding: '10px 12px',
-                gap: '10px',
                 boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
               }}
             >
               <FaUserFriends
-                className="max-[1280px]:!w-3.5 max-[1280px]:!h-3.5 max-[1024px]:!w-3 max-[1024px]:!h-3 max-[768px]:!text-base max-[768px]:!shrink-0"
-                style={{
-                  width: '16px',
-                  height: '16px',
-                  color: '#FFFFFF'
-                }}
+                className="text-white"
               />
               <span
-                className="max-[1280px]:!text-xs max-[1024px]:!text-[11px] max-[1024px]:!hidden max-[768px]:!inline max-[768px]:!text-sm max-[768px]:!flex-1 max-[768px]:!text-left max-[768px]:!font-medium"
+                className="left-sidebar-text text-white"
                 style={{
                   fontFamily: 'Inter, sans-serif',
                   fontWeight: 500,
-                  fontSize: '14px',
-                  lineHeight: '100%',
-                  color: '#FFFFFF'
+                  lineHeight: '100%'
                 }}
               >
                 Asignar Chat
@@ -304,34 +268,23 @@ const LeftSidebar = ({
 
             {/* Botón Gestionar Chats */}
             <button
-              className="group bg-white/5 border-none flex items-center cursor-pointer transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] rounded-lg max-[1280px]:!h-10 max-[1280px]:!px-3 max-[1280px]:!gap-2.5 max-[1024px]:!h-9 max-[1024px]:!px-2 max-[1024px]:!gap-2 max-[768px]:!w-full max-[768px]:!justify-start max-[768px]:!h-12 max-[768px]:!px-4 max-[768px]:!gap-3"
+              className="left-sidebar-button group bg-white/5 border-none flex items-center cursor-pointer transition-all duration-200 hover:bg-white/10 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] rounded-lg"
               onClick={onShowManageConversations}
               title="Gestionar Chats"
               style={{
-                width: '180.35px',
-                height: '42px',
                 borderRadius: '10px',
-                padding: '10px 12px',
-                gap: '10px',
                 boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
               }}
             >
               <FaClipboardList
-                className="max-[1280px]:!w-3.5 max-[1280px]:!h-3.5 max-[1024px]:!w-3 max-[1024px]:!h-3 max-[768px]:!text-base max-[768px]:!shrink-0"
-                style={{
-                  width: '16px',
-                  height: '16px',
-                  color: '#FFFFFF'
-                }}
+                className="text-white"
               />
               <span
-                className="max-[1280px]:!text-xs max-[1024px]:!text-[11px] max-[1024px]:!hidden max-[768px]:!inline max-[768px]:!text-sm max-[768px]:!flex-1 max-[768px]:!text-left max-[768px]:!font-medium"
+                className="left-sidebar-text text-white"
                 style={{
                   fontFamily: 'Inter, sans-serif',
                   fontWeight: 500,
-                  fontSize: '14px',
-                  lineHeight: '100%',
-                  color: '#FFFFFF'
+                  lineHeight: '100%'
                 }}
               >
                 Gestionar Chats

@@ -626,7 +626,7 @@ const ConversationList = ({
       )}
 
       {activeModule === 'assigned' && (
-        <div className="flex-1 overflow-y-auto bg-white px-4">
+        <div className="flex-1 overflow-y-auto bg-white px-4 w-full min-w-0">
           {(() => {
             // Filtrar solo las conversaciones donde el usuario es participante
             // Aplicar búsqueda sobre myAssignedConversations
@@ -740,11 +740,14 @@ const ConversationList = ({
                   return (
                     <div
                       key={conv.id}
-                      className="flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group"
+                      className="flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group"
                       style={{
                         padding: '8px 12px',
                         gap: '10px',
-                        minHeight: '60px'
+                        minHeight: '60px',
+                        alignItems: 'flex-start',
+                        width: '100%',
+                        minWidth: 0
                       }}
                       onClick={() => {
                         // console.log('Usuario viendo conversación asignada:', conv);
@@ -968,7 +971,7 @@ const ConversationList = ({
 
       {/* Módulo de Chats Monitoreo (solo para ADMIN) */}
       {activeModule === 'monitoring' && isAdmin && (
-        <div className="flex-1 overflow-y-auto bg-white px-4">
+        <div className="flex-1 overflow-y-auto bg-white px-4 w-full min-w-0">
           {(() => {
             // Filtrar conversaciones de monitoreo con búsqueda
             const filteredMonitoring = monitoringConversations.filter(conv => {
@@ -1026,11 +1029,16 @@ const ConversationList = ({
                 return (
                   <div
                     key={conv.id}
-                    className="flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group"
+                    className="flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-4 cursor-pointer group"
                     style={{
-                      padding: '8px 12px',
+                      padding: '12px 12px',
                       gap: '10px',
-                      minHeight: '60px'
+                      minHeight: '60px',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      width: '100%',
+                      minWidth: 0,
+                      overflow: 'hidden'
                     }}
                     onClick={() => {
                       // console.log('Admin monitoreando conversación:', conv);
@@ -1041,11 +1049,15 @@ const ConversationList = ({
                     }}
                   >
                     {/* Avatar doble para conversación */}
-                    <div className="relative flex-shrink-0" style={{ width: '40px', height: '40px' }}>
+                    <div
+                      className="relative flex-shrink-0 cursor-pointer group"
+                      style={{ width: '40px', height: '40px' }}
+                      title={`${participant1Name} ↔️ ${participant2Name}`}
+                    >
                       <div className="relative" style={{ width: '40px', height: '40px' }}>
                         {/* Avatar 1 */}
                         <div
-                          className="absolute rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-white font-bold"
+                          className="absolute rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-white font-bold hover:ring-2 hover:ring-purple-400 transition-all"
                           style={{
                             width: '26px',
                             height: '26px',
@@ -1053,14 +1065,21 @@ const ConversationList = ({
                             fontSize: '10px',
                             top: '0',
                             left: '0',
-                            zIndex: 2
+                            zIndex: 2,
+                            cursor: 'pointer'
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onUserSelect) {
+                              onUserSelect(participant1Name, null, { ...conv, selectedParticipant: participant1Name });
+                            }
                           }}
                         >
                           {getInitials(participant1Name)}
                         </div>
                         {/* Avatar 2 */}
                         <div
-                          className="absolute rounded-full overflow-hidden bg-gradient-to-br from-pink-500 to-pink-700 flex items-center justify-center text-white font-bold"
+                          className="absolute rounded-full overflow-hidden bg-gradient-to-br from-pink-500 to-pink-700 flex items-center justify-center text-white font-bold hover:ring-2 hover:ring-pink-400 transition-all"
                           style={{
                             width: '26px',
                             height: '26px',
@@ -1068,7 +1087,14 @@ const ConversationList = ({
                             fontSize: '10px',
                             bottom: '0',
                             right: '0',
-                            zIndex: 1
+                            zIndex: 1,
+                            cursor: 'pointer'
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onUserSelect) {
+                              onUserSelect(participant2Name, null, { ...conv, selectedParticipant: participant2Name });
+                            }
                           }}
                         >
                           {getInitials(participant2Name)}
@@ -1078,7 +1104,7 @@ const ConversationList = ({
 
                     {/* Info de la conversación */}
                     <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '4px' }}>
-                      <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start justify-between gap-2 w-full min-w-0">
                         <div className="flex flex-col gap-1 flex-1 min-w-0">
                           {/* Indicador de Fijado */}
                           {isFavorite && (
@@ -1096,37 +1122,60 @@ const ConversationList = ({
                               📌 Fijado
                             </span>
                           )}
-                          <div className="flex items-center gap-2">
-                            <h3
-                              className="font-semibold text-[#111] flex-1 min-w-0"
-                              style={{
-                                fontSize: '14px',
-                                lineHeight: '18px',
-                                fontFamily: 'Inter, sans-serif',
-                                fontWeight: 600,
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                                overflow: 'hidden',
-                                wordBreak: 'break-word'
-                              }}
-                              title={conv.name || `${participant1Name} ↔️ ${participant2Name}`}
-                            >
-                              {conv.name || `${participant1Name} ↔️ ${participant2Name}`}
-                            </h3>
+                          <div className="flex items-center gap-1 w-full min-w-0">
+                            <div className="flex-1 min-w-0">
+                              {/* Comentado: Título con ambos participantes
+                              <h3
+                                className="font-semibold text-[#111]"
+                                style={{
+                                  fontSize: '14px',
+                                  lineHeight: '18px',
+                                  fontFamily: 'Inter, sans-serif',
+                                  fontWeight: 600,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap'
+                                }}
+                                title={conv.name || `${participant1Name} ↔️ ${participant2Name}`}
+                              >
+                                {conv.name || `${participant1Name} ↔️ ${participant2Name}`}
+                              </h3>
+                              */}
+                              <p
+                                className="font-semibold text-[#111]"
+                                style={{
+                                  fontSize: '13px',
+                                  lineHeight: '16px',
+                                  fontFamily: 'Inter, sans-serif',
+                                  fontWeight: 600,
+                                  width: '100%',
+                                  minWidth: 0,
+                                  wordBreak: 'break-word',
+                                  overflowWrap: 'break-word'
+                                }}
+                                title={`${participant1Name} • ${participant2Name}`}
+                              >
+                                {participant1Name} • {participant2Name}
+                              </p>
+                            </div>
                             {/* Botón de favorito */}
                             <button
                               onClick={(e) => handleToggleConversationFavorite(conv, e)}
-                              className="flex-shrink-0 p-1 rounded-full hover:bg-gray-200 transition-all duration-200 opacity-0 group-hover:opacity-100"
+                              className="flex-shrink-0 p-0.5 rounded-full hover:bg-gray-200 transition-all duration-200 opacity-0 group-hover:opacity-100"
                               style={{
-                                opacity: isFavorite ? 1 : undefined
+                                opacity: isFavorite ? 1 : undefined,
+                                width: '20px',
+                                height: '20px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
                               }}
                               title={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
                             >
                               {isFavorite ? (
-                                <FaStar className="text-yellow-500" size={14} />
+                                <FaStar className="text-yellow-500" size={12} />
                               ) : (
-                                <FaRegStar className="text-gray-400" size={14} />
+                                <FaRegStar className="text-gray-400" size={12} />
                               )}
                             </button>
                           </div>

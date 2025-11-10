@@ -24,6 +24,7 @@ const CreateConversationModal = ({
   const [searchResults1, setSearchResults1] = useState([]);
   const [searchResults2, setSearchResults2] = useState([]);
   const [loadingBackendUsers, setLoadingBackendUsers] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // 🔥 Estado para evitar doble envío
   const debounceTimer1 = useRef(null);
   const debounceTimer2 = useRef(null);
   const ITEMS_PER_PAGE = 10;
@@ -145,6 +146,7 @@ const CreateConversationModal = ({
       setUserSource('connected');
       setSearchResults1([]);
       setSearchResults2([]);
+      setIsSubmitting(false); // 🔥 Limpiar estado de envío
     }
   }, [isOpen]);
 
@@ -273,9 +275,14 @@ const CreateConversationModal = ({
 
   const totalPagesUser2 = Math.ceil(filteredUsers2.length / ITEMS_PER_PAGE);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    // 🔥 Evitar doble envío
+    if (isSubmitting) {
+      return;
+    }
 
     if (!selectedUser1 || !selectedUser2) {
       setError('Debes seleccionar dos usuarios');
@@ -287,34 +294,40 @@ const CreateConversationModal = ({
       return;
     }
 
-    // Obtener los nombres completos de los usuarios seleccionados
-    const getFullNameForUser = (username) => {
-      // Buscar en searchResults primero
-      let userObj = searchResults1.find(u => (typeof u === 'string' ? u : u.username) === username);
-      if (!userObj) {
-        userObj = searchResults2.find(u => (typeof u === 'string' ? u : u.username) === username);
-      }
-      // Si no está en searchResults, buscar en sourceUsers
-      if (!userObj) {
-        userObj = sourceUsers.find(u => (typeof u === 'string' ? u : u.username) === username);
-      }
+    setIsSubmitting(true);
 
-      // Si encontramos el objeto y tiene nombre y apellido, retornar nombre completo
-      if (userObj && typeof userObj === 'object' && userObj.nombre && userObj.apellido) {
-        return `${userObj.nombre} ${userObj.apellido}`;
-      }
-      // Si no, retornar el username
-      return username;
-    };
+    try {
+      // Obtener los nombres completos de los usuarios seleccionados
+      const getFullNameForUser = (username) => {
+        // Buscar en searchResults primero
+        let userObj = searchResults1.find(u => (typeof u === 'string' ? u : u.username) === username);
+        if (!userObj) {
+          userObj = searchResults2.find(u => (typeof u === 'string' ? u : u.username) === username);
+        }
+        // Si no está en searchResults, buscar en sourceUsers
+        if (!userObj) {
+          userObj = sourceUsers.find(u => (typeof u === 'string' ? u : u.username) === username);
+        }
 
-    const user1FullName = getFullNameForUser(selectedUser1);
-    const user2FullName = getFullNameForUser(selectedUser2);
+        // Si encontramos el objeto y tiene nombre y apellido, retornar nombre completo
+        if (userObj && typeof userObj === 'object' && userObj.nombre && userObj.apellido) {
+          return `${userObj.nombre} ${userObj.apellido}`;
+        }
+        // Si no, retornar el username
+        return username;
+      };
 
-    onCreateConversation({
-      user1: user1FullName,
-      user2: user2FullName,
-      name: conversationName
-    });
+      const user1FullName = getFullNameForUser(selectedUser1);
+      const user2FullName = getFullNameForUser(selectedUser2);
+
+      await onCreateConversation({
+        user1: user1FullName,
+        user2: user2FullName,
+        name: conversationName
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -615,10 +628,10 @@ const CreateConversationModal = ({
             <button
               type="submit"
               className="footer-btn create-btn"
-              disabled={!selectedUser1 || !selectedUser2 || selectedUser1 === selectedUser2}
+              disabled={!selectedUser1 || !selectedUser2 || selectedUser1 === selectedUser2 || isSubmitting}
             >
               <FaComments />
-              Crear Conversación
+              {isSubmitting ? 'Creando...' : 'Crear Conversación'}
             </button>
           </div>
         </form>

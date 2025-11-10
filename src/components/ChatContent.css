@@ -497,7 +497,7 @@
 .input-group {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
   background: #ffffff;
   border: none;
   border-radius: 30px;
@@ -507,6 +507,7 @@
   max-width: 100%;
   min-height: 51.33px;
   height: auto;
+  justify-content: space-between;
 }
 
 .input-group:hover {
@@ -527,14 +528,15 @@
   font-size: 14.97px;
   font-weight: 400;
   font-style: normal;
-  line-height: 100%;
+  line-height: 1.4;
   letter-spacing: 0%;
   padding: 10px 16px;
   min-height: 38.49px;
-  height: 38.49px;
+  max-height: 150px;
   width: 567.8px;
   border-radius: 12.83px;
   resize: none;
+  overflow-y: auto;
 }
 
 .message-input::placeholder {
@@ -586,8 +588,8 @@
 }
 
 .attach-icon {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }
 
 .btn {
@@ -622,6 +624,16 @@
   transition: all 0.2s ease;
   flex-shrink: 0;
   white-space: nowrap;
+  margin-left: auto;
+  margin-right: 0;
+}
+
+/* Agrupar los botones de la izquierda */
+.input-group > label,
+.input-group > div:first-of-type,
+.input-group > button:not(.btn-send) {
+  margin-right: 0;
+  margin-left: 0;
 }
 
 .btn-send:hover:not(:disabled) {

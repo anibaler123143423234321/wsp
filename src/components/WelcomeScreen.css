@@ -126,8 +126,7 @@
   align-items: center;
   gap: 0.83875rem; /* 13.42px en rem */
   padding: 0.755rem 1.5rem; /* Más padding horizontal para cubrir el texto */
-  width: auto;
-  min-width: 100%;
+  width: 100%;
   height: auto;
   background: rgba(165, 1, 4, 0.05); /* #A501040D */
   border-radius: 0.335625rem; /* 5.37px en rem */
@@ -136,6 +135,7 @@
   border: 0.0625rem solid #e5e7eb;
   cursor: default;
   pointer-events: none;
+  flex-wrap: wrap;
 }
 
 .welcome-option:nth-child(1) {
@@ -194,6 +194,8 @@
   display: flex;
   align-items: center;
   white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 
 .welcome-image {

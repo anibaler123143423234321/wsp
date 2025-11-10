@@ -598,12 +598,20 @@ const ChatPage = () => {
 
               if (isThisConversation) {
                 // console.log('🔄 Actualizando preview de conversación:', conv.name);
+
+                // 🔥 IMPORTANTE: Solo incrementar el contador si el usuario es participante
+                // En monitoreo, el contador viene del backend y no debe ser modificado
+                const isUserParticipant = conv.participants?.includes(currentUserFullName);
+                const newUnreadCount = isUserParticipant
+                  ? (conv.unreadCount || 0) + 1
+                  : conv.unreadCount;
+
                 return {
                   ...conv,
                   lastMessage: data.message || '',
                   lastMessageTime: timeString,
                   lastMessageFrom: data.from,
-                  unreadCount: (conv.unreadCount || 0) + 1 // Incrementar contador de no leídos
+                  unreadCount: newUnreadCount
                 };
               }
 
@@ -2060,6 +2068,9 @@ const ChatPage = () => {
         'Conversación creada',
         `Conversación creada exitosamente entre ${data.user1} y ${data.user2}`
       );
+
+      // 🔥 Recargar las conversaciones asignadas para reflejar la nueva conversación
+      await loadAssignedConversations();
 
       // Opcional: Notificar a los usuarios via Socket.io
       if (socket && socket.connected) {

@@ -1447,8 +1447,7 @@ const ChatContent = ({
             canSendMessages={canSendMessages}
           />
 
-          <input
-            type="text"
+          <textarea
             value={input}
             onChange={handleInputChange}
             onKeyDown={handleKeyPress}
