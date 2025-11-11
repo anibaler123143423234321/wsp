@@ -1,0 +1,104 @@
+/* Estilos específicos para AddUsersToRoomModal */
+
+/* Selector de Sede Compacto */
+.sede-selector-compact {
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sede-selector-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e9edef;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sede-buttons-group-compact {
+  display: flex;
+  gap: 6px;
+}
+
+.sede-button-compact {
+  flex: 1;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.sede-button-compact:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(198, 45, 66, 0.5);
+  color: #ff6b6b;
+  transform: translateY(-1px);
+}
+
+.sede-button-compact.active {
+  background: linear-gradient(135deg, rgba(198, 45, 66, 0.25) 0%, rgba(198, 45, 66, 0.15) 100%);
+  border-color: #c62d42;
+  color: #ff6b6b;
+  box-shadow: 0 0 12px rgba(198, 45, 66, 0.3);
+}
+
+/* Estilos para la lista de usuarios */
+.users-list-container {
+  max-height: 350px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+/* Scroll mejorado - Webkit */
+.users-list-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.users-list-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+}
+
+.users-list-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 168, 132, 0.5);
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.users-list-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 168, 132, 0.8);
+  box-shadow: 0 0 5px rgba(0, 168, 132, 0.3);
+}
+
+/* Firefox */
+.users-list-container {
+  scrollbar-color: rgba(0, 168, 132, 0.5) rgba(255, 255, 255, 0.03);
+  scrollbar-width: thin;
+}
+

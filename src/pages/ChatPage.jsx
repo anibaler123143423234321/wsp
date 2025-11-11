@@ -2418,7 +2418,6 @@ const ChatPage = () => {
       isOpen={showCreateConversationModal}
       onClose={() => setShowCreateConversationModal(false)}
       onCreateConversation={handleCreateConversation}
-      userList={userList}
       currentUser={user}
     />
 

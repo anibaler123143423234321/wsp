@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { FaTimes, FaUserPlus, FaSearch } from 'react-icons/fa';
 import apiService from '../../apiService';
 import { showSuccessAlert, showErrorAlert } from '../../sweetalert2';
 import './Modal.css';
+import './AddUsersToRoomModal.css';
 
 const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembers = [], onUserAdded }) => {
   const [users, setUsers] = useState([]);
@@ -13,8 +14,25 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [selectedSede, setSelectedSede] = useState('CHICLAYO_PIURA');
+  const [cacheVersion, setCacheVersion] = useState(0);
+  const usersCache = useRef({
+    CHICLAYO_PIURA: [],
+    LIMA: []
+  });
+  const isFirstLoad = useRef(true);
 
-  const loadUsers = useCallback(async (pageNumber = 0, reset = false) => {
+  const loadUsers = useCallback(async (pageNumber = 0, reset = false, sede = null) => {
+    const sedeToUse = sede || selectedSede;
+
+    // Verificar si ya hay usuarios en caché para esta sede
+    if (reset && usersCache.current[sedeToUse].length > 0) {
+      setUsers(usersCache.current[sedeToUse]);
+      setHasMore(false);
+      setPage(0);
+      return;
+    }
+
     if (reset) {
       setLoading(true);
     } else {
@@ -22,8 +40,8 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
     }
 
     try {
-      // Cargar usuarios de 10 en 10
-      const newUsers = await apiService.getUsersFromBackend(pageNumber, 10);
+      // Cargar usuarios de 10 en 10 según la sede
+      const newUsers = await apiService.getUsersFromBackend(pageNumber, 10, sedeToUse);
 
       // Filtrar usuarios que ya están en la sala
       const currentMemberUsernames = currentMembers.map(m =>
@@ -35,8 +53,14 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
 
       if (reset) {
         setUsers(availableUsers);
+        // Guardar en caché
+        usersCache.current[sedeToUse] = availableUsers;
+        setCacheVersion(prev => prev + 1);
       } else {
         setUsers(prev => [...prev, ...availableUsers]);
+        // Actualizar caché
+        usersCache.current[sedeToUse] = [...usersCache.current[sedeToUse], ...availableUsers];
+        setCacheVersion(prev => prev + 1);
       }
 
       // Si recibimos menos de 10 usuarios, no hay más páginas
@@ -51,10 +75,12 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [currentMembers]);
+  }, [currentMembers, selectedSede]);
 
   // Función para buscar usuarios
-  const searchUsers = useCallback(async (query, pageNumber = 0, reset = false) => {
+  const searchUsers = useCallback(async (query, pageNumber = 0, reset = false, sede = null) => {
+    const sedeToUse = sede || selectedSede;
+
     if (reset) {
       setLoading(true);
     } else {
@@ -63,7 +89,8 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
     setIsSearching(true);
 
     try {
-      const newUsers = await apiService.searchUsersFromBackend(query, pageNumber, 10);
+      // Buscar usuarios según la sede
+      const newUsers = await apiService.searchUsersFromBackend(query, pageNumber, 10, sedeToUse);
 
       // Filtrar usuarios que ya están en la sala
       const currentMemberUsernames = currentMembers.map(m =>
@@ -75,8 +102,18 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
 
       if (reset) {
         setUsers(availableUsers);
+        // Agregar a caché sin duplicados
+        const existingUsernames = usersCache.current[sedeToUse].map(u => u.username);
+        const newUniqueUsers = availableUsers.filter(u => !existingUsernames.includes(u.username));
+        usersCache.current[sedeToUse] = [...usersCache.current[sedeToUse], ...newUniqueUsers];
+        setCacheVersion(prev => prev + 1);
       } else {
         setUsers(prev => [...prev, ...availableUsers]);
+        // Agregar a caché sin duplicados
+        const existingUsernames = usersCache.current[sedeToUse].map(u => u.username);
+        const newUniqueUsers = availableUsers.filter(u => !existingUsernames.includes(u.username));
+        usersCache.current[sedeToUse] = [...usersCache.current[sedeToUse], ...newUniqueUsers];
+        setCacheVersion(prev => prev + 1);
       }
 
       setHasMore(newUsers.length === 10);
@@ -88,7 +125,7 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
       setLoadingMore(false);
       setIsSearching(false);
     }
-  }, [currentMembers]);
+  }, [currentMembers, selectedSede]);
 
   useEffect(() => {
     if (isOpen) {
@@ -99,10 +136,31 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
       setSelectedUsers([]);
       setSearchTerm('');
       setIsSearching(false);
+      setSelectedSede('CHICLAYO_PIURA');
+      isFirstLoad.current = true;
       // Cargar usuarios iniciales
-      loadUsers(0, true);
+      loadUsers(0, true, 'CHICLAYO_PIURA');
     }
-  }, [isOpen, loadUsers]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  // Efecto para cambiar de sede
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Evitar que se ejecute en la primera carga
+    if (isFirstLoad.current) {
+      isFirstLoad.current = false;
+      return;
+    }
+
+    // Limpiar búsqueda y recargar usuarios de la nueva sede
+    setSearchTerm('');
+    setPage(0);
+    setHasMore(true);
+    loadUsers(0, true, selectedSede);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSede, isOpen]);
 
   // Efecto para buscar cuando cambia el searchTerm (con debounce)
   useEffect(() => {
@@ -113,11 +171,11 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
 
     const timer = setTimeout(() => {
       // Solo buscar si hay texto de búsqueda
-      searchUsers(searchTerm, 0, true);
+      searchUsers(searchTerm, 0, true, selectedSede);
     }, 500); // Esperar 500ms después de que el usuario deje de escribir
 
     return () => clearTimeout(timer);
-  }, [searchTerm, isOpen, searchUsers]);
+  }, [searchTerm, isOpen, searchUsers, selectedSede]);
 
   const handleScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
@@ -126,9 +184,9 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
       if (hasMore && !loadingMore && !loading) {
         // Si hay búsqueda activa, usar searchUsers, sino loadUsers
         if (searchTerm.trim().length > 0) {
-          searchUsers(searchTerm, page + 1, false);
+          searchUsers(searchTerm, page + 1, false, selectedSede);
         } else {
-          loadUsers(page + 1, false);
+          loadUsers(page + 1, false, selectedSede);
         }
       }
     }
@@ -186,10 +244,10 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px', maxHeight: '85vh' }}>
-        <div className="modal-header">
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FaUserPlus />
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header" style={{ padding: '14px 16px' }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px' }}>
+            <FaUserPlus style={{ fontSize: '16px' }} />
             Agregar Usuarios a la Sala
           </h2>
           <button className="modal-close" onClick={onClose}>
@@ -197,45 +255,66 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
           </button>
         </div>
 
-        <div className="modal-body">
+        <div className="modal-body" style={{ padding: '16px' }}>
           <div style={{
-            marginBottom: '20px',
-            padding: '16px',
+            marginBottom: '12px',
+            padding: '10px 12px',
             background: '#2a3942',
-            borderRadius: '8px',
+            borderRadius: '6px',
             border: '1px solid #374045'
           }}>
-            <div style={{ fontWeight: 600, color: '#e9edef', fontSize: '15px', marginBottom: '6px' }}>{roomName}</div>
-            <div style={{ fontSize: '13px', color: '#8696a0', marginBottom: '2px' }}>
-              <span style={{ fontFamily: 'monospace', background: '#374045', padding: '2px 6px', borderRadius: '4px' }}>
+            <div style={{ fontWeight: 600, color: '#e9edef', fontSize: '14px', marginBottom: '4px' }}>{roomName}</div>
+            <div style={{ fontSize: '12px', color: '#8696a0', marginBottom: '2px' }}>
+              <span style={{ fontFamily: 'monospace', background: '#374045', padding: '2px 5px', borderRadius: '3px' }}>
                 {roomCode}
               </span>
             </div>
-            <div style={{ fontSize: '13px', color: '#00a884', marginTop: '6px' }}>
+            <div style={{ fontSize: '12px', color: '#00a884', marginTop: '4px' }}>
               {currentMembers.length} miembro{currentMembers.length !== 1 ? 's' : ''} actual{currentMembers.length !== 1 ? 'es' : ''}
             </div>
             <div style={{
-              fontSize: '12px',
+              fontSize: '11px',
               color: '#8696a0',
-              marginTop: '8px',
-              padding: '8px',
+              marginTop: '6px',
+              padding: '6px',
               background: '#374045',
-              borderRadius: '6px',
+              borderRadius: '4px',
               fontStyle: 'italic'
             }}>
               💡 Solo se muestran usuarios que no están en la sala
             </div>
           </div>
 
+          {/* Selector de Sede */}
+          <div className="sede-selector-compact">
+            <div className="sede-selector-label">
+              🏢 Seleccionar Sede
+            </div>
+            <div className="sede-buttons-group-compact">
+              <button
+                onClick={() => setSelectedSede('CHICLAYO_PIURA')}
+                className={`sede-button-compact ${selectedSede === 'CHICLAYO_PIURA' ? 'active' : ''}`}
+              >
+                CHICLAYO / PIURA
+              </button>
+              <button
+                onClick={() => setSelectedSede('LIMA')}
+                className={`sede-button-compact ${selectedSede === 'LIMA' ? 'active' : ''}`}
+              >
+                LIMA
+              </button>
+            </div>
+          </div>
+
           {/* Buscador */}
-          <div style={{ marginBottom: '20px', position: 'relative' }}>
+          <div style={{ marginBottom: '12px', position: 'relative' }}>
             <FaSearch style={{
               position: 'absolute',
-              left: '14px',
+              left: '12px',
               top: '50%',
               transform: 'translateY(-50%)',
               color: '#8696a0',
-              fontSize: '14px'
+              fontSize: '13px'
             }} />
             <input
               type="text"
@@ -244,44 +323,46 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
               onChange={(e) => setSearchTerm(e.target.value)}
               className="form-input"
               style={{
-                paddingLeft: '40px'
+                paddingLeft: '36px',
+                padding: '10px 12px 10px 36px',
+                fontSize: '13px'
               }}
             />
           </div>
 
           {/* Lista de usuarios */}
           <div
-            style={{ maxHeight: '400px', overflowY: 'auto' }}
+            className="users-list-container"
             onScroll={handleScroll}
           >
             {loading ? (
-              <div style={{ textAlign: 'center', padding: '20px', color: '#8696a0' }}>
+              <div style={{ textAlign: 'center', padding: '16px', color: '#8696a0', fontSize: '13px' }}>
                 Cargando usuarios...
               </div>
             ) : users.length === 0 ? (
               <div style={{
                 textAlign: 'center',
-                padding: '40px 20px',
+                padding: '30px 16px',
                 color: '#8696a0',
                 background: '#2a3942',
-                borderRadius: '8px',
+                borderRadius: '6px',
                 border: '1px solid #374045'
               }}>
-                <div style={{ fontSize: '48px', marginBottom: '12px', opacity: 0.5 }}>
+                <div style={{ fontSize: '40px', marginBottom: '10px', opacity: 0.5 }}>
                   {searchTerm ? '🔍' : '👥'}
                 </div>
-                <div style={{ fontSize: '15px', fontWeight: 500, marginBottom: '6px' }}>
+                <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: '4px' }}>
                   {searchTerm ? 'No se encontraron usuarios' : 'No hay usuarios disponibles'}
                 </div>
                 {!searchTerm && (
-                  <div style={{ fontSize: '13px', marginTop: '8px' }}>
+                  <div style={{ fontSize: '12px', marginTop: '6px' }}>
                     Todos los usuarios ya están en la sala
                   </div>
                 )}
               </div>
             ) : (
               <>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {users.map((user) => {
                   const displayName = user.nombre && user.apellido
                     ? `${user.nombre} ${user.apellido}`
@@ -295,10 +376,10 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '12px',
-                        padding: '14px',
+                        gap: '10px',
+                        padding: '10px 12px',
                         border: `2px solid ${isSelected ? '#00a884' : '#374045'}`,
-                        borderRadius: '8px',
+                        borderRadius: '6px',
                         cursor: 'pointer',
                         background: isSelected ? 'rgba(0, 168, 132, 0.1)' : '#2a3942',
                         transition: 'all 0.2s ease'
@@ -320,8 +401,8 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
                           src={user.picture}
                           alt={displayName}
                           style={{
-                            width: '40px',
-                            height: '40px',
+                            width: '36px',
+                            height: '36px',
                             borderRadius: '50%',
                             objectFit: 'cover'
                           }}
@@ -329,8 +410,8 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
                       ) : (
                         <div
                           style={{
-                            width: '40px',
-                            height: '40px',
+                            width: '36px',
+                            height: '36px',
                             borderRadius: '50%',
                             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                             display: 'flex',
@@ -338,7 +419,7 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
                             justifyContent: 'center',
                             color: 'white',
                             fontWeight: 600,
-                            fontSize: '16px'
+                            fontSize: '14px'
                           }}
                         >
                           {displayName[0]?.toUpperCase() || '?'}
@@ -347,10 +428,10 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
 
                       {/* Info */}
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, color: '#e9edef', fontSize: '15px' }}>{displayName}</div>
-                        <div style={{ fontSize: '13px', color: '#8696a0', marginTop: '2px' }}>@{user.username}</div>
+                        <div style={{ fontWeight: 600, color: '#e9edef', fontSize: '14px' }}>{displayName}</div>
+                        <div style={{ fontSize: '12px', color: '#8696a0', marginTop: '2px' }}>@{user.username}</div>
                         {user.numeroAgente && (
-                          <div style={{ fontSize: '12px', color: '#00a884', marginTop: '4px', fontWeight: 500 }}>
+                          <div style={{ fontSize: '11px', color: '#00a884', marginTop: '3px', fontWeight: 500 }}>
                             N° Agente: {user.numeroAgente}
                           </div>
                         )}
@@ -359,9 +440,9 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
                       {/* Checkbox */}
                       <div
                         style={{
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '6px',
+                          width: '22px',
+                          height: '22px',
+                          borderRadius: '5px',
                           border: `2px solid ${isSelected ? '#00a884' : '#8696a0'}`,
                           background: isSelected ? '#00a884' : 'transparent',
                           display: 'flex',
@@ -369,7 +450,7 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
                           justifyContent: 'center',
                           color: 'white',
                           fontWeight: 'bold',
-                          fontSize: '14px'
+                          fontSize: '13px'
                         }}
                       >
                         {isSelected && '✓'}
@@ -381,14 +462,14 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
 
               {/* Indicador de carga de más usuarios */}
               {loadingMore && (
-                <div style={{ textAlign: 'center', padding: '16px', color: '#8696a0', fontSize: '14px' }}>
+                <div style={{ textAlign: 'center', padding: '12px', color: '#8696a0', fontSize: '13px' }}>
                   Cargando más usuarios...
                 </div>
               )}
 
               {/* Mensaje de no hay más usuarios */}
               {!hasMore && users.length > 0 && (
-                <div style={{ textAlign: 'center', padding: '16px', color: '#8696a0', fontSize: '13px' }}>
+                <div style={{ textAlign: 'center', padding: '12px', color: '#8696a0', fontSize: '12px' }}>
                   No hay más usuarios
                 </div>
               )}
@@ -399,26 +480,27 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
           {/* Usuarios seleccionados */}
           {selectedUsers.length > 0 && (
             <div style={{
-              marginTop: '20px',
-              padding: '14px',
+              marginTop: '12px',
+              padding: '10px 12px',
               background: 'rgba(0, 168, 132, 0.1)',
-              borderRadius: '8px',
+              borderRadius: '6px',
               border: '1px solid #00a884'
             }}>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: '#00a884', marginBottom: '6px' }}>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#00a884', marginBottom: '4px' }}>
                 {selectedUsers.length} usuario{selectedUsers.length !== 1 ? 's' : ''} seleccionado{selectedUsers.length !== 1 ? 's' : ''}
               </div>
-              <div style={{ fontSize: '12px', color: '#8696a0' }}>
+              <div style={{ fontSize: '11px', color: '#8696a0' }}>
                 {selectedUsers.join(', ')}
               </div>
             </div>
           )}
         </div>
 
-        <div className="modal-actions">
+        <div className="modal-actions" style={{ padding: '12px 16px', gap: '8px' }}>
           <button
             onClick={onClose}
             className="btn btn-secondary"
+            style={{ padding: '10px 16px', fontSize: '13px' }}
           >
             Cancelar
           </button>
@@ -428,7 +510,9 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
             className="btn btn-primary"
             style={{
               opacity: selectedUsers.length === 0 ? 0.5 : 1,
-              cursor: selectedUsers.length === 0 ? 'not-allowed' : 'pointer'
+              cursor: selectedUsers.length === 0 ? 'not-allowed' : 'pointer',
+              padding: '10px 16px',
+              fontSize: '13px'
             }}
           >
             Agregar {selectedUsers.length > 0 && `(${selectedUsers.length})`}

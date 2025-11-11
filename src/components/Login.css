@@ -281,38 +281,46 @@
 
 /* Estilos para el selector de sede */
 .sede-buttons-group {
-  display: flex;
-  gap: 0.4rem;
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 0.5rem;
   width: 100%;
   margin-bottom: 1rem;
+  justify-content: space-between;
 }
 
 .sede-button {
-  flex: 1;
-  padding: 0.6rem 0.75rem;
-  background: #f0f0f0;
-  border: 1px solid #ddd;
+  flex: 1 1 48% !important;
+  min-width: 120px !important;
+  padding: 0.7rem 1rem;
+  background: white !important;
+  border: 2px solid #c62d42 !important;
   border-radius: 6px;
-  color: #666;
+  color: #c62d42 !important;
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   outline: none;
   -webkit-tap-highlight-color: transparent;
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .sede-button:hover:not(.active) {
-  border-color: #c62d42;
-  background: #fff0f2;
-  color: #c62d42;
+  border-color: #a02436 !important;
+  background: #fff0f2 !important;
+  color: #a02436 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(198, 45, 66, 0.15);
 }
 
 .sede-button.active {
-  background: #c62d42;
-  border-color: #c62d42;
-  color: white;
-  box-shadow: 0 2px 6px rgba(198, 45, 66, 0.2);
+  background: #c62d42 !important;
+  border-color: #c62d42 !important;
+  color: white !important;
+  box-shadow: 0 2px 6px rgba(198, 45, 66, 0.3);
 }
 
 .sede-button:focus {

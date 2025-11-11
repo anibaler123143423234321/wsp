@@ -21,6 +21,8 @@ class ApiService {
 
   // Método para cambiar la sede y actualizar las URLs
   setSede(sede) {
+    const previousSede = this.currentSede;
+
     if (sede === 'LIMA') {
       this.baseUrl = API_BASE_URL_LIMA;
       this.baseChatUrl = API_BASECHAT_URL_LIMA;
@@ -30,14 +32,27 @@ class ApiService {
       this.baseChatUrl = API_BASECHAT_URL_CHICLAYO;
       this.currentSede = 'CHICLAYO_PIURA';
     }
+
     // Guardar la sede seleccionada en localStorage
     localStorage.setItem('selectedSede', sede);
-    console.log(`✅ Sede cambiada a: ${this.currentSede}`);
+
+    // Solo mostrar mensaje si la sede realmente cambió
+    if (previousSede !== this.currentSede) {
+      console.log(`✅ Sede cambiada a: ${this.currentSede}`);
+    }
   }
 
   // Método para obtener la sede actual
   getCurrentSede() {
     return this.currentSede;
+  }
+
+  // Método helper para obtener la URL base según la sede
+  getBaseUrlForSede(sede) {
+    if (sede === 'LIMA') {
+      return API_BASE_URL_LIMA;
+    }
+    return API_BASE_URL_CHICLAYO;
   }
 
   // Método para subir archivos al servidor
@@ -1148,11 +1163,14 @@ class ApiService {
   // ===== MÉTODOS PARA OBTENER USUARIOS DEL BACKEND JAVA =====
 
   // Obtener lista de usuarios del backend Java con paginación
-  async getUsersFromBackend(page = 0, size = 10) {
+  async getUsersFromBackend(page = 0, size = 10, sede = null) {
     try {
+      // 🔥 Usar la sede especificada o la actual
+      const baseUrl = sede ? this.getBaseUrlForSede(sede) : this.baseUrl;
+
       // ✅ Usar fetchWithAuth para renovación automática de token
       const response = await this.fetchWithAuth(
-        `${this.baseUrl}api/user/listar?page=${page}&size=${size}`,
+        `${baseUrl}api/user/listar?page=${page}&size=${size}`,
         {
           method: "GET",
         }
@@ -1184,15 +1202,18 @@ class ApiService {
   }
 
   // Buscar usuarios en el backend Java
-  async searchUsersFromBackend(query, page = 0, size = 10) {
+  async searchUsersFromBackend(query, page = 0, size = 10, sede = null) {
     try {
       if (!query || query.trim().length === 0) {
         return [];
       }
 
+      // 🔥 Usar la sede especificada o la actual
+      const baseUrl = sede ? this.getBaseUrlForSede(sede) : this.baseUrl;
+
       // ✅ Usar fetchWithAuth para renovación automática de token
       const response = await this.fetchWithAuth(
-        `${this.baseUrl}api/user/buscar?page=${page}&size=${size}&query=${encodeURIComponent(query)}`,
+        `${baseUrl}api/user/buscar?page=${page}&size=${size}&query=${encodeURIComponent(query)}`,
         {
           method: "GET",
         }

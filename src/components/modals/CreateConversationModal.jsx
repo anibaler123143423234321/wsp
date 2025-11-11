@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { FaTimes, FaUser, FaComments, FaInfoCircle, FaSearch, FaGlobe, FaLink } from 'react-icons/fa';
+import { FaTimes, FaUser, FaComments, FaInfoCircle, FaSearch } from 'react-icons/fa';
 import './Modal.css';
 import './CreateConversationModal.css';
 import apiService from '../../apiService';
@@ -8,63 +8,97 @@ const CreateConversationModal = ({
   isOpen,
   onClose,
   onCreateConversation,
-  userList,
   currentUser
 }) => {
   const [selectedUser1, setSelectedUser1] = useState('');
   const [selectedUser2, setSelectedUser2] = useState('');
+  const [selectedUser1Obj, setSelectedUser1Obj] = useState(null); // 🔥 Objeto completo del usuario 1
+  const [selectedUser2Obj, setSelectedUser2Obj] = useState(null); // 🔥 Objeto completo del usuario 2
   const [conversationName, setConversationName] = useState('');
   const [error, setError] = useState('');
   const [searchUser1, setSearchUser1] = useState('');
   const [searchUser2, setSearchUser2] = useState('');
   const [pageUser1, setPageUser1] = useState(1);
   const [pageUser2, setPageUser2] = useState(1);
-  const [userSource, setUserSource] = useState('connected'); // 'connected' o 'backend'
-  const [backendUsers, setBackendUsers] = useState([]);
+  const [selectedSede, setSelectedSede] = useState('CHICLAYO_PIURA'); // 🔥 Sede seleccionada en los botones
+  const [sedeUser1, setSedeUser1] = useState('CHICLAYO_PIURA'); // 🔥 Sede del primer usuario
+  const [sedeUser2, setSedeUser2] = useState('CHICLAYO_PIURA'); // 🔥 Sede del segundo usuario
   const [searchResults1, setSearchResults1] = useState([]);
   const [searchResults2, setSearchResults2] = useState([]);
   const [loadingBackendUsers, setLoadingBackendUsers] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false); // 🔥 Estado para evitar doble envío
+  const [cacheVersion, setCacheVersion] = useState(0); // 🔥 Para forzar re-render cuando cambie la caché
   const debounceTimer1 = useRef(null);
   const debounceTimer2 = useRef(null);
+
+  // 🔥 Caché de usuarios por sede para evitar recargas innecesarias
+  const usersCache = useRef({
+    CHICLAYO_PIURA: [],
+    LIMA: []
+  });
+
   const ITEMS_PER_PAGE = 10;
   const DEBOUNCE_DELAY = 500; // 500ms de delay
 
-  // Obtener usuarios según la fuente seleccionada
-  const sourceUsers = useMemo(() => {
-    if (userSource === 'backend') {
-      return backendUsers;
-    }
-    return userList;
-  }, [userSource, userList, backendUsers]);
+  // 🔥 Obtener usuarios disponibles para el primer contenedor según su sede
+  const availableUsers1 = useMemo(() => {
+    // Usar la caché de la sede del primer usuario
+    const usersFromSede = usersCache.current[sedeUser1] || [];
 
-  // Filtrar usuarios para excluir al usuario actual
-  const availableUsers = useMemo(() => {
-    return sourceUsers.filter(user => {
+    return usersFromSede.filter(user => {
       const username = typeof user === 'string' ? user : user.username;
       return username !== currentUser?.username;
     });
-  }, [sourceUsers, currentUser]);
+  }, [sedeUser1, currentUser, cacheVersion]);
+
+  // 🔥 Obtener usuarios disponibles para el segundo contenedor según su sede
+  const availableUsers2 = useMemo(() => {
+    // Usar la caché de la sede del segundo usuario
+    const usersFromSede = usersCache.current[sedeUser2] || [];
+
+    return usersFromSede.filter(user => {
+      const username = typeof user === 'string' ? user : user.username;
+      return username !== currentUser?.username;
+    });
+  }, [sedeUser2, currentUser, cacheVersion]);
 
   // Cargar usuarios del backend cuando se abre el modal
   useEffect(() => {
-    if (isOpen && userSource === 'backend' && backendUsers.length === 0) {
+    if (isOpen) {
       loadBackendUsers();
     }
-  }, [isOpen, userSource]);
+  }, [isOpen]); // 🔥 Solo cargar cuando se abre el modal, NO cuando cambia la sede
 
-  // Cargar usuarios del backend
+  // Cargar usuarios del backend para ambos contenedores
   const loadBackendUsers = async () => {
-    setLoadingBackendUsers(true);
-    try {
-      // Usar tamaño de página más pequeño para evitar problemas de paginación
-      const users = await apiService.getUsersFromBackend(0, 10);
-      setBackendUsers(users);
-    } catch (err) {
-      console.error('Error al cargar usuarios del backend:', err);
-      setError('Error al cargar usuarios del backend');
-    } finally {
-      setLoadingBackendUsers(false);
+    // 🔥 Cargar usuarios para la sede del primer usuario si no hay caché
+    if (usersCache.current[sedeUser1].length === 0) {
+      setLoadingBackendUsers(true);
+      try {
+        const users = await apiService.getUsersFromBackend(0, 10, sedeUser1);
+        usersCache.current[sedeUser1] = users;
+        setCacheVersion(prev => prev + 1);
+      } catch (err) {
+        console.error('Error al cargar usuarios del backend:', err);
+        setError('Error al cargar usuarios del backend');
+      } finally {
+        setLoadingBackendUsers(false);
+      }
+    }
+
+    // 🔥 Cargar usuarios para la sede del segundo usuario si no hay caché
+    if (usersCache.current[sedeUser2].length === 0) {
+      setLoadingBackendUsers(true);
+      try {
+        const users = await apiService.getUsersFromBackend(0, 10, sedeUser2);
+        usersCache.current[sedeUser2] = users;
+        setCacheVersion(prev => prev + 1);
+      } catch (err) {
+        console.error('Error al cargar usuarios del backend:', err);
+        setError('Error al cargar usuarios del backend');
+      } finally {
+        setLoadingBackendUsers(false);
+      }
     }
   };
 
@@ -84,16 +118,26 @@ const CreateConversationModal = ({
       return;
     }
 
-    // Solo buscar en backend si estamos en modo "Listado General"
-    if (userSource !== 'backend') {
-      return;
-    }
-
     // Establecer nuevo timer
     debounceTimer1.current = setTimeout(async () => {
       try {
-        const results = await apiService.searchUsersFromBackend(value, 0, 10);
+        // 🔥 Pasar la sede del primer usuario al método
+        const results = await apiService.searchUsersFromBackend(value, 0, 10, sedeUser1);
         setSearchResults1(results);
+
+        // 🔥 Actualizar caché con los nuevos usuarios encontrados (sin forzar re-render)
+        const currentCache = usersCache.current[sedeUser1];
+        const newUsers = results.filter(user => {
+          const username = typeof user === 'string' ? user : user.username;
+          return !currentCache.some(u => {
+            const uname = typeof u === 'string' ? u : u.username;
+            return uname === username;
+          });
+        });
+        if (newUsers.length > 0) {
+          usersCache.current[sedeUser1] = [...currentCache, ...newUsers];
+          // 🔥 NO incrementar cacheVersion aquí para evitar afectar otros contenedores
+        }
       } catch (err) {
         console.error('Error al buscar usuarios:', err);
       }
@@ -116,56 +160,68 @@ const CreateConversationModal = ({
       return;
     }
 
-    // Solo buscar en backend si estamos en modo "Listado General"
-    if (userSource !== 'backend') {
-      return;
-    }
-
     // Establecer nuevo timer
     debounceTimer2.current = setTimeout(async () => {
       try {
-        const results = await apiService.searchUsersFromBackend(value, 0, 10);
+        // 🔥 Pasar la sede del segundo usuario al método
+        const results = await apiService.searchUsersFromBackend(value, 0, 10, sedeUser2);
         setSearchResults2(results);
+
+        // 🔥 Actualizar caché con los nuevos usuarios encontrados (sin forzar re-render)
+        const currentCache = usersCache.current[sedeUser2];
+        const newUsers = results.filter(user => {
+          const username = typeof user === 'string' ? user : user.username;
+          return !currentCache.some(u => {
+            const uname = typeof u === 'string' ? u : u.username;
+            return uname === username;
+          });
+        });
+        if (newUsers.length > 0) {
+          usersCache.current[sedeUser2] = [...currentCache, ...newUsers];
+          // 🔥 NO incrementar cacheVersion aquí para evitar afectar otros contenedores
+        }
       } catch (err) {
         console.error('Error al buscar usuarios:', err);
       }
     }, DEBOUNCE_DELAY);
   };
 
+  // 🔥 Actualizar sede de cada contenedor cuando cambia selectedSede
+  useEffect(() => {
+    // Solo actualizar la sede del primer usuario si NO hay usuario seleccionado
+    if (!selectedUser1) {
+      setSedeUser1(selectedSede);
+    }
+    // Solo actualizar la sede del segundo usuario si NO hay usuario seleccionado
+    if (!selectedUser2) {
+      setSedeUser2(selectedSede);
+    }
+  }, [selectedSede, selectedUser1, selectedUser2]);
+
   useEffect(() => {
     if (!isOpen) {
       // Limpiar el modal cuando se cierra
       setSelectedUser1('');
       setSelectedUser2('');
+      setSelectedUser1Obj(null); // 🔥 Limpiar objeto del usuario 1
+      setSelectedUser2Obj(null); // 🔥 Limpiar objeto del usuario 2
       setConversationName('');
       setError('');
       setSearchUser1('');
       setSearchUser2('');
       setPageUser1(1);
       setPageUser2(1);
-      setUserSource('connected');
       setSearchResults1([]);
       setSearchResults2([]);
       setIsSubmitting(false); // 🔥 Limpiar estado de envío
+      setSedeUser1('CHICLAYO_PIURA'); // 🔥 Resetear sede del primer usuario
+      setSedeUser2('CHICLAYO_PIURA'); // 🔥 Resetear sede del segundo usuario
     }
   }, [isOpen]);
 
   // Generar nombre automático cuando se seleccionan ambos usuarios
   useEffect(() => {
-    if (selectedUser1 && selectedUser2) {
-      // Combinar todas las fuentes de usuarios para buscar
-      const allUsers = [...sourceUsers, ...searchResults1, ...searchResults2];
-
-      // Buscar los objetos de usuario completos
-      const user1Obj = allUsers.find(u => {
-        const username = typeof u === 'string' ? u : u.username;
-        return username === selectedUser1;
-      });
-      const user2Obj = allUsers.find(u => {
-        const username = typeof u === 'string' ? u : u.username;
-        return username === selectedUser2;
-      });
-
+    if (selectedUser1 && selectedUser2 && selectedUser1Obj && selectedUser2Obj) {
       // Función para obtener el nombre completo
       const getFullName = (userObj) => {
         if (typeof userObj === 'object' && userObj.nombre && userObj.apellido) {
@@ -174,8 +230,8 @@ const CreateConversationModal = ({
         return typeof userObj === 'string' ? userObj : userObj?.username || '';
       };
 
-      const name1 = getFullName(user1Obj);
-      const name2 = getFullName(user2Obj);
+      const name1 = getFullName(selectedUser1Obj);
+      const name2 = getFullName(selectedUser2Obj);
 
       // 🔥 Si uno de los usuarios es el usuario actual, mostrar solo el nombre del otro
       // Obtener el nombre completo del usuario actual
@@ -205,59 +261,95 @@ const CreateConversationModal = ({
       // Limpiar el nombre si se deselecciona algún usuario
       setConversationName('');
     }
-  }, [selectedUser1, selectedUser2, sourceUsers, searchResults1, searchResults2, currentUser]);
+  }, [selectedUser1, selectedUser2, selectedUser1Obj, selectedUser2Obj, currentUser]);
 
   // Filtrar usuarios para el primer select con búsqueda
   const filteredUsers1 = useMemo(() => {
+    let users = [];
+
     // Si hay resultados de búsqueda del backend, usarlos
     if (searchResults1.length > 0) {
-      return searchResults1;
-    }
-
-    // Si no hay búsqueda, usar usuarios disponibles
-    if (!searchUser1) return availableUsers;
-
-    // Búsqueda local en usuarios disponibles
-    return availableUsers.filter(user => {
-      const username = typeof user === 'string' ? user : user.username;
-      const nombre = typeof user === 'object' ? user.nombre : '';
-      const apellido = typeof user === 'object' ? user.apellido : '';
-      const fullName = `${nombre} ${apellido}`.toLowerCase();
-      const search = searchUser1.toLowerCase();
-
-      return username.toLowerCase().includes(search) || fullName.includes(search);
-    });
-  }, [availableUsers, searchUser1, searchResults1]);
-
-  // Filtrar usuarios para el segundo select con búsqueda
-  const filteredUsers2 = useMemo(() => {
-    // Si hay resultados de búsqueda del backend, usarlos
-    if (searchResults2.length > 0) {
-      return searchResults2.filter(user => {
+      users = searchResults1;
+    } else if (!searchUser1) {
+      // Si no hay búsqueda, usar usuarios disponibles del primer contenedor
+      users = availableUsers1;
+    } else {
+      // Búsqueda local en usuarios disponibles del primer contenedor
+      users = availableUsers1.filter(user => {
         const username = typeof user === 'string' ? user : user.username;
-        return username !== selectedUser1;
+        const nombre = typeof user === 'object' ? user.nombre : '';
+        const apellido = typeof user === 'object' ? user.apellido : '';
+        const fullName = `${nombre} ${apellido}`.toLowerCase();
+        const search = searchUser1.toLowerCase();
+
+        return username.toLowerCase().includes(search) || fullName.includes(search);
       });
     }
 
-    // Si no hay búsqueda, usar usuarios disponibles
-    const filtered = availableUsers.filter(user => {
-      const username = typeof user === 'string' ? user : user.username;
-      return username !== selectedUser1;
-    });
+    // 🔥 Si hay un usuario seleccionado y NO está en la lista, agregarlo al inicio
+    if (selectedUser1Obj) {
+      const username = typeof selectedUser1Obj === 'string' ? selectedUser1Obj : selectedUser1Obj.username;
+      const isInList = users.some(u => {
+        const uname = typeof u === 'string' ? u : u.username;
+        return uname === username;
+      });
 
-    if (!searchUser2) return filtered;
+      if (!isInList) {
+        users = [selectedUser1Obj, ...users];
+      }
+    }
 
-    // Búsqueda local en usuarios disponibles
-    return filtered.filter(user => {
-      const username = typeof user === 'string' ? user : user.username;
-      const nombre = typeof user === 'object' ? user.nombre : '';
-      const apellido = typeof user === 'object' ? user.apellido : '';
-      const fullName = `${nombre} ${apellido}`.toLowerCase();
-      const search = searchUser2.toLowerCase();
+    return users;
+  }, [availableUsers1, searchUser1, searchResults1, selectedUser1Obj]);
 
-      return username.toLowerCase().includes(search) || fullName.includes(search);
-    });
-  }, [availableUsers, selectedUser1, searchUser2, searchResults2]);
+  // Filtrar usuarios para el segundo select con búsqueda
+  const filteredUsers2 = useMemo(() => {
+    let users = [];
+
+    // Si hay resultados de búsqueda del backend, usarlos
+    if (searchResults2.length > 0) {
+      users = searchResults2.filter(user => {
+        const username = typeof user === 'string' ? user : user.username;
+        return username !== selectedUser1;
+      });
+    } else {
+      // Si no hay búsqueda, usar usuarios disponibles del segundo contenedor
+      const filtered = availableUsers2.filter(user => {
+        const username = typeof user === 'string' ? user : user.username;
+        return username !== selectedUser1;
+      });
+
+      if (!searchUser2) {
+        users = filtered;
+      } else {
+        // Búsqueda local en usuarios disponibles del segundo contenedor
+        users = filtered.filter(user => {
+          const username = typeof user === 'string' ? user : user.username;
+          const nombre = typeof user === 'object' ? user.nombre : '';
+          const apellido = typeof user === 'object' ? user.apellido : '';
+          const fullName = `${nombre} ${apellido}`.toLowerCase();
+          const search = searchUser2.toLowerCase();
+
+          return username.toLowerCase().includes(search) || fullName.includes(search);
+        });
+      }
+    }
+
+    // 🔥 Si hay un usuario seleccionado y NO está en la lista, agregarlo al inicio
+    if (selectedUser2Obj) {
+      const username = typeof selectedUser2Obj === 'string' ? selectedUser2Obj : selectedUser2Obj.username;
+      const isInList = users.some(u => {
+        const uname = typeof u === 'string' ? u : u.username;
+        return uname === username;
+      });
+
+      if (!isInList) {
+        users = [selectedUser2Obj, ...users];
+      }
+    }
+
+    return users;
+  }, [availableUsers2, selectedUser1, searchUser2, searchResults2, selectedUser2Obj]);
 
   // Paginación para usuario 1
   const paginatedUsers1 = useMemo(() => {
@@ -304,9 +396,10 @@ const CreateConversationModal = ({
         if (!userObj) {
           userObj = searchResults2.find(u => (typeof u === 'string' ? u : u.username) === username);
         }
-        // Si no está en searchResults, buscar en sourceUsers
+        // Si no está en searchResults, buscar en la caché de ambas sedes
         if (!userObj) {
-          userObj = sourceUsers.find(u => (typeof u === 'string' ? u : u.username) === username);
+          const allCachedUsers = [...usersCache.current.CHICLAYO_PIURA, ...usersCache.current.LIMA];
+          userObj = allCachedUsers.find(u => (typeof u === 'string' ? u : u.username) === username);
         }
 
         // Si encontramos el objeto y tiene nombre y apellido, retornar nombre completo
@@ -364,43 +457,43 @@ const CreateConversationModal = ({
               </div>
             )}
 
-            {/* Selector de fuente de usuarios */}
-            <div className="user-source-selector">
-              <label className="section-label">Seleccionar usuarios de:</label>
-              <div className="source-buttons">
+            {/* 🔥 Selector de sede */}
+            <div className="sede-selector">
+              <label className="section-label">Buscar usuarios en:</label>
+              <div className="sede-buttons-group">
                 <button
                   type="button"
-                  className={`source-btn ${userSource === 'connected' ? 'active' : ''}`}
+                  className={`sede-button ${selectedSede === 'CHICLAYO_PIURA' ? 'active' : ''}`}
                   onClick={() => {
-                    setUserSource('connected');
-                    setSelectedUser1('');
-                    setSelectedUser2('');
+                    setSelectedSede('CHICLAYO_PIURA');
+                    // 🔥 NO limpiar usuarios seleccionados, solo limpiar búsquedas
                     setSearchUser1('');
                     setSearchUser2('');
+                    setSearchResults1([]);
+                    setSearchResults2([]);
                     setPageUser1(1);
                     setPageUser2(1);
                   }}
                   disabled={loadingBackendUsers}
                 >
-                  <FaLink className="source-icon" />
-                  Usuarios Conectados
+                  CHICLAYO / PIURA
                 </button>
                 <button
                   type="button"
-                  className={`source-btn ${userSource === 'backend' ? 'active' : ''}`}
+                  className={`sede-button ${selectedSede === 'LIMA' ? 'active' : ''}`}
                   onClick={() => {
-                    setUserSource('backend');
-                    setSelectedUser1('');
-                    setSelectedUser2('');
+                    setSelectedSede('LIMA');
+                    // 🔥 NO limpiar usuarios seleccionados, solo limpiar búsquedas
                     setSearchUser1('');
                     setSearchUser2('');
+                    setSearchResults1([]);
+                    setSearchResults2([]);
                     setPageUser1(1);
                     setPageUser2(1);
                   }}
                   disabled={loadingBackendUsers}
                 >
-                  <FaGlobe className="source-icon" />
-                  {loadingBackendUsers ? 'Cargando...' : 'Listado General'}
+                  LIMA
                 </button>
               </div>
             </div>
@@ -427,7 +520,7 @@ const CreateConversationModal = ({
 
                 {/* Lista de usuarios */}
                 <div className="modal-users-list">
-                  {loadingBackendUsers && userSource === 'backend' ? (
+                  {loadingBackendUsers ? (
                     <div className="modal-empty-state">
                       <p>⏳ Cargando usuarios...</p>
                     </div>
@@ -447,7 +540,15 @@ const CreateConversationModal = ({
                         <div
                           key={index}
                           className={`modal-user-item ${isSelected ? 'selected' : ''}`}
-                          onClick={() => setSelectedUser1(isSelected ? null : username)}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedUser1(null);
+                              setSelectedUser1Obj(null);
+                            } else {
+                              setSelectedUser1(username);
+                              setSelectedUser1Obj(user); // 🔥 Guardar objeto completo
+                            }
+                          }}
                         >
                           <div className="modal-user-avatar">
                             {displayName.charAt(0).toUpperCase()}
@@ -513,7 +614,7 @@ const CreateConversationModal = ({
 
                 {/* Lista de usuarios */}
                 <div className="modal-users-list">
-                  {loadingBackendUsers && userSource === 'backend' ? (
+                  {loadingBackendUsers ? (
                     <div className="modal-empty-state">
                       <p>⏳ Cargando usuarios...</p>
                     </div>
@@ -533,7 +634,15 @@ const CreateConversationModal = ({
                         <div
                           key={index}
                           className={`modal-user-item ${isSelected ? 'selected' : ''}`}
-                          onClick={() => setSelectedUser2(isSelected ? null : username)}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedUser2(null);
+                              setSelectedUser2Obj(null);
+                            } else {
+                              setSelectedUser2(username);
+                              setSelectedUser2Obj(user); // 🔥 Guardar objeto completo
+                            }
+                          }}
                         >
                           <div className="modal-user-avatar">
                             {displayName.charAt(0).toUpperCase()}
