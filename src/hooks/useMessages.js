@@ -9,11 +9,8 @@ export const useMessages = () => {
   const [isRecording, setIsRecording] = useState(false);
   const messageSound = useRef(null);
 
-  const playMessageSound = useCallback((soundsEnabled = false) => {
-    if (!soundsEnabled) {
-      return;
-    }
-
+  const playMessageSound = useCallback((soundsEnabled = true) => {
+    // 🔥 NUEVO: Reproducir sonido siempre (soundsEnabled por defecto es true)
     try {
       if (messageSound.current) {
         messageSound.current.currentTime = 0;

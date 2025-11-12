@@ -11,13 +11,11 @@ import CreateConversationModal from '../components/modals/CreateConversationModa
 import ManageAssignedConversationsModal from '../components/modals/ManageAssignedConversationsModal';
 import AddUsersToRoomModal from '../components/modals/AddUsersToRoomModal';
 import RemoveUsersFromRoomModal from '../components/modals/RemoveUsersFromRoomModal';
-import CallWindow from '../components/CallWindow';
 import ThreadPanel from '../components/ThreadPanel';
 import { useAuth } from '../hooks/useAuth';
 import { useSocket } from '../hooks/useSocket';
 import { useMessages } from '../hooks/useMessages';
 import { useMessagePagination } from '../hooks/useMessagePagination';
-import { useWebRTC } from '../hooks/useWebRTC';
 import apiService from '../apiService';
 import { showSuccessAlert, showErrorAlert, showConfirmAlert } from '../sweetalert2';
 
@@ -45,30 +43,7 @@ const ChatPage = () => {
     clearInput
   } = useMessages();
 
-  // Hook de WebRTC
-  const {
-    localStream,
-    remoteStream,
-    callStatus,
-    isIncoming,
-    callerName,
-    callType,
-    isMuted,
-    isVideoOff,
-    callDuration,
-    hasCamera,
-    startCall,
-    acceptCall,
-    rejectCall,
-    endCall,
-    toggleMute,
-    toggleVideo,
-    peerConnection,
-    setCallStatus,
-    setIsIncoming,
-    setCallerName,
-    setCallType
-  } = useWebRTC(socket, username);
+  // 🔥 BLOQUEADO: Hook de WebRTC deshabilitado
 
   // Estados del chat (declarar antes de los hooks que los usan)
   const [to, setTo] = useState('');
@@ -474,6 +449,12 @@ const ChatPage = () => {
           }
         });
 
+        // 🔥 NUEVO: Escuchar errores al unirse a sala
+        s.on('joinRoomError', (data) => {
+          console.error('❌ Error al unirse a sala:', data.message);
+          showErrorAlert('Error', data.message || 'Error al unirse a la sala');
+        });
+
         s.on('userJoinedRoom', (data) => {
           if (data.roomCode === currentRoomCodeRef.current) {
         // Actualizar la lista de usuarios agregando el nuevo usuario
@@ -559,7 +540,8 @@ const ChatPage = () => {
         addNewMessage(newMessage);
 
         if (data.from !== username && data.from !== currentUserFullName) {
-          playMessageSound(soundsEnabled);
+          // 🔥 NUEVO: Reproducir sonido siempre que llega un mensaje de otro usuario
+          playMessageSound(true);
         }
       } else {
         // Ignorar mensajes individuales que vienen del servidor si son nuestros propios mensajes
@@ -619,7 +601,8 @@ const ChatPage = () => {
             });
           });
 
-          playMessageSound(soundsEnabled);
+          // 🔥 NUEVO: Reproducir sonido siempre que llega un mensaje
+          playMessageSound(true);
           return;
         }
 
@@ -662,7 +645,8 @@ const ChatPage = () => {
         addNewMessage(newMessage);
 
         if (data.from !== username && data.from !== currentUserFullName) {
-          playMessageSound(soundsEnabled);
+          // 🔥 NUEVO: Reproducir sonido siempre que llega un mensaje de otro usuario
+          playMessageSound(true);
         }
       }
     });
@@ -685,45 +669,7 @@ const ChatPage = () => {
       }
     });
 
-    // ==================== LISTENERS WEBRTC (SIMPLE-PEER) ====================
-
-    // Recibir llamada entrante
-    s.on('callUser', (data) => {
-      setCallerName(data.from);
-      setCallType(data.callType);
-      setIsIncoming(true);
-      setCallStatus('ringing');
-
-      // Guardar la señal para cuando se acepte la llamada
-      window.incomingCallSignal = data.signal;
-    });
-
-    // Llamada aceptada (el caller recibe la respuesta)
-    s.on('callAccepted', (data) => {
-      setCallStatus('connecting');
-
-      // Señalar al peer con la respuesta
-      if (peerConnection.current) {
-        peerConnection.current.signal(data.signal);
-      }
-    });
-
-    // Llamada rechazada
-    s.on('callRejected', async (data) => {
-      await showErrorAlert('Llamada rechazada', `${data.from} rechazó la llamada`);
-      endCall();
-    });
-
-    // Llamada finalizada
-    s.on('callEnded', () => {
-      endCall();
-    });
-
-    // Llamada fallida
-    s.on('callFailed', async (data) => {
-      await showErrorAlert('Llamada fallida', `No se pudo realizar la llamada: ${data.reason}`);
-      endCall();
-    });
+    // 🔥 BLOQUEADO: Listeners de WebRTC deshabilitados
 
     // Nueva conversación asignada
     s.on('newConversationAssigned', async (data) => {
@@ -1035,14 +981,11 @@ const ChatPage = () => {
           s.off('userList');
           s.off('roomUsers');
           s.off('roomJoined');
+          s.off('joinRoomError');
           s.off('userJoinedRoom');
           s.off('message');
           s.off('connect');
-          s.off('callUser');
-          s.off('callAccepted');
-          s.off('callRejected');
-          s.off('callEnded');
-          s.off('callFailed');
+          // 🔥 BLOQUEADO: Event listeners de WebRTC removidos
           s.off('newConversationAssigned');
           s.off('userTyping');
           s.off('roomTyping');
@@ -1554,7 +1497,8 @@ const ChatPage = () => {
       newMessage.lastReplyFrom = null;
 
       addNewMessage(newMessage);
-      playMessageSound(soundsEnabled);
+      // 🔥 NUEVO: Reproducir sonido siempre
+      playMessageSound(true);
 
       // 🔥 Actualizar el preview del último mensaje en la lista de conversaciones asignadas
       if (assignedConv) {
@@ -1738,8 +1682,8 @@ const ChatPage = () => {
         setReplyingTo(null);
       }
 
-      // Reproducir sonido
-      playMessageSound();
+      // 🔥 NUEVO: Reproducir sonido siempre
+      playMessageSound(true);
 
     } catch (error) {
       console.error('❌ Error al enviar mensaje de voz:', error);
@@ -2087,32 +2031,7 @@ const ChatPage = () => {
     }
   };
 
-  // Funciones de llamadas
-  const handleStartCall = async (targetUser) => {
-    if (!targetUser || isGroup) {
-      await showErrorAlert('Error', 'Solo puedes hacer llamadas a usuarios individuales');
-      return;
-    }
-    startCall(targetUser, 'audio');
-  };
-
-  const handleStartVideoCall = async (targetUser) => {
-    if (!targetUser || isGroup) {
-      await showErrorAlert('Error', 'Solo puedes hacer videollamadas a usuarios individuales');
-      return;
-    }
-    startCall(targetUser, 'video');
-  };
-
-  // Wrapper para aceptar llamada con la señal guardada
-  const handleAcceptCall = () => {
-    if (window.incomingCallSignal) {
-      acceptCall(window.incomingCallSignal);
-      window.incomingCallSignal = null;
-    } else {
-      console.error('❌ No hay señal de llamada guardada');
-    }
-  };
+  // 🔥 BLOQUEADO: Funciones de llamadas deshabilitadas
 
   const handleViewRoomUsers = async (roomCode, roomName) => {
     try {
@@ -2348,9 +2267,6 @@ const ChatPage = () => {
       mediaPreviews={mediaPreviews}
       onCancelMediaUpload={cancelMediaUpload}
       onRemoveMediaFile={handleRemoveMediaFile}
-      onStartCall={handleStartCall}
-      onStartVideoCall={handleStartVideoCall}
-      hasCamera={hasCamera}
       onLeaveRoom={handleLeaveRoom}
       hasMoreMessages={hasMoreMessages}
       isLoadingMore={isLoadingMore}
@@ -2451,23 +2367,7 @@ const ChatPage = () => {
       onUsersRemoved={handleUsersRemoved}
     />
 
-    <CallWindow
-      isOpen={callStatus !== 'idle'}
-      callType={callType}
-      isIncoming={isIncoming}
-      callerName={callerName}
-      localStream={localStream}
-      remoteStream={remoteStream}
-      onAccept={handleAcceptCall}
-      onReject={rejectCall}
-      onEnd={endCall}
-      onToggleMute={toggleMute}
-      onToggleVideo={toggleVideo}
-      isMuted={isMuted}
-      isVideoOff={isVideoOff}
-      callStatus={callStatus}
-      callDuration={callDuration}
-    />
+    {/* 🔥 BLOQUEADO: CallWindow deshabilitado */}
 
     {/* Panel de hilos */}
     {threadMessage && (

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { FaSignOutAlt, FaPhone, FaVideo, FaArrowLeft, FaKeyboard, FaUserPlus, FaUserMinus } from 'react-icons/fa';
+// 🔥 BLOQUEADO: FaPhone y FaVideo removidos (iconos de llamadas deshabilitados)
+import { FaArrowLeft, FaKeyboard, FaUserPlus, FaUserMinus } from 'react-icons/fa';
 import './ChatHeader.css';
 
 const ChatHeader = ({
@@ -10,12 +11,9 @@ const ChatHeader = ({
   onLeaveRoom,
   userPicture,
   targetUser,
-  onStartCall,
-  onStartVideoCall,
-  hasCamera = true,
   onBack,
   isTyping,
-  adminViewConversation,
+  adminViewConversation,  
   onAddUsersToRoom,
   onRemoveUsersFromRoom,
   user
@@ -203,26 +201,7 @@ const ChatHeader = ({
 
         {/* Botones de acción */}
         <div className="chat-header-actions">
-          {/* Botones de llamada (solo para chats individuales) */}
-          {!isGroup && to && (
-            <>
-              <button
-                className="header-icon-btn call-btn"
-                onClick={() => onStartCall && onStartCall(to)}
-                title="Llamada de audio"
-              >
-                <FaPhone />
-              </button>
-              <button
-                className={`header-icon-btn video-btn ${!hasCamera ? 'disabled' : ''}`}
-                onClick={() => hasCamera && onStartVideoCall && onStartVideoCall(to)}
-                title={hasCamera ? "Videollamada" : "No hay cámara disponible"}
-                disabled={!hasCamera}
-              >
-                <FaVideo />
-              </button>
-            </>
-          )}
+          {/* 🔥 BLOQUEADO: Botones de llamada deshabilitados */}
 
           {/* Botón para agregar usuarios a la sala */}
           {isGroup && currentRoomCode && onAddUsersToRoom && (

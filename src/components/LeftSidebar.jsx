@@ -301,6 +301,7 @@ const LeftSidebar = ({
           gap: '6.48px'
         }}
       >
+        {/* 🔥 BLOQUEADO: Botón de configuración comentado
         <button
           className="bg-transparent border-none text-white flex items-center justify-center cursor-pointer transition-all duration-200 hover:bg-white/5 rounded-lg max-[1280px]:!w-9 max-[1280px]:!h-9 max-[1024px]:!w-8 max-[1024px]:!h-8 max-[768px]:!w-full max-[768px]:!h-12 max-[768px]:!justify-start max-[768px]:!px-3 max-[768px]:!gap-3"
           onClick={() => setShowAdminMenu(!showAdminMenu)}
@@ -329,6 +330,7 @@ const LeftSidebar = ({
           </svg>
           <span className="hidden max-[768px]:inline text-sm font-medium">Configuración</span>
         </button>
+        */}
         <button
           className="bg-transparent border-none text-white flex items-center justify-center cursor-pointer transition-all duration-200 hover:bg-white/5 rounded-lg max-[1280px]:!w-9 max-[1280px]:!h-9 max-[1024px]:!w-8 max-[1024px]:!h-8 max-[768px]:!w-full max-[768px]:!h-12 max-[768px]:!justify-start max-[768px]:!px-3 max-[768px]:!gap-3"
           onClick={onLogout}
