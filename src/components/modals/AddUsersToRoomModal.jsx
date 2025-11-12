@@ -40,6 +40,8 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
     }
 
     try {
+      console.log(`🔄 Cargando usuarios de la sede ${sedeToUse}, página ${pageNumber}`);
+
       // Cargar usuarios de 10 en 10 según la sede
       const newUsers = await apiService.getUsersFromBackend(pageNumber, 10, sedeToUse);
 
@@ -66,10 +68,14 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
       // Si recibimos menos de 10 usuarios, no hay más páginas
       setHasMore(newUsers.length === 10);
       setPage(pageNumber);
+      console.log(`✅ Usuarios cargados exitosamente: ${availableUsers.length}`);
     } catch (error) {
-      console.error('Error al cargar usuarios:', error);
+      console.error('❌ Error al cargar usuarios:', error);
       if (reset) {
-        await showErrorAlert('Error', 'No se pudieron cargar los usuarios');
+        // Solo mostrar alerta si es un error real, no si es por cierre de sesión
+        if (error.message !== 'Sesión expirada') {
+          await showErrorAlert('Error', error.message || 'No se pudieron cargar los usuarios');
+        }
       }
     } finally {
       setLoading(false);
@@ -89,6 +95,8 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
     setIsSearching(true);
 
     try {
+      console.log(`🔍 Buscando usuarios: "${query}" en sede ${sedeToUse}, página ${pageNumber}`);
+
       // Buscar usuarios según la sede
       const newUsers = await apiService.searchUsersFromBackend(query, pageNumber, 10, sedeToUse);
 
@@ -118,8 +126,10 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
 
       setHasMore(newUsers.length === 10);
       setPage(pageNumber);
+      console.log(`✅ Búsqueda completada: ${availableUsers.length} usuarios encontrados`);
     } catch (error) {
-      console.error('Error al buscar usuarios:', error);
+      console.error('❌ Error al buscar usuarios:', error);
+      // No mostrar alerta aquí, dejar que el usuario intente de nuevo
     } finally {
       setLoading(false);
       setLoadingMore(false);

@@ -326,6 +326,7 @@ class ApiService {
 
         // Si aún falla después del refresh, cerrar sesión
         if (response.status === 401 || response.status === 403) {
+          console.error('❌ Error 401/403 después de renovar token. Cerrando sesión.');
           this.logout();
           window.location.href = '/';
         }
@@ -1168,6 +1169,8 @@ class ApiService {
       // 🔥 Usar la sede especificada o la actual
       const baseUrl = sede ? this.getBaseUrlForSede(sede) : this.baseUrl;
 
+      console.log(`📋 Obteniendo usuarios de ${baseUrl}api/user/listar?page=${page}&size=${size}`);
+
       // ✅ Usar fetchWithAuth para renovación automática de token
       const response = await this.fetchWithAuth(
         `${baseUrl}api/user/listar?page=${page}&size=${size}`,
@@ -1178,7 +1181,10 @@ class ApiService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error("Error del servidor al obtener usuarios:", errorData);
+        console.error("❌ Error del servidor al obtener usuarios:", {
+          status: response.status,
+          errorData
+        });
         throw new Error(
           errorData.msg || `Error del servidor: ${response.status}`
         );
@@ -1188,16 +1194,18 @@ class ApiService {
 
       // Validar que la respuesta sea exitosa (rpta === 1)
       if (result.rpta !== 1) {
-        console.warn("Respuesta no exitosa del servidor:", result.msg);
+        console.warn("⚠️ Respuesta no exitosa del servidor:", result.msg);
         return [];
       }
 
       // Retornar solo los usuarios del data, filtrando usuarios válidos
       const users = result.data?.users || [];
+      console.log(`✅ Se obtuvieron ${users.length} usuarios`);
       return users.filter(user => user && user.username); // Filtrar usuarios inválidos
     } catch (error) {
-      console.error("Error al obtener usuarios del backend:", error);
-      return [];
+      console.error("❌ Error al obtener usuarios del backend:", error);
+      // No retornar array vacío, lanzar el error para que se maneje en el componente
+      throw error;
     }
   }
 

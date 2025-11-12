@@ -1004,6 +1004,22 @@ const ChatPage = () => {
       }
     });
 
+    // 🔥 NUEVO: Evento para recibir mensajes de hilo en tiempo real
+    s.on('threadMessage', (data) => {
+      console.log('🧵 Evento threadMessage recibido:', data);
+
+      // El mensaje ya fue guardado en BD por el frontend que lo envió
+      // Solo necesitamos notificar al usuario que hay un nuevo mensaje en el hilo
+      // El ThreadPanel se encargará de cargar los mensajes cuando se abra
+
+      // Si el hilo está abierto actualmente, podríamos recargar los mensajes
+      // Pero por ahora solo notificamos que hay un nuevo mensaje
+      if (threadMessage && threadMessage.id === data.threadId) {
+        // El hilo está abierto, podríamos recargar los mensajes aquí
+        console.log('🧵 Nuevo mensaje en el hilo abierto:', data);
+      }
+    });
+
         return () => {
           s.off('userList');
           s.off('roomUsers');
@@ -1019,6 +1035,7 @@ const ChatPage = () => {
           s.off('roomMessageRead');
           s.off('reactionUpdated');
           s.off('threadCountUpdated');
+          s.off('threadMessage');
           s.off('roomCreated');
           s.off('roomDeleted');
           s.off('removedFromRoom');
