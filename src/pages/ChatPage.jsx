@@ -56,6 +56,11 @@ const ChatPage = () => {
   const [roomUsers, setRoomUsers] = useState([]);
   const [currentRoomCode, setCurrentRoomCode] = useState(null);
   const [assignedConversations, setAssignedConversations] = useState([]);
+  const [monitoringConversations, setMonitoringConversations] = useState([]);
+  const [monitoringPage, setMonitoringPage] = useState(1);
+  const [monitoringTotal, setMonitoringTotal] = useState(0);
+  const [monitoringTotalPages, setMonitoringTotalPages] = useState(0);
+  const [monitoringLoading, setMonitoringLoading] = useState(false);
 
   // Hook para paginación de mensajes
   const {
@@ -279,7 +284,7 @@ const ChatPage = () => {
               // 🔥 Resetear el contador de mensajes no leídos en la lista de conversaciones
               setAssignedConversations(prevConversations => {
                 return prevConversations.map(conv => {
-                  if (conv.id === selectedConversation.id) {
+                  if (conv.id === adminViewConversation.id) {
                     return {
                       ...conv,
                       unreadCount: 0
@@ -386,6 +391,27 @@ const ChatPage = () => {
     }
   }, [isAuthenticated, username, socket, user]);
 
+  // 🔥 NUEVO: Función para cargar conversaciones de monitoreo con paginación
+  const loadMonitoringConversations = useCallback(async (page = 1) => {
+    if (!isAuthenticated || !username) {
+      return;
+    }
+
+    setMonitoringLoading(true);
+    try {
+      const result = await apiService.getMonitoringConversations(page, 10);
+      setMonitoringConversations(result.data || []);
+      setMonitoringPage(result.page);
+      setMonitoringTotal(result.total);
+      setMonitoringTotalPages(result.totalPages);
+    } catch (error) {
+      console.error('❌ Error al cargar conversaciones de monitoreo:', error);
+      setMonitoringConversations([]);
+    } finally {
+      setMonitoringLoading(false);
+    }
+  }, [isAuthenticated, username]);
+
   // Cargar conversaciones asignadas al usuario
   useEffect(() => {
     if (!isAuthenticated || !username) {
@@ -399,6 +425,20 @@ const ChatPage = () => {
 
     return () => clearTimeout(timeoutId);
   }, [isAuthenticated, username, loadAssignedConversations]);
+
+  // 🔥 NUEVO: Cargar conversaciones de monitoreo al usuario (solo para ADMIN)
+  useEffect(() => {
+    if (!isAuthenticated || !username || user?.role !== 'ADMIN') {
+      return;
+    }
+
+    // Pequeño delay para asegurar que el usuario esté completamente autenticado
+    const timeoutId = setTimeout(() => {
+      loadMonitoringConversations(1);
+    }, 1500);
+
+    return () => clearTimeout(timeoutId);
+  }, [isAuthenticated, username, user?.role, loadMonitoringConversations]);
 
   // WebSocket listeners
   useEffect(() => {
@@ -1381,21 +1421,16 @@ const ChatPage = () => {
     //   input: input?.substring(0, 50)
     // });
 
-    // Buscar si esta conversación es asignada
+    // Buscar si esta conversación es asignada (normalizado)
+    const currentUserNormalized = normalizeUsername(currentUserFullName);
     const assignedConv = assignedConversations?.find(conv => {
-      const otherUser = conv.participants?.find(p => p !== currentUserFullName);
-      // console.log('🔍 Buscando conversación asignada:', {
-      //   to,
-      //   currentUserFullName,
-      //   convName: conv.name,
-      //   participants: conv.participants,
-      //   otherUser,
-      //   match: otherUser === to || conv.name === to
-      // });
-      // 🔥 Comparación case-insensitive para nombres
-      const toNormalized = to?.toLowerCase().trim();
-      const otherUserNormalized = otherUser?.toLowerCase().trim();
-      const convNameNormalized = conv.name?.toLowerCase().trim();
+      const otherUser = conv.participants?.find(p =>
+        normalizeUsername(p) !== currentUserNormalized
+      );
+      // 🔥 Comparación normalizada para nombres
+      const toNormalized = normalizeUsername(to);
+      const otherUserNormalized = normalizeUsername(otherUser);
+      const convNameNormalized = normalizeUsername(conv.name);
 
       return otherUserNormalized === toNormalized || convNameNormalized === toNormalized;
     });
@@ -1403,12 +1438,18 @@ const ChatPage = () => {
     // console.log('📧 Conversación asignada encontrada:', assignedConv);
 
     // Si es una conversación asignada y el usuario NO está en ella, no permitir enviar
-    if (assignedConv && !assignedConv.participants?.includes(currentUserFullName)) {
-      await showErrorAlert(
-        'No permitido',
-        'No puedes enviar mensajes en conversaciones de otros usuarios. Solo puedes monitorearlas.'
+    // 🔥 MODIFICADO: Comparación normalizada para nombres
+    if (assignedConv && assignedConv.participants) {
+      const isUserParticipant = assignedConv.participants.some(p =>
+        normalizeUsername(p) === currentUserNormalized
       );
-      return;
+      if (!isUserParticipant) {
+        await showErrorAlert(
+          'No permitido',
+          'No puedes enviar mensajes en conversaciones de otros usuarios. Solo puedes monitorearlas.'
+        );
+        return;
+      }
     }
 
     const now = new Date();
@@ -2254,6 +2295,15 @@ const ChatPage = () => {
     }
   };
 
+  // 🔥 Función para normalizar nombres (remover acentos y convertir a minúsculas)
+  const normalizeUsername = (username) => {
+    return username
+      ?.toLowerCase()
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') || '';
+  };
+
   // Verificar si el usuario puede enviar mensajes en la conversación actual
   const canSendMessages = React.useMemo(() => {
     if (!to) return false;
@@ -2262,15 +2312,26 @@ const ChatPage = () => {
       ? `${user.nombre} ${user.apellido}`
       : user?.username;
 
-    // Buscar si esta conversación es asignada
+    const currentUserNormalized = normalizeUsername(currentUserFullName);
+    const toNormalized = normalizeUsername(to);
+
+    // Buscar si esta conversación es asignada (normalizado)
     const assignedConv = assignedConversations?.find(conv => {
-      const otherUser = conv.participants?.find(p => p !== currentUserFullName);
-      return otherUser === to || conv.name === to;
+      const otherUser = conv.participants?.find(p =>
+        normalizeUsername(p) !== currentUserNormalized
+      );
+      return normalizeUsername(otherUser) === toNormalized ||
+             normalizeUsername(conv.name) === toNormalized;
     });
 
     // Si es una conversación asignada y el usuario NO está en ella, no puede enviar
-    if (assignedConv && !assignedConv.participants?.includes(currentUserFullName)) {
-      return false;
+    if (assignedConv && assignedConv.participants) {
+      const isUserParticipant = assignedConv.participants.some(p =>
+        normalizeUsername(p) === currentUserNormalized
+      );
+      if (!isUserParticipant) {
+        return false;
+      }
     }
 
     return true;
@@ -2304,6 +2365,12 @@ const ChatPage = () => {
       userList={userList}
       groupList={groupList}
       assignedConversations={assignedConversations}
+      monitoringConversations={monitoringConversations}
+      monitoringPage={monitoringPage}
+      monitoringTotal={monitoringTotal}
+      monitoringTotalPages={monitoringTotalPages}
+      monitoringLoading={monitoringLoading}
+      onLoadMonitoringConversations={loadMonitoringConversations}
       isAdmin={isAdmin}
       showAdminMenu={showAdminMenu}
       setShowAdminMenu={setShowAdminMenu}

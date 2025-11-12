@@ -22,6 +22,12 @@ const Sidebar = ({
   user,
   userList,
   assignedConversations = [],
+  monitoringConversations = [],
+  monitoringPage = 1,
+  monitoringTotal = 0,
+  monitoringTotalPages = 0,
+  monitoringLoading = false,
+  onLoadMonitoringConversations,
   isGroup,
   showAdminMenu,
   setShowAdminMenu,
@@ -72,6 +78,12 @@ const Sidebar = ({
           user={user}
           userList={userList}
           assignedConversations={assignedConversations}
+          monitoringConversations={monitoringConversations}
+          monitoringPage={monitoringPage}
+          monitoringTotal={monitoringTotal}
+          monitoringTotalPages={monitoringTotalPages}
+          monitoringLoading={monitoringLoading}
+          onLoadMonitoringConversations={onLoadMonitoringConversations}
           myActiveRooms={myActiveRooms}
           currentRoomCode={currentRoomCode}
           isGroup={isGroup}
@@ -94,6 +106,12 @@ const Sidebar = ({
             user={user}
             userList={userList}
             assignedConversations={assignedConversations}
+            monitoringConversations={monitoringConversations}
+            monitoringPage={monitoringPage}
+            monitoringTotal={monitoringTotal}
+            monitoringTotalPages={monitoringTotalPages}
+            monitoringLoading={monitoringLoading}
+            onLoadMonitoringConversations={onLoadMonitoringConversations}
             myActiveRooms={myActiveRooms}
             currentRoomCode={currentRoomCode}
             isGroup={isGroup}

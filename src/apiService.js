@@ -930,6 +930,45 @@ class ApiService {
     }
   }
 
+  // 🔥 NUEVO: Obtener conversaciones de monitoreo (de otros usuarios) con paginación
+  async getMonitoringConversations(page = 1, limit = 10) {
+    try {
+      // Obtener el usuario actual
+      const user = this.getCurrentUser();
+
+      if (!user) {
+        return { data: [], total: 0, page, limit, totalPages: 0 };
+      }
+
+      // Usar el nombre completo si está disponible, sino usar username
+      const displayName = user.nombre && user.apellido
+        ? `${user.nombre} ${user.apellido}`
+        : (user.username || user.email);
+
+      // ✅ Pasar username como query param para filtrar correctamente
+      const url = displayName
+        ? `${this.baseChatUrl}api/temporary-conversations/monitoring/list?username=${encodeURIComponent(displayName)}&page=${page}&limit=${limit}`
+        : `${this.baseChatUrl}api/temporary-conversations/monitoring/list?page=${page}&limit=${limit}`;
+
+      const response = await this.fetchWithAuth(url, {
+        method: "GET",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Error del servidor: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al obtener conversaciones de monitoreo:", error);
+      throw error;
+    }
+  }
+
   // Actualizar una conversación asignada
   async updateAssignedConversation(conversationId, data) {
     try {

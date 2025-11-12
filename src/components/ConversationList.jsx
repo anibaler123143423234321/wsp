@@ -51,6 +51,12 @@ const ConversationList = ({
   user,
   userList,
   assignedConversations = [],
+  monitoringConversations = [],
+  monitoringPage = 1,
+  monitoringTotal = 0,
+  monitoringTotalPages = 0,
+  monitoringLoading = false,
+  onLoadMonitoringConversations,
   myActiveRooms,
   currentRoomCode,
   isGroup,
@@ -239,11 +245,7 @@ const ConversationList = ({
     return conv.participants?.includes(displayName);
   });
 
-  // Filtrar conversaciones para monitoreo (SOLO las que NO son del usuario)
-  const monitoringConversations = assignedConversations.filter(conv => {
-    const displayName = getDisplayName();
-    return !conv.participants?.includes(displayName);
-  });
+  // 🔥 NOTA: monitoringConversations ahora viene como prop desde ChatPage (con paginación)
 
   // Contar solo conversaciones NO LEÍDAS para cada módulo
   const unreadAssignedCount = myAssignedConversations.filter(conv => conv.unreadCount > 0).length;
@@ -1270,6 +1272,28 @@ const ConversationList = ({
                   </div>
                 );
               })}
+              {/* Paginación */}
+              {monitoringTotalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 py-4 border-t border-gray-200">
+                  <button
+                    onClick={() => onLoadMonitoringConversations(monitoringPage - 1)}
+                    disabled={monitoringPage === 1 || monitoringLoading}
+                    className="px-3 py-1 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    ← Anterior
+                  </button>
+                  <span className="text-sm text-gray-600">
+                    Página {monitoringPage} de {monitoringTotalPages}
+                  </span>
+                  <button
+                    onClick={() => onLoadMonitoringConversations(monitoringPage + 1)}
+                    disabled={monitoringPage === monitoringTotalPages || monitoringLoading}
+                    className="px-3 py-1 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Siguiente →
+                  </button>
+                </div>
+              )}
             </>
           ) : (
             <div className="flex flex-col items-center justify-center py-[60px] px-5 text-center">

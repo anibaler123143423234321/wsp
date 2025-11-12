@@ -11,7 +11,7 @@ import './ChatLayout.css';
 
 const ChatLayout = ({
   // Props del sidebar
-  user, userList, groupList, assignedConversations, isAdmin, showAdminMenu, setShowAdminMenu, showSidebar,
+  user, userList, groupList, assignedConversations, monitoringConversations, monitoringPage, monitoringTotal, monitoringTotalPages, monitoringLoading, onLoadMonitoringConversations, isAdmin, showAdminMenu, setShowAdminMenu, showSidebar,
   onUserSelect, onGroupSelect, onPersonalNotes, onLogout,
   onShowCreateRoom, onShowJoinRoom, onShowAdminRooms, onShowCreateConversation, onShowManageConversations,
   onShowManageUsers, onShowSystemConfig, loadingAdminRooms, myActiveRooms, onRoomSelect, onKickUser,
@@ -135,6 +135,12 @@ const ChatLayout = ({
         userList={userList}
         groupList={groupList}
         assignedConversations={assignedConversations}
+        monitoringConversations={monitoringConversations}
+        monitoringPage={monitoringPage}
+        monitoringTotal={monitoringTotal}
+        monitoringTotalPages={monitoringTotalPages}
+        monitoringLoading={monitoringLoading}
+        onLoadMonitoringConversations={onLoadMonitoringConversations}
         roomUsers={roomUsers}
         isGroup={isGroup}
         isAdmin={isAdmin}
