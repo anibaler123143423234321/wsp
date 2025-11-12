@@ -692,6 +692,27 @@ const ChatPage = () => {
         // console.log('✅ Agregando mensaje a la vista actual');
         addNewMessage(newMessage);
 
+        // 🔥 IMPORTANTE: También actualizar el preview en la lista de conversaciones
+        setAssignedConversations(prevConversations => {
+          return prevConversations.map(conv => {
+            // Buscar la conversación que corresponde a este mensaje
+            const otherUser = conv.participants?.find(p => p !== currentUserFullName);
+            const isThisConversation = otherUser?.toLowerCase().trim() === data.from.toLowerCase().trim();
+
+            if (isThisConversation) {
+              return {
+                ...conv,
+                lastMessage: data.message || '',
+                lastMessageTime: dateTimeString,
+                lastMessageFrom: data.from
+                // NO incrementar unreadCount porque el usuario está viendo el chat
+              };
+            }
+
+            return conv;
+          });
+        });
+
         if (data.from !== username && data.from !== currentUserFullName) {
           // 🔥 NUEVO: Reproducir sonido siempre que llega un mensaje de otro usuario
           playMessageSound(true);

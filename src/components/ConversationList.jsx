@@ -115,7 +115,7 @@ const ConversationList = ({
               username: u.username,
               nombre: u.nombre,
               apellido: u.apellido,
-              isOnline: u.isOnline !== undefined ? u.isOnline : true // Usar isOnline del backend, o true por defecto
+              isOnline: u.isOnline !== undefined ? u.isOnline : false // 🔥 Por defecto offline, no online
             };
           }
         });
