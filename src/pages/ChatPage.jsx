@@ -544,7 +544,9 @@ const ChatPage = () => {
     });
 
     s.on('message', (data) => {
-      const timeString = data.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const now = new Date();
+      const timeString = data.time || now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const dateTimeString = data.sentAt || now.toISOString(); // 🔥 Usar sentAt del backend o fecha actual
 
       if (data.isGroup) {
         // Ignorar mensajes que vienen del servidor si son nuestros propios mensajes
@@ -637,7 +639,7 @@ const ChatPage = () => {
                 return {
                   ...conv,
                   lastMessage: data.message || '',
-                  lastMessageTime: timeString,
+                  lastMessageTime: dateTimeString,
                   lastMessageFrom: data.from,
                   unreadCount: newUnreadCount
                 };
@@ -1454,6 +1456,7 @@ const ChatPage = () => {
 
     const now = new Date();
     const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const dateTimeString = now.toISOString(); // 🔥 Guardar fecha completa en ISO format
 
     // Generar ID único para el mensaje
     const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
@@ -1631,7 +1634,7 @@ const ChatPage = () => {
               return {
                 ...conv,
                 lastMessage: input || (messageObj.fileName ? `📎 ${messageObj.fileName}` : ''),
-                lastMessageTime: timeString,
+                lastMessageTime: dateTimeString,
                 lastMessageFrom: currentUserFullName
               };
             }
@@ -1699,6 +1702,7 @@ const ChatPage = () => {
 
       const now = new Date();
       const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const dateTimeString = now.toISOString(); // 🔥 Guardar fecha completa en ISO format
       const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
       // 🔥 Verificar si es una conversación asignada
@@ -1790,7 +1794,7 @@ const ChatPage = () => {
               return {
                 ...conv,
                 lastMessage: '🎤 Audio',
-                lastMessageTime: timeString,
+                lastMessageTime: dateTimeString,
                 lastMessageFrom: currentUserFullName
               };
             }
