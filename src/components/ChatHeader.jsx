@@ -113,6 +113,7 @@ const ChatHeader = ({
               {isGroup ? (
                 currentRoomCode ? (
                   <>
+                    {/* 🔥 MODIFICADO: Contar TODOS los usuarios en la sala (connectedMembers) */}
                     Sala temporal • {roomUsers.length} miembro{roomUsers.length !== 1 ? 's' : ''}
                   </>
                 ) : (

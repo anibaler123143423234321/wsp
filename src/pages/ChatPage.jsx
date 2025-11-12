@@ -431,16 +431,18 @@ const ChatPage = () => {
             setRoomUsers(data.users);
           }
 
-          // SIEMPRE actualizar el contador en "Mis Salas Activas"
-          // Contar solo usuarios conectados (isOnline === true)
-          const connectedCount = data.users.filter(u => u.isOnline).length;
-          setMyActiveRooms(prevRooms =>
-            prevRooms.map(room =>
-              room.roomCode === data.roomCode
-                ? { ...room, currentMembers: connectedCount }
-                : room
-            )
-          );
+          // 🔥 MODIFICADO: Solo actualizar el contador si NO estamos actualmente en esa sala
+          // Si estamos en la sala, el contador ya está correcto en ChatHeader
+          if (data.roomCode !== currentRoomCodeRef.current) {
+            const totalCount = data.users.length;
+            setMyActiveRooms(prevRooms =>
+              prevRooms.map(room =>
+                room.roomCode === data.roomCode
+                  ? { ...room, currentMembers: totalCount }
+                  : room
+              )
+            );
+          }
         });
 
         s.on('roomJoined', (data) => {
@@ -473,13 +475,17 @@ const ChatPage = () => {
     // Actualizar contador de usuarios en salas activas (solo para ADMIN y JEFEPISO)
     s.on('roomCountUpdate', (data) => {
       if (user?.role === 'ADMIN' || user?.role === 'JEFEPISO') {
-        setMyActiveRooms(prevRooms =>
-          prevRooms.map(room =>
-            room.roomCode === data.roomCode
-              ? { ...room, currentMembers: data.currentMembers }
-              : room
-          )
-        );
+        // 🔥 MODIFICADO: Solo actualizar el contador si NO estamos actualmente en esa sala
+        // Si estamos en la sala, el contador ya está correcto en ChatHeader
+        if (data.roomCode !== currentRoomCodeRef.current) {
+          setMyActiveRooms(prevRooms =>
+            prevRooms.map(room =>
+              room.roomCode === data.roomCode
+                ? { ...room, currentMembers: data.currentMembers }
+                : room
+            )
+          );
+        }
       }
     });
 
@@ -872,11 +878,18 @@ const ChatPage = () => {
     s.on('addedToRoom', async (data) => {
       const { message, roomCode } = data;
 
-      // Recargar la lista de salas activas del usuario
+      // 🔥 MODIFICADO: Para ADMIN, recargar TODAS las salas activas
+      // Para usuarios normales, recargar solo su sala actual
       try {
-        const response = await apiService.getCurrentUserRoom();
-        if (response && response.inRoom && response.room) {
-          setMyActiveRooms([response.room]);
+        if (user?.role === 'ADMIN' || user?.role === 'JEFEPISO' || user?.role === 'PROGRAMADOR') {
+          // ADMIN: Recargar todas las salas activas
+          await loadMyActiveRooms();
+        } else {
+          // Usuario normal: Recargar solo su sala actual
+          const response = await apiService.getCurrentUserRoom();
+          if (response && response.inRoom && response.room) {
+            setMyActiveRooms([response.room]);
+          }
         }
       } catch (error) {
         console.error('Error al recargar sala activa:', error);
@@ -903,13 +916,20 @@ const ChatPage = () => {
         setMessages([]);
       }
 
-      // Recargar la lista de salas activas del usuario
+      // 🔥 MODIFICADO: Para ADMIN, recargar TODAS las salas activas
+      // Para usuarios normales, recargar solo su sala actual
       try {
-        const response = await apiService.getCurrentUserRoom();
-        if (response && response.inRoom && response.room) {
-          setMyActiveRooms([response.room]);
+        if (user?.role === 'ADMIN' || user?.role === 'JEFEPISO' || user?.role === 'PROGRAMADOR') {
+          // ADMIN: Recargar todas las salas activas
+          await loadMyActiveRooms();
         } else {
-          setMyActiveRooms([]);
+          // Usuario normal: Recargar solo su sala actual
+          const response = await apiService.getCurrentUserRoom();
+          if (response && response.inRoom && response.room) {
+            setMyActiveRooms([response.room]);
+          } else {
+            setMyActiveRooms([]);
+          }
         }
       } catch (error) {
         console.error('Error al recargar sala activa:', error);
@@ -935,13 +955,20 @@ const ChatPage = () => {
         setMessages([]);
       }
 
-      // Recargar la lista de salas activas del usuario
+      // 🔥 MODIFICADO: Para ADMIN, recargar TODAS las salas activas
+      // Para usuarios normales, recargar solo su sala actual
       try {
-        const response = await apiService.getCurrentUserRoom();
-        if (response && response.inRoom && response.room) {
-          setMyActiveRooms([response.room]);
+        if (user?.role === 'ADMIN' || user?.role === 'JEFEPISO' || user?.role === 'PROGRAMADOR') {
+          // ADMIN: Recargar todas las salas activas
+          await loadMyActiveRooms();
         } else {
-          setMyActiveRooms([]);
+          // Usuario normal: Recargar solo su sala actual
+          const response = await apiService.getCurrentUserRoom();
+          if (response && response.inRoom && response.room) {
+            setMyActiveRooms([response.room]);
+          } else {
+            setMyActiveRooms([]);
+          }
         }
       } catch (error) {
         console.error('Error al recargar sala activa:', error);
@@ -1219,11 +1246,19 @@ const ChatPage = () => {
   };
 
   const handleLeaveRoom = () => {
+    // 🔥 MODIFICADO: Solo emitir leaveRoom si el usuario está realmente en la sala
     if (socket && socket.connected) {
-      socket.emit('leaveRoom', {
-        roomCode: currentRoomCode,
-        from: username
-      });
+      // Verificar si el usuario está en la lista de miembros de la sala
+      // Comparar con username (no con nombre completo)
+      const isUserInRoom = roomUsers.some(user => user.username === username);
+
+      // Solo emitir leaveRoom si el usuario está realmente en la sala
+      if (isUserInRoom) {
+        socket.emit('leaveRoom', {
+          roomCode: currentRoomCode,
+          from: username
+        });
+      }
     }
 
     // Limpiar el chat y regresar al WelcomeScreen
@@ -1249,12 +1284,20 @@ const ChatPage = () => {
         return;
       }
 
-      // Si estamos en otra sala, salir primero
+      // 🔥 MODIFICADO: Solo emitir leaveRoom si el usuario está realmente en la sala anterior
+      // Para ADMIN que solo monitorea, NO emitir leaveRoom
       if (currentRoomCode && socket && socket.connected) {
-        socket.emit('leaveRoom', {
-          roomCode: currentRoomCode,
-          from: username
-        });
+        // Verificar si el usuario está en la lista de miembros de la sala anterior
+        // Comparar con username (no con nombre completo)
+        const isUserInPreviousRoom = roomUsers.some(user => user.username === username);
+
+        // Solo emitir leaveRoom si el usuario está realmente en la sala
+        if (isUserInPreviousRoom) {
+          socket.emit('leaveRoom', {
+            roomCode: currentRoomCode,
+            from: username
+          });
+        }
       }
 
       // Limpiar la vista de admin al seleccionar una sala
@@ -1266,8 +1309,30 @@ const ChatPage = () => {
       setCurrentRoomCode(room.roomCode);
       currentRoomCodeRef.current = room.roomCode;
 
-      // Emitir evento de unirse a la sala
-      if (socket && socket.connected) {
+      // 🔥 MODIFICADO: Cargar usuarios de la sala ANTES de emitir joinRoom
+      // para verificar si el usuario está realmente en la sala
+      let roomUsersData = [];
+      try {
+        const response = await apiService.getRoomUsers(room.roomCode);
+        // Asegurar que es un array
+        if (Array.isArray(response)) {
+          roomUsersData = response;
+        } else if (response && typeof response === 'object') {
+          // Si es un objeto, intentar extraer el array de usuarios
+          roomUsersData = response.users || response.data || [];
+        }
+        setRoomUsers(roomUsersData);
+      } catch (error) {
+        console.error('Error al cargar usuarios de la sala:', error);
+        setRoomUsers([]);
+        roomUsersData = [];
+      }
+
+      // 🔥 MODIFICADO: Solo emitir joinRoom si el usuario está realmente en la sala
+      // Para ADMIN que solo monitorea, NO emitir joinRoom
+      // Comparar con username (no con nombre completo)
+      const isUserInRoom = Array.isArray(roomUsersData) && roomUsersData.some(user => user.username === username);
+      if (isUserInRoom && socket && socket.connected) {
         socket.emit('joinRoom', {
           roomCode: room.roomCode,
           roomName: room.name,
@@ -1276,7 +1341,6 @@ const ChatPage = () => {
       }
 
       clearMessages();
-      setRoomUsers([]);
 
       // 📱 Cerrar sidebar en mobile al seleccionar una sala
       if (window.innerWidth <= 768) {
