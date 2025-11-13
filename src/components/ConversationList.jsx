@@ -877,7 +877,8 @@ const ConversationList = ({
                             <span className="conversation-timestamp">
                               {new Date(conv.lastMessageTime).toLocaleTimeString('es-ES', {
                                 hour: '2-digit',
-                                minute: '2-digit'
+                                minute: '2-digit',
+                                hour12: false
                               })}
                             </span>
                           )}

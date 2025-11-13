@@ -546,10 +546,24 @@ const ChatPage = () => {
 
     s.on('message', (data) => {
       const now = new Date();
-      const timeString = data.time || now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const timeString = data.time || now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
       const dateTimeString = data.sentAt || now.toISOString(); // 🔥 Usar sentAt del backend o fecha actual
 
       if (data.isGroup) {
+        // 🔥 CRÍTICO: Verificar que el usuario esté viendo el grupo correcto
+        const isViewingCorrectGroup = isGroup && currentRoomCode && data.roomCode === currentRoomCode;
+
+        if (!isViewingCorrectGroup) {
+          console.log('⚠️ Mensaje de grupo recibido pero el usuario no está viendo ese grupo. Ignorando.');
+          console.log('🔍 Debug:', {
+            isGroup,
+            currentRoomCode,
+            dataRoomCode: data.roomCode,
+            messageFrom: data.from
+          });
+          return;
+        }
+
         // 🔥 Verificar si ya existe un mensaje con este ID para evitar duplicados
         const existingMessage = messages.find(msg => msg.id === data.id);
 
@@ -642,6 +656,7 @@ const ChatPage = () => {
           isViewingCorrectChat =
             !isGroup && // No está en un grupo
             !currentRoomCode && // No está en una sala
+            !data.isGroup && // 🔥 CRÍTICO: El mensaje entrante NO debe ser de un grupo
             to && // Hay un destinatario seleccionado
             (to.toLowerCase().trim() === data.from.toLowerCase().trim()); // El destinatario es el remitente
         }
@@ -1159,24 +1174,23 @@ const ChatPage = () => {
     //   currentRoomCode
     // });
 
+    // 🔥 CRÍTICO: Limpiar INMEDIATAMENTE el estado anterior para evitar que se muestren datos del chat anterior
+    clearMessages(); // Limpiar mensajes SIEMPRE, sin importar el tipo de conversación
+    setRoomUsers([]); // Limpiar usuarios de sala para que el header se actualice inmediatamente
+    setIsGroup(false); // Establecer que NO es grupo
+    setCurrentRoomCode(null); // Limpiar código de sala
+    currentRoomCodeRef.current = null;
+
     // Si es una conversación de admin (conversationData presente), guardarla
     if (conversationData) {
       setAdminViewConversation(conversationData);
       // 🔥 IMPORTANTE: Usar userName (que es el displayName del otro participante)
       // NO usar conversationData.name porque puede ser el nombre de cualquiera de los dos
       setTo(userName);
-      // No limpiar mensajes aquí, el useEffect se encargará
     } else {
       setAdminViewConversation(null);
       setTo(userName);
-      // Solo limpiar mensajes si NO es una conversación asignada
-      clearMessages();
     }
-
-    setIsGroup(false);
-    setCurrentRoomCode(null);
-    currentRoomCodeRef.current = null;
-    setRoomUsers([]);
 
     // console.log('✅ Estado DESPUÉS de cambiar (programado):', {
     //   to: userName,
@@ -1198,15 +1212,16 @@ const ChatPage = () => {
   };
 
   const handleGroupSelect = (group) => {
-    // Limpiar la vista de admin al seleccionar un grupo
-    setAdminViewConversation(null);
+    // 🔥 CRÍTICO: Limpiar INMEDIATAMENTE el estado anterior
+    clearMessages(); // Limpiar mensajes primero
+    setAdminViewConversation(null); // Limpiar vista de admin
+    setCurrentRoomCode(null); // Limpiar código de sala
+    currentRoomCodeRef.current = null;
 
+    // Establecer nuevo estado
     setTo(group.name);
     setIsGroup(true);
-    setCurrentRoomCode(null);
-    currentRoomCodeRef.current = null;
     setRoomUsers(group.members);
-    clearMessages();
 
     // 📱 Cerrar sidebar en mobile al seleccionar un grupo
     if (window.innerWidth <= 768) {
@@ -1215,12 +1230,15 @@ const ChatPage = () => {
   };
 
   const handlePersonalNotes = () => {
-    setTo(username);
+    // 🔥 CRÍTICO: Limpiar INMEDIATAMENTE el estado anterior
+    clearMessages(); // Limpiar mensajes primero
+    setRoomUsers([]); // Limpiar usuarios de sala
     setIsGroup(false);
     setCurrentRoomCode(null);
     currentRoomCodeRef.current = null;
-    setRoomUsers([]);
-    clearMessages();
+    setAdminViewConversation(null); // Limpiar vista de admin
+
+    setTo(username);
   };
 
   // Función para cerrar el chat (volver al sidebar)
@@ -1325,17 +1343,19 @@ const ChatPage = () => {
       setShowJoinRoomModal(false);
       setJoinRoomForm({ roomCode: '' });
 
-      // Limpiar la vista de admin al unirse a una sala
-      setAdminViewConversation(null);
+      // 🔥 CRÍTICO: Limpiar INMEDIATAMENTE el estado anterior
+      clearMessages(); // Limpiar mensajes primero
+      setAdminViewConversation(null); // Limpiar vista de admin
+      setRoomUsers([]); // Limpiar usuarios de sala anterior
 
       setTo(result.name);
       setIsGroup(true);
       setCurrentRoomCode(result.roomCode);
       currentRoomCodeRef.current = result.roomCode;
-      
+
       // Cargar mensajes históricos de la sala usando paginación
       await loadInitialMessages();
-      
+
       // Emitir evento de unirse a la sala
       if (socket && socket.connected) {
         socket.emit('joinRoom', {
@@ -1344,8 +1364,6 @@ const ChatPage = () => {
           from: username
         });
       }
-
-      setRoomUsers([]);
 
     } catch (error) {
       console.error('Error al unirse a sala:', error);
@@ -1408,8 +1426,10 @@ const ChatPage = () => {
         }
       }
 
-      // Limpiar la vista de admin al seleccionar una sala
-      setAdminViewConversation(null);
+      // 🔥 CRÍTICO: Limpiar INMEDIATAMENTE el estado anterior
+      clearMessages(); // Limpiar mensajes primero
+      setAdminViewConversation(null); // Limpiar vista de admin
+      setRoomUsers([]); // Limpiar usuarios de la sala anterior
 
       // Unirse a la sala seleccionada
       setTo(room.name);
@@ -1447,8 +1467,6 @@ const ChatPage = () => {
           from: username
         });
       }
-
-      clearMessages();
 
       // 📱 Cerrar sidebar en mobile al seleccionar una sala
       if (window.innerWidth <= 768) {
@@ -1941,7 +1959,7 @@ const ChatPage = () => {
         isGroup: messageData.isGroup,
         roomCode: messageData.roomCode,
         threadId: messageData.threadId,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false }),
         fromId: user.id
       };
 
