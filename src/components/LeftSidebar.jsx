@@ -17,9 +17,8 @@ const LeftSidebar = ({
 }) => {
   return (
     <div
-      className="flex flex-col p-0 max-[1280px]:w-[140px] max-[1024px]:w-[120px] max-[768px]:w-full max-[768px]:h-screen"
+      className="left-sidebar-container flex flex-col p-0 max-[768px]:w-full max-[768px]:h-screen flex-shrink-0 left-sidebar-responsive"
       style={{
-        width: 'clamp(160px, 20vw, 233.22px)',
         backgroundImage: `url(${menuBackground})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
@@ -37,7 +36,7 @@ const LeftSidebar = ({
         }}
       >
         <h1
-          className="font-['Inter',-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] max-[1280px]:!text-lg max-[1280px]:!leading-tight max-[1280px]:!w-auto max-[1280px]:!h-auto max-[1024px]:!text-base max-[768px]:!text-lg max-[768px]:!leading-tight"
+          className="font-['Inter',-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] max-[1280px]:!text-base max-[1280px]:!leading-tight max-[1280px]:!w-auto max-[1280px]:!h-auto max-[1024px]:!text-sm max-[768px]:!text-lg max-[768px]:!leading-tight"
           style={{
             width: '139px',
             height: '42px',
@@ -48,7 +47,9 @@ const LeftSidebar = ({
             color: '#FFFFFF'
           }}
         >
-          Chat<br/>corporativo
+          <span className="max-[1280px]:hidden">Chat<br/>corporativo</span>
+          <span className="hidden max-[1280px]:inline max-[768px]:hidden">Chat<br/>corp.</span>
+          <span className="hidden max-[768px]:inline">Chat<br/>corporativo</span>
         </h1>
         {onToggleSidebar && (
           <button
@@ -65,7 +66,7 @@ const LeftSidebar = ({
       <div className="flex-1 flex flex-col overflow-y-auto max-[768px]:flex-1">
         {/* Avatar y nombre de usuario */}
         <div
-          className="flex items-center max-[1280px]:!px-3 max-[1280px]:!py-2 max-[1024px]:!px-2 max-[1024px]:!py-2 max-[768px]:!px-4 max-[768px]:!py-3"
+          className="flex items-center max-[1280px]:flex-col max-[1280px]:items-center max-[1280px]:text-center max-[1280px]:!px-3 max-[1280px]:!py-2 max-[1024px]:!px-2 max-[1024px]:!py-2 max-[768px]:!px-4 max-[768px]:!py-3"
           style={{
             paddingLeft: '19.64px',
             paddingRight: '19.64px',
@@ -75,7 +76,7 @@ const LeftSidebar = ({
           }}
         >
           <div
-            className="rounded-full overflow-hidden flex-shrink-0 max-[1280px]:w-8 max-[1280px]:h-8 max-[1024px]:w-7 max-[1024px]:h-7 max-[768px]:!w-10 max-[768px]:!h-10"
+            className="rounded-full overflow-hidden flex-shrink-0 max-[1280px]:w-10 max-[1280px]:h-10 max-[1024px]:w-7 max-[1024px]:h-7 max-[768px]:!w-10 max-[768px]:!h-10"
             style={{
               width: '41.46px',
               height: '41.46px'
@@ -89,17 +90,15 @@ const LeftSidebar = ({
               </div>
             )}
           </div>
-          <div className="flex flex-col flex-1 gap-1">
+          <div className="flex flex-col flex-1 gap-1 min-w-0 overflow-hidden max-[1280px]:w-full max-[1280px]:gap-0.5">
             <div
-              className="font-['Inter',-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] max-[1280px]:!text-xs max-[1024px]:!text-[11px] max-[768px]:!text-sm"
+              className="font-['Inter',-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] max-[1280px]:!text-[10px] max-[1024px]:!text-[11px] max-[768px]:!text-sm truncate max-[1280px]:break-words max-[1280px]:overflow-visible"
               style={{
                 fontSize: '13px',
                 fontWeight: 400,
                 lineHeight: '16px',
                 letterSpacing: '0px',
-                color: '#FFFFFF',
-                wordWrap: 'break-word',
-                overflowWrap: 'break-word'
+                color: '#FFFFFF'
               }}
             >
               {user?.nombre && user?.apellido
@@ -107,15 +106,13 @@ const LeftSidebar = ({
                 : user?.username || 'Usuario'}
             </div>
             <div
-              className="font-['Inter',-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] max-[1280px]:!text-[10px] max-[1024px]:!text-[9px] max-[768px]:!text-xs"
+              className="font-['Inter',-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] max-[1280px]:hidden max-[1024px]:!text-[9px] max-[768px]:!text-xs truncate"
               style={{
                 fontSize: '11px',
                 fontWeight: 300,
                 lineHeight: '14px',
                 letterSpacing: '0px',
-                color: '#B8D4F1',
-                wordWrap: 'break-word',
-                overflowWrap: 'break-word'
+                color: '#B8D4F1'
               }}
             >
               {user?.role && user?.numeroAgente ? (
@@ -292,7 +289,7 @@ const LeftSidebar = ({
 
       {/* Footer con iconos */}
       <div
-        className="flex flex-col max-[1280px]:!px-3 max-[1280px]:!py-3 max-[1280px]:!gap-1 max-[1024px]:!px-2 max-[1024px]:!py-2 max-[1024px]:!gap-1 max-[768px]:!px-4 max-[768px]:!pb-safe max-[768px]:!pt-3 max-[768px]:!border-t max-[768px]:!border-white/10 max-[768px]:!gap-2"
+        className="flex flex-col max-[1280px]:!px-3 max-[1280px]:!py-3 max-[1280px]:!gap-1 max-[1024px]:!px-2 max-[1024px]:!py-2 max-[1024px]:!gap-1 max-[768px]:!px-4 max-[768px]:!pt-3 max-[768px]:!border-t max-[768px]:!border-white/10 max-[768px]:!gap-2"
         style={{
           paddingLeft: '20px',
           paddingRight: '7.77px',

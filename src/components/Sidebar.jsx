@@ -1,5 +1,6 @@
 import LeftSidebar from './LeftSidebar';
 import ConversationList from './ConversationList';
+import './Sidebar.css';
 
 /**
  * Sidebar - Componente principal del sidebar
@@ -53,7 +54,7 @@ const Sidebar = ({
     <>
       {/* Desktop: Ambos sidebars juntos */}
       <div
-        className="w-[669.85px] min-w-[669.85px] max-w-[669.85px] flex flex-row h-screen overflow-hidden max-[1400px]:w-[550px] max-[1400px]:min-w-[550px] max-[1400px]:max-w-[550px] max-[1280px]:w-[300px] max-[1280px]:min-w-[300px] max-[1280px]:max-w-[300px] max-[1024px]:w-[280px] max-[1024px]:min-w-[280px] max-[1024px]:max-w-[280px] max-[768px]:hidden bg-white"
+        className="flex flex-row h-screen overflow-hidden max-[768px]:hidden bg-white sidebar-responsive-container"
         style={{
           borderRight: '1.3px solid #EEEEEE'
         }}

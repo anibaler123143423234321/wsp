@@ -58,13 +58,6 @@ const ChatHeader = ({
   return (
     <div className="chat-header">
       <div className="chat-header-content">
-        {/* Botón de atrás en mobile */}
-        {onBack && (
-          <button className="back-btn-mobile" onClick={onBack} title="Volver">
-            <FaArrowLeft />
-          </button>
-        )}
-
         <div className="chat-header-info">
           {/* Avatar */}
           {userPicture ? (
@@ -200,6 +193,18 @@ const ChatHeader = ({
           )}
         </div>
 
+        {/* Botón de salir del grupo - LADO IZQUIERDO */}
+        {isGroup && currentRoomCode && (
+          <button
+            className="leave-room-btn"
+            onClick={onLeaveRoom}
+            title="Regresar"
+          >
+            <span className="leave-icon"><FaArrowLeft /></span>
+            <span className="leave-text">Regresar</span>
+          </button>
+        )}
+
         {/* Botones de acción */}
         <div className="chat-header-actions">
           {/* 🔥 BLOQUEADO: Botones de llamada deshabilitados */}
@@ -229,14 +234,10 @@ const ChatHeader = ({
             </button>
           )}
 
-          {isGroup && currentRoomCode && (
-            <button
-              className="leave-room-btn"
-              onClick={onLeaveRoom}
-              title="Regresar"
-            >
-              <span className="leave-icon"><FaArrowLeft /></span>
-              <span className="leave-text">Regresar</span>
+          {/* Botón de atrás en mobile - MOVIDO AL LADO DERECHO */}
+          {onBack && (
+            <button className="back-btn-mobile" onClick={onBack} title="Volver">
+              <FaArrowLeft />
             </button>
           )}
         </div>

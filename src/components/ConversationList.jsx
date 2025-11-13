@@ -5,41 +5,55 @@ import clsx from 'clsx';
 import apiService from '../apiService';
 import './ConversationList.css';
 
-// Componente reutilizable para cada pestaña (botón)
+// Componente reutilizable para cada pestaña (botón) - Estilo igual al LeftSidebar pero responsive
 const TabButton = ({ isActive, onClick, label, shortLabel, icon: Icon, notificationCount }) => {
   return (
 <button
       onClick={onClick}
       className={clsx(
-        // Clases base para todos los botones - EQUILIBRADO
-        'relative flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2',
+        // Clases base - Mismo estilo que left-sidebar-button
+        'relative flex items-center justify-center border-none cursor-pointer transition-all duration-200 whitespace-nowrap flex-shrink-0',
         // Clases condicionales
         {
-          'bg-red-50 text-red-600 font-semibold shadow-sm': isActive,
-          'text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium': !isActive,
+          'bg-red-600 text-white font-semibold shadow-lg': isActive,
+          'bg-white/90 text-gray-700 hover:bg-gray-100 hover:shadow-lg hover:scale-[1.02] font-medium': !isActive,
         },
-        // Responsive MacBook Air y tablets
-        'max-[1280px]:px-3 max-[1280px]:py-1.5 max-[1280px]:gap-1.5',
-        'max-[1024px]:px-2.5 max-[1024px]:py-1.5 max-[1024px]:gap-1',
-        // Responsive mobile - SOLO ICONOS
-        'max-[768px]:px-2.5 max-[768px]:py-2 max-[768px]:gap-0 max-[768px]:flex-1'
+        // Responsive
+        'max-[768px]:flex-1 max-[1280px]:!w-10 max-[1280px]:!h-10 max-[1280px]:!p-2'
       )}
       style={{
         fontFamily: 'Inter, sans-serif',
         fontSize: '13px',
+        borderRadius: '10px',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        height: '40px',
+        padding: '8px 12px',
+        gap: '8px',
+        minWidth: 'fit-content'
       }}
     >
       {/* El componente Icono se pasa como prop */}
-      <Icon size={16} strokeWidth={2} className="max-[1280px]:w-[15px] max-[1280px]:h-[15px] max-[1024px]:w-[14px] max-[1024px]:h-[14px] max-[768px]:w-[18px] max-[768px]:h-[18px]" />
-      {/* Texto del label - usa shortLabel en pantallas pequeñas si está disponible - OCULTO EN MOBILE */}
-      <span className="font-medium max-[1280px]:text-xs max-[1024px]:text-[11px] max-[768px]:hidden">
-        <span className="max-[1024px]:hidden">{label}</span>
-        <span className="hidden max-[1024px]:inline">{shortLabel || label}</span>
+      <Icon
+        size={16}
+        strokeWidth={2}
+        className="flex-shrink-0"
+        style={{ minWidth: '16px' }}
+      />
+      {/* Texto del label */}
+      <span
+        className="font-medium whitespace-nowrap max-[1280px]:hidden"
+        style={{
+          fontSize: '13px',
+          lineHeight: '100%',
+          fontWeight: 500
+        }}
+      >
+        {label}
       </span>
 
-      {/* Badge de notificaciones - MÁS COMPACTO */}
+      {/* Badge de notificaciones */}
       {notificationCount > 0 && (
-        <span className="absolute -top-1.5 -right-1.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white shadow-md ring-2 ring-white max-[1280px]:h-4 max-[1280px]:min-w-[16px] max-[1280px]:text-[9px] max-[1280px]:-top-1 max-[1280px]:-right-1 max-[1024px]:h-4 max-[1024px]:min-w-[16px] max-[1024px]:text-[9px] max-[1024px]:-top-1 max-[1024px]:-right-1 max-[768px]:h-[18px] max-[768px]:min-w-[18px] max-[768px]:text-[9px] max-[768px]:-top-1 max-[768px]:-right-1">
+        <span className="absolute -top-1.5 -right-1.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white shadow-md ring-2 ring-white">
           {notificationCount}
         </span>
       )}
@@ -257,13 +271,13 @@ const ConversationList = ({
   }).length || 0;
 
   // Definimos las pestañas como un array de objetos
-  // 🔥 Para ADMIN: Chats Asignados, Chats Monitoreo, Grupos Activos
-  // 🔥 Para usuarios normales: Chats Asignados, Grupos Activos
+  // 🔥 Para ADMIN: Asignados, Monitoreo, Grupos
+  // 🔥 Para usuarios normales: Asignados, Grupos
   // 🔥 CONTADOR: Solo muestra conversaciones/grupos NO LEÍDOS
   const tabs = isAdmin ? [
     {
       id: 'assigned',
-      label: 'Chats Asignados',
+      label: 'Asignados',
       shortLabel: 'Asignados',
       icon: UserCheck,
       notificationCount: unreadAssignedCount, // Solo no leídos
@@ -272,7 +286,7 @@ const ConversationList = ({
     },
     {
       id: 'monitoring',
-      label: 'Chats Monitoreo',
+      label: 'Monitoreo',
       shortLabel: 'Monitoreo',
       icon: MessageSquare,
       notificationCount: unreadMonitoringCount, // Solo no leídos
@@ -280,7 +294,7 @@ const ConversationList = ({
     },
     {
       id: 'rooms',
-      label: 'Grupos Activos',
+      label: 'Grupos',
       shortLabel: 'Grupos',
       icon: Home,
       notificationCount: unreadRoomsCount, // Solo no leídos
@@ -290,7 +304,7 @@ const ConversationList = ({
   ] : [
     {
       id: 'assigned',
-      label: 'Chats Asignados',
+      label: 'Asignados',
       shortLabel: 'Asignados',
       icon: UserCheck,
       notificationCount: unreadAssignedCount, // Solo no leídos
@@ -299,7 +313,7 @@ const ConversationList = ({
     },
     {
       id: 'rooms',
-      label: 'Grupos Activos',
+      label: 'Grupos',
       shortLabel: 'Grupos',
       icon: Home,
       notificationCount: unreadRoomsCount, // Solo no leídos
@@ -310,7 +324,7 @@ const ConversationList = ({
 
   return (
     <div
-      className="flex-1 flex flex-col bg-white max-[768px]:w-full"
+      className="flex flex-col bg-white max-[768px]:w-full max-[768px]:flex-1 conversation-list-responsive"
       style={{
         borderRight: '1.3px solid #EEEEEE'
       }}
@@ -328,8 +342,17 @@ const ConversationList = ({
         <div className="w-10"></div> {/* Spacer para centrar el título */}
       </div>
 
-      {/* Pestañas de módulos - MÁS COMPACTO */}
-      <div className="flex flex-wrap gap-1.5 bg-white max-[1280px]:!px-3 max-[1280px]:!py-1.5 max-[1280px]:!gap-1 max-[1024px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!gap-1 max-[768px]:!gap-1 max-[768px]:!px-2 max-[768px]:!py-1.5 max-[768px]:!mt-1 max-[768px]:flex-nowrap max-[768px]:overflow-x-auto max-[768px]:scrollbar-hide" style={{ paddingLeft: '16px', paddingRight: '16px', paddingTop: '12px', paddingBottom: '6px', marginTop: '6px' }}>
+      {/* Pestañas de módulos - Estilo similar a LeftSidebar */}
+      <div
+        className="tabs-container bg-white flex-nowrap overflow-x-auto scrollbar-hide"
+        style={{
+          paddingLeft: '16px',
+          paddingRight: '16px',
+          paddingTop: '12px',
+          paddingBottom: '6px',
+          marginTop: '6px'
+        }}
+      >
         {tabs
           // Filtramos las pestañas según permisos y condiciones
           .filter(tab => {
@@ -742,14 +765,16 @@ const ConversationList = ({
                   return (
                     <div
                       key={conv.id}
-                      className="flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group"
+                      className="flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group overflow-visible relative"
                       style={{
                         padding: '8px 12px',
                         gap: '10px',
                         minHeight: '60px',
                         alignItems: 'flex-start',
                         width: '100%',
-                        minWidth: 0
+                        minWidth: 0,
+                        overflow: 'visible',
+                        position: 'relative'
                       }}
                       onClick={() => {
                         // console.log('Usuario viendo conversación asignada:', conv);
@@ -797,8 +822,8 @@ const ConversationList = ({
                       </div>
 
                       {/* Info de la conversación */}
-                      <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '4px' }}>
-                        <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0 flex flex-col overflow-visible relative" style={{ gap: '4px', overflow: 'visible', position: 'relative' }}>
+                        <div className="flex items-start justify-between gap-2 overflow-visible relative" style={{ overflow: 'visible', position: 'relative' }}>
                           <div className="flex flex-col gap-1 flex-1 min-w-0">
                             {/* Indicador de Fijado */}
                             {isFavorite && (
@@ -816,19 +841,15 @@ const ConversationList = ({
                                 📌 Fijado
                               </span>
                             )}
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 w-full min-w-0">
                               <h3
-                                className="font-semibold text-[#111] flex-1 min-w-0"
+                                className="font-semibold text-[#111] flex-1 min-w-0 truncate"
                                 style={{
-                                  fontSize: '14px',
-                                  lineHeight: '18px',
+                                  fontSize: '12px',
+                                  lineHeight: '16px',
                                   fontFamily: 'Inter, sans-serif',
                                   fontWeight: 600,
-                                  display: '-webkit-box',
-                                  WebkitLineClamp: 2,
-                                  WebkitBoxOrient: 'vertical',
-                                  overflow: 'hidden',
-                                  wordBreak: 'break-word'
+                                  maxWidth: '100%'
                                 }}
                                 title={displayName}
                               >
@@ -853,15 +874,7 @@ const ConversationList = ({
                           </div>
                           {/* Hora del último mensaje */}
                           {conv.lastMessageTime && (
-                            <span
-                              className="text-gray-500 flex-shrink-0"
-                              style={{
-                                fontSize: '11px',
-                                lineHeight: '14px',
-                                fontFamily: 'Inter, sans-serif',
-                                fontWeight: 400
-                              }}
-                            >
+                            <span className="conversation-timestamp">
                               {new Date(conv.lastMessageTime).toLocaleTimeString('es-ES', {
                                 hour: '2-digit',
                                 minute: '2-digit'
@@ -1031,16 +1044,16 @@ const ConversationList = ({
                 return (
                   <div
                     key={conv.id}
-                    className="flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-4 cursor-pointer group"
+                    className="flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group relative"
                     style={{
-                      padding: '12px 12px',
+                      padding: '10px 12px',
                       gap: '10px',
-                      minHeight: '60px',
+                      minHeight: '72px',
                       display: 'flex',
                       alignItems: 'flex-start',
                       width: '100%',
                       minWidth: 0,
-                      overflow: 'hidden'
+                      position: 'relative'
                     }}
                     onClick={() => {
                       // console.log('Admin monitoreando conversación:', conv);
@@ -1064,7 +1077,7 @@ const ConversationList = ({
                             width: '26px',
                             height: '26px',
                             border: '1.3px solid rgba(0, 0, 0, 0.1)',
-                            fontSize: '10px',
+                            fontSize: '11px',
                             top: '0',
                             left: '0',
                             zIndex: 2,
@@ -1086,7 +1099,7 @@ const ConversationList = ({
                             width: '26px',
                             height: '26px',
                             border: '1.3px solid rgba(0, 0, 0, 0.1)',
-                            fontSize: '10px',
+                            fontSize: '11px',
                             bottom: '0',
                             right: '0',
                             zIndex: 1,
@@ -1105,8 +1118,8 @@ const ConversationList = ({
                     </div>
 
                     {/* Info de la conversación */}
-                    <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '4px' }}>
-                      <div className="flex items-start justify-between gap-2 w-full min-w-0">
+                    <div className="flex-1 min-w-0 flex flex-col relative" style={{ gap: '4px', position: 'relative' }}>
+                      <div className="flex items-start justify-between gap-2 w-full min-w-0 relative" style={{ position: 'relative' }}>
                         <div className="flex flex-col gap-1 flex-1 min-w-0">
                           {/* Indicador de Fijado */}
                           {isFavorite && (
@@ -1126,34 +1139,21 @@ const ConversationList = ({
                           )}
                           <div className="flex items-center gap-1 w-full min-w-0">
                             <div className="flex-1 min-w-0">
-                              {/* Comentado: Título con ambos participantes
-                              <h3
-                                className="font-semibold text-[#111]"
-                                style={{
-                                  fontSize: '14px',
-                                  lineHeight: '18px',
-                                  fontFamily: 'Inter, sans-serif',
-                                  fontWeight: 600,
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap'
-                                }}
-                                title={conv.name || `${participant1Name} ↔️ ${participant2Name}`}
-                              >
-                                {conv.name || `${participant1Name} ↔️ ${participant2Name}`}
-                              </h3>
-                              */}
                               <p
                                 className="font-semibold text-[#111]"
                                 style={{
-                                  fontSize: '13px',
+                                  fontSize: '12px',
                                   lineHeight: '16px',
                                   fontFamily: 'Inter, sans-serif',
                                   fontWeight: 600,
                                   width: '100%',
                                   minWidth: 0,
-                                  wordBreak: 'break-word',
-                                  overflowWrap: 'break-word'
+                                  maxWidth: '100%',
+                                  display: '-webkit-box',
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: 'vertical',
+                                  overflow: 'hidden',
+                                  wordBreak: 'break-word'
                                 }}
                                 title={`${participant1Name} • ${participant2Name}`}
                               >
@@ -1182,6 +1182,12 @@ const ConversationList = ({
                             </button>
                           </div>
                         </div>
+                        {/* Timestamp */}
+                        {conv.lastMessageTimestamp && (
+                          <span className="conversation-timestamp">
+                            {conv.lastMessageTimestamp}
+                          </span>
+                        )}
                       </div>
 
                       {/* Último mensaje */}
@@ -1203,12 +1209,17 @@ const ConversationList = ({
                                 </span>
                               )}
                               <p
-                                className="text-gray-600 truncate"
+                                className="text-gray-600"
                                 style={{
                                   fontSize: '12px',
                                   lineHeight: '16px',
                                   fontFamily: 'Inter, sans-serif',
-                                  fontWeight: 400
+                                  fontWeight: 400,
+                                  display: '-webkit-box',
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: 'vertical',
+                                  overflow: 'hidden',
+                                  wordBreak: 'break-word'
                                 }}
                               >
                                 {conv.lastMessageMediaType ? (
@@ -1425,15 +1436,7 @@ const ConversationList = ({
                           )}
                         </span>
                       </div>
-                      <span
-                        className="text-gray-500 ml-2 flex-shrink-0"
-                        style={{
-                          fontSize: '11px',
-                          lineHeight: '14px',
-                          fontFamily: 'Inter, sans-serif',
-                          fontWeight: 400
-                        }}
-                      >
+                      <span className="conversation-timestamp">
                         {conversation.timestamp || ''}
                       </span>
                     </div>

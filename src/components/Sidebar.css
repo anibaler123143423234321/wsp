@@ -1,0 +1,43 @@
+/* Sidebar responsive container */
+.sidebar-responsive-container {
+  width: 669.85px;
+  min-width: 240px;
+  max-width: 669.85px;
+  flex-shrink: 0;
+}
+
+/* En 1400px: ancho completo (ambos sidebars) */
+@media (max-width: 1400px) {
+  .sidebar-responsive-container {
+    width: 669.85px;
+    max-width: 669.85px;
+  }
+}
+
+/* En 1280px: LeftSidebar 70px + ConversationList 250px = 320px (estilo WhatsApp) */
+@media (max-width: 1280px) {
+  .sidebar-responsive-container {
+    width: 320px;
+    max-width: 320px;
+    min-width: 320px;
+  }
+}
+
+/* En 1024px: LeftSidebar 70px + ConversationList 250px = 320px (estilo WhatsApp) */
+@media (max-width: 1024px) {
+  .sidebar-responsive-container {
+    width: 320px;
+    max-width: 320px;
+    min-width: 320px;
+  }
+}
+
+/* En 768px y menos: full width */
+@media (max-width: 768px) {
+  .sidebar-responsive-container {
+    width: 100%;
+    max-width: 100%;
+    min-width: 100%;
+  }
+}
+

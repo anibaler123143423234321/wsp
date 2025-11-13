@@ -110,16 +110,7 @@ const ChatLayout = ({
   return (
     <div className="flex gap-0 w-full max-w-full m-0 h-screen rounded-none overflow-hidden shadow-none bg-white">
 
-      {/* Botón hamburguesa flotante para mobile - solo visible cuando hay chat seleccionado y el sidebar está cerrado */}
-      {!showSidebar && to && (
-        <button
-          onClick={onToggleMenu}
-          className="hidden max-[768px]:flex fixed top-4 left-4 z-[101] w-12 h-12 items-center justify-center bg-[#13467A] text-white rounded-lg shadow-lg hover:bg-[#0f3660] transition-all duration-200 active:scale-95"
-          title="Abrir menú"
-        >
-          <FaBars className="text-xl" />
-        </button>
-      )}
+      {/* Botón hamburguesa flotante ELIMINADO - ahora usamos el botón de atrás en el header */}
 
       {/* Overlay para mobile - cuando el sidebar está abierto */}
       {showSidebar && (

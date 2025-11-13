@@ -5,6 +5,7 @@
   background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
   border-left: 0.0625rem solid rgba(220, 38, 38, 0.1);
   position: relative;
+  overflow-x: hidden;
 }
 
 /* Header con pestañas */
@@ -13,6 +14,24 @@
   border-bottom: 0.125rem solid rgba(220, 38, 38, 0.1);
   padding: 1.25rem 1rem;
   box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.03);
+}
+
+@media (max-width: 1400px) {
+  .conversation-list-header {
+    padding: 0.5rem 0.375rem;
+  }
+}
+
+@media (max-width: 1280px) {
+  .conversation-list-header {
+    padding: 0.375rem 0.25rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  .conversation-list-header {
+    padding: 0.25rem 0.125rem;
+  }
 }
 
 /* Tabs mejoradas */
@@ -94,6 +113,27 @@
   overflow: hidden;
 }
 
+@media (max-width: 1400px) {
+  .conversation-item {
+    padding: 0.375rem;
+    min-height: 50px;
+  }
+}
+
+@media (max-width: 1280px) {
+  .conversation-item {
+    padding: 0.25rem;
+    min-height: 45px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .conversation-item {
+    padding: 0.125rem;
+    min-height: 40px;
+  }
+}
+
 .conversation-item::before {
   content: '';
   position: absolute;
@@ -132,6 +172,27 @@
   position: relative;
   box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (max-width: 1400px) {
+  .conversation-avatar {
+    width: 2rem;
+    height: 2rem;
+  }
+}
+
+@media (max-width: 1280px) {
+  .conversation-avatar {
+    width: 1.6rem;
+    height: 1.6rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  .conversation-avatar {
+    width: 1.3rem;
+    height: 1.3rem;
+  }
 }
 
 .conversation-item:hover .conversation-avatar {
@@ -300,5 +361,123 @@
 
 .conversation-list-scroll::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, #b91c1c 0%, #991b1b 100%);
+}
+
+/* Responsive width for ConversationList container */
+.conversation-list-responsive {
+  width: 436.63px;
+  min-width: 150px;
+  max-width: 436.63px;
+  flex-shrink: 0;
+}
+
+/* En 1400px: ancho completo disponible */
+@media (max-width: 1400px) {
+  .conversation-list-responsive {
+    width: 436.63px;
+    max-width: 436.63px;
+  }
+}
+
+/* En 1280px: reducir a 250px (avatares, nombres y mensajes) */
+@media (max-width: 1280px) {
+  .conversation-list-responsive {
+    width: 250px;
+    max-width: 250px;
+    min-width: 250px;
+  }
+}
+
+/* En 1024px: reducir a 250px */
+@media (max-width: 1024px) {
+  .conversation-list-responsive {
+    width: 250px;
+    max-width: 250px;
+    min-width: 250px;
+  }
+}
+
+/* En 768px y menos: full width */
+@media (max-width: 768px) {
+  .conversation-list-responsive {
+    width: 100%;
+    max-width: 100%;
+    min-width: 100%;
+  }
+}
+
+/* Fecha responsiva - SIEMPRE VISIBLE */
+.conversation-timestamp {
+  font-size: 10px;
+  line-height: 13px;
+  font-family: 'Inter, sans-serif';
+  font-weight: 400;
+  color: #9ca3af !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+  text-align: right !important;
+  overflow: visible !important;
+  display: inline-block !important;
+  position: absolute !important;
+  right: 8px !important;
+  top: 8px !important;
+  z-index: 20 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+}
+
+@media (max-width: 1280px) {
+  .conversation-timestamp {
+    font-size: 9px !important;
+    line-height: 12px !important;
+    right: 6px !important;
+    top: 6px !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .conversation-timestamp {
+    font-size: 8px !important;
+    line-height: 11px !important;
+    right: 5px !important;
+    top: 5px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .conversation-timestamp {
+    font-size: 9px !important;
+    line-height: 12px !important;
+    right: 6px !important;
+    top: 6px !important;
+  }
+}
+
+/* Contenedor de botones centrado */
+.tabs-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+@media (max-width: 1280px) {
+  .tabs-container {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .tabs-container {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 768px) {
+  .tabs-container {
+    gap: 8px;
+  }
 }
 
