@@ -310,9 +310,10 @@ const ChatPage = () => {
             receiver: msg.to,
             text: msg.message || "",
             isGroup: false,
-            time: msg.time || new Date(msg.sentAt).toLocaleTimeString([], {
+            time: msg.time || new Date(msg.sentAt).toLocaleTimeString('es-ES', {
               hour: "2-digit",
               minute: "2-digit",
+              hour12: false
             }),
             isSent: true, // 🔥 Marcar como enviado para que muestre los checks
             isSelf: isOwnMessage, // 🔥 Mensajes del usuario actual a la derecha, otros a la izquierda
@@ -549,49 +550,61 @@ const ChatPage = () => {
       const dateTimeString = data.sentAt || now.toISOString(); // 🔥 Usar sentAt del backend o fecha actual
 
       if (data.isGroup) {
-        // Ignorar mensajes que vienen del servidor si son nuestros propios mensajes
-        // (ya los tenemos localmente)
-        if (data.from === username || data.from === currentUserFullName) {
+        // 🔥 Verificar si ya existe un mensaje con este ID para evitar duplicados
+        const existingMessage = messages.find(msg => msg.id === data.id);
+
+        if (existingMessage) {
+          console.log('✅ Mensaje ya existe con ID, ignorando duplicado');
           return;
         }
+
+        // Determinar si es mensaje propio o de otro usuario
+        const isOwnMessage = data.from === username || data.from === currentUserFullName;
+
+        console.log(`📨 Mensaje de grupo recibido del backend - Propio: ${isOwnMessage}, ID: ${data.id}`);
+
         const newMessage = {
           id: data.id,
-          sender: data.from,
-          realSender: data.from, // 🔥 Nombre real del remitente
-          senderRole: data.senderRole || null, // 🔥 Incluir role del remitente
-          senderNumeroAgente: data.senderNumeroAgente || null, // 🔥 Incluir numeroAgente del remitente
+          sender: isOwnMessage ? 'Tú' : data.from,
+          realSender: data.from,
+          senderRole: data.senderRole || null,
+          senderNumeroAgente: data.senderNumeroAgente || null,
           receiver: data.group,
           text: data.message || '',
           isGroup: true,
           time: timeString,
-          isSent: false
+          isSent: isOwnMessage,
+          isSelf: isOwnMessage,
+          mediaType: data.mediaType || null,
+          mediaData: data.mediaData || null,
+          fileName: data.fileName || null,
+          fileSize: data.fileSize || null,
+          replyToMessageId: data.replyToMessageId || null,
+          replyToSender: data.replyToSender || null,
+          replyToText: data.replyToText || null,
+          threadCount: data.threadCount || 0,
+          lastReplyFrom: data.lastReplyFrom || null
         };
-
-        if (data.mediaType) {
-          newMessage.mediaType = data.mediaType;
-          newMessage.mediaData = data.mediaData; // URL del archivo
-          newMessage.fileName = data.fileName;
-          newMessage.fileSize = data.fileSize;
-        }
-
-        // Agregar información de respuesta si existe
-        if (data.replyToMessageId) {
-          newMessage.replyToMessageId = data.replyToMessageId;
-          newMessage.replyToSender = data.replyToSender;
-          newMessage.replyToText = data.replyToText;
-        }
-
-        // Agregar información de hilos
-        newMessage.threadCount = data.threadCount || 0;
-        newMessage.lastReplyFrom = data.lastReplyFrom || null;
 
         addNewMessage(newMessage);
 
-        if (data.from !== username && data.from !== currentUserFullName) {
-          // 🔥 NUEVO: Reproducir sonido siempre que llega un mensaje de otro usuario
+        // Solo reproducir sonido si es de otro usuario
+        if (!isOwnMessage) {
           playMessageSound(true);
         }
+
+        return;
       } else {
+        // 🔥 PRIMERO: Verificar si ya existe un mensaje con este ID para evitar duplicados
+        if (data.id) {
+          const existingMessage = messages.find(msg => msg.id === data.id);
+
+          if (existingMessage) {
+            console.log('✅ Mensaje individual ya existe con ID:', data.id, '- Ignorando duplicado');
+            return;
+          }
+        }
+
         // Ignorar mensajes individuales que vienen del servidor si son nuestros propios mensajes
         if (data.from === username || data.from === currentUserFullName) {
           return;
@@ -607,12 +620,31 @@ const ChatPage = () => {
         // });
 
         // 🔥 IMPORTANTE: Solo agregar el mensaje si el usuario está viendo el chat correcto
-        // Verificar si el usuario está viendo el chat con el remitente
-        const isViewingCorrectChat =
-          !isGroup && // No está en un grupo
-          !currentRoomCode && // No está en una sala
-          to && // Hay un destinatario seleccionado
-          (to.toLowerCase().trim() === data.from.toLowerCase().trim()); // El destinatario es el remitente
+        let isViewingCorrectChat = false;
+
+        if (adminViewConversation) {
+          // 🔥 Si estás viendo una conversación asignada, verificar que el mensaje pertenezca a esa conversación
+          const participants = adminViewConversation.participants || [];
+          const isMessageFromParticipants =
+            participants.some(p => p.toLowerCase().trim() === data.from.toLowerCase().trim()) &&
+            participants.some(p => p.toLowerCase().trim() === data.to.toLowerCase().trim());
+
+          isViewingCorrectChat = isMessageFromParticipants;
+
+          // console.log('🔍 Conversación asignada:', {
+          //   participants,
+          //   messageFrom: data.from,
+          //   messageTo: data.to,
+          //   isMessageFromParticipants
+          // });
+        } else {
+          // 🔥 Si NO estás viendo una conversación asignada, verificar que sea tu chat directo
+          isViewingCorrectChat =
+            !isGroup && // No está en un grupo
+            !currentRoomCode && // No está en una sala
+            to && // Hay un destinatario seleccionado
+            (to.toLowerCase().trim() === data.from.toLowerCase().trim()); // El destinatario es el remitente
+        }
 
         // console.log('🔍 ¿Está viendo el chat correcto?', isViewingCorrectChat);
 
@@ -976,7 +1008,7 @@ const ChatPage = () => {
         setCurrentRoomCode(null);
         currentRoomCodeRef.current = null;
         setRoomUsers([]);
-        setMessages([]);
+        clearMessages();
       }
 
       // 🔥 MODIFICADO: Para ADMIN, recargar TODAS las salas activas
@@ -1015,7 +1047,7 @@ const ChatPage = () => {
         setCurrentRoomCode(null);
         currentRoomCodeRef.current = null;
         setRoomUsers([]);
-        setMessages([]);
+        clearMessages();
       }
 
       // 🔥 MODIFICADO: Para ADMIN, recargar TODAS las salas activas
@@ -1054,17 +1086,13 @@ const ChatPage = () => {
     // Evento: Contador de hilo actualizado
     s.on('threadCountUpdated', (data) => {
       const { messageId, lastReplyFrom } = data;
-      // console.log('🔢 Evento threadCountUpdated recibido:', data);
+      console.log('🔢 Evento threadCountUpdated recibido:', data);
 
-      // Buscar el mensaje en la lista actual
-      const messageToUpdate = messages.find(msg => msg.id === messageId);
-      if (messageToUpdate) {
-        // console.log('📝 Actualizando contador de hilo para mensaje:', messageId);
-        updateMessage(messageId, {
-          threadCount: (messageToUpdate.threadCount || 0) + 1,
-          lastReplyFrom: lastReplyFrom
-        });
-      }
+      // Actualizar el mensaje usando setMessages con callback para acceder al estado más reciente
+      updateMessage(messageId, (prevMessage) => ({
+        threadCount: (prevMessage.threadCount || 0) + 1,
+        lastReplyFrom: lastReplyFrom
+      }));
     });
 
     // 🔥 NUEVO: Evento para recibir mensajes de hilo en tiempo real
@@ -1476,7 +1504,7 @@ const ChatPage = () => {
     }
 
     const now = new Date();
-    const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const timeString = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
     const dateTimeString = now.toISOString(); // 🔥 Guardar fecha completa en ISO format
 
     // Generar ID único para el mensaje
@@ -1610,41 +1638,78 @@ const ChatPage = () => {
         await showErrorAlert('Error de conexión', 'No hay conexión con el servidor. Inténtalo de nuevo.');
         return;
       }
-      
+
+      // 🔥 IMPORTANTE: Para grupos, NO agregar el mensaje localmente
+      // Esperar a que el backend lo confirme y lo envíe de vuelta
+      // Esto evita duplicados y problemas de sincronización
+      if (isGroup) {
         socket.emit('message', messageObj);
+        console.log('📤 Mensaje de grupo enviado, esperando confirmación del backend...');
+      } else {
+        // 🔥 Para mensajes individuales, guardar en BD primero para obtener el ID real
+        try {
+          // Guardar en BD y obtener el mensaje con ID
+          const savedMessage = await apiService.createMessage({
+            from: currentUserFullName,
+            fromId: user.id,
+            to: messageObj.actualRecipient || to,
+            message: input,
+            isGroup: false,
+            mediaType: messageObj.mediaType,
+            mediaData: messageObj.mediaData,
+            fileName: messageObj.fileName,
+            fileSize: messageObj.fileSize,
+            time: timeString,
+            sentAt: dateTimeString,
+            replyToMessageId: replyingTo?.id,
+            replyToSender: replyingTo?.sender,
+            replyToText: replyingTo?.text
+          });
 
-      const newMessage = {
-        id: messageId,
-        sender: 'Tú',
-        realSender: currentUserFullName, // 🔥 Nombre real del remitente
-        receiver: to,
-        text: input || '',
-        isGroup: isGroup,
-        time: timeString,
-        isSent: true
-      };
+          // Emitir por socket con el ID real de la BD
+          socket.emit('message', {
+            ...messageObj,
+            id: savedMessage.id // 🔥 Usar el ID de la BD
+          });
 
-      if (messageObj.mediaType) {
-        newMessage.mediaType = messageObj.mediaType;
-        newMessage.mediaData = messageObj.mediaData; // URL del archivo
-        newMessage.fileName = messageObj.fileName;
-        newMessage.fileSize = messageObj.fileSize;
+          // Agregar localmente con el ID real de la BD
+          const newMessage = {
+            id: savedMessage.id, // 🔥 Usar el ID de la BD
+            sender: 'Tú',
+            realSender: currentUserFullName,
+            receiver: to,
+            text: input || '',
+            isGroup: false,
+            time: timeString,
+            isSent: true,
+            isSelf: true,
+            sentAt: dateTimeString
+          };
+
+          if (messageObj.mediaType) {
+            newMessage.mediaType = messageObj.mediaType;
+            newMessage.mediaData = messageObj.mediaData;
+            newMessage.fileName = messageObj.fileName;
+            newMessage.fileSize = messageObj.fileSize;
+          }
+
+          if (replyingTo) {
+            newMessage.replyToMessageId = replyingTo.id;
+            newMessage.replyToSender = replyingTo.sender;
+            newMessage.replyToText = replyingTo.text;
+          }
+
+          newMessage.threadCount = 0;
+          newMessage.lastReplyFrom = null;
+
+          addNewMessage(newMessage);
+          playMessageSound(true);
+        } catch (error) {
+          console.error('❌ Error al guardar mensaje en BD:', error);
+          await showErrorAlert('Error', 'Error al enviar el mensaje. Inténtalo de nuevo.');
+          return;
+        }
       }
-
-      // Agregar información de respuesta al mensaje local si existe
-      if (replyingTo) {
-        newMessage.replyToMessageId = replyingTo.id;
-        newMessage.replyToSender = replyingTo.sender;
-        newMessage.replyToText = replyingTo.text;
-      }
-
-      // Agregar información de hilos
-      newMessage.threadCount = 0;
-      newMessage.lastReplyFrom = null;
-
-      addNewMessage(newMessage);
-      // 🔥 NUEVO: Reproducir sonido siempre
-      playMessageSound(true);
 
       // 🔥 Actualizar el preview del último mensaje en la lista de conversaciones asignadas
       if (assignedConv) {
@@ -1722,7 +1787,7 @@ const ChatPage = () => {
       const uploadResult = await apiService.uploadFile(audioFile, 'chat');
 
       const now = new Date();
-      const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const timeString = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
       const dateTimeString = now.toISOString(); // 🔥 Guardar fecha completa en ISO format
       const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
@@ -1904,14 +1969,16 @@ const ChatPage = () => {
         });
 
         // Emitir evento para actualizar el contador en el mensaje original
-        socket.emit('threadCountUpdated', {
+        const threadCountData = {
           messageId: messageData.threadId,
           lastReplyFrom: messageData.from,
           from: messageData.from,
           to: messageData.to,
           roomCode: messageData.roomCode,
           isGroup: messageData.isGroup
-        });
+        };
+        console.log('🔢 Emitiendo threadCountUpdated:', threadCountData);
+        socket.emit('threadCountUpdated', threadCountData);
       }
 
       // Actualizar el contador en el mensaje principal del ThreadPanel
@@ -1922,14 +1989,11 @@ const ChatPage = () => {
       }));
 
       // Actualizar el contador en la lista de mensajes del chat principal
-      // Buscar el mensaje en la lista actual y actualizarlo
-      const messageToUpdate = messages.find(msg => msg.id === messageData.threadId);
-      if (messageToUpdate) {
-        updateMessage(messageData.threadId, {
-          threadCount: (messageToUpdate.threadCount || 0) + 1,
-          lastReplyFrom: messageData.from
-        });
-      }
+      // Usar callback para acceder al estado más reciente del mensaje
+      updateMessage(messageData.threadId, (prevMessage) => ({
+        threadCount: (prevMessage.threadCount || 0) + 1,
+        lastReplyFrom: messageData.from
+      }));
 
     } catch (error) {
       console.error('Error al enviar mensaje en hilo:', error);

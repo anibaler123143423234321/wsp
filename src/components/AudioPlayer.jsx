@@ -21,7 +21,7 @@ const AudioPlayer = ({ src, fileName, onDownload, time, isOwnMessage, isRead, is
     // Si es un timestamp o fecha, convertirlo
     const date = new Date(timeString);
     if (isNaN(date.getTime())) return timeString; // Si no es válido, devolver el original
-    return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
   useEffect(() => {

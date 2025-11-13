@@ -224,29 +224,60 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
     }
 
     try {
-      // Agregar cada usuario a la sala usando el endpoint joinRoom
-      const promises = selectedUsers.map(username =>
-        apiService.joinRoom({
-          roomCode: roomCode,
-          username: username
-        })
-      );
+      console.log(`🔄 Agregando ${selectedUsers.length} usuarios a la sala ${roomCode}...`);
 
-      await Promise.all(promises);
+      // 🔥 IMPORTANTE: Agregar usuarios SECUENCIALMENTE para evitar condiciones de carrera
+      // Si se agregan en paralelo con Promise.all(), pueden fallar por límite de capacidad
+      const results = [];
+      const errors = [];
 
-      await showSuccessAlert(
-        '¡Usuarios agregados!',
-        `Se han agregado ${selectedUsers.length} usuario(s) a la sala`
-      );
-
-      if (onUserAdded) {
-        onUserAdded(selectedUsers);
+      for (const username of selectedUsers) {
+        try {
+          console.log(`➕ Agregando usuario: ${username}`);
+          const result = await apiService.joinRoom({
+            roomCode: roomCode,
+            username: username
+          });
+          results.push({ username, success: true, result });
+          console.log(`✅ Usuario ${username} agregado exitosamente`);
+        } catch (error) {
+          console.error(`❌ Error al agregar usuario ${username}:`, error);
+          errors.push({ username, error: error.message || 'Error desconocido' });
+        }
       }
 
-      onClose();
+      // Mostrar resultado
+      if (errors.length === 0) {
+        await showSuccessAlert(
+          '¡Usuarios agregados!',
+          `Se han agregado ${results.length} usuario(s) a la sala`
+        );
+      } else if (results.length > 0) {
+        // Algunos usuarios se agregaron, otros fallaron
+        await showErrorAlert(
+          'Agregado parcialmente',
+          `Se agregaron ${results.length} de ${selectedUsers.length} usuarios.\n\nErrores:\n${errors.map(e => `- ${e.username}: ${e.error}`).join('\n')}`
+        );
+      } else {
+        // Todos fallaron
+        await showErrorAlert(
+          'Error',
+          `No se pudo agregar ningún usuario.\n\nErrores:\n${errors.map(e => `- ${e.username}: ${e.error}`).join('\n')}`
+        );
+      }
+
+      // Notificar solo los usuarios que se agregaron exitosamente
+      if (onUserAdded && results.length > 0) {
+        onUserAdded(results.map(r => r.username));
+      }
+
+      // Cerrar modal solo si al menos un usuario se agregó
+      if (results.length > 0) {
+        onClose();
+      }
     } catch (error) {
-      console.error('Error al agregar usuarios:', error);
-      await showErrorAlert('Error', 'No se pudieron agregar los usuarios a la sala');
+      console.error('Error general al agregar usuarios:', error);
+      await showErrorAlert('Error', 'Ocurrió un error inesperado al agregar los usuarios');
     }
   };
 

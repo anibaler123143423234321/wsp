@@ -17,7 +17,7 @@ const LeftSidebar = ({
 }) => {
   return (
     <div
-      className="flex flex-col p-0 max-[768px]:w-full max-[768px]:h-screen"
+      className="flex flex-col p-0 max-[1280px]:w-[140px] max-[1024px]:w-[120px] max-[768px]:w-full max-[768px]:h-screen"
       style={{
         width: 'clamp(160px, 20vw, 233.22px)',
         backgroundImage: `url(${menuBackground})`,

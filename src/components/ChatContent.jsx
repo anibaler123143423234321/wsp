@@ -21,6 +21,7 @@ const ChatContent = ({
   to,
   isGroup,
   currentRoomCode,
+  roomUsers,
   hasMoreMessages,
   isLoadingMore,
   onLoadMoreMessages,
@@ -42,6 +43,7 @@ const ChatContent = ({
   const [editText, setEditText] = useState('');
   const typingTimeoutRef = useRef(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
+  const [expandedMessages, setExpandedMessages] = useState(new Set());
   const [isDragging, setIsDragging] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showMessageInfo, setShowMessageInfo] = useState(null); // Mensaje seleccionado para ver info
@@ -49,6 +51,12 @@ const ChatContent = ({
   const [imagePreview, setImagePreview] = useState(null); // Estado para vista previa de imagen en pantalla completa
   const emojiPickerRef = useRef(null);
   const reactionPickerRef = useRef(null);
+
+  // Estados para menciones (@)
+  const [showMentionSuggestions, setShowMentionSuggestions] = useState(false);
+  const [mentionSearch, setMentionSearch] = useState('');
+  const [mentionCursorPosition, setMentionCursorPosition] = useState(0);
+  const inputRef = useRef(null);
 
   // Función para formatear la fecha del separador
   const formatDateSeparator = (date) => {
@@ -205,7 +213,35 @@ const ChatContent = ({
   // Manejar cambio de input
   const handleInputChange = (e) => {
     const value = e.target.value;
+    const cursorPos = e.target.selectionStart;
     setInput(value);
+
+    // Detectar menciones con @ solo en grupos
+    if (isGroup && roomUsers && roomUsers.length > 0) {
+      // Buscar el último @ antes del cursor
+      const textBeforeCursor = value.substring(0, cursorPos);
+      const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+      if (lastAtIndex !== -1) {
+        // Verificar que el @ esté al inicio o precedido por un espacio
+        const charBeforeAt = lastAtIndex > 0 ? textBeforeCursor[lastAtIndex - 1] : ' ';
+        if (charBeforeAt === ' ' || lastAtIndex === 0) {
+          const searchText = textBeforeCursor.substring(lastAtIndex + 1);
+          // Verificar que no haya espacios después del @
+          if (!searchText.includes(' ')) {
+            setMentionSearch(searchText.toLowerCase());
+            setMentionCursorPosition(lastAtIndex);
+            setShowMentionSuggestions(true);
+          } else {
+            setShowMentionSuggestions(false);
+          }
+        } else {
+          setShowMentionSuggestions(false);
+        }
+      } else {
+        setShowMentionSuggestions(false);
+      }
+    }
 
     // Emitir evento "typing" si hay un destinatario y socket conectado
     if (socket && socket.connected && to && currentUsername) {
@@ -260,6 +296,22 @@ const ChatContent = ({
       handleSaveEdit();
     } else if (e.key === 'Escape') {
       handleCancelEdit();
+    }
+  };
+
+  // Manejar selección de mención
+  const handleMentionSelect = (user) => {
+    const username = typeof user === 'string' ? user : (user.username || user.nombre || user);
+    const beforeMention = input.substring(0, mentionCursorPosition);
+    const afterMention = input.substring(mentionCursorPosition + mentionSearch.length + 1);
+    const newInput = `${beforeMention}@${username} ${afterMention}`;
+    setInput(newInput);
+    setShowMentionSuggestions(false);
+    setMentionSearch('');
+
+    // Enfocar el input después de seleccionar
+    if (inputRef.current) {
+      inputRef.current.focus();
     }
   };
 
@@ -412,6 +464,220 @@ const ChatContent = ({
     return timeString;
   };
 
+  // 🔥 NUEVO: Función para obtener el ícono y color según el tipo de archivo
+  const getFileIcon = (fileName) => {
+    if (!fileName) return { icon: 'default', color: '#4A90E2', bgColor: '#E3F2FD' };
+
+    const extension = fileName.split('.').pop().toLowerCase();
+
+    const fileTypes = {
+      // Excel
+      'xlsx': { icon: 'excel', color: '#217346', bgColor: '#E7F4EC', name: 'Excel' },
+      'xls': { icon: 'excel', color: '#217346', bgColor: '#E7F4EC', name: 'Excel' },
+      'xlsm': { icon: 'excel', color: '#217346', bgColor: '#E7F4EC', name: 'Excel' },
+      'csv': { icon: 'excel', color: '#217346', bgColor: '#E7F4EC', name: 'CSV' },
+
+      // Word
+      'docx': { icon: 'word', color: '#2B579A', bgColor: '#E7F0FF', name: 'Word' },
+      'doc': { icon: 'word', color: '#2B579A', bgColor: '#E7F0FF', name: 'Word' },
+
+      // PowerPoint
+      'pptx': { icon: 'powerpoint', color: '#D24726', bgColor: '#FCE8E3', name: 'PowerPoint' },
+      'ppt': { icon: 'powerpoint', color: '#D24726', bgColor: '#FCE8E3', name: 'PowerPoint' },
+
+      // PDF
+      'pdf': { icon: 'pdf', color: '#F40F02', bgColor: '#FFE7E5', name: 'PDF' },
+
+      // Imágenes
+      'jpg': { icon: 'image', color: '#FF6B6B', bgColor: '#FFE8E8', name: 'Imagen' },
+      'jpeg': { icon: 'image', color: '#FF6B6B', bgColor: '#FFE8E8', name: 'Imagen' },
+      'png': { icon: 'image', color: '#FF6B6B', bgColor: '#FFE8E8', name: 'Imagen' },
+      'gif': { icon: 'image', color: '#FF6B6B', bgColor: '#FFE8E8', name: 'GIF' },
+      'svg': { icon: 'image', color: '#FF6B6B', bgColor: '#FFE8E8', name: 'SVG' },
+
+      // Comprimidos
+      'zip': { icon: 'zip', color: '#FFA500', bgColor: '#FFF3E0', name: 'ZIP' },
+      'rar': { icon: 'zip', color: '#FFA500', bgColor: '#FFF3E0', name: 'RAR' },
+      '7z': { icon: 'zip', color: '#FFA500', bgColor: '#FFF3E0', name: '7Z' },
+
+      // Texto
+      'txt': { icon: 'text', color: '#607D8B', bgColor: '#ECEFF1', name: 'Texto' },
+
+      // Código
+      'js': { icon: 'code', color: '#F7DF1E', bgColor: '#FFFDE7', name: 'JavaScript' },
+      'jsx': { icon: 'code', color: '#61DAFB', bgColor: '#E1F5FE', name: 'React' },
+      'ts': { icon: 'code', color: '#3178C6', bgColor: '#E3F2FD', name: 'TypeScript' },
+      'tsx': { icon: 'code', color: '#3178C6', bgColor: '#E3F2FD', name: 'TypeScript' },
+      'html': { icon: 'code', color: '#E34F26', bgColor: '#FFE8E1', name: 'HTML' },
+      'css': { icon: 'code', color: '#1572B6', bgColor: '#E1F5FE', name: 'CSS' },
+      'json': { icon: 'code', color: '#000000', bgColor: '#F5F5F5', name: 'JSON' },
+      'xml': { icon: 'code', color: '#FF6600', bgColor: '#FFF3E0', name: 'XML' },
+
+      // Video
+      'mp4': { icon: 'video', color: '#9C27B0', bgColor: '#F3E5F5', name: 'Video' },
+      'avi': { icon: 'video', color: '#9C27B0', bgColor: '#F3E5F5', name: 'Video' },
+      'mov': { icon: 'video', color: '#9C27B0', bgColor: '#F3E5F5', name: 'Video' },
+      'wmv': { icon: 'video', color: '#9C27B0', bgColor: '#F3E5F5', name: 'Video' },
+
+      // Audio
+      'mp3': { icon: 'audio', color: '#00BCD4', bgColor: '#E0F7FA', name: 'Audio' },
+      'wav': { icon: 'audio', color: '#00BCD4', bgColor: '#E0F7FA', name: 'Audio' },
+      'ogg': { icon: 'audio', color: '#00BCD4', bgColor: '#E0F7FA', name: 'Audio' },
+    };
+
+    return fileTypes[extension] || { icon: 'default', color: '#4A90E2', bgColor: '#E3F2FD', name: 'Archivo' };
+  };
+
+  // 🔥 NUEVO: Función para renderizar el ícono SVG según el tipo de archivo
+  const renderFileIcon = (fileName) => {
+    const fileInfo = getFileIcon(fileName);
+
+    const icons = {
+      excel: (
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="2" width="16" height="20" rx="2" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5"/>
+          <path d="M8 2V22" stroke={fileInfo.color} strokeWidth="1.5"/>
+          <path d="M4 8H20" stroke={fileInfo.color} strokeWidth="1.5"/>
+          <path d="M4 14H20" stroke={fileInfo.color} strokeWidth="1.5"/>
+          <text x="14" y="18" fontSize="8" fontWeight="bold" fill={fileInfo.color}>X</text>
+        </svg>
+      ),
+      word: (
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5"/>
+          <path d="M13 2V9H20" fill={fileInfo.color} stroke={fileInfo.color} strokeWidth="1.5"/>
+          <text x="8" y="18" fontSize="8" fontWeight="bold" fill={fileInfo.color}>W</text>
+        </svg>
+      ),
+      powerpoint: (
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5"/>
+          <path d="M13 2V9H20" fill={fileInfo.color} stroke={fileInfo.color} strokeWidth="1.5"/>
+          <text x="9" y="18" fontSize="8" fontWeight="bold" fill={fileInfo.color}>P</text>
+        </svg>
+      ),
+      pdf: (
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5"/>
+          <path d="M13 2V9H20" fill={fileInfo.color} stroke={fileInfo.color} strokeWidth="1.5"/>
+          <text x="6" y="17" fontSize="6" fontWeight="bold" fill={fileInfo.color}>PDF</text>
+        </svg>
+      ),
+      zip: (
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5"/>
+          <path d="M12 2V6M12 6V10M12 10V14M12 14V18" stroke={fileInfo.color} strokeWidth="1.5" strokeDasharray="2 2"/>
+          <rect x="10" y="16" width="4" height="3" rx="0.5" fill={fileInfo.color}/>
+        </svg>
+      ),
+      image: (
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="4" width="16" height="16" rx="2" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5"/>
+          <circle cx="9" cy="9" r="2" fill={fileInfo.color}/>
+          <path d="M4 16L8 12L12 16L16 12L20 16V18C20 19.1046 19.1046 20 18 20H6C4.89543 20 4 19.1046 4 18V16Z" fill={fileInfo.color}/>
+        </svg>
+      ),
+      video: (
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3" y="5" width="14" height="14" rx="2" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5"/>
+          <path d="M17 8.5L21 6V18L17 15.5V8.5Z" fill={fileInfo.color} stroke={fileInfo.color} strokeWidth="1.5"/>
+          <path d="M9 10L12 12L9 14V10Z" fill={fileInfo.color}/>
+        </svg>
+      ),
+      audio: (
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="9" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5"/>
+          <path d="M12 8V16M9 11V13M15 11V13M6 12H7M17 12H18" stroke={fileInfo.color} strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+      ),
+      text: (
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5"/>
+          <path d="M8 12H16M8 16H16M8 8H12" stroke={fileInfo.color} strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+      ),
+      code: (
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5"/>
+          <path d="M9 12L7 14L9 16M15 12L17 14L15 16M13 10L11 18" stroke={fileInfo.color} strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+      ),
+      default: (
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5"/>
+          <path d="M13 2V9H20" fill={fileInfo.color} stroke={fileInfo.color} strokeWidth="1.5"/>
+        </svg>
+      )
+    };
+
+    return icons[fileInfo.icon] || icons.default;
+  };
+
+  // Función para renderizar texto con menciones resaltadas
+  const renderTextWithMentions = (text) => {
+    if (!text) return text;
+
+    // Regex para detectar menciones @username
+    // 🔥 MODIFICADO: Excluir menciones que sean parte de emails (ej: @gmail, @outlook)
+    const mentionRegex = /@(\w+)/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = mentionRegex.exec(text)) !== null) {
+      // 🔥 NUEVO: Verificar si es parte de un email
+      // Buscar hacia atrás para ver si hay un carácter de email antes del @
+      const charBeforeMention = match.index > 0 ? text[match.index - 1] : '';
+      const isPartOfEmail = /[a-zA-Z0-9._-]/.test(charBeforeMention);
+
+      // 🔥 NUEVO: Verificar si después del @ hay un dominio de email común
+      const mentionedText = match[1].toLowerCase();
+      const emailDomains = ['gmail', 'outlook', 'hotmail', 'yahoo', 'icloud', 'live', 'msn', 'aol', 'protonmail', 'zoho'];
+      const isEmailDomain = emailDomains.includes(mentionedText);
+
+      // Si es parte de un email, NO resaltar
+      if (isPartOfEmail || isEmailDomain) {
+        lastIndex = match.index + match[0].length;
+        continue;
+      }
+
+      // Agregar texto antes de la mención
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index));
+      }
+
+      // Agregar la mención resaltada
+      const mentionedUser = match[1];
+      const isCurrentUser = mentionedUser === currentUsername;
+
+      parts.push(
+        <span
+          key={match.index}
+          style={{
+            backgroundColor: isCurrentUser ? '#e3f2fd' : '#f3e5f5',
+            color: isCurrentUser ? '#1976d2' : '#7b1fa2',
+            padding: '2px 4px',
+            borderRadius: '4px',
+            fontWeight: '600',
+            cursor: 'pointer'
+          }}
+          title={`Mención a ${mentionedUser}`}
+        >
+          @{mentionedUser}
+        </span>
+      );
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Agregar texto restante
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts.length > 0 ? parts : text;
+  };
+
   const renderMessage = (message, index) => {
     // 🔥 Usar isSelf si está definido (mensajes históricos), sino usar la lógica anterior
     const isOwnMessage = message.isSelf !== undefined
@@ -528,7 +794,11 @@ const ChatContent = ({
         )}
 
         <div
-          className="message-content"
+          className={`message-content ${
+            message.mediaType
+              ? 'max-w-[400px]'
+              : 'max-w-[65%] max-[1400px]:max-w-[60%] max-[1280px]:max-w-[50%] max-[1024px]:max-w-[45%] max-[900px]:max-w-[75%]'
+          }`}
           style={{
             backgroundColor: isHighlighted
               ? (isOwnMessage ? '#c9e8ba' : '#d4d2e0')
@@ -539,7 +809,6 @@ const ChatContent = ({
             borderBottomRightRadius: '17.11px',
             borderBottomLeftRadius: '17.11px',
             borderTopLeftRadius: isOwnMessage ? '17.11px' : '4px',
-            maxWidth: message.mediaType ? '400px' : '65%',
             minWidth: '80px',
             width: 'fit-content',
             height: 'fit-content',
@@ -551,6 +820,8 @@ const ChatContent = ({
               ? '0 0 15px rgba(0, 168, 132, 0.5)'
               : '0 1px 0.5px rgba(0,0,0,.13)',
             wordWrap: 'break-word',
+            overflowWrap: 'break-word',
+            wordBreak: 'break-word',
             transition: 'all 0.3s ease',
             border: isHighlighted ? '2px solid #00a884' : 'none'
           }}
@@ -582,13 +853,31 @@ const ChatContent = ({
           {/* Preview del mensaje al que se responde */}
           {message.replyToMessageId && (
             <div
+              onClick={() => {
+                // Buscar el mensaje original y hacer scroll hacia él
+                const originalMessage = document.getElementById(`message-${message.replyToMessageId}`);
+                if (originalMessage) {
+                  originalMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  // Resaltar temporalmente el mensaje
+                  setHighlightedMessageId(message.replyToMessageId);
+                  setTimeout(() => setHighlightedMessageId(null), 2000);
+                }
+              }}
               style={{
                 backgroundColor: isOwnMessage ? 'rgba(0, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0.3)',
                 borderLeft: '2px solid #00a884',
                 padding: '4px 6px',
                 borderRadius: '4px',
                 marginBottom: '4px',
-                fontSize: '11px'
+                fontSize: '11px',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = isOwnMessage ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = isOwnMessage ? 'rgba(0, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0.3)';
               }}
             >
               <div style={{ color: '#00a884', fontWeight: '600', marginBottom: '1px' }}>
@@ -613,6 +902,7 @@ const ChatContent = ({
                     <img
                       src={message.mediaData}
                       alt={message.fileName || 'Imagen'}
+                      loading="lazy"
                       className="media-image"
                       style={{
                         maxWidth: '100%',
@@ -622,6 +912,37 @@ const ChatContent = ({
                       }}
                       onClick={() => setImagePreview({ url: message.mediaData, fileName: message.fileName || 'imagen' })}
                     />
+                    {/* 🔥 NUEVO: Hora y checks en la esquina inferior derecha de la imagen */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: '6px',
+                        right: '6px',
+                        backgroundColor: 'rgba(0,0,0,0.6)',
+                        color: '#fff',
+                        padding: '3px 8px',
+                        borderRadius: '12px',
+                        fontSize: '11px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        pointerEvents: 'none'
+                      }}
+                    >
+                      <span>{formatTime(message.time)}</span>
+                      {isOwnMessage && (
+                        <span
+                          style={{
+                            color: (message.readBy && message.readBy.length > 0) ? '#53bdeb' : '#fff',
+                            fontSize: '12px',
+                            letterSpacing: '-2px'
+                          }}
+                        >
+                          {message.isSent ? '✓✓' : '⏳'}
+                        </span>
+                      )}
+                    </div>
+                    {/* Botón de descargar */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -629,11 +950,11 @@ const ChatContent = ({
                       }}
                       style={{
                         position: 'absolute',
-                        bottom: '6px',
+                        top: '6px',
                         right: '6px',
                         backgroundColor: 'rgba(0,0,0,0.6)',
                         color: '#fff',
-                        padding: '4px 8px',
+                        padding: '6px 10px',
                         borderRadius: '12px',
                         fontSize: '10px',
                         border: 'none',
@@ -646,7 +967,7 @@ const ChatContent = ({
                       onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.8)'}
                       onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.6)'}
                     >
-                      ⬇️ Descargar
+                      ⬇️
                     </button>
                   </div>
                 ) : message.mediaType === 'video' ? (
@@ -654,6 +975,7 @@ const ChatContent = ({
                     <video
                       src={message.mediaData}
                       controls
+                      preload="metadata"
                       className="media-video"
                       style={{
                         maxWidth: '100%',
@@ -661,25 +983,59 @@ const ChatContent = ({
                         display: 'block'
                       }}
                     />
-                    <button
-                      onClick={() => handleDownload(message.mediaData, message.fileName || 'video')}
+                    {/* 🔥 NUEVO: Hora y checks debajo del video */}
+                    <div
                       style={{
-                        display: 'inline-block',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
                         marginTop: '4px',
-                        backgroundColor: 'rgba(0,0,0,0.6)',
-                        color: '#fff',
-                        padding: '4px 8px',
-                        borderRadius: '12px',
-                        fontSize: '10px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        transition: 'background-color 0.2s'
+                        gap: '8px'
                       }}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.8)'}
-                      onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.6)'}
                     >
-                      ⬇️ Descargar
-                    </button>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '11px',
+                          color: '#8696a0'
+                        }}
+                      >
+                        <span>{formatTime(message.time)}</span>
+                        {isOwnMessage && (
+                          <span
+                            style={{
+                              color: (message.readBy && message.readBy.length > 0) ? '#53bdeb' : '#8696a0',
+                              fontSize: '12px',
+                              letterSpacing: '-2px'
+                            }}
+                          >
+                            {message.isSent ? '✓✓' : '⏳'}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleDownload(message.mediaData, message.fileName || 'video')}
+                        style={{
+                          backgroundColor: 'rgba(0,0,0,0.6)',
+                          color: '#fff',
+                          padding: '4px 10px',
+                          borderRadius: '12px',
+                          fontSize: '10px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          transition: 'background-color 0.2s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.8)'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.6)'}
+                      >
+                        ⬇️ Descargar
+                      </button>
+                    </div>
                   </div>
                 ) : message.mediaType === 'audio' ? (
                   <AudioPlayer
@@ -699,56 +1055,93 @@ const ChatContent = ({
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '4px',
-                      padding: '3px 5px',
+                      gap: '8px',
+                      padding: '8px 12px',
                       backgroundColor: 'rgba(255,255,255,0.1)',
-                      borderRadius: '5px',
+                      borderRadius: '8px',
                       border: '1px solid rgba(255,255,255,0.2)',
                       cursor: 'pointer',
-                      transition: 'background-color 0.2s'
+                      transition: 'all 0.2s',
+                      maxWidth: '280px'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)';
+                      e.currentTarget.style.transform = 'scale(1.02)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
                   >
-                    <div className="file-icon" style={{ fontSize: '14px' }}>📎</div>
+                    {/* 🔥 NUEVO: Ícono SVG de archivo según tipo */}
+                    <div className="file-icon" style={{ flexShrink: 0 }}>
+                      {renderFileIcon(message.fileName)}
+                    </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
+                      {/* 🔥 NUEVO: Badge con tipo de archivo */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                        <span
+                          style={{
+                            backgroundColor: getFileIcon(message.fileName).color,
+                            color: '#fff',
+                            fontSize: '9px',
+                            fontWeight: '700',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                          }}
+                        >
+                          {getFileIcon(message.fileName).name}
+                        </span>
+                      </div>
                       <div
                         className="file-name"
                         style={{
                           color: '#000000D9',
-                          fontSize: '10.5px',
-                          fontWeight: '500',
+                          fontSize: '13px',
+                          fontWeight: '600',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
-                          marginBottom: '1px'
+                          marginBottom: '4px'
                         }}
                       >
                         {message.fileName}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
                         {message.fileSize && (
-                          <span style={{ color: '#8696a0', fontSize: '8.5px' }}>
-                            {(message.fileSize / 1024 / 1024).toFixed(1)} MB
+                          <span style={{ color: '#8696a0', fontSize: '11px', fontWeight: '400' }}>
+                            {(message.fileSize / 1024 / 1024).toFixed(2)} MB
                           </span>
                         )}
-                        <span style={{ color: '#8696a0', fontSize: '8.5px' }}>•</span>
-                        <span style={{ color: '#8696a0', fontSize: '8.5px' }}>
+                        {message.fileSize && <span style={{ color: '#8696a0', fontSize: '11px' }}>•</span>}
+                        <span style={{ color: '#8696a0', fontSize: '11px' }}>
                           {formatTime(message.time)}
                         </span>
                         {isOwnMessage && (
-                          <span
-                            style={{
-                              color: message.isRead ? '#53bdeb' : '#8696a0',
-                              fontSize: '9px'
-                            }}
-                          >
-                            {message.isSent ? '✓✓' : '⏳'}
-                          </span>
+                          <>
+                            <span style={{ color: '#8696a0', fontSize: '11px' }}>•</span>
+                            <span
+                              style={{
+                                color: message.isRead ? '#53bdeb' : '#8696a0',
+                                fontSize: '12px'
+                              }}
+                            >
+                              {message.isSent ? '✓✓' : '⏳'}
+                            </span>
+                          </>
                         )}
                       </div>
                     </div>
-                    <div style={{ color: '#00a884', fontSize: '13px' }}>⬇️</div>
+                    {/* 🔥 NUEVO: Ícono de descarga mejorado */}
+                    <div style={{ flexShrink: 0 }}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="10" fill="#00a884" opacity="0.1"/>
+                        <path d="M12 7V13M12 13L9.5 10.5M12 13L14.5 10.5" stroke="#00a884" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M8 16H16" stroke="#00a884" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                    </div>
                   </div>
                 )}
               </div>
@@ -948,76 +1341,169 @@ const ChatContent = ({
             </div>
           ) : (
             <div>
-              <div
-                className="message-text"
-                style={{
-                  color: '#000000D9',
-                  fontSize: '14.97px',
-                  lineHeight: '100%',
-                  letterSpacing: '0%',
-                  fontFamily: 'Inter, sans-serif',
-                  fontWeight: '400',
-                  fontStyle: 'Regular',
-                  marginBottom: '1px',
-                  whiteSpace: 'pre-wrap',
-                  display: 'inline'
-                }}
-              >
-                {message.text}
-                {message.isEdited && (
-                  <span
-                    style={{
-                      fontSize: '10px',
-                      color: '#8696a0',
-                      marginLeft: '4px',
-                      fontStyle: 'italic'
-                    }}
-                  >
-                    (editado)
-                  </span>
-                )}
-                {/* Hora y checks inline */}
-                <span
-                  className="message-time-inline"
-                  style={{
-                    fontSize: '12.83px',
-                    color: '#00000073',
-                    marginLeft: '6px',
-                    whiteSpace: 'nowrap',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '3px',
-                    verticalAlign: 'bottom',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                    fontWeight: '300',
-                    lineHeight: '17.11px',
-                    letterSpacing: '0px'
-                  }}
-                >
-                  <span>{formatTime(message.time)}</span>
-                  {isOwnMessage && (
-                    <>
-                      <span
-                        className="message-status"
-                        style={{
-                          color: (message.readBy && message.readBy.length > 0) ? '#27AE60' : '#8696a0',
-                          fontSize: '11px',
-                          cursor: isGroup ? 'pointer' : 'default',
-                          letterSpacing: '-2px'
-                        }}
-                        onClick={() => {
-                          if (isGroup && message.id) {
-                            setShowMessageInfo(message);
-                          }
-                        }}
-                        title={isGroup ? 'Ver información de lectura' : ''}
-                      >
-                        {message.isSent ? '✓✓' : '⏳'}
-                      </span>
-                    </>
-                  )}
-                </span>
-              </div>
+              {(() => {
+                const MAX_LENGTH = 300; // Máximo de caracteres antes de mostrar "Ver más"
+                const isExpanded = expandedMessages.has(message.id);
+                const shouldTruncate = message.text && message.text.length > MAX_LENGTH;
+                const displayText = shouldTruncate && !isExpanded
+                  ? message.text.substring(0, MAX_LENGTH)
+                  : message.text;
+
+                return (
+                  <>
+                    <div
+                      className="message-text"
+                      style={{
+                        color: '#000000D9',
+                        fontSize: '14.97px',
+                        lineHeight: '100%',
+                        letterSpacing: '0%',
+                        fontFamily: 'Inter, sans-serif',
+                        fontWeight: '400',
+                        fontStyle: 'Regular',
+                        marginBottom: '1px',
+                        whiteSpace: 'pre-wrap',
+                        display: 'inline'
+                      }}
+                    >
+                      {renderTextWithMentions(displayText)}
+                      {shouldTruncate && !isExpanded && '...'}
+                      {message.isEdited && (
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            color: '#8696a0',
+                            marginLeft: '4px',
+                            fontStyle: 'italic'
+                          }}
+                        >
+                          (editado)
+                        </span>
+                      )}
+                      {/* Hora y checks inline */}
+                      {(!shouldTruncate || isExpanded) && (
+                        <span
+                          className="message-time-inline"
+                          style={{
+                            fontSize: '12.83px',
+                            color: '#00000073',
+                            marginLeft: '6px',
+                            whiteSpace: 'nowrap',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            verticalAlign: 'bottom',
+                            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                            fontWeight: '300',
+                            lineHeight: '17.11px',
+                            letterSpacing: '0px'
+                          }}
+                        >
+                          <span>{formatTime(message.time)}</span>
+                          {isOwnMessage && (
+                            <>
+                              <span
+                                className="message-status"
+                                style={{
+                                  color: (message.readBy && message.readBy.length > 0) ? '#27AE60' : '#8696a0',
+                                  fontSize: '11px',
+                                  cursor: isGroup ? 'pointer' : 'default',
+                                  letterSpacing: '-2px'
+                                }}
+                                onClick={() => {
+                                  if (isGroup && message.id) {
+                                    setShowMessageInfo(message);
+                                  }
+                                }}
+                                title={isGroup ? 'Ver información de lectura' : ''}
+                              >
+                                {message.isSent ? '✓✓' : '⏳'}
+                              </span>
+                            </>
+                          )}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Botón "Ver más" / "Ver menos" */}
+                    {shouldTruncate && (
+                      <div style={{ marginTop: '4px' }}>
+                        <button
+                          onClick={() => {
+                            setExpandedMessages(prev => {
+                              const newSet = new Set(prev);
+                              if (isExpanded) {
+                                newSet.delete(message.id);
+                              } else {
+                                newSet.add(message.id);
+                              }
+                              return newSet;
+                            });
+                          }}
+                          style={{
+                            backgroundColor: 'transparent',
+                            border: 'none',
+                            color: '#00a884',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            padding: '0',
+                            fontWeight: '500',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '2px'
+                          }}
+                        >
+                          {isExpanded ? 'Ver menos' : 'Ver más'}
+                        </button>
+                        {/* Hora y checks cuando el mensaje está truncado */}
+                        {!isExpanded && (
+                          <span
+                            className="message-time-inline"
+                            style={{
+                              fontSize: '12.83px',
+                              color: '#00000073',
+                              marginLeft: '0',
+                              marginTop: '4px',
+                              whiteSpace: 'nowrap',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              verticalAlign: 'bottom',
+                              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                              fontWeight: '300',
+                              lineHeight: '17.11px',
+                              letterSpacing: '0px'
+                            }}
+                          >
+                            <span>{formatTime(message.time)}</span>
+                            {isOwnMessage && (
+                              <>
+                                <span
+                                  className="message-status"
+                                  style={{
+                                    color: (message.readBy && message.readBy.length > 0) ? '#27AE60' : '#8696a0',
+                                    fontSize: '11px',
+                                    cursor: isGroup ? 'pointer' : 'default',
+                                    letterSpacing: '-2px'
+                                  }}
+                                  onClick={() => {
+                                    if (isGroup && message.id) {
+                                      setShowMessageInfo(message);
+                                    }
+                                  }}
+                                  title={isGroup ? 'Ver información de lectura' : ''}
+                                >
+                                  {message.isSent ? '✓✓' : '⏳'}
+                                </span>
+                              </>
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
               {/* Botones de acción del mensaje */}
               <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>
                 {/* Botón de responder - disponible para todos los mensajes */}
@@ -1311,6 +1797,7 @@ const ChatContent = ({
                     <img
                       src={preview.data}
                       alt={preview.name}
+                      loading="lazy"
                       className="preview-image"
                     />
                   ) : (
@@ -1447,14 +1934,104 @@ const ChatContent = ({
             canSendMessages={canSendMessages}
           />
 
-          <textarea
-            value={input}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyPress}
-            placeholder={canSendMessages ? "Escribe tu mensaje aquí." : "Solo puedes monitorear esta conversación"}
-            className="message-input"
-            disabled={isRecording || !canSendMessages}
-          />
+          <div style={{ position: 'relative', flex: 1 }}>
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyPress}
+              placeholder={canSendMessages ? "Escribe tu mensaje aquí." : "Solo puedes monitorear esta conversación"}
+              className="message-input"
+              disabled={isRecording || !canSendMessages}
+            />
+
+            {/* Sugerencias de menciones */}
+            {showMentionSuggestions && isGroup && roomUsers && roomUsers.length > 0 && (
+              <div
+                className="mention-suggestions"
+                style={{
+                  position: 'absolute',
+                  bottom: '100%',
+                  left: '0',
+                  right: '0',
+                  maxHeight: '200px',
+                  overflowY: 'auto',
+                  backgroundColor: '#fff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.1)',
+                  marginBottom: '8px',
+                  zIndex: 1000
+                }}
+              >
+                {roomUsers
+                  .filter(user => {
+                    const username = typeof user === 'string' ? user : (user.username || user.nombre || user);
+                    return username.toLowerCase().includes(mentionSearch) && username !== currentUsername;
+                  })
+                  .slice(0, 5)
+                  .map((user, index) => {
+                    const username = typeof user === 'string' ? user : (user.username || user.nombre || user);
+                    const displayName = typeof user === 'object' && user.nombre && user.apellido
+                      ? `${user.nombre} ${user.apellido}`
+                      : username;
+
+                    return (
+                      <div
+                        key={index}
+                        onClick={() => handleMentionSelect(user)}
+                        style={{
+                          padding: '10px 16px',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid #f3f4f6',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                      >
+                        <div
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#fff',
+                            fontSize: '14px',
+                            fontWeight: '600'
+                          }}
+                        >
+                          {username.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>
+                            {displayName}
+                          </div>
+                          {displayName !== username && (
+                            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                              @{username}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                {roomUsers.filter(user => {
+                  const username = typeof user === 'string' ? user : (user.username || user.nombre || user);
+                  return username.toLowerCase().includes(mentionSearch) && username !== currentUsername;
+                }).length === 0 && (
+                  <div style={{ padding: '16px', textAlign: 'center', color: '#6b7280', fontSize: '14px' }}>
+                    No se encontraron usuarios
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           <button
             onClick={onSendMessage}

@@ -66,9 +66,10 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         isGroup: msg.isGroup,
         time:
           msg.time ||
-          new Date(msg.sentAt).toLocaleTimeString([], {
+          new Date(msg.sentAt).toLocaleTimeString('es-ES', {
             hour: "2-digit",
             minute: "2-digit",
+            hour12: false
           }),
         isSent: msg.from === username,
         isSelf: msg.from === username,
@@ -162,9 +163,10 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         isGroup: msg.isGroup,
         time:
           msg.time ||
-          new Date(msg.sentAt).toLocaleTimeString([], {
+          new Date(msg.sentAt).toLocaleTimeString('es-ES', {
             hour: "2-digit",
             minute: "2-digit",
+            hour12: false
           }),
         isSent: msg.from === username,
         isSelf: msg.from === username,
@@ -258,13 +260,17 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
   };
 
   // Actualizar un mensaje específico
+  // Si updates es una función, se llama con el mensaje actual para calcular las actualizaciones
   const updateMessage = useCallback((messageId, updates) => {
     setMessages(prevMessages =>
-      prevMessages.map(msg =>
-        msg.id === messageId
-          ? { ...msg, ...updates }
-          : msg
-      )
+      prevMessages.map(msg => {
+        if (msg.id === messageId) {
+          // Si updates es una función, llamarla con el mensaje actual
+          const newUpdates = typeof updates === 'function' ? updates(msg) : updates;
+          return { ...msg, ...newUpdates };
+        }
+        return msg;
+      })
     );
   }, []);
 

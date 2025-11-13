@@ -188,7 +188,7 @@ const ChatLayout = ({
       </div>
 
       {/* ChatContent - Desktop: siempre visible | Mobile: solo cuando hay chat seleccionado */}
-      <div className={`flex-1 flex flex-col bg-white relative transition-all duration-300 ease-in-out max-[768px]:h-[calc(100vh-60px)] max-[600px]:h-screen ${!to ? 'max-[768px]:hidden' : ''}`}>
+      <div className={`flex-1 flex flex-col bg-white relative transition-all duration-300 ease-in-out max-[768px]:h-[calc(100vh-60px)] max-[600px]:h-screen overflow-x-hidden max-w-full ${!to ? 'max-[768px]:hidden' : ''}`}>
             <ChatHeader
               to={to}
               isGroup={isGroup}
@@ -228,6 +228,7 @@ const ChatLayout = ({
           to={to}
           isGroup={isGroup}
           currentRoomCode={currentRoomCode}
+          roomUsers={roomUsers}
           currentUsername={currentUsername}
           onEditMessage={onEditMessage}
           hasMoreMessages={hasMoreMessages}

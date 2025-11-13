@@ -127,7 +127,7 @@ const ThreadPanel = ({
   const formatTime = (date) => {
     if (!date) return '';
     const d = new Date(date);
-    return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
   if (!message) return null;
