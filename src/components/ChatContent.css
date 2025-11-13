@@ -163,7 +163,7 @@
     max-height: calc(100vh - 70px);
   }
   .message-content {
-    max-width: 90vw;
+    /* 🔥 REMOVIDO: max-width: 90vw; para permitir que inline styles controlen el ancho */
     padding: 8px 10px;
     font-size: 13px;
     border-radius: 14px;
@@ -221,7 +221,7 @@
     max-height: calc(100vh - 50px);
   }
   .message-content {
-    max-width: 98vw;
+    /* 🔥 REMOVIDO: max-width: 98vw; para permitir que inline styles controlen el ancho */
     padding: 6px 6px;
     font-size: 11px;
     border-radius: 10px;
@@ -403,7 +403,7 @@
   display: flex;
   margin-bottom: 10px;
   animation: messageSlideIn 0.3s ease-out;
-  width: 100%;
+  width: auto;
   max-width: 100%;
   box-sizing: border-box;
 }
@@ -428,7 +428,8 @@
 }
 
 .message-content {
-  max-width: 70%;
+  /* 🔥 CORREGIDO: Removido max-width: 70% para permitir que Tailwind controle el ancho */
+  /* Las clases de Tailwind (max-w-[85%], etc.) ahora funcionarán correctamente */
   padding: 10px 14px;
   border-radius: 12px;
   position: relative;
@@ -890,7 +891,7 @@
   }
 
   .message-content {
-    max-width: 85%;
+    /* 🔥 REMOVIDO: max-width: 85%; para permitir que inline styles controlen el ancho */
   }
 
   .chat-input-container {

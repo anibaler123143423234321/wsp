@@ -635,18 +635,19 @@ const ChatContent = ({
       const emailDomains = ['gmail', 'outlook', 'hotmail', 'yahoo', 'icloud', 'live', 'msn', 'aol', 'protonmail', 'zoho'];
       const isEmailDomain = emailDomains.includes(mentionedText);
 
-      // Si es parte de un email, NO resaltar
-      if (isPartOfEmail || isEmailDomain) {
-        lastIndex = match.index + match[0].length;
-        continue;
-      }
-
-      // Agregar texto antes de la mención
+      // Agregar texto antes de la mención (incluyendo el @ si es email)
       if (match.index > lastIndex) {
         parts.push(text.substring(lastIndex, match.index));
       }
 
-      // Agregar la mención resaltada
+      // Si es parte de un email, agregar el @dominio sin resaltar
+      if (isPartOfEmail || isEmailDomain) {
+        parts.push(match[0]); // Agregar @gmail, @outlook, etc. sin resaltar
+        lastIndex = match.index + match[0].length;
+        continue;
+      }
+
+      // Agregar la mención resaltada (solo si NO es email)
       const mentionedUser = match[1];
       const isCurrentUser = mentionedUser === currentUsername;
 
@@ -794,11 +795,7 @@ const ChatContent = ({
         )}
 
         <div
-          className={`message-content ${
-            message.mediaType
-              ? 'max-w-[400px]'
-              : 'max-w-[65%] max-[1400px]:max-w-[60%] max-[1280px]:max-w-[50%] max-[1024px]:max-w-[45%] max-[900px]:max-w-[75%]'
-          }`}
+          className="message-content"
           style={{
             backgroundColor: isHighlighted
               ? (isOwnMessage ? '#c9e8ba' : '#d4d2e0')
@@ -823,7 +820,10 @@ const ChatContent = ({
             overflowWrap: 'break-word',
             wordBreak: 'break-word',
             transition: 'all 0.3s ease',
-            border: isHighlighted ? '2px solid #00a884' : 'none'
+            border: isHighlighted ? '2px solid #00a884' : 'none',
+            // 🔥 CORREGIDO: Usar maxWidth en inline style en lugar de clases de Tailwind
+            // Esto asegura que el mensaje se expanda completamente sin truncamiento
+            maxWidth: message.mediaType ? '400px' : 'calc(100vw - 100px)'
           }}
         >
           {!isOwnMessage && (
@@ -1363,7 +1363,9 @@ const ChatContent = ({
                         fontStyle: 'Regular',
                         marginBottom: '1px',
                         whiteSpace: 'pre-wrap',
-                        display: 'inline'
+                        display: 'block',
+                        wordWrap: 'break-word',
+                        overflowWrap: 'break-word'
                       }}
                     >
                       {renderTextWithMentions(displayText)}
