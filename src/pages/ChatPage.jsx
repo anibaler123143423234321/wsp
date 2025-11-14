@@ -1456,17 +1456,18 @@ const ChatPage = () => {
   };
 
   // Función para seleccionar una sala del sidebar
-  const handleRoomSelect = async (room) => {
+  const handleRoomSelect = async (room, messageId = null) => {
     try {
       console.log('🏠 Seleccionando sala:', {
         name: room.name,
         roomCode: room.roomCode,
         currentRoomCode,
+        messageId,
         allRooms: myActiveRooms.map(r => ({ name: r.name, roomCode: r.roomCode }))
       });
 
-      // Si ya estamos en esta sala, no hacer nada
-      if (currentRoomCode === room.roomCode) {
+      // Si ya estamos en esta sala, no hacer nada (a menos que haya un messageId para resaltar)
+      if (currentRoomCode === room.roomCode && !messageId) {
         return;
       }
 
@@ -1548,6 +1549,13 @@ const ChatPage = () => {
           socketConnected: socket?.connected,
           hasSocket: !!socket
         });
+      }
+
+      // Si se proporciona un messageId, guardarlo para resaltarlo después de cargar los mensajes
+      if (messageId) {
+        setHighlightMessageId(messageId);
+      } else {
+        setHighlightMessageId(null);
       }
 
       // 📱 Cerrar sidebar en mobile al seleccionar una sala

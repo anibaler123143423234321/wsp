@@ -1,13 +1,13 @@
 // Servicio para conectar con la API (múltiples backends según sede)
 // URLs para CHICLAYO / PIURA
 const API_BASE_URL_CHICLAYO = "https://apisozarusac.com/BackendJava/";
-//const API_BASECHAT_URL_CHICLAYO = "https://apisozarusac.com/BackendChat/";
-const API_BASECHAT_URL_CHICLAYO = "http://localhost:8747/";
+const API_BASECHAT_URL_CHICLAYO = "https://apisozarusac.com/BackendChat/";
+//const API_BASECHAT_URL_CHICLAYO = "http://localhost:8747/";
 
 // URLs para LIMA
 const API_BASE_URL_LIMA = "https://apisozarusac.com/BackendJavaMidas/";
-//const API_BASECHAT_URL_LIMA = "https://apisozarusac.com/BackendChat/";
-const API_BASECHAT_URL_LIMA = "http://localhost:8747/";
+const API_BASECHAT_URL_LIMA = "https://apisozarusac.com/BackendChat/";
+//const API_BASECHAT_URL_LIMA = "http://localhost:8747/";
 
 class ApiService {
   constructor() {
@@ -380,7 +380,7 @@ class ApiService {
           errorMessage = errorData.message || errorMessage;
         } catch (e) {
           const errorText = await response.text();
-          errorMessage = errorText || errorMessage;
+          errorMessage = errorText || errorMessage;         
         }
         const error = new Error(errorMessage);
         error.response = { data: { message: errorMessage } };
@@ -1166,6 +1166,38 @@ class ApiService {
       return result;
     } catch (error) {
       console.error("Error al buscar mensajes:", error);
+      return [];
+    }
+  }
+
+  // Buscar mensajes por ID de usuario
+  async searchMessagesByUserId(userId, searchTerm) {
+    try {
+      if (!searchTerm || searchTerm.trim().length === 0) {
+        return [];
+      }
+
+      const response = await fetch(
+        `${this.baseChatUrl}api/messages/search-by-user/${encodeURIComponent(userId)}?q=${encodeURIComponent(searchTerm)}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Error del servidor: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al buscar mensajes por userId:", error);
       return [];
     }
   }

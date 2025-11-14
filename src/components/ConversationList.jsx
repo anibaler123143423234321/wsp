@@ -229,6 +229,57 @@ const ConversationList = ({
     }
   }, [onLoadMoreUsers, userListHasMore, userListLoading]);
 
+  // Función para buscar mensajes por contenido
+  const handleMessageSearch = useCallback(async (searchValue) => {
+    console.log('🔍 handleMessageSearch llamado con:', searchValue);
+
+    // Limpiar timeout anterior
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Si no hay búsqueda, limpiar resultados
+    if (!searchValue || searchValue.trim().length === 0) {
+      setMessageSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    // Obtener userId del usuario actual
+    const userId = user?.id;
+    console.log('👤 User ID actual:', userId);
+
+    if (!userId) {
+      console.error('No se pudo obtener el ID del usuario');
+      return;
+    }
+
+    // Esperar 500ms antes de buscar (debounce)
+    searchTimeoutRef.current = setTimeout(async () => {
+      console.log('⏱️ Ejecutando búsqueda después del debounce...');
+      setIsSearching(true);
+      try {
+        const results = await apiService.searchMessagesByUserId(userId, searchValue);
+        console.log('📝 Resultados de búsqueda:', results);
+        setMessageSearchResults(results || []);
+      } catch (error) {
+        console.error('Error al buscar mensajes:', error);
+        setMessageSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500);
+  }, [user]);
+
+  // Limpiar timeout al desmontar el componente
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Filtrar conversaciones según búsqueda
   const filteredConversations = userList?.filter(conversation => {
     if (!searchTerm.trim()) return true;
@@ -416,12 +467,19 @@ const ConversationList = ({
               searchTerm
             }
             onChange={(e) => {
+              const value = e.target.value;
               if (activeModule === 'rooms') {
-                setRoomsSearchTerm(e.target.value);
+                setRoomsSearchTerm(value);
+                // Buscar en mensajes también
+                handleMessageSearch(value);
               } else if (activeModule === 'assigned' || activeModule === 'monitoring') {
-                setAssignedSearchTerm(e.target.value);
+                setAssignedSearchTerm(value);
+                // Buscar en mensajes también
+                handleMessageSearch(value);
               } else {
-                setSearchTerm(e.target.value);
+                setSearchTerm(value);
+                // Buscar en mensajes también
+                handleMessageSearch(value);
               }
             }}
           />
@@ -435,10 +493,13 @@ const ConversationList = ({
               onClick={() => {
                 if (activeModule === 'rooms') {
                   setRoomsSearchTerm('');
+                  setMessageSearchResults([]);
                 } else if (activeModule === 'assigned' || activeModule === 'monitoring') {
                   setAssignedSearchTerm('');
+                  setMessageSearchResults([]);
                 } else {
                   setSearchTerm('');
+                  setMessageSearchResults([]);
                 }
               }}
             >
@@ -484,6 +545,76 @@ const ConversationList = ({
       {/* Contenido según módulo activo */}
       {activeModule === 'rooms' && (
         <div className="flex-1 overflow-y-auto bg-white px-4">
+          {/* Mostrar resultados de búsqueda de mensajes si hay búsqueda activa */}
+          {roomsSearchTerm.trim() && messageSearchResults.length > 0 && (
+            <div className="mb-4">
+              <div className="text-xs text-gray-500 font-semibold mb-2 px-2" style={{ fontFamily: 'Inter, sans-serif' }}>
+                📝 Mensajes encontrados ({messageSearchResults.length})
+              </div>
+              {messageSearchResults.map((msg) => {
+                const isGroupMsg = msg.isGroup;
+                const conversationName = isGroupMsg ? msg.roomCode : msg.to;
+                const messagePreview = msg.message || (msg.fileName ? `📎 ${msg.fileName}` : 'Archivo');
+
+                return (
+                  <div
+                    key={msg.id}
+                    className="flex items-start gap-3 p-3 mb-2 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors"
+                    onClick={() => {
+                      if (isGroupMsg) {
+                        // Buscar el objeto de sala completo
+                        const room = myActiveRooms?.find(r => r.roomCode === msg.roomCode);
+                        if (room && onRoomSelect) {
+                          // Navegar a grupo con el objeto completo y el messageId
+                          onRoomSelect(room, msg.id);
+                        } else {
+                          console.error('Sala no encontrada:', msg.roomCode);
+                        }
+                      } else {
+                        // Navegar a chat directo
+                        onUserSelect(msg.to, null, msg.id);
+                      }
+                    }}
+                  >
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-200 flex items-center justify-center text-lg">
+                      {isGroupMsg ? '👥' : '💬'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-sm text-gray-800" style={{ fontFamily: 'Inter, sans-serif' }}>
+                          {conversationName}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {isGroupMsg ? 'Grupo' : 'Chat'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-700 truncate" style={{ fontFamily: 'Inter, sans-serif' }}>
+                        {messagePreview}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(msg.sentAt).toLocaleString('es-ES', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="border-t border-gray-200 my-3"></div>
+            </div>
+          )}
+
+          {/* Mostrar indicador de búsqueda */}
+          {isSearching && (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-sm text-gray-500">Buscando mensajes...</div>
+            </div>
+          )}
+
           {myActiveRooms && myActiveRooms.length > 0 ? (
             <>
               {myActiveRooms
@@ -654,6 +785,76 @@ const ConversationList = ({
 
       {activeModule === 'assigned' && (
         <div className="flex-1 overflow-y-auto bg-white px-4 w-full min-w-0">
+          {/* Mostrar resultados de búsqueda de mensajes si hay búsqueda activa */}
+          {assignedSearchTerm.trim() && messageSearchResults.length > 0 && (
+            <div className="mb-4">
+              <div className="text-xs text-gray-500 font-semibold mb-2 px-2" style={{ fontFamily: 'Inter, sans-serif' }}>
+                📝 Mensajes encontrados ({messageSearchResults.length})
+              </div>
+              {messageSearchResults.map((msg) => {
+                const isGroupMsg = msg.isGroup;
+                const conversationName = isGroupMsg ? msg.roomCode : msg.to;
+                const messagePreview = msg.message || (msg.fileName ? `📎 ${msg.fileName}` : 'Archivo');
+
+                return (
+                  <div
+                    key={msg.id}
+                    className="flex items-start gap-3 p-3 mb-2 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors"
+                    onClick={() => {
+                      if (isGroupMsg) {
+                        // Buscar el objeto de sala completo
+                        const room = myActiveRooms?.find(r => r.roomCode === msg.roomCode);
+                        if (room && onRoomSelect) {
+                          // Navegar a grupo con el objeto completo y el messageId
+                          onRoomSelect(room, msg.id);
+                        } else {
+                          console.error('Sala no encontrada:', msg.roomCode);
+                        }
+                      } else {
+                        // Navegar a chat directo
+                        onUserSelect(msg.to, null, msg.id);
+                      }
+                    }}
+                  >
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-200 flex items-center justify-center text-lg">
+                      {isGroupMsg ? '👥' : '💬'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-sm text-gray-800" style={{ fontFamily: 'Inter, sans-serif' }}>
+                          {conversationName}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {isGroupMsg ? 'Grupo' : 'Chat'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-700 truncate" style={{ fontFamily: 'Inter, sans-serif' }}>
+                        {messagePreview}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(msg.sentAt).toLocaleString('es-ES', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="border-t border-gray-200 my-3"></div>
+            </div>
+          )}
+
+          {/* Mostrar indicador de búsqueda */}
+          {isSearching && (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-sm text-gray-500">Buscando mensajes...</div>
+            </div>
+          )}
+
           {(() => {
             // Filtrar solo las conversaciones donde el usuario es participante
             // Aplicar búsqueda sobre myAssignedConversations
@@ -992,6 +1193,76 @@ const ConversationList = ({
       {/* Módulo de Chats Monitoreo (solo para ADMIN) */}
       {activeModule === 'monitoring' && isAdmin && (
         <div className="flex-1 overflow-y-auto bg-white px-4 w-full min-w-0">
+          {/* Mostrar resultados de búsqueda de mensajes si hay búsqueda activa */}
+          {assignedSearchTerm.trim() && messageSearchResults.length > 0 && (
+            <div className="mb-4">
+              <div className="text-xs text-gray-500 font-semibold mb-2 px-2" style={{ fontFamily: 'Inter, sans-serif' }}>
+                📝 Mensajes encontrados ({messageSearchResults.length})
+              </div>
+              {messageSearchResults.map((msg) => {
+                const isGroupMsg = msg.isGroup;
+                const conversationName = isGroupMsg ? msg.roomCode : msg.to;
+                const messagePreview = msg.message || (msg.fileName ? `📎 ${msg.fileName}` : 'Archivo');
+
+                return (
+                  <div
+                    key={msg.id}
+                    className="flex items-start gap-3 p-3 mb-2 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors"
+                    onClick={() => {
+                      if (isGroupMsg) {
+                        // Buscar el objeto de sala completo
+                        const room = myActiveRooms?.find(r => r.roomCode === msg.roomCode);
+                        if (room && onRoomSelect) {
+                          // Navegar a grupo con el objeto completo y el messageId
+                          onRoomSelect(room, msg.id);
+                        } else {
+                          console.error('Sala no encontrada:', msg.roomCode);
+                        }
+                      } else {
+                        // Navegar a chat directo
+                        onUserSelect(msg.to, null, msg.id);
+                      }
+                    }}
+                  >
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-200 flex items-center justify-center text-lg">
+                      {isGroupMsg ? '👥' : '💬'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-sm text-gray-800" style={{ fontFamily: 'Inter, sans-serif' }}>
+                          {conversationName}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {isGroupMsg ? 'Grupo' : 'Chat'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-700 truncate" style={{ fontFamily: 'Inter, sans-serif' }}>
+                        {messagePreview}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(msg.sentAt).toLocaleString('es-ES', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="border-t border-gray-200 my-3"></div>
+            </div>
+          )}
+
+          {/* Mostrar indicador de búsqueda */}
+          {isSearching && (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-sm text-gray-500">Buscando mensajes...</div>
+            </div>
+          )}
+
           {(() => {
             // Filtrar conversaciones de monitoreo con búsqueda
             const filteredMonitoring = monitoringConversations.filter(conv => {
@@ -1330,11 +1601,74 @@ const ConversationList = ({
           className="flex-1 overflow-y-auto bg-white px-4"
           onScroll={handleScroll}
         >
+          {/* Mostrar resultados de búsqueda de mensajes si hay búsqueda activa */}
+          {searchTerm.trim() && messageSearchResults.length > 0 && (
+            <div className="mb-4">
+              <div className="text-xs text-gray-500 font-semibold mb-2 px-2" style={{ fontFamily: 'Inter, sans-serif' }}>
+                📝 Mensajes encontrados ({messageSearchResults.length})
+              </div>
+              {messageSearchResults.map((msg) => {
+                const isGroupMsg = msg.isGroup;
+                const conversationName = isGroupMsg ? msg.roomCode : msg.to;
+                const messagePreview = msg.message || (msg.fileName ? `📎 ${msg.fileName}` : 'Archivo');
+
+                return (
+                  <div
+                    key={msg.id}
+                    className="flex items-start gap-3 p-3 mb-2 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors"
+                    onClick={() => {
+                      if (isGroupMsg) {
+                        // Buscar el objeto de sala completo
+                        const room = myActiveRooms?.find(r => r.roomCode === msg.roomCode);
+                        if (room && onRoomSelect) {
+                          // Navegar a grupo con el objeto completo y el messageId
+                          onRoomSelect(room, msg.id);
+                        } else {
+                          console.error('Sala no encontrada:', msg.roomCode);
+                        }
+                      } else {
+                        // Navegar a chat directo
+                        onUserSelect(msg.to, null, msg.id);
+                      }
+                    }}
+                  >
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-200 flex items-center justify-center text-lg">
+                      {isGroupMsg ? '👥' : '💬'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-sm text-gray-800" style={{ fontFamily: 'Inter, sans-serif' }}>
+                          {conversationName}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {isGroupMsg ? 'Grupo' : 'Chat'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-700 truncate" style={{ fontFamily: 'Inter, sans-serif' }}>
+                        {messagePreview}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(msg.sentAt).toLocaleString('es-ES', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="border-t border-gray-200 my-3"></div>
+            </div>
+          )}
+
           {isSearching ? (
             <div className="p-5 text-center text-[#00a884] text-sm">
               <p>🔍 Buscando mensajes...</p>
             </div>
-          ) : filteredConversations.length === 0 ? (
+          ) : filteredConversations.length === 0 && messageSearchResults.length === 0 ? (
             <div className="p-5 text-center text-[#999] text-sm">
               {searchTerm.trim().length > 0 ? (
                 <p>No se encontraron resultados para "{searchTerm}"</p>
