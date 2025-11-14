@@ -696,6 +696,28 @@ const ChatPage = () => {
 
         addNewMessage(newMessage);
 
+        // 🔥 NUEVO: Actualizar el lastMessage en myActiveRooms
+        if (data.roomCode) {
+          setMyActiveRooms(prevRooms =>
+            prevRooms.map(room =>
+              room.roomCode === data.roomCode
+                ? {
+                    ...room,
+                    lastMessage: {
+                      id: data.id,
+                      text: data.message,
+                      from: data.from,
+                      sentAt: data.sentAt,
+                      time: timeString,
+                      mediaType: data.mediaType,
+                      fileName: data.fileName,
+                    }
+                  }
+                : room
+            )
+          );
+        }
+
         // Solo reproducir sonido si es de otro usuario
         if (!isOwnMessage) {
           playMessageSound(true);

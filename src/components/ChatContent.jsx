@@ -676,9 +676,10 @@ const ChatContent = ({
   const renderTextWithMentions = (text) => {
     if (!text) return text;
 
-    // Regex para detectar menciones @username
-    // 🔥 MODIFICADO: Excluir menciones que sean parte de emails (ej: @gmail, @outlook)
-    const mentionRegex = /@(\w+)/g;
+    // Regex para detectar menciones @username (con nombres completos que pueden tener espacios)
+    // 🔥 MODIFICADO: Capturar nombres completos con espacios (ej: @KAREN CONDEMARIN)
+    // Captura: @ seguido de letras/números/espacios hasta encontrar un espacio doble, salto de línea, o fin de texto
+    const mentionRegex = /@([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s]+?)(?=\s{2,}|$|[.,!?;:]|\n)/g;
     const parts = [];
     let lastIndex = 0;
     let match;
@@ -690,7 +691,7 @@ const ChatContent = ({
       const isPartOfEmail = /[a-zA-Z0-9._-]/.test(charBeforeMention);
 
       // 🔥 NUEVO: Verificar si después del @ hay un dominio de email común
-      const mentionedText = match[1].toLowerCase();
+      const mentionedText = match[1].toLowerCase().trim();
       const emailDomains = ['gmail', 'outlook', 'hotmail', 'yahoo', 'icloud', 'live', 'msn', 'aol', 'protonmail', 'zoho'];
       const isEmailDomain = emailDomains.includes(mentionedText);
 
@@ -707,7 +708,7 @@ const ChatContent = ({
       }
 
       // Agregar la mención resaltada (solo si NO es email)
-      const mentionedUser = match[1];
+      const mentionedUser = match[1].trim();
       const isCurrentUser = mentionedUser === currentUsername;
 
       parts.push(
@@ -1189,7 +1190,7 @@ const ChatContent = ({
           {/* Preview del mensaje al que se responde */}
           {message.replyToMessageId && (
             <div
-              onClick={() => {
+              onClick={async () => {
                 // Buscar el mensaje original y hacer scroll hacia él
                 const originalMessage = document.getElementById(`message-${message.replyToMessageId}`);
                 if (originalMessage) {
@@ -1197,6 +1198,39 @@ const ChatContent = ({
                   // Resaltar temporalmente el mensaje
                   setHighlightedMessageId(message.replyToMessageId);
                   setTimeout(() => setHighlightedMessageId(null), 2000);
+                } else {
+                  // 🔥 Si no se encuentra el mensaje, intentar cargar más mensajes
+                  console.log(`⚠️ Mensaje original ${message.replyToMessageId} no encontrado, cargando más mensajes...`);
+
+                  // Cargar más mensajes hasta encontrar el original (máximo 5 intentos)
+                  let attempts = 0;
+                  const maxAttempts = 5;
+
+                  while (attempts < maxAttempts) {
+                    if (hasMoreMessages && onLoadMoreMessages) {
+                      await onLoadMoreMessages();
+                      attempts++;
+
+                      // Esperar un poco para que se carguen los mensajes
+                      await new Promise(resolve => setTimeout(resolve, 500));
+
+                      // Verificar si ahora existe el mensaje
+                      const foundMessage = document.getElementById(`message-${message.replyToMessageId}`);
+                      if (foundMessage) {
+                        foundMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        setHighlightedMessageId(message.replyToMessageId);
+                        setTimeout(() => setHighlightedMessageId(null), 2000);
+                        break;
+                      }
+                    } else {
+                      console.log('❌ No hay más mensajes para cargar');
+                      break;
+                    }
+                  }
+
+                  if (attempts >= maxAttempts) {
+                    console.log('❌ No se pudo encontrar el mensaje original después de varios intentos');
+                  }
                 }
               }}
               style={{
@@ -1829,14 +1863,10 @@ const ChatContent = ({
                   onMouseEnter={(e) => e.currentTarget.style.opacity = '0.7'}
                   onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <FaComments style={{ fontSize: '14px' }} />
-                    <span>
-                      {message.threadCount > 0
-                        ? `${message.threadCount} ${message.threadCount === 1 ? 'respuesta' : 'respuestas'}`
-                        : 'Responder en hilo'}
-                    </span>
-                  </div>
+                  <FaComments style={{ marginRight: '6px' }} />
+                  {message.threadCount > 0
+                    ? `${message.threadCount} ${message.threadCount === 1 ? 'respuesta' : 'respuestas'}`
+                    : 'Responder en hilo'}
                   {message.lastReplyFrom && message.threadCount > 0 && (
                     <div style={{
                       fontSize: '11px',

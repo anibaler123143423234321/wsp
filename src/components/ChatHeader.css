@@ -239,6 +239,7 @@
   display: none; /* Ocultamos los iconos ya que usamos avatar */
 }
 
+.chat-title .room-code,
 .room-code {
   color: #00a884 !important;
   font-size: 10px;
@@ -251,6 +252,7 @@
   margin-left: 4px;
   font-family: "Courier New", monospace;
   letter-spacing: 0.3px;
+  display: inline-block;
 }
 
 .chat-subtitle {
