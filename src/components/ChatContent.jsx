@@ -381,12 +381,18 @@ const ChatContent = ({
   const handleReaction = (message, emoji) => {
     if (!socket || !socket.connected || !currentUsername) return;
 
+    // 🔥 Usar realSender para obtener el nombre real del usuario (no "Tú")
+    const actualSender = message.realSender || message.sender;
+    const actualReceiver = message.receiver;
+
+    // console.log(`👍 handleReaction - MessageID: ${message.id}, Emoji: ${emoji}, Sender: ${actualSender}, Receiver: ${actualReceiver}, IsGroup: ${isGroup}`);
+
     socket.emit('toggleReaction', {
       messageId: message.id,
       username: currentUsername,
       emoji: emoji,
       roomCode: isGroup ? currentRoomCode : undefined,
-      to: isGroup ? undefined : message.sender === currentUsername ? message.receiver : message.sender
+      to: isGroup ? undefined : actualSender === currentUsername ? actualReceiver : actualSender
     });
 
     setShowReactionPicker(null);
@@ -1754,6 +1760,95 @@ const ChatContent = ({
                   </div>
                 </div>
               )}
+
+              {/* Mostrar reacciones del mensaje (para mensajes con archivos adjuntos) */}
+              {Array.isArray(message.reactions) && message.reactions.length > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '4px',
+                    marginTop: '4px'
+                  }}
+                >
+                  {/* Agrupar reacciones por emoji */}
+                  {Object.entries(
+                    message.reactions.reduce((acc, reaction) => {
+                      if (reaction && reaction.emoji) {
+                        if (!acc[reaction.emoji]) {
+                          acc[reaction.emoji] = [];
+                        }
+                        acc[reaction.emoji].push(reaction.username);
+                      }
+                      return acc;
+                    }, {})
+                  ).map(([emoji, users]) => (
+                    <div
+                      key={emoji}
+                      style={{
+                        backgroundColor: users.includes(currentUsername) ? '#e1f4d6' : '#f5f6f6',
+                        border: users.includes(currentUsername) ? '1px solid #00a884' : '1px solid #ddd',
+                        borderRadius: '12px',
+                        padding: '2px 8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '12px',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => handleReaction(message, emoji)}
+                      title={users.join(', ')}
+                    >
+                      <span style={{ fontSize: '14px' }}>{emoji}</span>
+                      <span style={{ fontSize: '11px', color: '#667781', fontWeight: '500' }}>
+                        {users.length}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Botón de Hilo visible debajo del mensaje (para archivos adjuntos) */}
+              {onOpenThread && !message.isDeleted && (
+                <div
+                  onClick={() => onOpenThread(message)}
+                  style={{
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    color: '#00a884',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    padding: '4px 0',
+                    marginTop: '4px',
+                    fontWeight: '500',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2px',
+                    transition: 'opacity 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.opacity = '0.7'}
+                  onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <FaComments style={{ fontSize: '14px' }} />
+                    <span>
+                      {message.threadCount > 0
+                        ? `${message.threadCount} ${message.threadCount === 1 ? 'respuesta' : 'respuestas'}`
+                        : 'Responder en hilo'}
+                    </span>
+                  </div>
+                  {message.lastReplyFrom && message.threadCount > 0 && (
+                    <div style={{
+                      fontSize: '11px',
+                      color: '#8696a0',
+                      marginLeft: '20px',
+                      fontWeight: '400'
+                    }}>
+                      Última respuesta de {message.lastReplyFrom}
+                    </div>
+                  )}
+                </div>
+              )}
                 </>
               )}
             </div>
@@ -2051,7 +2146,7 @@ const ChatContent = ({
               )}
 
               {/* Mostrar reacciones del mensaje */}
-              {message.reactions && message.reactions.length > 0 && (
+              {Array.isArray(message.reactions) && message.reactions.length > 0 && (
                 <div
                   style={{
                     display: 'flex',
@@ -2063,10 +2158,12 @@ const ChatContent = ({
                   {/* Agrupar reacciones por emoji */}
                   {Object.entries(
                     message.reactions.reduce((acc, reaction) => {
-                      if (!acc[reaction.emoji]) {
-                        acc[reaction.emoji] = [];
+                      if (reaction && reaction.emoji) {
+                        if (!acc[reaction.emoji]) {
+                          acc[reaction.emoji] = [];
+                        }
+                        acc[reaction.emoji].push(reaction.username);
                       }
-                      acc[reaction.emoji].push(reaction.username);
                       return acc;
                     }, {})
                   ).map(([emoji, users]) => (

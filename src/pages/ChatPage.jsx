@@ -54,15 +54,15 @@ const ChatPage = () => {
   const [currentRoomCode, setCurrentRoomCodeInternal] = useState(null);
   const [assignedConversations, setAssignedConversations] = useState([]);
 
-  // 🔥 Wrapper para setCurrentRoomCode con logging
-  const setCurrentRoomCode = (newRoomCode) => {
+  // 🔥 Wrapper para setCurrentRoomCode con logging (memoizado para evitar re-renders innecesarios)
+  const setCurrentRoomCode = useCallback((newRoomCode) => {
     console.log('🔄 Cambiando currentRoomCode:', {
       from: currentRoomCode,
       to: newRoomCode,
       stack: new Error().stack
     });
     setCurrentRoomCodeInternal(newRoomCode);
-  };
+  }, [currentRoomCode]);
   const [monitoringConversations, setMonitoringConversations] = useState([]);
   const [monitoringPage, setMonitoringPage] = useState(1);
   const [monitoringTotal, setMonitoringTotal] = useState(0);
@@ -191,7 +191,7 @@ const ChatPage = () => {
   }, [isAuthenticated, username]);
 
   // Función para cargar las salas activas del usuario (solo para ADMIN y JEFEPISO)
-  const loadMyActiveRooms = async () => {
+  const loadMyActiveRooms = useCallback(async () => {
     try {
       // Si es ADMIN o JEFEPISO, cargar todas las salas activas
       if (user?.role === 'ADMIN' || user?.role === 'JEFEPISO' || user?.role === 'PROGRAMADOR') {
@@ -216,7 +216,7 @@ const ChatPage = () => {
       console.error('Error al cargar salas activas:', error);
       setMyActiveRooms([]);
     }
-  };
+  }, [user?.role]);
 
   // Cargar mensajes cuando cambie currentRoomCode (para grupos/salas)
   useEffect(() => {
@@ -1150,6 +1150,7 @@ const ChatPage = () => {
     // Evento: Reacción actualizada en un mensaje
     s.on('reactionUpdated', (data) => {
       const { messageId, reactions } = data;
+      // console.log(`🔄 reactionUpdated recibido - MessageID: ${messageId}, Reactions:`, reactions);
 
       // Actualizar el mensaje con las nuevas reacciones
       updateMessage(messageId, {
@@ -1206,7 +1207,7 @@ const ChatPage = () => {
           s.off('removedFromRoom');
           s.off('roomDeactivated');
         };
-      }, [socket, currentRoomCode, to, isGroup, username, isAdmin, soundsEnabled, typingTimeout]);
+      }, [socket, currentRoomCode, to, isGroup, username, isAdmin, soundsEnabled, typingTimeout, adminViewConversation, addNewMessage, updateMessage, currentUserFullName, playMessageSound, setAssignedConversations, clearMessages, loadAssignedConversations, setCurrentRoomCode, user, loadMyActiveRooms, messages, threadMessage]);
 
   // Estado para el mensaje a resaltar
   const [highlightMessageId, setHighlightMessageId] = useState(null);

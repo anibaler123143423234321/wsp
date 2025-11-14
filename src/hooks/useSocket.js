@@ -36,8 +36,8 @@ export const useSocket = (isAuthenticated, username, user) => {
         socket.current = io(socketUrl, {
           transports: ["websocket", "polling"],
           timeout: 10000,
-          path: "/socket.io/",
-         // path: "/BackendChat/socket.io/",
+         // path: "/socket.io/",
+          path: "/BackendChat/socket.io/",
           forceNew: true,
           reconnection: true,
           reconnectionAttempts: Infinity, // Intentar reconectar indefinidamente

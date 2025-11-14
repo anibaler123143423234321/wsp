@@ -365,7 +365,8 @@ const ThreadPanel = ({
             <img
               src={message.mediaData}
               alt={message.fileName || 'Imagen'}
-              style={{ maxWidth: '100%', borderRadius: '8px' }}
+              style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '8px', cursor: 'pointer' }}
+              onClick={() => window.open(message.mediaData, '_blank')}
             />
             {message.text && <div className="thread-main-message-text">{message.text}</div>}
           </div>
@@ -374,7 +375,7 @@ const ThreadPanel = ({
             <video
               src={message.mediaData}
               controls
-              style={{ maxWidth: '100%', borderRadius: '8px' }}
+              style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '8px' }}
             />
             {message.text && <div className="thread-main-message-text">{message.text}</div>}
           </div>
@@ -445,7 +446,7 @@ const ThreadPanel = ({
                   <img
                     src={msg.mediaData}
                     alt={msg.fileName || 'Imagen'}
-                    style={{ maxWidth: '100%', borderRadius: '8px', cursor: 'pointer' }}
+                    style={{ maxWidth: '180px', maxHeight: '180px', borderRadius: '8px', cursor: 'pointer' }}
                     onClick={() => window.open(msg.mediaData, '_blank')}
                   />
                   {msg.message && <div className="thread-message-text">{msg.message || msg.text}</div>}
@@ -455,7 +456,7 @@ const ThreadPanel = ({
                   <video
                     src={msg.mediaData}
                     controls
-                    style={{ maxWidth: '100%', borderRadius: '8px' }}
+                    style={{ maxWidth: '180px', maxHeight: '180px', borderRadius: '8px' }}
                   />
                   {msg.message && <div className="thread-message-text">{msg.message || msg.text}</div>}
                 </div>
