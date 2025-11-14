@@ -1,9 +1,10 @@
 import React from 'react';
-import { FaCheckCircle, FaTimes, FaHome, FaClipboard } from 'react-icons/fa';
+import { FaCheckCircle, FaHome, FaClipboard } from 'react-icons/fa';
+import BaseModal from './BaseModal';
 import './Modal.css';
 
 const RoomCreatedModal = ({ isOpen, onClose, roomData }) => {
-  if (!isOpen || !roomData) return null;
+  if (!roomData) return null;
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -22,84 +23,85 @@ const RoomCreatedModal = ({ isOpen, onClose, roomData }) => {
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content room-created-modal">
-        <div className="modal-header">
-          <h2><FaCheckCircle style={{color:'green',marginRight:6}}/> Sala Creada Exitosamente</h2>
-          <button className="modal-close" onClick={onClose}><FaTimes /></button>
-        </div>
-        
-        <div className="modal-body">
-          <div className="room-info">
-            <h3><FaHome style={{marginRight:4}}/> {roomData.name}</h3>
-            
-            <div className="info-section">
-              <label>Código de la sala:</label>
-              <div className="copy-field">
-                <input 
-                  type="text" 
-                  value={roomData.roomCode} 
-                  readOnly 
-                  className="code-input"
-                />
-                <button 
-                  className="btn btn-copy" 
-                  onClick={() => copyToClipboard(roomData.roomCode)}
-                  title="Copiar código"
-                >
-                  <FaClipboard />
-                </button>
-              </div>
-            </div>
+    <BaseModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Sala Creada Exitosamente"
+      icon={<FaCheckCircle style={{color:'#00FF00'}}/>}
+      headerBgColor="#A50104"
+      bodyBgColor="#FFFFFF"
+      titleColor="#FFFFFF"
+    >
+      <div className="room-info">
+        <h3 style={{ color: '#000000' }}><FaHome style={{marginRight:4}}/> {roomData.name}</h3>
 
-            <div className="info-section">
-              <label>Enlace de la sala:</label>
-              <div className="copy-field">
-                <input 
-                  type="text" 
-                  value={roomData.roomUrl} 
-                  readOnly 
-                  className="url-input"
-                />
-                <button 
-                  className="btn btn-copy" 
-                  onClick={() => copyToClipboard(roomData.roomUrl)}
-                  title="Copiar enlace"
-                >
-                  📋
-                </button>
-              </div>
-            </div>
-
-            <div className="room-stats">
-              <div className="stat-item">
-                <span className="stat-label">Capacidad:</span>
-                <span className="stat-value">{roomData.currentMembers}/{roomData.maxCapacity}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">Estado:</span>
-                <span className="stat-value">{roomData.isActive ? '🟢 Activa' : '🔴 Inactiva'}</span>
-              </div>
-            </div>
-
-            <div className="instructions">
-              <p><strong>📝 Instrucciones:</strong></p>
-              <ul>
-                <li>Comparte el <strong>código</strong> o el <strong>enlace</strong> con los participantes</li>
-                <li>Los usuarios pueden unirse usando cualquiera de los dos métodos</li>
-                <li>La sala estará disponible hasta que expire su duración</li>
-              </ul>
-            </div>
-          </div>
-          
-          <div className="modal-actions">
-            <button className="btn btn-primary" onClick={onClose}>
-              Entrar a la Sala
+        <div className="info-section">
+          <label style={{ color: '#000000' }}>Código de la sala:</label>
+          <div className="copy-field">
+            <input
+              type="text"
+              value={roomData.roomCode}
+              readOnly
+              className="code-input"
+              style={{ backgroundColor: '#f5f5f5', color: '#000000', border: '1px solid #d1d7db' }}
+            />
+            <button
+              className="btn btn-copy"
+              onClick={() => copyToClipboard(roomData.roomCode)}
+              title="Copiar código"
+            >
+              <FaClipboard />
             </button>
           </div>
         </div>
+
+        <div className="info-section">
+          <label style={{ color: '#000000' }}>Enlace de la sala:</label>
+          <div className="copy-field">
+            <input
+              type="text"
+              value={roomData.roomUrl}
+              readOnly
+              className="url-input"
+              style={{ backgroundColor: '#f5f5f5', color: '#000000', border: '1px solid #d1d7db' }}
+            />
+            <button
+              className="btn btn-copy"
+              onClick={() => copyToClipboard(roomData.roomUrl)}
+              title="Copiar enlace"
+            >
+              📋
+            </button>
+          </div>
+        </div>
+
+        <div className="room-stats">
+          <div className="stat-item">
+            <span className="stat-label" style={{ color: '#666666' }}>Capacidad:</span>
+            <span className="stat-value" style={{ color: '#000000' }}>{roomData.currentMembers}/{roomData.maxCapacity}</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-label" style={{ color: '#666666' }}>Estado:</span>
+            <span className="stat-value" style={{ color: '#000000' }}>{roomData.isActive ? '🟢 Activa' : '🔴 Inactiva'}</span>
+          </div>
+        </div>
+
+        <div className="instructions">
+          <p style={{ color: '#000000' }}><strong>📝 Instrucciones:</strong></p>
+          <ul style={{ color: '#333333' }}>
+            <li>Comparte el <strong>código</strong> o el <strong>enlace</strong> con los participantes</li>
+            <li>Los usuarios pueden unirse usando cualquiera de los dos métodos</li>
+            <li>La sala estará disponible hasta que expire su duración</li>
+          </ul>
+        </div>
       </div>
-    </div>
+
+      <div className="modal-actions" style={{ borderTop: '1px solid #e0e0e0' }}>
+        <button className="btn btn-primary" onClick={onClose}>
+          Entrar a la Sala
+        </button>
+      </div>
+    </BaseModal>
   );
 };
 

@@ -1,11 +1,13 @@
 // Servicio para conectar con la API (múltiples backends según sede)
 // URLs para CHICLAYO / PIURA
 const API_BASE_URL_CHICLAYO = "https://apisozarusac.com/BackendJava/";
-const API_BASECHAT_URL_CHICLAYO = "https://apisozarusac.com/BackendChat/";
+//const API_BASECHAT_URL_CHICLAYO = "https://apisozarusac.com/BackendChat/";
+const API_BASECHAT_URL_CHICLAYO = "http://localhost:8747/";
 
 // URLs para LIMA
 const API_BASE_URL_LIMA = "https://apisozarusac.com/BackendJavaMidas/";
-const API_BASECHAT_URL_LIMA = "https://apisozarusac.com/BackendChat/";
+//const API_BASECHAT_URL_LIMA = "https://apisozarusac.com/BackendChat/";
+const API_BASECHAT_URL_LIMA = "http://localhost:8747/";
 
 class ApiService {
   constructor() {
@@ -453,10 +455,20 @@ class ApiService {
     }
   }
 
-  async getAdminRooms() {
+  async getAdminRooms(page = 1, limit = 10, search = '') {
     try {
+      // Construir query params
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+
+      if (search && search.trim()) {
+        params.append('search', search.trim());
+      }
+
       const response = await this.fetchWithAuth(
-        `${this.baseChatUrl}api/temporary-rooms/admin/rooms`,
+        `${this.baseChatUrl}api/temporary-rooms/admin/rooms?${params.toString()}`,
         {
           method: "GET",
         }
@@ -793,15 +805,26 @@ class ApiService {
     }
   }
 
-  // Editar un mensaje
-  async editMessage(messageId, username, newText) {
+  // Editar un mensaje (con soporte para multimedia)
+  async editMessage(messageId, username, newText, mediaType = null, mediaData = null, fileName = null, fileSize = null) {
     try {
-      const response = await fetch(`${API_BASECHAT_URL}api/messages/${messageId}`, {
+      const body = {
+        username,
+        message: newText
+      };
+
+      // 🔥 Agregar campos multimedia si se proporcionan
+      if (mediaType !== null) body.mediaType = mediaType;
+      if (mediaData !== null) body.mediaData = mediaData;
+      if (fileName !== null) body.fileName = fileName;
+      if (fileSize !== null) body.fileSize = fileSize;
+
+      const response = await fetch(`${this.baseChatUrl}api/messages/${messageId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, message: newText }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
@@ -817,6 +840,40 @@ class ApiService {
       return result;
     } catch (error) {
       console.error("Error al editar mensaje:", error);
+      throw error;
+    }
+  }
+
+  // Eliminar un mensaje (ADMIN puede eliminar cualquier mensaje)
+  async deleteMessage(messageId, username, isAdmin = false, deletedBy = null) {
+    try {
+      const body = {
+        username,
+        isAdmin,
+        deletedBy
+      };
+
+      const response = await fetch(`${this.baseChatUrl}api/messages/${messageId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `Error del servidor: ${response.status} - ${JSON.stringify(
+            errorData
+          )}`
+        );
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al eliminar mensaje:", error);
       throw error;
     }
   }

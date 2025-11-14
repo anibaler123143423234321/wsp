@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { FaTimes, FaEdit, FaTrash, FaUsers, FaClock, FaCalendarAlt } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaUsers, FaClock, FaCalendarAlt, FaClipboardList } from 'react-icons/fa';
+import BaseModal from './BaseModal';
 import './ManageAssignedConversationsModal.css';
 import apiService from '../../apiService';
 import { showSuccessAlert, showErrorAlert, showConfirmAlert } from '../../sweetalert2';
@@ -197,54 +198,52 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
     }
   };
 
-  if (!show) return null;
-
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content manage-conversations-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>
-            <FaUsers /> Gestionar Conversaciones Asignadas
-          </h2>
-          <button className="close-btn" onClick={onClose}>
-            <FaTimes />
-          </button>
+    <BaseModal
+      isOpen={show}
+      onClose={onClose}
+      title="Gestionar Conversaciones Asignadas"
+      icon={<FaClipboardList />}
+      headerBgColor="#A50104"
+      bodyBgColor="#FFFFFF"
+      titleColor="#FFFFFF"
+      maxWidth="1000px"
+    >
+      {loading ? (
+        <div className="loading-state">
+          <div className="spinner"></div>
+          <p style={{ color: '#666666' }}>Cargando conversaciones...</p>
         </div>
-
-        <div className="modal-body">
-          {loading ? (
-            <div className="loading-state">
-              <div className="spinner"></div>
-              <p>Cargando conversaciones...</p>
-            </div>
-          ) : conversations.length === 0 ? (
-            <div className="empty-state">
-              <FaUsers size={48} />
-              <p>No hay conversaciones asignadas</p>
-            </div>
-          ) : (
-            <div className="conversations-list">
-              {conversations.map((conv) => (
-                <div key={conv.id} className="conversation-card">
+      ) : conversations.length === 0 ? (
+        <div className="empty-state">
+          <FaUsers size={48} style={{ color: '#A50104' }} />
+          <p style={{ color: '#666666' }}>No hay conversaciones asignadas</p>
+        </div>
+      ) : (
+        <div className="conversations-list">
+          {conversations.map((conv) => (
+                <div key={conv.id} className="conversation-card" style={{ backgroundColor: '#f9f9f9', border: '1px solid #e0e0e0' }}>
                   {editingConv === conv.id ? (
                     // Modo edición
                     <div className="edit-mode">
                       <div className="form-group">
-                        <label>Nombre de la conversación</label>
+                        <label style={{ color: '#000000' }}>Nombre de la conversación</label>
                         <input
                           type="text"
                           value={editForm.name}
                           onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                           placeholder="Nombre de la conversación"
+                          style={{ backgroundColor: '#FFFFFF', color: '#000000', border: '1px solid #d1d7db' }}
                         />
                       </div>
                       <div className="form-group">
-                        <label>Descripción (opcional)</label>
+                        <label style={{ color: '#000000' }}>Descripción (opcional)</label>
                         <textarea
                           value={editForm.description}
                           onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                           placeholder="Descripción de la conversación"
                           rows="3"
+                          style={{ backgroundColor: '#FFFFFF', color: '#000000', border: '1px solid #d1d7db' }}
                         />
                       </div>
                       <div className="edit-actions">
@@ -260,7 +259,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
                     // Modo vista
                     <>
                       <div className="conversation-header">
-                        <h3>
+                        <h3 style={{ color: '#000000' }}>
                           {conv.name}
                           {!conv.isActive && (
                             <span style={{ marginLeft: '10px', fontSize: '12px', color: '#999', fontWeight: 'normal' }}>
@@ -309,13 +308,13 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
                       </div>
 
                       {conv.description && (
-                        <p className="conversation-description">{conv.description}</p>
+                        <p className="conversation-description" style={{ color: '#666666' }}>{conv.description}</p>
                       )}
 
                       <div className="conversation-info">
                         <div className="info-item">
-                          <FaUsers />
-                          <span>Participantes:</span>
+                          <FaUsers style={{ color: '#A50104' }} />
+                          <span style={{ color: '#000000' }}>Participantes:</span>
                           <div className="participants">
                             {conv.participants?.map((participant, idx) => {
                               // Función para extraer solo los primeros nombres
@@ -334,14 +333,14 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
                         </div>
 
                         <div className="info-item">
-                          <FaCalendarAlt />
-                          <span>Creada:</span>
-                          <span className="date">{formatDate(conv.createdAt)}</span>
+                          <FaCalendarAlt style={{ color: '#A50104' }} />
+                          <span style={{ color: '#000000' }}>Creada:</span>
+                          <span className="date" style={{ color: '#666666' }}>{formatDate(conv.createdAt)}</span>
                         </div>
 
                         <div className="info-item">
-                          <FaClock />
-                          <span>Estado:</span>
+                          <FaClock style={{ color: '#A50104' }} />
+                          <span style={{ color: '#000000' }}>Estado:</span>
                           <span className={`status ${formatExpiration(conv.expiresAt).className}`}>
                             {formatExpiration(conv.expiresAt).text}
                           </span>
@@ -353,15 +352,13 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
               ))}
             </div>
           )}
-        </div>
 
-        <div className="modal-footer">
-          <button className="btn-secondary" onClick={onClose}>
-            Cerrar
-          </button>
-        </div>
+      <div className="modal-footer" style={{ borderTop: '1px solid #e0e0e0', backgroundColor: '#FFFFFF' }}>
+        <button className="btn-secondary" onClick={onClose}>
+          Cerrar
+        </button>
       </div>
-    </div>
+    </BaseModal>
   );
 };
 

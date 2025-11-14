@@ -1,4 +1,5 @@
 import { FaPlus, FaSignInAlt, FaDoorOpen, FaUserFriends, FaClipboardList, FaTimes } from 'react-icons/fa';
+import { HiMenu } from 'react-icons/hi';
 import logoutIcon from '../assets/mbrilogout_99583.svg';
 import menuBackground from '../assets/menu.png';
 import './LeftSidebar.css';
@@ -13,11 +14,13 @@ const LeftSidebar = ({
   showAdminMenu,
   setShowAdminMenu,
   onLogout,
-  onToggleSidebar
+  onToggleSidebar,
+  isCollapsed,
+  onToggleCollapse
 }) => {
   return (
     <div
-      className="left-sidebar-container flex flex-col p-0 max-[768px]:w-full max-[768px]:h-screen flex-shrink-0 left-sidebar-responsive"
+      className={`left-sidebar-container flex flex-col p-0 max-[768px]:w-full max-[768px]:h-screen flex-shrink-0 left-sidebar-responsive ${isCollapsed ? 'collapsed' : ''}`}
       style={{
         backgroundImage: `url(${menuBackground})`,
         backgroundSize: 'cover',
@@ -30,36 +33,57 @@ const LeftSidebar = ({
         className="max-[1280px]:!pt-4 max-[1280px]:!px-4 max-[1280px]:!pb-4 max-[1024px]:!pt-3 max-[1024px]:!px-3 max-[1024px]:!pb-3 max-[768px]:flex max-[768px]:items-start max-[768px]:justify-between max-[768px]:!pt-4 max-[768px]:!px-4 max-[768px]:!pb-4"
         style={{
           paddingTop: '30px',
-          paddingLeft: '41px',
+          paddingLeft: '20px',
           paddingRight: '41px',
           paddingBottom: '30px'
         }}
       >
-        <h1
-          className="font-['Inter',-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] max-[1280px]:!text-base max-[1280px]:!leading-tight max-[1280px]:!w-auto max-[1280px]:!h-auto max-[1024px]:!text-sm max-[768px]:!text-lg max-[768px]:!leading-tight"
-          style={{
-            width: '139px',
-            height: '42px',
-            fontSize: '24px',
-            fontWeight: 800,
-            lineHeight: '28px',
-            letterSpacing: '0px',
-            color: '#FFFFFF'
-          }}
-        >
-          <span className="max-[1280px]:hidden">Chat<br/>corporativo</span>
-          <span className="hidden max-[1280px]:inline max-[768px]:hidden">Chat<br/>corp.</span>
-          <span className="hidden max-[768px]:inline">Chat<br/>corporativo</span>
-        </h1>
-        {onToggleSidebar && (
-          <button
-            onClick={onToggleSidebar}
-            className="hidden max-[768px]:flex items-center justify-center w-8 h-8 bg-white/10 hover:bg-white/20 rounded-full transition-all duration-200 active:scale-95"
-            title="Cerrar menú"
+        <div className="flex items-center justify-start w-full gap-3">
+          {/* Botón hamburguesa para colapsar/expandir - Diseño profesional */}
+          {onToggleCollapse && (
+            <button
+              onClick={onToggleCollapse}
+              className="group flex items-center justify-center w-10 h-10 hover:bg-white/10 rounded-lg transition-all duration-200 active:scale-95 max-[768px]:hidden flex-shrink-0"
+              title={isCollapsed ? "Expandir menú" : "Colapsar menú"}
+              style={{
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                alignSelf: 'center'
+              }}
+            >
+              <HiMenu className="text-white text-2xl transition-transform duration-200 group-hover:scale-110" />
+            </button>
+          )}
+
+          <h1
+            className={`font-['Inter',-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] max-[1280px]:!text-base max-[1280px]:!leading-tight max-[1280px]:!w-auto max-[1280px]:!h-auto max-[1024px]:!text-sm max-[768px]:!text-lg max-[768px]:!leading-tight transition-opacity duration-300 ${isCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}
+            style={{
+              width: '139px',
+              height: '42px',
+              fontSize: '24px',
+              fontWeight: 800,
+              lineHeight: '28px',
+              letterSpacing: '0px',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center'
+            }}
           >
-            <FaTimes className="text-white text-base" />
-          </button>
-        )}
+            <span className="max-[1280px]:hidden">Chat<br/>corporativo</span>
+            <span className="hidden max-[1280px]:inline max-[768px]:hidden">Chat<br/>corp.</span>
+            <span className="hidden max-[768px]:inline">Chat<br/>corporativo</span>
+          </h1>
+
+          {/* Botón X para cerrar en mobile */}
+          {onToggleSidebar && (
+            <button
+              onClick={onToggleSidebar}
+              className="hidden max-[768px]:flex items-center justify-center w-8 h-8 bg-white/10 hover:bg-white/20 rounded-full transition-all duration-200 active:scale-95"
+              title="Cerrar menú"
+            >
+              <FaTimes className="text-white text-base" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Contenedor con flex-1 para empujar el footer hacia abajo */}

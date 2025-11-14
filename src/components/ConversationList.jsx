@@ -90,11 +90,13 @@ const ConversationList = ({
   const [roomsSearchTerm, setRoomsSearchTerm] = useState('');
   const [assignedSearchTerm, setAssignedSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('newest');
-  const [isSearching] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const conversationsListRef = useRef(null);
   const [favoriteRoomCodes, setFavoriteRoomCodes] = useState([]); // Códigos de salas favoritas
   const [favoriteConversationIds, setFavoriteConversationIds] = useState([]); // IDs de conversaciones favoritas
   const [userCache, setUserCache] = useState({}); // Cache de información de usuarios (incluyendo desconectados)
+  const [messageSearchResults, setMessageSearchResults] = useState([]); // Resultados de búsqueda de mensajes
+  const searchTimeoutRef = useRef(null);
 
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'JEFEPISO';
 
@@ -738,15 +740,17 @@ const ConversationList = ({
                     });
 
                     if (otherUser) {
-                      // Usuario está online
+                      // Usuario encontrado en la lista
                       otherParticipantPicture = otherUser.picture || null;
-                      isOtherParticipantOnline = true;
+                      // 🔥 FIX: Leer la propiedad isOnline del usuario, no asumir que está online
+                      isOtherParticipantOnline = otherUser.isOnline === true;
                     } else {
-                      // Usuario está offline, buscar en el cache
+                      // Usuario no encontrado en la lista, buscar en el cache
                       const cachedUser = userCache[otherParticipantNormalized];
                       if (cachedUser) {
                         otherParticipantPicture = cachedUser.picture || null;
-                        isOtherParticipantOnline = false;
+                        // 🔥 FIX: Leer la propiedad isOnline del cache
+                        isOtherParticipantOnline = cachedUser.isOnline === true;
                       }
                     }
                   }

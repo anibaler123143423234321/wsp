@@ -2,9 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ChatLayout from '../layouts/ChatLayout';
 import Login from '../components/Login';
 import LoadingScreen from '../components/LoadingScreen';
-import CreateRoomModal from '../components/modals/CreateRoomModal';
-import JoinRoomModal from '../components/modals/JoinRoomModal';
-import AdminRoomsModal from '../components/modals/AdminRoomsModal';
 import RoomCreatedModal from '../components/modals/RoomCreatedModal';
 import EditRoomModal from '../components/modals/EditRoomModal';
 import CreateConversationModal from '../components/modals/CreateConversationModal';
@@ -54,8 +51,18 @@ const ChatPage = () => {
   const [userListLoading, setUserListLoading] = useState(false);
   const [groupList] = useState([]);
   const [roomUsers, setRoomUsers] = useState([]);
-  const [currentRoomCode, setCurrentRoomCode] = useState(null);
+  const [currentRoomCode, setCurrentRoomCodeInternal] = useState(null);
   const [assignedConversations, setAssignedConversations] = useState([]);
+
+  // 🔥 Wrapper para setCurrentRoomCode con logging
+  const setCurrentRoomCode = (newRoomCode) => {
+    console.log('🔄 Cambiando currentRoomCode:', {
+      from: currentRoomCode,
+      to: newRoomCode,
+      stack: new Error().stack
+    });
+    setCurrentRoomCodeInternal(newRoomCode);
+  };
   const [monitoringConversations, setMonitoringConversations] = useState([]);
   const [monitoringPage, setMonitoringPage] = useState(1);
   const [monitoringTotal, setMonitoringTotal] = useState(0);
@@ -89,6 +96,8 @@ const ChatPage = () => {
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   // Sidebar cerrado por defecto en mobile, abierto en desktop
   const [showSidebar, setShowSidebar] = useState(window.innerWidth > 768);
+  // Estado para colapsar/expandir el sidebar en desktop
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showCreateRoomModal, setShowCreateRoomModal] = useState(false);
   const [showJoinRoomModal, setShowJoinRoomModal] = useState(false);
   const [showAdminRoomsModal, setShowAdminRoomsModal] = useState(false);
@@ -99,8 +108,6 @@ const ChatPage = () => {
   const [showAddUsersToRoomModal, setShowAddUsersToRoomModal] = useState(false);
   const [showRemoveUsersFromRoomModal, setShowRemoveUsersFromRoomModal] = useState(false);
   const [createdRoomData, setCreatedRoomData] = useState(null);
-  const [adminRooms, setAdminRooms] = useState([]);
-  const [loadingAdminRooms, setLoadingAdminRooms] = useState(false);
   const [myActiveRooms, setMyActiveRooms] = useState([]); // Salas activas para mostrar en el sidebar
   const [editingRoom, setEditingRoom] = useState(null);
 
@@ -188,9 +195,10 @@ const ChatPage = () => {
     try {
       // Si es ADMIN o JEFEPISO, cargar todas las salas activas
       if (user?.role === 'ADMIN' || user?.role === 'JEFEPISO' || user?.role === 'PROGRAMADOR') {
-        const rooms = await apiService.getAdminRooms();
+        // Cargar todas las salas activas (sin paginación para el sidebar)
+        const response = await apiService.getAdminRooms(1, 1000, '');
         // Filtrar solo las salas activas
-        const activeRooms = rooms.filter(room => room.isActive);
+        const activeRooms = response.data ? response.data.filter(room => room.isActive) : [];
         setMyActiveRooms(activeRooms);
       } else {
         // Para usuarios normales, cargar su sala activa
@@ -333,6 +341,13 @@ const ChatPage = () => {
             // Campos de hilos
             threadCount: msg.threadCount || 0,
             lastReplyFrom: msg.lastReplyFrom || null,
+            // Campos de edición
+            isEdited: msg.isEdited || false,
+            editedAt: msg.editedAt,
+            // 🔥 Campos de eliminación
+            isDeleted: msg.isDeleted || false,
+            deletedBy: msg.deletedBy || null,
+            deletedAt: msg.deletedAt || null,
           };
         });
 
@@ -551,16 +566,31 @@ const ChatPage = () => {
 
       if (data.isGroup) {
         // 🔥 CRÍTICO: Verificar que el usuario esté viendo el grupo correcto
-        const isViewingCorrectGroup = isGroup && currentRoomCode && data.roomCode === currentRoomCode;
+        // Para salas temporales (con roomCode), verificar por roomCode
+        // Para grupos normales (sin roomCode), verificar por nombre del grupo
+        let isViewingCorrectGroup = false;
+
+        if (currentRoomCode && data.roomCode) {
+          // Sala temporal: verificar por roomCode
+          isViewingCorrectGroup = isGroup && currentRoomCode === data.roomCode;
+        } else {
+          // Grupo normal: verificar por nombre del grupo
+          isViewingCorrectGroup = isGroup && to === data.group;
+        }
+
+        console.log('🔍 Verificando grupo:', {
+          isGroup,
+          currentRoomCode,
+          dataRoomCode: data.roomCode,
+          messageFrom: data.from,
+          isViewingCorrectGroup,
+          to,
+          dataGroup: data.group,
+          verificationType: currentRoomCode && data.roomCode ? 'roomCode' : 'groupName'
+        });
 
         if (!isViewingCorrectGroup) {
           console.log('⚠️ Mensaje de grupo recibido pero el usuario no está viendo ese grupo. Ignorando.');
-          console.log('🔍 Debug:', {
-            isGroup,
-            currentRoomCode,
-            dataRoomCode: data.roomCode,
-            messageFrom: data.from
-          });
           return;
         }
 
@@ -769,10 +799,33 @@ const ChatPage = () => {
 
     // Evento para mensaje editado
     s.on('messageEdited', (data) => {
-      const { messageId, newText, editedAt, isEdited } = data;
+      const { messageId, newText, editedAt, isEdited, mediaType, mediaData, fileName, fileSize } = data;
 
       // Actualizar el mensaje en la lista de mensajes
-      updateMessage(messageId, { text: newText, isEdited, editedAt });
+      const updateData = { text: newText, isEdited, editedAt };
+
+      // 🔥 Si hay campos multimedia, incluirlos en la actualización
+      if (mediaType !== undefined) updateData.mediaType = mediaType;
+      if (mediaData !== undefined) updateData.mediaData = mediaData;
+      if (fileName !== undefined) updateData.fileName = fileName;
+      if (fileSize !== undefined) updateData.fileSize = fileSize;
+
+      updateMessage(messageId, updateData);
+    });
+
+    // Evento para mensaje eliminado
+    s.on('messageDeleted', (data) => {
+      const { messageId, isDeleted, deletedAt, deletedBy } = data;
+
+      console.log(`🗑️ Mensaje eliminado recibido:`, { messageId, deletedBy });
+
+      // Actualizar el mensaje en la lista de mensajes
+      updateMessage(messageId, {
+        isDeleted,
+        deletedAt,
+        deletedBy,
+        text: deletedBy ? `Mensaje eliminado por ${deletedBy}` : 'Mensaje eliminado'
+      });
     });
 
     s.on('connect', () => {
@@ -825,7 +878,7 @@ const ChatPage = () => {
     });
 
     // Evento: Conversación actualizada (nombre, descripción, etc.)
-    s.on('conversationDataUpdated', async (data) => {
+    s.on('conversationDataUpdated', async () => {
       try {
         // Recargar conversaciones asignadas
         await loadAssignedConversations();
@@ -1405,6 +1458,13 @@ const ChatPage = () => {
   // Función para seleccionar una sala del sidebar
   const handleRoomSelect = async (room) => {
     try {
+      console.log('🏠 Seleccionando sala:', {
+        name: room.name,
+        roomCode: room.roomCode,
+        currentRoomCode,
+        allRooms: myActiveRooms.map(r => ({ name: r.name, roomCode: r.roomCode }))
+      });
+
       // Si ya estamos en esta sala, no hacer nada
       if (currentRoomCode === room.roomCode) {
         return;
@@ -1456,15 +1516,37 @@ const ChatPage = () => {
         roomUsersData = [];
       }
 
-      // 🔥 MODIFICADO: Solo emitir joinRoom si el usuario está realmente en la sala
-      // Para ADMIN que solo monitorea, NO emitir joinRoom
+      // 🔥 MODIFICADO: Emitir joinRoom si el usuario está en la lista de miembros de la sala
+      // O si es ADMIN/JEFEPISO (para monitoreo)
       // Comparar con username (no con nombre completo)
       const isUserInRoom = Array.isArray(roomUsersData) && roomUsersData.some(user => user.username === username);
-      if (isUserInRoom && socket && socket.connected) {
+      const isAdminOrJefe = user?.role === 'ADMIN' || user?.role === 'JEFEPISO';
+
+      console.log('🔍 Verificando si emitir joinRoom:', {
+        roomCode: room.roomCode,
+        roomName: room.name,
+        username,
+        isUserInRoom,
+        isAdminOrJefe,
+        userRole: user?.role,
+        roomUsersData: roomUsersData.map(u => u.username)
+      });
+
+      // ADMIN y JEFEPISO pueden unirse a cualquier sala para monitoreo
+      if ((isUserInRoom || isAdminOrJefe) && socket && socket.connected) {
+        console.log('✅ Emitiendo joinRoom para sala:', room.roomCode, isAdminOrJefe ? '(como ADMIN/JEFEPISO)' : '(como miembro)');
         socket.emit('joinRoom', {
           roomCode: room.roomCode,
           roomName: room.name,
-          from: username
+          from: username,
+          isMonitoring: isAdminOrJefe && !isUserInRoom // 🔥 Indicar si es monitoreo
+        });
+      } else {
+        console.log('⚠️ NO se emitió joinRoom. Razón:', {
+          isUserInRoom,
+          isAdminOrJefe,
+          socketConnected: socket?.connected,
+          hasSocket: !!socket
         });
       }
 
@@ -1538,7 +1620,8 @@ const ChatPage = () => {
         isGroup: effectiveIsGroup, // 🔥 Usar el valor efectivo
         time: timeString,
         from: username,
-        fromId: user.id
+        fromId: user.id,
+        roomCode: currentRoomCode // 🔥 Incluir roomCode para salas temporales
       };
 
       // console.log('📤 Creando messageObj:', {
@@ -1661,6 +1744,12 @@ const ChatPage = () => {
       // Esperar a que el backend lo confirme y lo envíe de vuelta
       // Esto evita duplicados y problemas de sincronización
       if (isGroup) {
+        console.log('📤 Enviando mensaje de grupo:', {
+          to,
+          currentRoomCode,
+          messageObj,
+          myActiveRooms: myActiveRooms.map(r => ({ name: r.name, roomCode: r.roomCode }))
+        });
         socket.emit('message', messageObj);
         console.log('📤 Mensaje de grupo enviado, esperando confirmación del backend...');
       } else {
@@ -1752,15 +1841,35 @@ const ChatPage = () => {
     setReplyingTo(null); // Limpiar el estado de respuesta
   };
 
-  const handleEditMessage = async (messageId, newText) => {
-    if (!newText.trim()) {
+  const handleEditMessage = async (messageId, newText, newFile = null) => {
+    if (!newText.trim() && !newFile) {
       await showErrorAlert('Error', 'El mensaje no puede estar vacío');
       return;
     }
 
     try {
+      let mediaType = null;
+      let mediaData = null;
+      let fileName = null;
+      let fileSize = null;
+
+      // 🔥 Si hay un nuevo archivo, subirlo primero
+      if (newFile) {
+        try {
+          const uploadResult = await apiService.uploadFile(newFile, 'chat');
+          mediaType = newFile.type.split('/')[0];
+          mediaData = uploadResult.fileUrl;
+          fileName = uploadResult.fileName;
+          fileSize = uploadResult.fileSize;
+        } catch (error) {
+          console.error('❌ Error al subir archivo:', error);
+          await showErrorAlert('Error', 'Error al subir el archivo. Inténtalo de nuevo.');
+          return;
+        }
+      }
+
       // Actualizar en la base de datos
-      await apiService.editMessage(messageId, username, newText);
+      await apiService.editMessage(messageId, username, newText, mediaType, mediaData, fileName, fileSize);
 
       // Emitir evento de socket para sincronizar en tiempo real
       if (socket && socket.connected) {
@@ -1768,6 +1877,10 @@ const ChatPage = () => {
           messageId,
           username,
           newText,
+          mediaType,
+          mediaData,
+          fileName,
+          fileSize,
           to,
           isGroup,
           roomCode: currentRoomCode
@@ -1775,10 +1888,65 @@ const ChatPage = () => {
       }
 
       // Actualizar localmente
-      updateMessage(messageId, { text: newText, isEdited: true, editedAt: new Date() });
+      const updateData = {
+        text: newText,
+        isEdited: true,
+        editedAt: new Date()
+      };
+
+      // Si hay nuevo archivo, actualizar también los campos multimedia
+      if (newFile) {
+        updateData.mediaType = mediaType;
+        updateData.mediaData = mediaData;
+        updateData.fileName = fileName;
+        updateData.fileSize = fileSize;
+      }
+
+      updateMessage(messageId, updateData);
     } catch (error) {
       console.error('Error al editar mensaje:', error);
       await showErrorAlert('Error', 'Error al editar el mensaje. Inténtalo de nuevo.');
+    }
+  };
+
+  // Función para eliminar mensaje (solo ADMIN puede eliminar cualquier mensaje)
+  const handleDeleteMessage = async (messageId, messageSender) => {
+    const result = await showConfirmAlert(
+      '¿Eliminar mensaje?',
+      `¿Estás seguro de que quieres eliminar este mensaje de ${messageSender}?`
+    );
+
+    if (!result.isConfirmed) return;
+
+    try {
+      // Eliminar en la base de datos
+      await apiService.deleteMessage(messageId, username, isAdmin, currentUserFullName);
+
+      // Emitir evento de socket para sincronizar en tiempo real
+      if (socket && socket.connected) {
+        socket.emit('deleteMessage', {
+          messageId,
+          username,
+          to,
+          isGroup,
+          roomCode: currentRoomCode,
+          isAdmin,
+          deletedBy: currentUserFullName
+        });
+      }
+
+      // Actualizar localmente
+      updateMessage(messageId, {
+        isDeleted: true,
+        deletedAt: new Date(),
+        deletedBy: currentUserFullName,
+        text: `Mensaje eliminado por ${currentUserFullName}`
+      });
+
+      await showSuccessAlert('Éxito', 'Mensaje eliminado correctamente');
+    } catch (error) {
+      console.error('Error al eliminar mensaje:', error);
+      await showErrorAlert('Error', 'Error al eliminar el mensaje. Inténtalo de nuevo.');
     }
   };
 
@@ -2027,18 +2195,8 @@ const ChatPage = () => {
     };
   }, []);
 
-  const handleShowAdminRooms = async () => {
-    setLoadingAdminRooms(true);
-    try {
-      const rooms = await apiService.getAdminRooms();
-      setAdminRooms(rooms);
-      setShowAdminRoomsModal(true);
-    } catch (error) {
-      console.error('Error al cargar salas:', error);
-      await showErrorAlert('Error', 'Error al cargar las salas: ' + error.message);
-    } finally {
-      setLoadingAdminRooms(false);
-    }
+  const handleShowAdminRooms = () => {
+    setShowAdminRoomsModal(true);
   };
 
   const handleDeleteRoom = async (roomId, roomName) => {
@@ -2053,20 +2211,14 @@ const ChatPage = () => {
         await apiService.deleteRoom(roomId);
         await showSuccessAlert('Éxito', 'Sala eliminada correctamente');
 
-        // Actualizar la lista de salas en el modal de administración
-        const rooms = await apiService.getAdminRooms();
-        setAdminRooms(rooms);
-
-        // ✅ Actualizar también la lista de salas activas en el sidebar
+        // ✅ Actualizar la lista de salas activas en el sidebar
         await loadMyActiveRooms();
       } catch (error) {
         console.error('Error al eliminar sala:', error);
         if (error.message.includes('404') || error.message.includes('Not Found')) {
           await showErrorAlert('Aviso', 'La sala ya fue eliminada');
-          const rooms = await apiService.getAdminRooms();
-          setAdminRooms(rooms);
 
-          // ✅ Actualizar también la lista de salas activas en el sidebar
+          // ✅ Actualizar la lista de salas activas en el sidebar
           await loadMyActiveRooms();
         } else {
           await showErrorAlert('Error', 'Error al eliminar la sala: ' + error.message);
@@ -2107,11 +2259,7 @@ const ChatPage = () => {
 
       await showSuccessAlert('Éxito', 'Capacidad de sala actualizada correctamente');
 
-      // Actualizar la lista de salas
-      const rooms = await apiService.getAdminRooms();
-      setAdminRooms(rooms);
-
-      // Actualizar también la lista de salas activas en el sidebar
+      // Actualizar la lista de salas activas en el sidebar
       await loadMyActiveRooms();
 
       // Cerrar modal
@@ -2135,11 +2283,7 @@ const ChatPage = () => {
         await apiService.deactivateRoom(roomId);
         await showSuccessAlert('Éxito', 'Sala desactivada correctamente');
 
-        // Actualizar la lista de salas en el modal de administración
-        const rooms = await apiService.getAdminRooms();
-        setAdminRooms(rooms);
-
-        // ✅ Actualizar también la lista de salas activas en el sidebar
+        // ✅ Actualizar la lista de salas activas en el sidebar
         await loadMyActiveRooms();
       } catch (error) {
         console.error('Error al desactivar sala:', error);
@@ -2159,11 +2303,7 @@ const ChatPage = () => {
         await apiService.activateRoom(roomId);
         await showSuccessAlert('Éxito', 'Sala activada correctamente');
 
-        // Actualizar la lista de salas en el modal de administración
-        const rooms = await apiService.getAdminRooms();
-        setAdminRooms(rooms);
-
-        // ✅ Actualizar también la lista de salas activas en el sidebar
+        // ✅ Actualizar la lista de salas activas en el sidebar
         await loadMyActiveRooms();
       } catch (error) {
         console.error('Error al activar sala:', error);
@@ -2210,7 +2350,7 @@ const ChatPage = () => {
     }
   };
 
-  const handleUsersRemoved = async (usernames) => {
+  const handleUsersRemoved = async () => {
     // Esperar un momento para que el backend procese los eventos
     await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -2482,6 +2622,8 @@ const ChatPage = () => {
       showAdminMenu={showAdminMenu}
       setShowAdminMenu={setShowAdminMenu}
       showSidebar={showSidebar}
+      sidebarCollapsed={sidebarCollapsed}
+      onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       onUserSelect={handleUserSelect}
       onGroupSelect={handleGroupSelect}
       onPersonalNotes={handlePersonalNotes}
@@ -2493,7 +2635,6 @@ const ChatPage = () => {
       onShowManageConversations={() => setShowManageConversationsModal(true)}
       onShowManageUsers={() => {}}
       onShowSystemConfig={() => {}}
-      loadingAdminRooms={loadingAdminRooms}
       unreadMessages={unreadMessages}
       myActiveRooms={myActiveRooms}
       onRoomSelect={handleRoomSelect}
@@ -2533,6 +2674,7 @@ const ChatPage = () => {
       onEnableSounds={handleEnableSounds}
       currentUsername={username}
       onEditMessage={handleEditMessage}
+      onDeleteMessage={handleDeleteMessage}
       isTyping={isTyping}
       highlightMessageId={highlightMessageId}
       onMessageHighlighted={() => setHighlightMessageId(null)}
@@ -2556,7 +2698,6 @@ const ChatPage = () => {
       onJoinRoom={handleJoinRoom}
       showAdminRoomsModal={showAdminRoomsModal}
       setShowAdminRoomsModal={setShowAdminRoomsModal}
-      adminRooms={adminRooms}
       onDeleteRoom={handleDeleteRoom}
       onDeactivateRoom={handleDeactivateRoom}
       onActivateRoom={handleActivateRoom}

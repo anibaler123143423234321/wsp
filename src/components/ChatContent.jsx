@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { FaPaperclip, FaPaperPlane, FaEdit, FaTimes, FaReply, FaSmile, FaInfoCircle, FaComments } from 'react-icons/fa';
+import { FaPaperclip, FaPaperPlane, FaEdit, FaTimes, FaReply, FaSmile, FaInfoCircle, FaComments, FaTrash, FaChevronDown, FaCopy } from 'react-icons/fa';
 import EmojiPicker from 'emoji-picker-react';
 import LoadMoreMessages from './LoadMoreMessages';
 import WelcomeScreen from './WelcomeScreen';
@@ -27,6 +27,7 @@ const ChatContent = ({
   onLoadMoreMessages,
   currentUsername,
   onEditMessage,
+  onDeleteMessage,
   socket,
   highlightMessageId,
   onMessageHighlighted,
@@ -34,13 +35,16 @@ const ChatContent = ({
   replyingTo,
   onCancelReply,
   onOpenThread,
-  onSendVoiceMessage
+  onSendVoiceMessage,
+  isAdmin = false
 }) => {
   const chatHistoryRef = useRef(null);
   const isUserScrollingRef = useRef(false);
   const lastMessageCountRef = useRef(0);
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editText, setEditText] = useState('');
+  const [editFile, setEditFile] = useState(null); // 🔥 Archivo para editar multimedia
+  const [isEditingLoading, setIsEditingLoading] = useState(false); // 🔥 Loading para edición
   const typingTimeoutRef = useRef(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const [expandedMessages, setExpandedMessages] = useState(new Set());
@@ -49,8 +53,11 @@ const ChatContent = ({
   const [showMessageInfo, setShowMessageInfo] = useState(null); // Mensaje seleccionado para ver info
   const [showReactionPicker, setShowReactionPicker] = useState(null); // ID del mensaje para mostrar selector de reacciones
   const [imagePreview, setImagePreview] = useState(null); // Estado para vista previa de imagen en pantalla completa
+  const [showMessageMenu, setShowMessageMenu] = useState(null); // ID del mensaje para mostrar menú desplegable
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const emojiPickerRef = useRef(null);
   const reactionPickerRef = useRef(null);
+  const messageMenuRef = useRef(null);
 
   // Estados para menciones (@)
   const [showMentionSuggestions, setShowMentionSuggestions] = useState(false);
@@ -60,26 +67,33 @@ const ChatContent = ({
 
   // Función para formatear la fecha del separador
   const formatDateSeparator = (date) => {
+    // Convertir la fecha del mensaje a hora de Perú (UTC-5)
     const messageDate = new Date(date);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    const peruOffset = -5 * 60 * 60 * 1000; // -5 horas en milisegundos
+    const messageDatePeru = new Date(messageDate.getTime() + peruOffset);
 
-    // Resetear horas para comparación
-    messageDate.setHours(0, 0, 0, 0);
-    today.setHours(0, 0, 0, 0);
-    yesterday.setHours(0, 0, 0, 0);
+    // Obtener la fecha actual en hora de Perú
+    const now = new Date();
+    const todayPeru = new Date(now.getTime() + peruOffset);
+    const yesterdayPeru = new Date(todayPeru);
+    yesterdayPeru.setUTCDate(yesterdayPeru.getUTCDate() - 1);
 
-    if (messageDate.getTime() === today.getTime()) {
+    // Resetear horas para comparación (usar UTC para evitar problemas de zona horaria)
+    messageDatePeru.setUTCHours(0, 0, 0, 0);
+    todayPeru.setUTCHours(0, 0, 0, 0);
+    yesterdayPeru.setUTCHours(0, 0, 0, 0);
+
+    if (messageDatePeru.getTime() === todayPeru.getTime()) {
       return 'Hoy';
-    } else if (messageDate.getTime() === yesterday.getTime()) {
+    } else if (messageDatePeru.getTime() === yesterdayPeru.getTime()) {
       return 'Ayer';
     } else {
       // Formato: "Sábado, 9 de noviembre"
-      return messageDate.toLocaleDateString('es-ES', {
+      return messageDatePeru.toLocaleDateString('es-PE', {
         weekday: 'long',
         day: 'numeric',
-        month: 'long'
+        month: 'long',
+        timeZone: 'UTC'
       });
     }
   };
@@ -193,20 +207,28 @@ const ChatContent = ({
   const handleStartEdit = (message) => {
     setEditingMessageId(message.id);
     setEditText(message.text);
+    setEditFile(null); // Limpiar archivo anterior
   };
 
   // Cancelar edición
   const handleCancelEdit = () => {
     setEditingMessageId(null);
     setEditText('');
+    setEditFile(null);
   };
 
   // Guardar edición
-  const handleSaveEdit = () => {
-    if (editText.trim() && editingMessageId) {
-      onEditMessage(editingMessageId, editText);
-      setEditingMessageId(null);
-      setEditText('');
+  const handleSaveEdit = async () => {
+    if ((editText.trim() || editFile) && editingMessageId) {
+      setIsEditingLoading(true); // 🔥 Mostrar loading
+      try {
+        await onEditMessage(editingMessageId, editText, editFile);
+      } finally {
+        setIsEditingLoading(false); // 🔥 Ocultar loading
+        setEditingMessageId(null);
+        setEditText('');
+        setEditFile(null);
+      }
     }
   };
 
@@ -286,16 +308,6 @@ const ChatContent = ({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       onSendMessage();
-    }
-  };
-
-  // Manejar tecla Enter en edición
-  const handleEditKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSaveEdit();
-    } else if (e.key === 'Escape') {
-      handleCancelEdit();
     }
   };
 
@@ -446,6 +458,23 @@ const ChatContent = ({
   }, [messages, socket, isGroup, to, currentUsername]);
 
   // Detectar cuando el usuario está haciendo scroll manual
+  // 🔥 Cerrar menú desplegable al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (messageMenuRef.current && !messageMenuRef.current.contains(event.target)) {
+        setShowMessageMenu(null);
+      }
+    };
+
+    if (showMessageMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMessageMenu]);
+
   const handleScroll = () => {
     if (!chatHistoryRef.current) return;
 
@@ -770,7 +799,10 @@ const ChatContent = ({
           margin: '2px 0',
           padding: '0 8px',
           gap: '6px',
-          transition: 'all 0.3s ease'
+          transition: 'all 0.3s ease',
+          overflow: 'visible',
+          position: 'relative',
+          zIndex: showMessageMenu === message.id ? 10000 : 1
         }}
       >
         {/* Avatar para mensajes de otros */}
@@ -802,6 +834,7 @@ const ChatContent = ({
               : (isOwnMessage ? '#E1F4D6' : '#E8E6F0'),
             color: '#1f2937',
             padding: '6px 19.25px',
+            paddingRight: message.isDeleted ? '19.25px' : '32px',
             borderTopRightRadius: '17.11px',
             borderBottomRightRadius: '17.11px',
             borderBottomLeftRadius: '17.11px',
@@ -821,11 +854,303 @@ const ChatContent = ({
             wordBreak: 'break-word',
             transition: 'all 0.3s ease',
             border: isHighlighted ? '2px solid #00a884' : 'none',
+            overflow: 'visible',
             // 🔥 CORREGIDO: Usar maxWidth en inline style en lugar de clases de Tailwind
             // Esto asegura que el mensaje se expanda completamente sin truncamiento
             maxWidth: message.mediaType ? '400px' : 'calc(100vw - 100px)'
           }}
         >
+          {/* 🔥 Botón de menú en esquina superior derecha */}
+          {!message.isDeleted && (
+            <div
+              style={{ position: 'absolute', top: '2px', right: '2px', zIndex: 9999 }}
+              ref={showMessageMenu === message.id ? messageMenuRef : null}
+            >
+              <button
+                onClick={(e) => {
+                  if (showMessageMenu === message.id) {
+                    setShowMessageMenu(null);
+                  } else {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setMenuPosition({
+                      top: rect.bottom + 4,
+                      left: rect.right - 180
+                    });
+                    setShowMessageMenu(message.id);
+                  }
+                }}
+                style={{
+                  backgroundColor: isOwnMessage ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.8)',
+                  border: 'none',
+                  color: '#54656f',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  padding: '2px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '50%',
+                  width: '20px',
+                  height: '20px',
+                  transition: 'all 0.2s',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
+                  e.currentTarget.style.transform = 'scale(1.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = isOwnMessage ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.8)';
+                  e.currentTarget.style.transform = 'scale(1)';
+                }}
+                title="Más opciones"
+              >
+                <FaChevronDown />
+              </button>
+
+              {/* Menú desplegable */}
+              {showMessageMenu === message.id && (
+                <div
+                  style={{
+                    position: 'fixed',
+                    top: `${menuPosition.top}px`,
+                    left: `${menuPosition.left}px`,
+                    backgroundColor: '#fff',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                    zIndex: 99999,
+                    minWidth: '180px',
+                    overflow: 'hidden'
+                  }}
+                >
+                  {/* Responder */}
+                  <button
+                    onClick={() => {
+                      if (window.handleReplyMessage) {
+                        window.handleReplyMessage(message);
+                      }
+                      setShowMessageMenu(null);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '10px 16px',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      color: '#111',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f2f5'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <FaReply style={{ color: '#8696a0' }} /> Responder
+                  </button>
+
+                  {/* Copiar */}
+                  <button
+                    onClick={async () => {
+                      try {
+                        let textToCopy = '';
+
+                        // Si es mensaje de texto
+                        if (message.text) {
+                          textToCopy = message.text;
+                        }
+                        // Si es mensaje multimedia con caption
+                        else if (message.caption) {
+                          textToCopy = message.caption;
+                        }
+                        // Si es archivo, copiar el nombre
+                        else if (message.fileName) {
+                          textToCopy = message.fileName;
+                        }
+
+                        if (textToCopy) {
+                          await navigator.clipboard.writeText(textToCopy);
+                          // Opcional: mostrar notificación de éxito
+                          console.log('Texto copiado:', textToCopy);
+                        }
+                      } catch (err) {
+                        console.error('Error al copiar:', err);
+                      }
+                      setShowMessageMenu(null);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '10px 16px',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      color: '#111',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f2f5'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <FaCopy style={{ color: '#8696a0' }} /> Copiar
+                  </button>
+
+                  {/* Responder en hilo */}
+                  {onOpenThread && (
+                    <button
+                      onClick={() => {
+                        onOpenThread(message);
+                        setShowMessageMenu(null);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px 16px',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        color: '#111',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        transition: 'background-color 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f2f5'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <FaComments style={{ color: '#8696a0' }} />
+                      {message.threadCount > 0 ? `${message.threadCount} ${message.threadCount === 1 ? 'respuesta' : 'respuestas'}` : 'Hilo'}
+                    </button>
+                  )}
+
+                  {/* Info - solo para mensajes propios en salas */}
+                  {isOwnMessage && isGroup && message.id && (
+                    <button
+                      onClick={() => {
+                        setShowMessageInfo(message);
+                        setShowMessageMenu(null);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px 16px',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        color: '#111',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        transition: 'background-color 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f2f5'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <FaInfoCircle style={{ color: '#8696a0' }} /> Info
+                    </button>
+                  )}
+
+                  {/* Reaccionar */}
+                  {message.id && (
+                    <button
+                      onClick={() => {
+                        setShowReactionPicker(showReactionPicker === message.id ? null : message.id);
+                        setShowMessageMenu(null);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px 16px',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        color: '#111',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        transition: 'background-color 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f2f5'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <FaSmile style={{ color: '#8696a0' }} /> Reaccionar
+                    </button>
+                  )}
+
+                  {/* Editar - solo para mensajes propios */}
+                  {isOwnMessage && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStartEdit(message);
+                        setShowMessageMenu(null);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px 16px',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        color: '#111',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        transition: 'background-color 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f2f5'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <FaEdit style={{ color: '#8696a0' }} /> Editar
+                    </button>
+                  )}
+
+                  {/* Eliminar - solo para ADMIN */}
+                  {isAdmin && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onDeleteMessage) {
+                          onDeleteMessage(message.id, message.realSender || message.sender);
+                        }
+                        setShowMessageMenu(null);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px 16px',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        color: '#ff4444',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        transition: 'background-color 0.2s',
+                        borderTop: '1px solid #e0e0e0'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fff5f5'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <FaTrash style={{ color: '#ff4444' }} /> Eliminar
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {!isOwnMessage && (
             <div
               className="message-sender"
@@ -889,29 +1214,212 @@ const ChatContent = ({
             </div>
           )}
 
-          {message.mediaType && message.mediaData ? (
-            <div>
-              <div
-                className="media-message"
+          {editingMessageId === message.id ? (
+            // Modo de edición (para texto y multimedia)
+            <div style={{ marginBottom: '8px' }}>
+              <textarea
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
                 style={{
-                  marginBottom: '2px'
+                  width: '100%',
+                  minHeight: '60px',
+                  padding: '10px 12px',
+                  borderRadius: '7.5px',
+                  border: '1px solid #d1d7db',
+                  fontSize: '14px',
+                  fontFamily: 'inherit',
+                  resize: 'vertical',
+                  marginBottom: '12px',
+                  outline: 'none',
+                  transition: 'border-color 0.2s'
                 }}
-              >
-                {message.mediaType === 'image' ? (
-                  <div style={{ position: 'relative' }}>
-                    <img
-                      src={message.mediaData}
-                      alt={message.fileName || 'Imagen'}
-                      loading="lazy"
-                      className="media-image"
+                placeholder="Editar mensaje..."
+                autoFocus
+                onFocus={(e) => e.target.style.borderColor = '#00a884'}
+                onBlur={(e) => e.target.style.borderColor = '#d1d7db'}
+              />
+
+              {/* Input para cambiar archivo multimedia - Estilo mejorado */}
+              <div style={{ marginBottom: '12px' }}>
+                <label
+                  htmlFor={`file-input-${message.id}`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 16px',
+                    backgroundColor: '#f0f2f5',
+                    color: '#54656f',
+                    borderRadius: '7.5px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    border: '1px solid #d1d7db',
+                    transition: 'all 0.2s',
+                    userSelect: 'none'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = '#e4e6eb';
+                    e.target.style.borderColor = '#00a884';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = '#f0f2f5';
+                    e.target.style.borderColor = '#d1d7db';
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="#54656f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Seleccionar archivo
+                </label>
+                <input
+                  id={`file-input-${message.id}`}
+                  type="file"
+                  accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx"
+                  onChange={(e) => setEditFile(e.target.files[0])}
+                  style={{ display: 'none' }}
+                />
+                {editFile ? (
+                  <div style={{
+                    marginTop: '8px',
+                    padding: '8px 12px',
+                    backgroundColor: '#d1f4dd',
+                    borderRadius: '7.5px',
+                    fontSize: '12px',
+                    color: '#00a884',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M20 6L9 17l-5-5" stroke="#00a884" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span style={{ fontWeight: '500' }}>Nuevo archivo: {editFile.name}</span>
+                  </div>
+                ) : (
+                  <div style={{
+                    marginTop: '8px',
+                    fontSize: '11px',
+                    color: '#8696a0'
+                  }}>
+                    Ningún archivo seleccionado
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={isEditingLoading}
+                  style={{
+                    backgroundColor: isEditingLoading ? '#8696a0' : '#00a884',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '7.5px',
+                    padding: '8px 20px',
+                    fontSize: '13px',
+                    cursor: isEditingLoading ? 'not-allowed' : 'pointer',
+                    fontWeight: '500',
+                    transition: 'background-color 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => !isEditingLoading && (e.target.style.backgroundColor = '#06cf9c')}
+                  onMouseLeave={(e) => !isEditingLoading && (e.target.style.backgroundColor = '#00a884')}
+                >
+                  {isEditingLoading && (
+                    <div
                       style={{
-                        maxWidth: '100%',
-                        borderRadius: '7.5px',
-                        display: 'block',
-                        cursor: 'pointer'
+                        width: '14px',
+                        height: '14px',
+                        border: '2px solid #fff',
+                        borderTopColor: 'transparent',
+                        borderRadius: '50%',
+                        animation: 'spin 0.6s linear infinite'
                       }}
-                      onClick={() => setImagePreview({ url: message.mediaData, fileName: message.fileName || 'imagen' })}
                     />
+                  )}
+                  {isEditingLoading ? 'Guardando...' : 'Guardar'}
+                </button>
+                <button
+                  onClick={handleCancelEdit}
+                  style={{
+                    backgroundColor: '#f0f2f5',
+                    color: '#54656f',
+                    border: 'none',
+                    borderRadius: '7.5px',
+                    padding: '8px 20px',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    fontWeight: '500',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#e4e6eb'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = '#f0f2f5'}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : message.mediaType && message.mediaData ? (
+            <div>
+              {/* 🔥 Mostrar mensaje eliminado para multimedia */}
+              {message.isDeleted ? (
+                <div>
+                  <div
+                    className="message-text"
+                    style={{
+                      color: '#8696a0',
+                      fontSize: '14px',
+                      fontStyle: 'italic',
+                      lineHeight: '100%',
+                      fontFamily: 'Inter, sans-serif',
+                      fontWeight: '400',
+                      marginBottom: '4px',
+                      whiteSpace: 'pre-wrap',
+                      display: 'block'
+                    }}
+                  >
+                    {message.deletedBy ? `🚫 Mensaje eliminado por ${message.deletedBy}` : '🚫 Mensaje eliminado'}
+                  </div>
+                  {/* Hora del mensaje eliminado */}
+                  <div
+                    style={{
+                      fontSize: '11px',
+                      color: '#8696a0',
+                      marginTop: '2px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <span>{formatTime(message.time)}</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div
+                    className="media-message"
+                    style={{
+                      marginBottom: '2px'
+                    }}
+                  >
+                    {message.mediaType === 'image' ? (
+                      <div style={{ position: 'relative' }}>
+                        <img
+                          src={message.mediaData}
+                          alt={message.fileName || 'Imagen'}
+                          loading="lazy"
+                          className="media-image"
+                          style={{
+                            maxWidth: '100%',
+                            borderRadius: '7.5px',
+                            display: 'block',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => setImagePreview({ url: message.mediaData, fileName: message.fileName || 'imagen' })}
+                        />
                     {/* 🔥 NUEVO: Hora y checks en la esquina inferior derecha de la imagen */}
                     <div
                       style={{
@@ -930,6 +1438,11 @@ const ChatContent = ({
                       }}
                     >
                       <span>{formatTime(message.time)}</span>
+                      {message.isEdited && (
+                        <span style={{ fontSize: '10px', color: 'rgba(255, 255, 255, 0.7)', marginLeft: '4px' }}>
+                          (editado)
+                        </span>
+                      )}
                       {isOwnMessage && (
                         <span
                           style={{
@@ -1003,6 +1516,11 @@ const ChatContent = ({
                         }}
                       >
                         <span>{formatTime(message.time)}</span>
+                        {message.isEdited && (
+                          <span style={{ fontSize: '10px', color: '#8696a0', marginLeft: '4px' }}>
+                            (editado)
+                          </span>
+                        )}
                         {isOwnMessage && (
                           <span
                             style={{
@@ -1119,6 +1637,14 @@ const ChatContent = ({
                         <span style={{ color: '#8696a0', fontSize: '11px' }}>
                           {formatTime(message.time)}
                         </span>
+                        {message.isEdited && (
+                          <>
+                            <span style={{ color: '#8696a0', fontSize: '11px' }}>•</span>
+                            <span style={{ fontSize: '10px', color: '#8696a0' }}>
+                              editado
+                            </span>
+                          </>
+                        )}
                         {isOwnMessage && (
                           <>
                             <span style={{ color: '#8696a0', fontSize: '11px' }}>•</span>
@@ -1146,234 +1672,121 @@ const ChatContent = ({
                 )}
               </div>
 
-              {/* Botones de acción para mensajes multimedia */}
-              <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                {/* Botón de responder */}
-                <button
-                  onClick={() => {
-                    if (window.handleReplyMessage) {
-                      window.handleReplyMessage(message);
-                    }
-                  }}
-                  style={{
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    color: '#8696a0',
-                    cursor: 'pointer',
-                    fontSize: '11px',
-                    padding: '2px 0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '3px'
-                  }}
-                  title="Responder mensaje"
-                >
-                  <FaReply /> Responder
-                </button>
-
-                {/* Botón de responder en hilo */}
-                {onOpenThread && (
-                  <button
-                    onClick={() => onOpenThread(message)}
+              {/* Selector de reacciones (fuera del menú) */}
+              {message.id && showReactionPicker === message.id && (
+                <div style={{ position: 'relative', marginTop: '4px' }}>
+                  <div
+                    ref={reactionPickerRef}
                     style={{
-                      backgroundColor: 'transparent',
-                      border: 'none',
-                      color: '#8696a0',
-                      cursor: 'pointer',
-                      fontSize: '11px',
-                      padding: '2px 0',
+                      position: 'absolute',
+                      bottom: '100%',
+                      left: isOwnMessage ? 'auto' : '0',
+                      right: isOwnMessage ? '0' : 'auto',
+                      backgroundColor: '#fff',
+                      borderRadius: '20px',
+                      padding: '8px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                       display: 'flex',
-                      alignItems: 'center',
-                      gap: '3px'
+                      gap: '4px',
+                      zIndex: 1000,
+                      marginBottom: '4px'
                     }}
-                    title="Responder en hilo"
                   >
-                    <FaComments />
-                    {message.threadCount > 0 ? (
-                      <span>
-                        {message.threadCount} {message.threadCount === 1 ? 'respuesta' : 'respuestas'}
-                        {message.lastReplyFrom && ` • ${message.lastReplyFrom}`}
-                      </span>
-                    ) : (
-                      <span>Hilo</span>
-                    )}
-                  </button>
-                )}
-
-                {/* Botón de info - solo para mensajes propios en salas */}
-                {isOwnMessage && isGroup && message.id && (
-                  <button
-                    onClick={() => setShowMessageInfo(message)}
-                    style={{
-                      backgroundColor: 'transparent',
-                      border: 'none',
-                      color: '#8696a0',
-                      cursor: 'pointer',
-                      fontSize: '11px',
-                      padding: '2px 0',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '3px'
-                    }}
-                    title="Ver quién leyó este mensaje"
-                  >
-                    <FaInfoCircle /> Info
-                  </button>
-                )}
-
-                {/* Botón de reacción */}
-                {message.id && (
-                  <div style={{ position: 'relative' }}>
-                    <button
-                      onClick={() => setShowReactionPicker(showReactionPicker === message.id ? null : message.id)}
-                      style={{
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        color: '#8696a0',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        padding: '2px 0',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '3px'
-                      }}
-                      title="Reaccionar"
-                    >
-                      <FaSmile />
-                    </button>
-
-                    {/* Selector de reacciones rápidas */}
-                    {showReactionPicker === message.id && (
-                      <div
-                        ref={reactionPickerRef}
+                    {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(emoji => (
+                      <button
+                        key={emoji}
+                        onClick={() => handleReaction(message, emoji)}
                         style={{
-                          position: 'absolute',
-                          bottom: '100%',
-                          left: isOwnMessage ? 'auto' : '0',
-                          right: isOwnMessage ? '0' : 'auto',
-                          backgroundColor: '#fff',
-                          borderRadius: '20px',
-                          padding: '8px',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                          display: 'flex',
-                          gap: '4px',
-                          zIndex: 1000,
-                          marginBottom: '4px'
+                          backgroundColor: 'transparent',
+                          border: 'none',
+                          fontSize: '20px',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          borderRadius: '50%',
+                          transition: 'transform 0.2s'
                         }}
+                        onMouseEnter={(e) => e.target.style.transform = 'scale(1.2)'}
+                        onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
                       >
-                        {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(emoji => (
-                          <button
-                            key={emoji}
-                            onClick={() => handleReaction(message, emoji)}
-                            style={{
-                              backgroundColor: 'transparent',
-                              border: 'none',
-                              fontSize: '20px',
-                              cursor: 'pointer',
-                              padding: '4px',
-                              borderRadius: '50%',
-                              transition: 'transform 0.2s'
-                            }}
-                            onMouseEnter={(e) => e.target.style.transform = 'scale(1.2)'}
-                            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-                          >
-                            {emoji}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                        {emoji}
+                      </button>
+                    ))}
                   </div>
-                )}
-              </div>
-            </div>
-          ) : editingMessageId === message.id ? (
-            // Modo de edición
-            <div style={{ marginBottom: '8px' }}>
-              <input
-                type="text"
-                value={editText}
-                onChange={(e) => setEditText(e.target.value)}
-                onKeyDown={handleEditKeyPress}
-                autoFocus
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  backgroundColor: '#2a3942',
-                  border: '1px solid #00a884',
-                  borderRadius: '5px',
-                  color: '#e9edef',
-                  fontSize: '14px',
-                  outline: 'none'
-                }}
-              />
-              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                <button
-                  onClick={handleSaveEdit}
-                  style={{
-                    padding: '6px 12px',
-                    backgroundColor: '#00a884',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    fontWeight: '500'
-                  }}
-                >
-                  Guardar
-                </button>
-                <button
-                  onClick={handleCancelEdit}
-                  style={{
-                    padding: '6px 12px',
-                    backgroundColor: '#374151',
-                    color: '#e9edef',
-                    border: 'none',
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    fontWeight: '500'
-                  }}
-                >
-                  Cancelar
-                </button>
-              </div>
+                </div>
+              )}
+                </>
+              )}
             </div>
           ) : (
             <div>
-              {(() => {
-                const MAX_LENGTH = 300; // Máximo de caracteres antes de mostrar "Ver más"
-                const isExpanded = expandedMessages.has(message.id);
-                const shouldTruncate = message.text && message.text.length > MAX_LENGTH;
-                const displayText = shouldTruncate && !isExpanded
-                  ? message.text.substring(0, MAX_LENGTH)
-                  : message.text;
+              {/* 🔥 Mostrar mensaje eliminado */}
+              {message.isDeleted ? (
+                <div>
+                  <div
+                    className="message-text"
+                    style={{
+                      color: '#8696a0',
+                      fontSize: '14px',
+                      fontStyle: 'italic',
+                      lineHeight: '100%',
+                      fontFamily: 'Inter, sans-serif',
+                      fontWeight: '400',
+                      marginBottom: '4px',
+                      whiteSpace: 'pre-wrap',
+                      display: 'block'
+                    }}
+                  >
+                    {message.deletedBy ? `🚫 Mensaje eliminado por ${message.deletedBy}` : '🚫 Mensaje eliminado'}
+                  </div>
+                  {/* Hora del mensaje eliminado */}
+                  <div
+                    style={{
+                      fontSize: '11px',
+                      color: '#8696a0',
+                      marginTop: '2px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <span>{formatTime(message.time)}</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {(() => {
+                    const MAX_LENGTH = 300; // Máximo de caracteres antes de mostrar "Ver más"
+                    const isExpanded = expandedMessages.has(message.id);
+                    const shouldTruncate = message.text && message.text.length > MAX_LENGTH;
+                    const displayText = shouldTruncate && !isExpanded
+                      ? message.text.substring(0, MAX_LENGTH)
+                      : message.text;
 
-                return (
-                  <>
-                    <div
-                      className="message-text"
-                      style={{
-                        color: '#000000D9',
-                        fontSize: '14.97px',
-                        lineHeight: '100%',
-                        letterSpacing: '0%',
-                        fontFamily: 'Inter, sans-serif',
-                        fontWeight: '400',
-                        fontStyle: 'Regular',
-                        marginBottom: '1px',
-                        whiteSpace: 'pre-wrap',
-                        display: 'block',
-                        wordWrap: 'break-word',
-                        overflowWrap: 'break-word'
-                      }}
-                    >
-                      {renderTextWithMentions(displayText)}
-                      {shouldTruncate && !isExpanded && '...'}
-                      {message.isEdited && (
-                        <span
+                    return (
+                      <>
+                        <div
+                          className="message-text"
                           style={{
-                            fontSize: '10px',
+                            color: '#000000D9',
+                            fontSize: '14.97px',
+                            lineHeight: '100%',
+                            letterSpacing: '0%',
+                            fontFamily: 'Inter, sans-serif',
+                            fontWeight: '400',
+                            fontStyle: 'Regular',
+                            marginBottom: '1px',
+                            whiteSpace: 'pre-wrap',
+                            display: 'block',
+                            wordWrap: 'break-word',
+                            overflowWrap: 'break-word'
+                          }}
+                        >
+                          {renderTextWithMentions(displayText)}
+                          {shouldTruncate && !isExpanded && '...'}
+                          {message.isEdited && (
+                            <span
+                              style={{
+                                fontSize: '10px',
                             color: '#8696a0',
                             marginLeft: '4px',
                             fontStyle: 'italic'
@@ -1402,6 +1815,11 @@ const ChatContent = ({
                           }}
                         >
                           <span>{formatTime(message.time)}</span>
+                          {message.isEdited && (
+                            <span style={{ fontSize: '10px', color: '#8696a0', marginLeft: '4px' }}>
+                              (editado)
+                            </span>
+                          )}
                           {isOwnMessage && (
                             <>
                               <span
@@ -1478,6 +1896,11 @@ const ChatContent = ({
                             }}
                           >
                             <span>{formatTime(message.time)}</span>
+                            {message.isEdited && (
+                              <span style={{ fontSize: '10px', color: '#8696a0', marginLeft: '4px' }}>
+                                (editado)
+                              </span>
+                            )}
                             {isOwnMessage && (
                               <>
                                 <span
@@ -1506,173 +1929,51 @@ const ChatContent = ({
                   </>
                 );
               })()}
-              {/* Botones de acción del mensaje */}
-              <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>
-                {/* Botón de responder - disponible para todos los mensajes */}
-                <button
-                  onClick={() => {
-                    if (window.handleReplyMessage) {
-                      window.handleReplyMessage(message);
-                    }
-                  }}
-                  style={{
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    color: '#8696a0',
-                    cursor: 'pointer',
-                    fontSize: '11px',
-                    padding: '2px 0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '3px'
-                  }}
-                  title="Responder mensaje"
-                >
-                  <FaReply /> Responder
-                </button>
+                </>
+              )}
 
-                {/* Botón de responder en hilo */}
-                {onOpenThread && (
-                  <button
-                    onClick={() => onOpenThread(message)}
+              {/* Selector de reacciones (fuera del menú) */}
+              {message.id && showReactionPicker === message.id && (
+                <div style={{ position: 'relative', marginTop: '4px' }}>
+                  <div
+                    ref={reactionPickerRef}
                     style={{
-                      backgroundColor: 'transparent',
-                      border: 'none',
-                      color: '#8696a0',
-                      cursor: 'pointer',
-                      fontSize: '11px',
-                      padding: '2px 0',
+                      position: 'absolute',
+                      bottom: '100%',
+                      left: isOwnMessage ? 'auto' : '0',
+                      right: isOwnMessage ? '0' : 'auto',
+                      backgroundColor: '#fff',
+                      borderRadius: '20px',
+                      padding: '8px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                       display: 'flex',
-                      alignItems: 'center',
-                      gap: '3px'
+                      gap: '4px',
+                      zIndex: 1000,
+                      marginBottom: '4px'
                     }}
-                    title="Responder en hilo"
                   >
-                    <FaComments />
-                    {message.threadCount > 0 ? (
-                      <span>
-                        {message.threadCount} {message.threadCount === 1 ? 'respuesta' : 'respuestas'}
-                        {message.lastReplyFrom && ` • ${message.lastReplyFrom}`}
-                      </span>
-                    ) : (
-                      <span>Hilo</span>
-                    )}
-                  </button>
-                )}
-
-                {/* Botón de info - solo para mensajes propios en salas */}
-                {isOwnMessage && isGroup && message.id && (
-                  <button
-                    onClick={() => setShowMessageInfo(message)}
-                    style={{
-                      backgroundColor: 'transparent',
-                      border: 'none',
-                      color: '#8696a0',
-                      cursor: 'pointer',
-                      fontSize: '11px',
-                      padding: '2px 0',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '3px'
-                    }}
-                    title="Ver quién leyó este mensaje"
-                  >
-                    <FaInfoCircle /> Info
-                  </button>
-                )}
-
-                {/* Botón de editar solo para mensajes propios sin multimedia */}
-                {isOwnMessage && !message.mediaType && (
-                  <button
-                    onClick={() => handleStartEdit(message)}
-                    style={{
-                      backgroundColor: 'transparent',
-                      border: 'none',
-                      color: '#8696a0',
-                      cursor: 'pointer',
-                      fontSize: '11px',
-                      padding: '2px 0',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '3px'
-                    }}
-                    title="Editar mensaje"
-                  >
-                    <FaEdit /> Editar
-                  </button>
-                )}
-
-                {/* Botón de reacción - disponible para todos los mensajes */}
-                {message.id && (
-                  <div style={{ position: 'relative' }}>
-                    <button
-                      onClick={() => setShowReactionPicker(showReactionPicker === message.id ? null : message.id)}
-                      style={{
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        color: '#8696a0',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        padding: '2px 0',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '3px'
-                      }}
-                      title="Reaccionar"
-                    >
-                      <FaSmile />
-                    </button>
-
-                    {/* Selector de reacciones rápidas */}
-                    {showReactionPicker === message.id && (
-                      <div
-                        ref={reactionPickerRef}
+                    {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(emoji => (
+                      <button
+                        key={emoji}
+                        onClick={() => handleReaction(message, emoji)}
                         style={{
-                          position: 'absolute',
-                          bottom: '100%',
-                          left: isOwnMessage ? 'auto' : '0',
-                          right: isOwnMessage ? '0' : 'auto',
-                          backgroundColor: '#fff',
-                          borderRadius: '20px',
-                          padding: '8px 12px',
-                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                          display: 'flex',
-                          gap: '8px',
-                          zIndex: 1000,
-                          marginBottom: '4px'
+                          backgroundColor: 'transparent',
+                          border: 'none',
+                          fontSize: '20px',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          borderRadius: '50%',
+                          transition: 'transform 0.2s'
                         }}
+                        onMouseEnter={(e) => e.target.style.transform = 'scale(1.2)'}
+                        onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
                       >
-                        {['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji) => (
-                          <button
-                            key={emoji}
-                            onClick={() => handleReaction(message, emoji)}
-                            style={{
-                              backgroundColor: 'transparent',
-                              border: 'none',
-                              fontSize: '20px',
-                              cursor: 'pointer',
-                              padding: '4px',
-                              borderRadius: '50%',
-                              transition: 'transform 0.2s, background-color 0.2s'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.transform = 'scale(1.3)';
-                              e.currentTarget.style.backgroundColor = '#f5f6f6';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.transform = 'scale(1)';
-                              e.currentTarget.style.backgroundColor = 'transparent';
-                            }}
-                            title={emoji}
-                          >
-                            {emoji}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                        {emoji}
+                      </button>
+                    ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Mostrar reacciones del mensaje */}
               {message.reactions && message.reactions.length > 0 && (

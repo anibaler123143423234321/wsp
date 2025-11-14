@@ -48,13 +48,15 @@ const Sidebar = ({
   currentRoomCode,
   onRoomSelect,
   to,
+  sidebarCollapsed,
+  onToggleCollapse,
   roomTypingUsers = {}
 }) => {
   return (
     <>
       {/* Desktop: Ambos sidebars juntos */}
       <div
-        className="flex flex-row h-screen overflow-hidden max-[768px]:hidden bg-white sidebar-responsive-container"
+        className={`flex flex-row h-screen overflow-hidden max-[768px]:hidden bg-white sidebar-responsive-container ${sidebarCollapsed ? 'collapsed' : ''}`}
         style={{
           borderRight: '1.3px solid #EEEEEE'
         }}
@@ -72,6 +74,8 @@ const Sidebar = ({
           setShowAdminMenu={setShowAdminMenu}
           onLogout={onLogout}
           onToggleSidebar={onToggleSidebar}
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={onToggleCollapse}
         />
 
         {/* Lista de conversaciones - Columna derecha (436.63px) */}

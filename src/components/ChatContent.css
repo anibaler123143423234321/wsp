@@ -43,6 +43,16 @@
   }
 }
 
+/* Animación de spinner para loading */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 /* Animación para mensaje resaltado */
 .highlighted-message {
   animation: highlightPulse 1.5s cubic-bezier(0.4, 0, 0.2, 1);

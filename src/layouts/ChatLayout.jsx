@@ -11,23 +11,23 @@ import './ChatLayout.css';
 
 const ChatLayout = ({
   // Props del sidebar
-  user, userList, groupList, assignedConversations, monitoringConversations, monitoringPage, monitoringTotal, monitoringTotalPages, monitoringLoading, onLoadMonitoringConversations, isAdmin, showAdminMenu, setShowAdminMenu, showSidebar,
+  user, userList, groupList, assignedConversations, monitoringConversations, monitoringPage, monitoringTotal, monitoringTotalPages, monitoringLoading, onLoadMonitoringConversations, isAdmin, showAdminMenu, setShowAdminMenu, showSidebar, sidebarCollapsed, onToggleCollapse,
   onUserSelect, onGroupSelect, onPersonalNotes, onLogout,
   onShowCreateRoom, onShowJoinRoom, onShowAdminRooms, onShowCreateConversation, onShowManageConversations,
-  onShowManageUsers, onShowSystemConfig, loadingAdminRooms, myActiveRooms, onRoomSelect, onKickUser,
+  onShowManageUsers, onShowSystemConfig, myActiveRooms, onRoomSelect, onKickUser,
   userListHasMore, userListLoading, onLoadMoreUsers, roomTypingUsers,
 
       // Props del chat
       to, isGroup, currentRoomCode, roomUsers, messages, input, setInput,
   onSendMessage, onFileSelect, onRecordAudio, onStopRecording, isRecording,
   mediaFiles, mediaPreviews, onCancelMediaUpload, onRemoveMediaFile, onLeaveRoom, onToggleMenu,
-  onEditMessage, hasMoreMessages, isLoadingMore, onLoadMoreMessages,
+  onEditMessage, onDeleteMessage, hasMoreMessages, isLoadingMore, onLoadMoreMessages,
   onStartCall, onStartVideoCall, hasCamera, canSendMessages, adminViewConversation,
 
   // Props de modales
   showCreateRoomModal, setShowCreateRoomModal, roomForm, setRoomForm, onCreateRoom,
   showJoinRoomModal, setShowJoinRoomModal, joinRoomForm, setJoinRoomForm, onJoinRoom,
-  showAdminRoomsModal, setShowAdminRoomsModal, adminRooms, onDeleteRoom, onDeactivateRoom, onActivateRoom, onEditRoom, onViewRoomUsers,
+  showAdminRoomsModal, setShowAdminRoomsModal, onDeleteRoom, onDeactivateRoom, onActivateRoom, onEditRoom, onViewRoomUsers,
 
   // Props de notificaciones
   unreadMessages,
@@ -148,7 +148,6 @@ const ChatLayout = ({
         onShowManageConversations={onShowManageConversations}
         onShowManageUsers={onShowManageUsers}
         onShowSystemConfig={onShowSystemConfig}
-        loadingAdminRooms={loadingAdminRooms}
         unreadMessages={unreadMessages}
         onToggleSidebar={onToggleMenu}
         myActiveRooms={myActiveRooms}
@@ -160,6 +159,8 @@ const ChatLayout = ({
         userListLoading={userListLoading}
         onLoadMoreUsers={onLoadMoreUsers}
         roomTypingUsers={roomTypingUsers}
+        sidebarCollapsed={sidebarCollapsed}
+        onToggleCollapse={onToggleCollapse}
       />
 
       {/* LeftSidebar overlay para mobile */}
@@ -175,6 +176,8 @@ const ChatLayout = ({
           setShowAdminMenu={setShowAdminMenu}
           onLogout={onLogout}
           onToggleSidebar={onToggleMenu}
+          isCollapsed={false}
+          onToggleCollapse={null}
         />
       </div>
 
@@ -222,6 +225,7 @@ const ChatLayout = ({
           roomUsers={roomUsers}
           currentUsername={currentUsername}
           onEditMessage={onEditMessage}
+          onDeleteMessage={onDeleteMessage}
           hasMoreMessages={hasMoreMessages}
           isLoadingMore={isLoadingMore}
           onLoadMoreMessages={onLoadMoreMessages}
@@ -233,6 +237,7 @@ const ChatLayout = ({
           onCancelReply={onCancelReply}
           onOpenThread={onOpenThread}
           onSendVoiceMessage={onSendVoiceMessage}
+          isAdmin={isAdmin}
         />
       </div>
       
@@ -261,7 +266,6 @@ const ChatLayout = ({
         <AdminRoomsModal
           isOpen={showAdminRoomsModal}
           onClose={() => setShowAdminRoomsModal(false)}
-          adminRooms={adminRooms}
           onDeleteRoom={onDeleteRoom}
           onDeactivateRoom={onDeactivateRoom}
           onActivateRoom={onActivateRoom}

@@ -88,6 +88,13 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         // Campos de hilos
         threadCount: msg.threadCount || 0,
         lastReplyFrom: msg.lastReplyFrom || null,
+        // Campos de edición
+        isEdited: msg.isEdited || false,
+        editedAt: msg.editedAt,
+        // 🔥 Campos de eliminación
+        isDeleted: msg.isDeleted || false,
+        deletedBy: msg.deletedBy || null,
+        deletedAt: msg.deletedAt || null,
       }));
 
       // Los mensajes ya vienen en orden cronológico correcto del backend
@@ -185,6 +192,13 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         // Campos de hilos
         threadCount: msg.threadCount || 0,
         lastReplyFrom: msg.lastReplyFrom || null,
+        // Campos de edición
+        isEdited: msg.isEdited || false,
+        editedAt: msg.editedAt,
+        // 🔥 Campos de eliminación
+        isDeleted: msg.isDeleted || false,
+        deletedBy: msg.deletedBy || null,
+        deletedAt: msg.deletedAt || null,
       }));
 
       // Agregar mensajes más antiguos al inicio (estilo WhatsApp)
