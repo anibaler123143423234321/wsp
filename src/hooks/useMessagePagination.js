@@ -299,6 +299,19 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     currentOffset.current = 0;
   }, []);
 
+  // 🔥 NUEVO: Establecer mensajes iniciales de una vez (para admin view)
+  const setInitialMessages = useCallback((initialMessages) => {
+    setMessages(initialMessages);
+    currentOffset.current = initialMessages.length;
+
+    // Si recibimos menos mensajes de los esperados, no hay más mensajes
+    if (initialMessages.length < MESSAGES_PER_PAGE) {
+      setHasMoreMessages(false);
+    } else {
+      setHasMoreMessages(true);
+    }
+  }, []);
+
   // Limpiar mensajes cuando cambie el roomCode o el destinatario
   useEffect(() => {
     // Solo limpiar si realmente no hay contexto válido
@@ -319,5 +332,6 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     addNewMessage,
     updateMessage,
     clearMessages,
+    setInitialMessages,
   };
 };

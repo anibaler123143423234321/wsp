@@ -1333,9 +1333,20 @@ const ConversationList = ({
                     }}
                     onClick={() => {
                       // console.log('Admin monitoreando conversación:', conv);
-                      // Llamar a onUserSelect con los datos de la conversación
+                      // 🔥 IMPORTANTE: Pasar el nombre del otro participante, no el nombre de la conversación
+                      // Esto es crítico para que la API cargue los mensajes correctamente
                       if (onUserSelect) {
-                        onUserSelect(conv.name, null, conv);
+                        // Obtener el nombre completo del admin actual
+                        const adminFullName = user?.nombre && user?.apellido
+                          ? `${user.nombre} ${user.apellido}`
+                          : user?.username;
+
+                        // Obtener el nombre del otro participante (no el del admin)
+                        const otherParticipant = participants.find(p =>
+                          p.toLowerCase().trim() !== adminFullName?.toLowerCase().trim()
+                        ) || participant2Name;
+
+                        onUserSelect(otherParticipant, null, conv);
                       }
                     }}
                   >
@@ -1471,7 +1482,7 @@ const ConversationList = ({
                         <div className="flex-1 min-w-0">
                           {conv.lastMessage ? (
                             <>
-                              {conv.lastMessageSender && (
+                              {conv.lastMessageFrom && (
                                 <span
                                   className="text-gray-500 font-medium"
                                   style={{
@@ -1481,7 +1492,7 @@ const ConversationList = ({
                                     fontWeight: 500
                                   }}
                                 >
-                                  {conv.lastMessageSender}:{' '}
+                                  {conv.lastMessageFrom.split(' ')[0]}:{' '}
                                 </span>
                               )}
                               <p

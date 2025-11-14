@@ -78,7 +78,8 @@ const ChatPage = () => {
     loadMoreMessages,
     addNewMessage,
     updateMessage,
-    clearMessages
+    clearMessages,
+    setInitialMessages
   } = useMessagePagination(currentRoomCode, username, to, isGroup, socket, user);
 
   // Estados adicionales del chat
@@ -248,21 +249,17 @@ const ChatPage = () => {
         console.log('   - participant1:', participant1);
         console.log('   - participant2:', participant2);
 
-        // 🔥 IMPORTANTE: Calcular el otro participante (no el usuario actual)
-        const currentUserNormalized = currentUserFullName?.toLowerCase().trim();
-        const otherParticipant = adminViewConversation.participants?.find(
-          p => p?.toLowerCase().trim() !== currentUserNormalized
-        );
-
-        console.log('   - currentUserNormalized:', currentUserNormalized);
-        console.log('   - otherParticipant:', otherParticipant);
+        // 🔥 CORREGIDO: Usar los participantes reales de la conversación, no el admin
+        // Los mensajes se guardan entre los dos participantes, no entre el admin y uno de ellos
+        console.log('   - participant1:', participant1);
+        console.log('   - participant2:', participant2);
 
         // 🔥 PRIMERO: Cargar mensajes para ver cuáles NO están leídos
-        // Usar currentUserFullName y otherParticipant para que coincida con cómo se guardan en la BD
+        // Usar los participantes reales de la conversación para que coincida con cómo se guardan en la BD
         // 🔥 USAR ORDENAMIENTO POR ID para evitar problemas con sentAt corrupto
         const historicalMessages = await apiService.getUserMessagesOrderedById(
-          currentUserFullName,
-          otherParticipant || participant2,
+          participant1,
+          participant2,
           20,
           0
         );
@@ -370,9 +367,8 @@ const ChatPage = () => {
           };
         });
 
-        // Actualizar los mensajes manualmente (no usar el hook)
-        clearMessages();
-        formattedMessages.forEach(msg => addNewMessage(msg));
+        // 🔥 CORREGIDO: Establecer todos los mensajes de una vez (no uno por uno)
+        setInitialMessages(formattedMessages);
 
         // console.log('✅ Mensajes actualizados en el estado');
       } catch (error) {
@@ -383,6 +379,7 @@ const ChatPage = () => {
     if (adminViewConversation) {
       loadAdminViewMessages();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adminViewConversation, user?.role, username, socket, currentUserFullName]);
 
   // Función para cargar conversaciones asignadas
@@ -679,6 +676,16 @@ const ChatPage = () => {
 
         return;
       } else {
+        // 🔥 DEBUG: Loguear datos del mensaje individual
+        console.log('📨 Mensaje individual recibido - Datos completos:', {
+          id: data.id,
+          from: data.from,
+          to: data.to,
+          message: data.message?.substring(0, 50),
+          isGroup: data.isGroup,
+          adminViewConversation: adminViewConversation?.name
+        });
+
         // 🔥 PRIMERO: Verificar si ya existe un mensaje para evitar duplicados
         // Buscar por ID primero (si es un ID numérico del backend)
         let existingMessage = null;
@@ -774,7 +781,37 @@ const ChatPage = () => {
                   lastMessage: data.message || '',
                   lastMessageTime: dateTimeString,
                   lastMessageFrom: data.from,
+                  lastMessageMediaType: data.mediaType || null,
+                  lastMessageThreadCount: data.threadCount || 0,
+                  lastMessageLastReplyFrom: data.lastReplyFrom || null,
                   unreadCount: newUnreadCount
+                };
+              }
+
+              return conv;
+            });
+          });
+
+          // 🔥 NUEVO: También actualizar el preview en la lista de conversaciones de monitoreo
+          setMonitoringConversations(prevConversations => {
+            return prevConversations.map(conv => {
+              // Buscar la conversación que corresponde a este mensaje
+              // En monitoreo, verificar que ambos participantes coincidan
+              const participants = conv.participants || [];
+              const isThisConversation =
+                participants.some(p => p.toLowerCase().trim() === data.from.toLowerCase().trim()) &&
+                participants.some(p => p.toLowerCase().trim() === data.to.toLowerCase().trim());
+
+              if (isThisConversation) {
+                return {
+                  ...conv,
+                  lastMessage: data.message || '',
+                  lastMessageTime: dateTimeString,
+                  lastMessageFrom: data.from,
+                  lastMessageMediaType: data.mediaType || null,
+                  lastMessageThreadCount: data.threadCount || 0,
+                  lastMessageLastReplyFrom: data.lastReplyFrom || null
+                  // NO incrementar unreadCount en monitoreo
                 };
               }
 
@@ -849,11 +886,112 @@ const ChatPage = () => {
           });
         });
 
+        // 🔥 NUEVO: También actualizar el preview en la lista de conversaciones de monitoreo
+        setMonitoringConversations(prevConversations => {
+          return prevConversations.map(conv => {
+            // Buscar la conversación que corresponde a este mensaje
+            // En monitoreo, verificar que ambos participantes coincidan
+            const participants = conv.participants || [];
+            const isThisConversation =
+              participants.some(p => p.toLowerCase().trim() === data.from.toLowerCase().trim()) &&
+              participants.some(p => p.toLowerCase().trim() === data.to.toLowerCase().trim());
+
+            if (isThisConversation) {
+              return {
+                ...conv,
+                lastMessage: data.message || '',
+                lastMessageTime: dateTimeString,
+                lastMessageFrom: data.from,
+                lastMessageMediaType: data.mediaType || null,
+                lastMessageThreadCount: data.threadCount || 0,
+                lastMessageLastReplyFrom: data.lastReplyFrom || null
+                // NO incrementar unreadCount en monitoreo
+              };
+            }
+
+            return conv;
+          });
+        });
+
         if (data.from !== username && data.from !== currentUserFullName) {
           // 🔥 NUEVO: Reproducir sonido siempre que llega un mensaje de otro usuario
           playMessageSound(true);
         }
       }
+    });
+
+    // 🔥 NUEVO: Evento para actualizar monitoreo en tiempo real
+    s.on('monitoringMessage', (data) => {
+      console.log('📡 Evento monitoringMessage recibido:', {
+        from: data.from,
+        to: data.to,
+        message: data.message?.substring(0, 50),
+        isGroup: data.isGroup
+      });
+
+      // Calcular la hora en formato de Perú
+      const now = new Date();
+      const peruOffset = -5 * 60 * 60 * 1000;
+      const peruDate = new Date(now.getTime() + peruOffset);
+      const dateTimeString = peruDate.toLocaleString('es-PE', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+
+      // Actualizar el preview en la lista de conversaciones de monitoreo
+      setMonitoringConversations(prevConversations => {
+        // Buscar si la conversación ya existe
+        let conversationFound = false;
+        const updatedConversations = prevConversations.map(conv => {
+          const participants = conv.participants || [];
+          const isThisConversation =
+            participants.some(p => p.toLowerCase().trim() === data.from.toLowerCase().trim()) &&
+            participants.some(p => p.toLowerCase().trim() === data.to.toLowerCase().trim());
+
+          if (isThisConversation) {
+            conversationFound = true;
+            console.log('✅ Actualizando monitoringConversation:', conv.name);
+            return {
+              ...conv,
+              lastMessage: data.message || '',
+              lastMessageTime: dateTimeString,
+              lastMessageFrom: data.from,
+              lastMessageMediaType: data.mediaType || null,
+              lastMessageThreadCount: data.threadCount || 0,
+              lastMessageLastReplyFrom: data.lastReplyFrom || null
+            };
+          }
+
+          return conv;
+        });
+
+        // 🔥 Si la conversación no existe en la lista actual, crear una nueva entrada
+        if (!conversationFound) {
+          console.log('🆕 Conversación no encontrada en lista, agregando nueva entrada');
+          const newConversation = {
+            id: data.id || `temp-${Date.now()}`,
+            name: `${data.from} • ${data.to}`,
+            participants: [data.from, data.to],
+            lastMessage: data.message || '',
+            lastMessageTime: dateTimeString,
+            lastMessageFrom: data.from,
+            lastMessageMediaType: data.mediaType || null,
+            lastMessageThreadCount: data.threadCount || 0,
+            lastMessageLastReplyFrom: data.lastReplyFrom || null,
+            isGroup: false,
+            unreadCount: 0
+          };
+          // Agregar la nueva conversación al inicio de la lista
+          return [newConversation, ...updatedConversations];
+        }
+
+        return updatedConversations;
+      });
     });
 
     // Evento para mensaje editado
