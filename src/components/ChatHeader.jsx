@@ -88,8 +88,8 @@ const ChatHeader = ({
                   } else if (currentUserFullName === participant2Name) {
                     return participant1Name;
                   } else {
-                    // Si el usuario no es participante (admin monitoreando), mostrar ambos
-                    return adminViewConversation.name || `${participant1Name} ↔ ${participant2Name}`;
+                    // 🔥 CORREGIDO: Si el usuario no es participante (admin monitoreando), SIEMPRE mostrar ambos
+                    return `${participant1Name} ↔️ ${participant2Name}`;
                   }
                 })()
               ) : (
