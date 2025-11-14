@@ -83,10 +83,36 @@ const ThreadPanel = ({
     if (!socket) return;
 
     const handleThreadMessage = (newMessage) => {
+      // console.log('🧵 ThreadPanel recibió threadMessage:', newMessage);
+      // console.log('  - sentAt:', newMessage.sentAt);
+      // console.log('  - time:', newMessage.time);
+
       if (newMessage.threadId === message?.id) {
-        setThreadMessages(prev => [...prev, newMessage]);
-        // Incrementar el contador local
-        setCurrentThreadCount(prev => prev + 1);
+        // 🔥 IMPORTANTE: Verificar si el mensaje ya existe (para evitar duplicados)
+        setThreadMessages(prev => {
+          // Si el mensaje ya existe (por ID o por timestamp + from), no agregarlo
+          const messageExists = prev.some(msg =>
+            msg.id === newMessage.id ||
+            (msg.sentAt === newMessage.sentAt && msg.from === newMessage.from && msg.text === newMessage.text)
+          );
+
+          if (messageExists) {
+            // console.log('⏭️ Mensaje ya existe en threadMessages, no agregando duplicado');
+            return prev;
+          }
+
+          // console.log('✅ Agregando nuevo mensaje al hilo:', newMessage);
+          return [...prev, newMessage];
+        });
+
+        // 🔥 IMPORTANTE: Solo incrementar el contador si NO soy yo quien envió el mensaje
+        // Si soy el remitente, el contador ya se actualizó en handleSendThreadMessage
+        if (newMessage.from !== currentUsername) {
+          // console.log('✅ Incrementando contador en ThreadPanel porque el mensaje es de otro usuario');
+          setCurrentThreadCount(prev => prev + 1);
+        } else {
+          // console.log('⏭️ No incrementando contador en ThreadPanel porque soy el remitente');
+        }
       }
     };
 
@@ -95,7 +121,7 @@ const ThreadPanel = ({
     return () => {
       socket.off('threadMessage', handleThreadMessage);
     };
-  }, [socket, message?.id]);
+  }, [socket, message?.id, currentUsername]);
 
   // Manejo del redimensionamiento del panel
   useEffect(() => {
@@ -257,6 +283,26 @@ const ThreadPanel = ({
         messageData.fileSize = uploadResult.fileSize;
       }
 
+      // 🔥 NO agregar el mensaje localmente - se agregará cuando se reciba del socket
+      // Esto evita duplicados porque el socket devuelve el mensaje con threadMessage
+      // const newMessage = {
+      //   id: Date.now(), // ID temporal
+      //   from: currentUsername,
+      //   to: messageData.to,
+      //   message: messageData.text,
+      //   sentAt: new Date().toISOString(),
+      //   threadId: message.id,
+      //   mediaType: messageData.mediaType,
+      //   mediaData: messageData.mediaData,
+      //   fileName: messageData.fileName,
+      //   fileSize: messageData.fileSize
+      // };
+
+      // setThreadMessages(prev => [...prev, newMessage]);
+
+      // 🔥 Incrementar el contador localmente (para actualizar el preview inmediatamente)
+      setCurrentThreadCount(prev => prev + 1);
+
       onSendMessage(messageData);
       setInput('');
       cancelMediaUpload();
@@ -286,6 +332,26 @@ const ThreadPanel = ({
         fileSize: uploadResult.fileSize
       };
 
+      // 🔥 NO agregar el mensaje localmente - se agregará cuando se reciba del socket
+      // Esto evita duplicados porque el socket devuelve el mensaje con threadMessage
+      // const newMessage = {
+      //   id: Date.now(), // ID temporal
+      //   from: currentUsername,
+      //   to: messageData.to,
+      //   message: '',
+      //   sentAt: new Date().toISOString(),
+      //   threadId: message.id,
+      //   mediaType: 'audio',
+      //   mediaData: uploadResult.fileUrl,
+      //   fileName: uploadResult.fileName,
+      //   fileSize: uploadResult.fileSize
+      // };
+
+      // setThreadMessages(prev => [...prev, newMessage]);
+
+      // 🔥 Incrementar el contador localmente (para actualizar el preview inmediatamente)
+      setCurrentThreadCount(prev => prev + 1);
+
       onSendMessage(messageData);
     } catch (error) {
       console.error('Error al enviar audio en hilo:', error);
@@ -305,10 +371,21 @@ const ThreadPanel = ({
     setShowEmojiPicker(false);
   };
 
-  const formatTime = (date) => {
-    if (!date) return '';
-    // Usar la función de utilidades que convierte a zona horaria de Perú (UTC-5)
-    return formatPeruTime(date);
+  const formatTime = (msg) => {
+    if (!msg) return '';
+
+    // 🔥 IMPORTANTE: Si el mensaje tiene 'time' ya formateado, usarlo directamente
+    // El backend ya envía 'time' en formato de Perú (HH:mm)
+    if (msg.time) {
+      return msg.time;
+    }
+
+    // Si solo tiene sentAt, convertirlo a hora de Perú
+    if (msg.sentAt) {
+      return formatPeruTime(msg.sentAt);
+    }
+
+    return '';
   };
 
   if (!message) return null;
@@ -338,7 +415,7 @@ const ThreadPanel = ({
       <div className="thread-main-message">
         <div className="thread-main-message-header">
           <strong>{message.from}</strong>
-          <span className="thread-main-message-time">{formatTime(message.sentAt)}</span>
+          <span className="thread-main-message-time">{formatTime(message)}</span>
         </div>
 
         {/* Mostrar contenido según el tipo de mensaje */}
@@ -418,7 +495,7 @@ const ThreadPanel = ({
             >
               <div className="thread-message-header">
                 <strong>{msg.from}</strong>
-                <span className="thread-message-time">{formatTime(msg.sentAt)}</span>
+                <span className="thread-message-time">{formatTime(msg)}</span>
               </div>
 
               {/* Mostrar contenido multimedia si existe */}

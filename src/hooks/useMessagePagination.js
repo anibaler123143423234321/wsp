@@ -24,8 +24,8 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       let historicalMessages;
 
       if (isGroup) {
-        // Cargar mensajes de sala/grupo
-        historicalMessages = await apiService.getRoomMessages(
+        // 🔥 Cargar mensajes de sala/grupo ordenados por ID (para evitar problemas con sentAt corrupto)
+        historicalMessages = await apiService.getRoomMessagesOrderedById(
           roomCode,
           MESSAGES_PER_PAGE,
           0
@@ -129,8 +129,8 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       let historicalMessages;
 
       if (isGroup) {
-        // Cargar más mensajes de sala/grupo
-        historicalMessages = await apiService.getRoomMessages(
+        // 🔥 Cargar más mensajes de sala/grupo ordenados por ID
+        historicalMessages = await apiService.getRoomMessagesOrderedById(
           roomCode,
           MESSAGES_PER_PAGE,
           currentOffset.current

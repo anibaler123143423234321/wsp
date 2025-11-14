@@ -1,13 +1,13 @@
 // Servicio para conectar con la API (múltiples backends según sede)
 // URLs para CHICLAYO / PIURA
 const API_BASE_URL_CHICLAYO = "https://apisozarusac.com/BackendJava/";
-const API_BASECHAT_URL_CHICLAYO = "https://apisozarusac.com/BackendChat/";
-//const API_BASECHAT_URL_CHICLAYO = "http://localhost:8747/";
+//const API_BASECHAT_URL_CHICLAYO = "https://apisozarusac.com/BackendChat/";
+const API_BASECHAT_URL_CHICLAYO = "http://localhost:8747/";
 
 // URLs para LIMA
 const API_BASE_URL_LIMA = "https://apisozarusac.com/BackendJavaMidas/";
-const API_BASECHAT_URL_LIMA = "https://apisozarusac.com/BackendChat/";
-//const API_BASECHAT_URL_LIMA = "http://localhost:8747/";
+//const API_BASECHAT_URL_LIMA = "https://apisozarusac.com/BackendChat/";
+const API_BASECHAT_URL_LIMA = "http://localhost:8747/";
 
 class ApiService {
   constructor() {
@@ -378,7 +378,7 @@ class ApiService {
         try {
           const errorData = await response.json();
           errorMessage = errorData.message || errorMessage;
-        } catch (e) {
+        } catch {
           const errorText = await response.text();
           errorMessage = errorText || errorMessage;
         }
@@ -781,6 +781,37 @@ class ApiService {
       return result;
     } catch (error) {
       console.error("Error al obtener mensajes de la sala:", error);
+      throw error;
+    }
+  }
+
+  // 🔥 NUEVO: Obtener mensajes de una sala ordenados por ID (para evitar problemas con sentAt corrupto)
+  async getRoomMessagesOrderedById(roomCode, limit = 50, offset = 0) {
+    try {
+      const response = await fetch(
+        `${this.baseChatUrl}api/messages/room/${roomCode}/by-id?limit=${limit}&offset=${offset}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `Error del servidor: ${response.status} - ${JSON.stringify(
+            errorData
+          )}`
+        );
+      }
+
+      const result = await response.json();
+
+      return result;
+    } catch (error) {
+      console.error("Error al obtener mensajes de la sala (ordenados por ID):", error);
       throw error;
     }
   }

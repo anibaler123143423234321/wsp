@@ -9,6 +9,7 @@ import ManageAssignedConversationsModal from '../components/modals/ManageAssigne
 import AddUsersToRoomModal from '../components/modals/AddUsersToRoomModal';
 import RemoveUsersFromRoomModal from '../components/modals/RemoveUsersFromRoomModal';
 import ThreadPanel from '../components/ThreadPanel';
+import SettingsPanel from '../components/SettingsPanel';
 import { useAuth } from '../hooks/useAuth';
 import { useSocket } from '../hooks/useSocket';
 import { useMessages } from '../hooks/useMessages';
@@ -240,19 +241,19 @@ const ChatPage = () => {
         return;
       }
 
-      console.log('🔄 Cargando mensajes para conversación asignada:', adminViewConversation);
-      console.log('   - currentUserFullName:', currentUserFullName);
+      // console.log('🔄 Cargando mensajes para conversación asignada:', adminViewConversation);
+      // console.log('   - currentUserFullName:', currentUserFullName);
 
       try {
         const [participant1, participant2] = adminViewConversation.participants;
 
-        console.log('   - participant1:', participant1);
-        console.log('   - participant2:', participant2);
+        // console.log('   - participant1:', participant1);
+        // console.log('   - participant2:', participant2);
 
         // 🔥 CORREGIDO: Usar los participantes reales de la conversación, no el admin
         // Los mensajes se guardan entre los dos participantes, no entre el admin y uno de ellos
-        console.log('   - participant1:', participant1);
-        console.log('   - participant2:', participant2);
+        // console.log('   - participant1:', participant1);
+        // console.log('   - participant2:', participant2);
 
         // 🔥 PRIMERO: Cargar mensajes para ver cuáles NO están leídos
         // Usar los participantes reales de la conversación para que coincida con cómo se guardan en la BD
@@ -264,7 +265,7 @@ const ChatPage = () => {
           0
         );
 
-        console.log('   - Mensajes cargados:', historicalMessages.length);
+        // console.log('   - Mensajes cargados:', historicalMessages.length);
 
         // console.log('✅ Mensajes cargados:', historicalMessages.length);
 
@@ -373,7 +374,7 @@ const ChatPage = () => {
         // 🔥 NUEVO: Cargar threads automáticamente para mensajes que tengan threadCount > 0
         const messagesWithThreads = formattedMessages.filter(msg => msg.threadCount > 0);
         if (messagesWithThreads.length > 0) {
-          console.log(`🧵 Cargando threads para ${messagesWithThreads.length} mensajes...`);
+          // console.log(`🧵 Cargando threads para ${messagesWithThreads.length} mensajes...`);
 
           // Cargar threads en paralelo
           const threadPromises = messagesWithThreads.map(msg =>
@@ -390,7 +391,7 @@ const ChatPage = () => {
 
           try {
             const loadedThreads = await Promise.all(threadPromises);
-            console.log('✅ Threads cargados:', loadedThreads);
+            // console.log('✅ Threads cargados:', loadedThreads);
             // Los threads se cargarán bajo demanda cuando se abra el ThreadPanel
             // Aquí solo los precargamos para que estén disponibles
           } catch (error) {
@@ -604,13 +605,17 @@ const ChatPage = () => {
     });
 
     s.on('message', (data) => {
-      // 🔥 CRÍTICO: Usar hora de Perú (UTC-5), no UTC
-      const now = new Date();
-      const peruOffset = -5 * 60 * 60 * 1000; // -5 horas en milisegundos
-      const peruDate = new Date(now.getTime() + peruOffset);
+      // 🔥 CRÍTICO: Extraer hora de sentAt (formato ISO) para mostrar la hora correcta de Perú
+      let timeString;
+      if (data.sentAt) {
+        // Extraer hora de sentAt (formato: "2025-11-14T16:44:07.482Z" -> "16:44")
+        const timeMatch = data.sentAt.match(/T(\d{2}):(\d{2})/);
+        timeString = timeMatch ? `${timeMatch[1]}:${timeMatch[2]}` : data.time;
+      } else {
+        timeString = data.time || new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
+      }
 
-      const timeString = data.time || now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
-      const dateTimeString = data.sentAt || peruDate.toISOString(); // 🔥 Usar sentAt del backend o fecha de Perú
+      const dateTimeString = data.sentAt || new Date().toISOString();
 
       if (data.isGroup) {
         // 🔥 CRÍTICO: Verificar que el usuario esté viendo el grupo correcto
@@ -626,19 +631,19 @@ const ChatPage = () => {
           isViewingCorrectGroup = isGroup && to === data.group;
         }
 
-        console.log('🔍 Verificando grupo:', {
-          isGroup,
-          currentRoomCode,
-          dataRoomCode: data.roomCode,
-          messageFrom: data.from,
-          isViewingCorrectGroup,
-          to,
-          dataGroup: data.group,
-          verificationType: currentRoomCode && data.roomCode ? 'roomCode' : 'groupName'
-        });
+        // console.log('🔍 Verificando grupo:', {
+        //   isGroup,
+        //   currentRoomCode,
+        //   dataRoomCode: data.roomCode,
+        //   messageFrom: data.from,
+        //   isViewingCorrectGroup,
+        //   to,
+        //   dataGroup: data.group,
+        //   verificationType: currentRoomCode && data.roomCode ? 'roomCode' : 'groupName'
+        // });
 
         if (!isViewingCorrectGroup) {
-          console.log('⚠️ Mensaje de grupo recibido pero el usuario no está viendo ese grupo. Ignorando.');
+          // console.log('⚠️ Mensaje de grupo recibido pero el usuario no está viendo ese grupo. Ignorando.');
           return;
         }
 
@@ -646,30 +651,24 @@ const ChatPage = () => {
         // Buscar por ID primero (si es un ID numérico del backend)
         let existingMessage = messages.find(msg => msg.id === data.id);
 
-        // Si no se encuentra por ID, buscar por combinación de from, to, message y time
+        // Si no se encuentra por ID, buscar por combinación de from, to, message y sentAt
         // Esto evita duplicados cuando el frontend usa IDs temporales
-        if (!existingMessage && data.from && data.message) {
+        if (!existingMessage && data.from && data.message && data.sentAt) {
           existingMessage = messages.find(msg =>
             msg.realSender === data.from &&
             msg.text === data.message &&
-            msg.time === data.time
+            msg.sentAt === data.sentAt
           );
         }
 
         if (existingMessage) {
-          console.log('✅ Mensaje ya existe, ignorando duplicado', {
-            existingId: existingMessage.id,
-            newId: data.id,
-            from: data.from,
-            message: data.message?.substring(0, 30)
-          });
           return;
         }
 
         // Determinar si es mensaje propio o de otro usuario
         const isOwnMessage = data.from === username || data.from === currentUserFullName;
 
-        console.log(`📨 Mensaje de grupo recibido del backend - Propio: ${isOwnMessage}, ID: ${data.id}`);
+        // console.log(`📨 Mensaje de grupo recibido del backend - Propio: ${isOwnMessage}, ID: ${data.id}`);
 
         const newMessage = {
           id: data.id,
@@ -705,14 +704,14 @@ const ChatPage = () => {
         return;
       } else {
         // 🔥 DEBUG: Loguear datos del mensaje individual
-        console.log('📨 Mensaje individual recibido - Datos completos:', {
-          id: data.id,
-          from: data.from,
-          to: data.to,
-          message: data.message?.substring(0, 50),
-          isGroup: data.isGroup,
-          adminViewConversation: adminViewConversation?.name
-        });
+        // console.log('📨 Mensaje individual recibido - Datos completos:', {
+        //   id: data.id,
+        //   from: data.from,
+        //   to: data.to,
+        //   message: data.message?.substring(0, 50),
+        //   isGroup: data.isGroup,
+        //   adminViewConversation: adminViewConversation?.name
+        // });
 
         // 🔥 PRIMERO: Verificar si ya existe un mensaje para evitar duplicados
         // Buscar por ID primero (si es un ID numérico del backend)
@@ -741,7 +740,15 @@ const ChatPage = () => {
         }
 
         // Ignorar mensajes individuales que vienen del servidor si son nuestros propios mensajes
+        console.log('🔍 Verificando si es mensaje propio:', {
+          dataFrom: data.from,
+          username,
+          currentUserFullName,
+          isOwnMessage: data.from === username || data.from === currentUserFullName
+        });
+
         if (data.from === username || data.from === currentUserFullName) {
+          console.log('✅ Ignorando mensaje propio que vino del servidor');
           return;
         }
 
@@ -807,7 +814,7 @@ const ChatPage = () => {
                 return {
                   ...conv,
                   lastMessage: data.message || '',
-                  lastMessageTime: dateTimeString,
+                  lastMessageTime: data.sentAt || dateTimeString, // 🔥 Usar sentAt del backend
                   lastMessageFrom: data.from,
                   lastMessageMediaType: data.mediaType || null,
                   lastMessageThreadCount: data.threadCount || 0,
@@ -834,7 +841,7 @@ const ChatPage = () => {
                 return {
                   ...conv,
                   lastMessage: data.message || '',
-                  lastMessageTime: dateTimeString,
+                  lastMessageTime: data.sentAt || dateTimeString, // 🔥 Usar sentAt del backend
                   lastMessageFrom: data.from,
                   lastMessageMediaType: data.mediaType || null,
                   lastMessageThreadCount: data.threadCount || 0,
@@ -950,12 +957,12 @@ const ChatPage = () => {
 
     // 🔥 NUEVO: Evento para actualizar monitoreo en tiempo real
     s.on('monitoringMessage', (data) => {
-      console.log('📡 Evento monitoringMessage recibido:', {
-        from: data.from,
-        to: data.to,
-        message: data.message?.substring(0, 50),
-        isGroup: data.isGroup
-      });
+      // console.log('📡 Evento monitoringMessage recibido:', {
+      //   from: data.from,
+      //   to: data.to,
+      //   message: data.message?.substring(0, 50),
+      //   isGroup: data.isGroup
+      // });
 
       // Calcular la hora en formato de Perú
       const now = new Date();
@@ -983,7 +990,6 @@ const ChatPage = () => {
 
           if (isThisConversation) {
             conversationFound = true;
-            console.log('✅ Actualizando monitoringConversation:', conv.name);
             return {
               ...conv,
               lastMessage: data.message || '',
@@ -1000,7 +1006,18 @@ const ChatPage = () => {
 
         // 🔥 Si la conversación no existe en la lista actual, crear una nueva entrada
         if (!conversationFound) {
-          console.log('🆕 Conversación no encontrada en lista, agregando nueva entrada');
+          // 🔥 CRÍTICO: Verificar si ya existe una conversación con los mismos participantes
+          // Esto evita duplicados cuando React Strict Mode ejecuta el setter 2 veces
+          const alreadyExists = updatedConversations.some(conv => {
+            const participants = conv.participants || [];
+            return participants.some(p => p.toLowerCase().trim() === data.from.toLowerCase().trim()) &&
+                   participants.some(p => p.toLowerCase().trim() === data.to.toLowerCase().trim());
+          });
+
+          if (alreadyExists) {
+            return updatedConversations;
+          }
+
           const newConversation = {
             id: data.id || `temp-${Date.now()}`,
             name: `${data.from} • ${data.to}`,
@@ -1042,7 +1059,7 @@ const ChatPage = () => {
     s.on('messageDeleted', (data) => {
       const { messageId, isDeleted, deletedAt, deletedBy } = data;
 
-      console.log(`🗑️ Mensaje eliminado recibido:`, { messageId, deletedBy });
+      // console.log(`🗑️ Mensaje eliminado recibido:`, { messageId, deletedBy });
 
       // Actualizar el mensaje en la lista de mensajes
       updateMessage(messageId, {
@@ -1379,19 +1396,79 @@ const ChatPage = () => {
 
     // Evento: Contador de hilo actualizado
     s.on('threadCountUpdated', (data) => {
-      const { messageId, lastReplyFrom } = data;
-      console.log('🔢 Evento threadCountUpdated recibido:', data);
+      const { messageId, lastReplyFrom, from, to, isGroup } = data;
+      // console.log('🔢 Evento threadCountUpdated recibido:', data);
 
-      // Actualizar el mensaje usando setMessages con callback para acceder al estado más reciente
-      updateMessage(messageId, (prevMessage) => ({
-        threadCount: (prevMessage.threadCount || 0) + 1,
-        lastReplyFrom: lastReplyFrom
-      }));
+      // 🔥 IMPORTANTE: Solo actualizar si NO soy yo quien envió el mensaje
+      // Si soy el remitente, ya actualicé localmente en handleSendThreadMessage
+      if (lastReplyFrom !== username) {
+        // console.log('✅ Actualizando porque el mensaje es de otro usuario');
+
+        // Actualizar el contador del mensaje
+        updateMessage(messageId, (prevMessage) => ({
+          threadCount: (prevMessage.threadCount || 0) + 1,
+          lastReplyFrom: lastReplyFrom
+        }));
+
+        // Actualizar el preview en ConversationList
+        if (!isGroup && from && to) {
+          // console.log('📝 Actualizando preview en ConversationList para conversación:', from, '•', to);
+
+          // Actualizar conversaciones asignadas
+          setAssignedConversations(prevConversations => {
+            return prevConversations.map(conv => {
+              const participants = conv.participants || [];
+              const isThisConversation =
+                participants.some(p => p.toLowerCase().trim() === from.toLowerCase().trim()) &&
+                participants.some(p => p.toLowerCase().trim() === to.toLowerCase().trim());
+
+              if (isThisConversation) {
+                const newCount = (conv.lastMessageThreadCount || 0) + 1;
+                return {
+                  ...conv,
+                  lastMessageThreadCount: newCount,
+                  lastMessageLastReplyFrom: lastReplyFrom
+                };
+              }
+
+              return conv;
+            });
+          });
+
+          // Actualizar conversaciones de monitoreo
+          setMonitoringConversations(prevConversations => {
+            // console.log('🔍 Conversaciones de monitoreo actuales:', prevConversations.length);
+            const updated = prevConversations.map(conv => {
+              const participants = conv.participants || [];
+              const isThisConversation =
+                participants.some(p => p.toLowerCase().trim() === from.toLowerCase().trim()) &&
+                participants.some(p => p.toLowerCase().trim() === to.toLowerCase().trim());
+
+              if (isThisConversation) {
+                const newCount = (conv.lastMessageThreadCount || 0) + 1;
+                // console.log(`✅ Actualizando conversación de monitoreo "${conv.name}": ${conv.lastMessageThreadCount || 0} → ${newCount}`);
+                return {
+                  ...conv,
+                  lastMessageThreadCount: newCount,
+                  lastMessageLastReplyFrom: lastReplyFrom,
+                  // 🔥 NO actualizar lastMessage aquí - el contador se muestra automáticamente en ConversationList
+                  // cuando lastMessageThreadCount > 0
+                };
+              }
+
+              return conv;
+            });
+            return updated;
+          });
+        }
+      } else {
+        // console.log('⏭️ No actualizando porque soy el remitente (ya actualicé localmente)');
+      }
     });
 
     // 🔥 NUEVO: Evento para recibir mensajes de hilo en tiempo real
     s.on('threadMessage', (data) => {
-      console.log('🧵 Evento threadMessage recibido:', data);
+      // console.log('🧵 Evento threadMessage recibido:', data);
 
       // El mensaje ya fue guardado en BD por el frontend que lo envió
       // Solo necesitamos notificar al usuario que hay un nuevo mensaje en el hilo
@@ -1401,7 +1478,13 @@ const ChatPage = () => {
       // Pero por ahora solo notificamos que hay un nuevo mensaje
       if (threadMessage && threadMessage.id === data.threadId) {
         // El hilo está abierto, podríamos recargar los mensajes aquí
-        console.log('🧵 Nuevo mensaje en el hilo abierto:', data);
+        // console.log('🧵 Nuevo mensaje en el hilo abierto:', data);
+      }
+
+      // 🔥 Reproducir sonido si el mensaje es de otro usuario
+      if (data.from !== username && data.from !== currentUserFullName) {
+        // console.log('🔔 Reproduciendo sonido de notificación para mensaje de hilo');
+        playMessageSound(true);
       }
     });
 
@@ -1425,6 +1508,11 @@ const ChatPage = () => {
           s.off('roomDeleted');
           s.off('removedFromRoom');
           s.off('roomDeactivated');
+          s.off('monitoringMessage'); // 🔥 CRÍTICO: Limpiar listener de monitoringMessage
+          s.off('messageEdited');
+          s.off('messageDeleted');
+          s.off('kicked');
+          s.off('roomCountUpdate');
         };
       }, [socket, currentRoomCode, to, isGroup, username, isAdmin, soundsEnabled, typingTimeout, adminViewConversation, addNewMessage, updateMessage, currentUserFullName, playMessageSound, setAssignedConversations, clearMessages, loadAssignedConversations, setCurrentRoomCode, user, loadMyActiveRooms, messages, threadMessage]);
 
@@ -2052,6 +2140,10 @@ const ChatPage = () => {
           });
 
           // Agregar localmente con el ID real de la BD
+          // 🔥 Extraer hora de sentAt (formato ISO) para mostrar la hora correcta de Perú
+          const sentAtTimeMatch = savedMessage.sentAt.match(/T(\d{2}):(\d{2})/);
+          const displayTime = sentAtTimeMatch ? `${sentAtTimeMatch[1]}:${sentAtTimeMatch[2]}` : timeString;
+
           const newMessage = {
             id: savedMessage.id, // 🔥 Usar el ID de la BD
             sender: 'Tú',
@@ -2059,7 +2151,7 @@ const ChatPage = () => {
             receiver: to,
             text: input || '',
             isGroup: false,
-            time: timeString,
+            time: displayTime, // 🔥 Usar la hora extraída de sentAt
             isSent: true,
             isSelf: true,
             sentAt: savedMessage.sentAt // 🔥 Usar la fecha que devolvió el backend
@@ -2083,6 +2175,26 @@ const ChatPage = () => {
 
           addNewMessage(newMessage);
           playMessageSound(true);
+
+          // 🔥 NUEVO: Actualizar la lista de conversaciones asignadas después de enviar
+          setAssignedConversations(prevConversations => {
+            return prevConversations.map(conv => {
+              // Buscar la conversación que corresponde a este mensaje
+              const otherUser = conv.participants?.find(p => p !== currentUserFullName);
+              const isThisConversation = otherUser?.toLowerCase().trim() === to.toLowerCase().trim();
+
+              if (isThisConversation) {
+                return {
+                  ...conv,
+                  lastMessage: input || (messageObj.fileName ? `📎 ${messageObj.fileName}` : ''),
+                  lastMessageTime: savedMessage.sentAt, // 🔥 Usar sentAt del backend
+                  lastMessageFrom: currentUserFullName
+                };
+              }
+
+              return conv;
+            });
+          });
         } catch (error) {
           console.error('❌ Error al guardar mensaje en BD:', error);
           await showErrorAlert('Error', 'Error al enviar el mensaje. Inténtalo de nuevo.');
@@ -2441,7 +2553,7 @@ const ChatPage = () => {
           roomCode: messageData.roomCode,
           isGroup: messageData.isGroup
         };
-        console.log('🔢 Emitiendo threadCountUpdated:', threadCountData);
+        // console.log('🔢 Emitiendo threadCountUpdated:', threadCountData);
         socket.emit('threadCountUpdated', threadCountData);
       }
 
@@ -2458,6 +2570,54 @@ const ChatPage = () => {
         threadCount: (prevMessage.threadCount || 0) + 1,
         lastReplyFrom: messageData.from
       }));
+
+      // 🔥 NUEVO: Actualizar el preview en ConversationList cuando el remitente envía el mensaje
+      if (!messageData.isGroup && messageData.from && messageData.to) {
+        // console.log('📝 Actualizando preview en ConversationList (remitente):', messageData.from, '•', messageData.to);
+
+        // Actualizar conversaciones asignadas
+        setAssignedConversations(prevConversations => {
+          return prevConversations.map(conv => {
+            const participants = conv.participants || [];
+            const isThisConversation =
+              participants.some(p => p.toLowerCase().trim() === messageData.from.toLowerCase().trim()) &&
+              participants.some(p => p.toLowerCase().trim() === messageData.to.toLowerCase().trim());
+
+            if (isThisConversation) {
+              const newCount = (conv.lastMessageThreadCount || 0) + 1;
+              return {
+                ...conv,
+                lastMessageThreadCount: newCount,
+                lastMessageLastReplyFrom: messageData.from
+              };
+            }
+
+            return conv;
+          });
+        });
+
+        // Actualizar conversaciones de monitoreo
+        setMonitoringConversations(prevConversations => {
+          return prevConversations.map(conv => {
+            const participants = conv.participants || [];
+            const isThisConversation =
+              participants.some(p => p.toLowerCase().trim() === messageData.from.toLowerCase().trim()) &&
+              participants.some(p => p.toLowerCase().trim() === messageData.to.toLowerCase().trim());
+
+            if (isThisConversation) {
+              const newCount = (conv.lastMessageThreadCount || 0) + 1;
+              // console.log(`✅ Actualizando conversación de monitoreo (remitente) "${conv.name}": ${conv.lastMessageThreadCount || 0} → ${newCount}`);
+              return {
+                ...conv,
+                lastMessageThreadCount: newCount,
+                lastMessageLastReplyFrom: messageData.from
+              };
+            }
+
+            return conv;
+          });
+        });
+      }
 
     } catch (error) {
       console.error('Error al enviar mensaje en hilo:', error);
@@ -3055,6 +3215,13 @@ const ChatPage = () => {
         socket={socket}
       />
     )}
+
+    {/* Panel de configuración */}
+    <SettingsPanel
+      isOpen={showAdminMenu}
+      onClose={() => setShowAdminMenu(false)}
+      user={user}
+    />
     </>
   );
 };
