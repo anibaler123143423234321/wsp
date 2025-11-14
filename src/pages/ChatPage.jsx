@@ -56,11 +56,11 @@ const ChatPage = () => {
 
   // 🔥 Wrapper para setCurrentRoomCode con logging (memoizado para evitar re-renders innecesarios)
   const setCurrentRoomCode = useCallback((newRoomCode) => {
-    console.log('🔄 Cambiando currentRoomCode:', {
-      from: currentRoomCode,
-      to: newRoomCode,
-      stack: new Error().stack
-    });
+    // console.log('🔄 Cambiando currentRoomCode:', {
+    //   from: currentRoomCode,
+    //   to: newRoomCode,
+    //   stack: new Error().stack
+    // });
     setCurrentRoomCodeInternal(newRoomCode);
   }, [currentRoomCode]);
   const [monitoringConversations, setMonitoringConversations] = useState([]);
@@ -239,18 +239,35 @@ const ChatPage = () => {
         return;
       }
 
-      // console.log('🔄 Cargando mensajes para conversación asignada:', adminViewConversation);
+      console.log('🔄 Cargando mensajes para conversación asignada:', adminViewConversation);
+      console.log('   - currentUserFullName:', currentUserFullName);
 
       try {
         const [participant1, participant2] = adminViewConversation.participants;
 
+        console.log('   - participant1:', participant1);
+        console.log('   - participant2:', participant2);
+
+        // 🔥 IMPORTANTE: Calcular el otro participante (no el usuario actual)
+        const currentUserNormalized = currentUserFullName?.toLowerCase().trim();
+        const otherParticipant = adminViewConversation.participants?.find(
+          p => p?.toLowerCase().trim() !== currentUserNormalized
+        );
+
+        console.log('   - currentUserNormalized:', currentUserNormalized);
+        console.log('   - otherParticipant:', otherParticipant);
+
         // 🔥 PRIMERO: Cargar mensajes para ver cuáles NO están leídos
-        const historicalMessages = await apiService.getUserMessages(
-          participant1,
-          participant2,
+        // Usar currentUserFullName y otherParticipant para que coincida con cómo se guardan en la BD
+        // 🔥 USAR ORDENAMIENTO POR ID para evitar problemas con sentAt corrupto
+        const historicalMessages = await apiService.getUserMessagesOrderedById(
+          currentUserFullName,
+          otherParticipant || participant2,
           20,
           0
         );
+
+        console.log('   - Mensajes cargados:', historicalMessages.length);
 
         // console.log('✅ Mensajes cargados:', historicalMessages.length);
 
@@ -366,7 +383,7 @@ const ChatPage = () => {
     if (adminViewConversation) {
       loadAdminViewMessages();
     }
-  }, [adminViewConversation, user?.role, username, socket]);
+  }, [adminViewConversation, user?.role, username, socket, currentUserFullName]);
 
   // Función para cargar conversaciones asignadas
   const loadAssignedConversations = useCallback(async () => {
@@ -562,9 +579,13 @@ const ChatPage = () => {
     });
 
     s.on('message', (data) => {
+      // 🔥 CRÍTICO: Usar hora de Perú (UTC-5), no UTC
       const now = new Date();
+      const peruOffset = -5 * 60 * 60 * 1000; // -5 horas en milisegundos
+      const peruDate = new Date(now.getTime() + peruOffset);
+
       const timeString = data.time || now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
-      const dateTimeString = data.sentAt || now.toISOString(); // 🔥 Usar sentAt del backend o fecha actual
+      const dateTimeString = data.sentAt || peruDate.toISOString(); // 🔥 Usar sentAt del backend o fecha de Perú
 
       if (data.isGroup) {
         // 🔥 CRÍTICO: Verificar que el usuario esté viendo el grupo correcto
@@ -596,11 +617,27 @@ const ChatPage = () => {
           return;
         }
 
-        // 🔥 Verificar si ya existe un mensaje con este ID para evitar duplicados
-        const existingMessage = messages.find(msg => msg.id === data.id);
+        // 🔥 Verificar si ya existe un mensaje para evitar duplicados
+        // Buscar por ID primero (si es un ID numérico del backend)
+        let existingMessage = messages.find(msg => msg.id === data.id);
+
+        // Si no se encuentra por ID, buscar por combinación de from, to, message y time
+        // Esto evita duplicados cuando el frontend usa IDs temporales
+        if (!existingMessage && data.from && data.message) {
+          existingMessage = messages.find(msg =>
+            msg.realSender === data.from &&
+            msg.text === data.message &&
+            msg.time === data.time
+          );
+        }
 
         if (existingMessage) {
-          console.log('✅ Mensaje ya existe con ID, ignorando duplicado');
+          console.log('✅ Mensaje ya existe, ignorando duplicado', {
+            existingId: existingMessage.id,
+            newId: data.id,
+            from: data.from,
+            message: data.message?.substring(0, 30)
+          });
           return;
         }
 
@@ -642,14 +679,30 @@ const ChatPage = () => {
 
         return;
       } else {
-        // 🔥 PRIMERO: Verificar si ya existe un mensaje con este ID para evitar duplicados
+        // 🔥 PRIMERO: Verificar si ya existe un mensaje para evitar duplicados
+        // Buscar por ID primero (si es un ID numérico del backend)
+        let existingMessage = null;
         if (data.id) {
-          const existingMessage = messages.find(msg => msg.id === data.id);
+          existingMessage = messages.find(msg => msg.id === data.id);
+        }
 
-          if (existingMessage) {
-            console.log('✅ Mensaje individual ya existe con ID:', data.id, '- Ignorando duplicado');
-            return;
-          }
+        // Si no se encuentra por ID, buscar por combinación de from, to, message y time
+        if (!existingMessage && data.from && data.message) {
+          existingMessage = messages.find(msg =>
+            msg.realSender === data.from &&
+            msg.text === data.message &&
+            msg.time === data.time
+          );
+        }
+
+        if (existingMessage) {
+          console.log('✅ Mensaje individual ya existe, ignorando duplicado', {
+            existingId: existingMessage.id,
+            newId: data.id,
+            from: data.from,
+            message: data.message?.substring(0, 30)
+          });
+          return;
         }
 
         // Ignorar mensajes individuales que vienen del servidor si son nuestros propios mensajes
@@ -1630,9 +1683,11 @@ const ChatPage = () => {
       }
     }
 
+    // 🔥 CRÍTICO: NO calcular fecha en frontend. Dejar que el backend lo haga con getPeruDate()
     const now = new Date();
     const timeString = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
-    const dateTimeString = now.toISOString(); // 🔥 Guardar fecha completa en ISO format
+    // 🔥 NO enviar sentAt desde el frontend - dejar que el backend lo calcule
+    const dateTimeString = null;
 
     // Generar ID único para el mensaje
     const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
@@ -1646,17 +1701,17 @@ const ChatPage = () => {
         to,
         isGroup: effectiveIsGroup, // 🔥 Usar el valor efectivo
         time: timeString,
-        from: username,
+        from: currentUserFullName, // 🔥 Usar currentUserFullName en lugar de username para conversaciones asignadas
         fromId: user.id,
         roomCode: currentRoomCode // 🔥 Incluir roomCode para salas temporales
       };
 
-      // console.log('📤 Creando messageObj:', {
-      //   to,
-      //   isGroup: effectiveIsGroup,
-      //   isAssignedConv: !!assignedConv,
-      //   originalIsGroup: isGroup
-      // });
+      console.log('📤 Creando messageObj:', {
+        to,
+        isGroup: effectiveIsGroup,
+        isAssignedConv: !!assignedConv,
+        originalIsGroup: isGroup
+      });
 
       // Si es una conversación asignada, agregar información adicional
       if (assignedConv) {
@@ -1670,7 +1725,7 @@ const ChatPage = () => {
         );
         if (otherParticipant) {
           messageObj.actualRecipient = otherParticipant;
-          // console.log('📧 Mensaje a conversación asignada. Destinatario real:', otherParticipant);
+          console.log('📧 Mensaje a conversación asignada. Destinatario real:', otherParticipant);
         }
       }
 
@@ -1744,7 +1799,7 @@ const ChatPage = () => {
             fileName: newMessage.fileName,
             fileSize: newMessage.fileSize,
             time: timeString,
-            sentAt: new Date().toISOString(),
+            // 🔥 NO enviar sentAt - dejar que el backend lo calcule con getPeruDate()
             replyToMessageId: replyingTo?.id,
             replyToSender: replyingTo?.sender,
             replyToText: replyingTo?.text
@@ -1779,6 +1834,30 @@ const ChatPage = () => {
         });
         socket.emit('message', messageObj);
         console.log('📤 Mensaje de grupo enviado, esperando confirmación del backend...');
+
+        // 🔥 CRÍTICO: Limpiar input INMEDIATAMENTE después de emitir
+        // Esto evita que se agregue el mensaje duplicado si el socket listener se ejecuta rápido
+        clearInput();
+        setReplyingTo(null);
+
+        // 🔥 Actualizar el preview del último mensaje en la lista de conversaciones asignadas
+        if (assignedConv) {
+          setAssignedConversations(prevConversations => {
+            return prevConversations.map(conv => {
+              if (conv.id === assignedConv.id) {
+                return {
+                  ...conv,
+                  lastMessage: input || (messageObj.fileName ? `📎 ${messageObj.fileName}` : ''),
+                  lastMessageTime: dateTimeString,
+                  lastMessageFrom: currentUserFullName
+                };
+              }
+              return conv;
+            });
+          });
+        }
+
+        return;
       } else {
         // 🔥 Para mensajes individuales, guardar en BD primero para obtener el ID real
         try {
@@ -1794,7 +1873,7 @@ const ChatPage = () => {
             fileName: messageObj.fileName,
             fileSize: messageObj.fileSize,
             time: timeString,
-            sentAt: dateTimeString,
+            // 🔥 NO enviar sentAt - dejar que el backend lo calcule con getPeruDate()
             replyToMessageId: replyingTo?.id,
             replyToSender: replyingTo?.sender,
             replyToText: replyingTo?.text
@@ -1817,7 +1896,7 @@ const ChatPage = () => {
             time: timeString,
             isSent: true,
             isSelf: true,
-            sentAt: dateTimeString
+            sentAt: savedMessage.sentAt // 🔥 Usar la fecha que devolvió el backend
           };
 
           if (messageObj.mediaType) {
@@ -1845,27 +1924,10 @@ const ChatPage = () => {
         }
       }
 
-      // 🔥 Actualizar el preview del último mensaje en la lista de conversaciones asignadas
-      if (assignedConv) {
-        setAssignedConversations(prevConversations => {
-          return prevConversations.map(conv => {
-            if (conv.id === assignedConv.id) {
-              // console.log('🔄 Actualizando preview de conversación enviada:', conv.name);
-              return {
-                ...conv,
-                lastMessage: input || (messageObj.fileName ? `📎 ${messageObj.fileName}` : ''),
-                lastMessageTime: dateTimeString,
-                lastMessageFrom: currentUserFullName
-              };
-            }
-            return conv;
-          });
-        });
-      }
+      // 🔥 Para mensajes individuales, limpiar input después de guardar
+      clearInput();
+      setReplyingTo(null); // Limpiar el estado de respuesta
     }
-
-    clearInput();
-    setReplyingTo(null); // Limpiar el estado de respuesta
   };
 
   const handleEditMessage = async (messageId, newText, newFile = null) => {
@@ -1915,10 +1977,15 @@ const ChatPage = () => {
       }
 
       // Actualizar localmente
+      // 🔥 CRÍTICO: Usar hora de Perú (UTC-5), no UTC
+      const now = new Date();
+      const peruOffset = -5 * 60 * 60 * 1000; // -5 horas en milisegundos
+      const peruDate = new Date(now.getTime() + peruOffset);
+
       const updateData = {
         text: newText,
         isEdited: true,
-        editedAt: new Date()
+        editedAt: peruDate
       };
 
       // Si hay nuevo archivo, actualizar también los campos multimedia
@@ -1962,10 +2029,15 @@ const ChatPage = () => {
         });
       }
 
+      // 🔥 CRÍTICO: Usar hora de Perú (UTC-5), no UTC
+      const now = new Date();
+      const peruOffset = -5 * 60 * 60 * 1000; // -5 horas en milisegundos
+      const peruDate = new Date(now.getTime() + peruOffset);
+
       // Actualizar localmente
       updateMessage(messageId, {
         isDeleted: true,
-        deletedAt: new Date(),
+        deletedAt: peruDate,
         deletedBy: currentUserFullName,
         text: `Mensaje eliminado por ${currentUserFullName}`
       });
@@ -1999,9 +2071,10 @@ const ChatPage = () => {
       // Subir el archivo de audio al servidor
       const uploadResult = await apiService.uploadFile(audioFile, 'chat');
 
+      // 🔥 CRÍTICO: NO calcular fecha en frontend. Dejar que el backend lo haga con getPeruDate()
       const now = new Date();
       const timeString = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
-      const dateTimeString = now.toISOString(); // 🔥 Guardar fecha completa en ISO format
+      // 🔥 NO enviar sentAt desde el frontend - dejar que el backend lo calcule
       const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
       // 🔥 Verificar si es una conversación asignada
@@ -2093,7 +2166,7 @@ const ChatPage = () => {
               return {
                 ...conv,
                 lastMessage: '🎤 Audio',
-                lastMessageTime: dateTimeString,
+                lastMessageTime: timeString,
                 lastMessageFrom: currentUserFullName
               };
             }
@@ -2147,6 +2220,10 @@ const ChatPage = () => {
   // Función para enviar mensaje en hilo
   const handleSendThreadMessage = async (messageData) => {
     try {
+      // 🔥 CRÍTICO: Usar hora de Perú (UTC-5), no UTC
+      const now = new Date();
+      const timeString = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
+
       const messageObj = {
         from: messageData.from,
         to: messageData.to,
@@ -2154,7 +2231,7 @@ const ChatPage = () => {
         isGroup: messageData.isGroup,
         roomCode: messageData.roomCode,
         threadId: messageData.threadId,
-        time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        time: timeString,
         fromId: user.id
       };
 
@@ -2808,7 +2885,7 @@ const ChatPage = () => {
         message={threadMessage}
         onClose={handleCloseThread}
         onSendMessage={handleSendThreadMessage}
-        currentUsername={username}
+        currentUsername={currentUserFullName}
         socket={socket}
       />
     )}

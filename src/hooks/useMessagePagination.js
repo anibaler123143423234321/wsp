@@ -31,8 +31,8 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
           0
         );
       } else {
-        // Cargar mensajes entre usuarios (incluyendo mensajes a ti mismo)
-        historicalMessages = await apiService.getUserMessages(
+        // 🔥 Cargar mensajes entre usuarios ordenados por ID (para evitar problemas con sentAt corrupto)
+        historicalMessages = await apiService.getUserMessagesOrderedById(
           username,
           to,
           MESSAGES_PER_PAGE,
@@ -136,8 +136,8 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
           currentOffset.current
         );
       } else {
-        // Cargar más mensajes entre usuarios
-        historicalMessages = await apiService.getUserMessages(
+        // 🔥 Cargar más mensajes entre usuarios ordenados por ID
+        historicalMessages = await apiService.getUserMessagesOrderedById(
           username,
           to,
           MESSAGES_PER_PAGE,

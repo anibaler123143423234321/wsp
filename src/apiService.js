@@ -380,7 +380,7 @@ class ApiService {
           errorMessage = errorData.message || errorMessage;
         } catch (e) {
           const errorText = await response.text();
-          errorMessage = errorText || errorMessage;         
+          errorMessage = errorText || errorMessage;
         }
         const error = new Error(errorMessage);
         error.response = { data: { message: errorMessage } };
@@ -724,6 +724,34 @@ class ApiService {
       throw error;
     }
   }
+
+  // 🔥 NUEVO: Obtener mensajes entre usuarios ordenados por ID (para evitar problemas con sentAt corrupto)
+  async getUserMessagesOrderedById(from, to, limit = 50, offset = 0) {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/messages/user/${from}/${to}/by-id?limit=${limit}&offset=${offset}`,
+        {
+          method: "GET",
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `Error del servidor: ${response.status} - ${JSON.stringify(
+            errorData
+          )}`
+        );
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al obtener mensajes entre usuarios (ordenados por ID):", error);
+      throw error;
+    }
+  }
+
 
   // Obtener mensajes de una sala
   async getRoomMessages(roomCode, limit = 50, offset = 0) {

@@ -30,8 +30,8 @@ export const useSocket = (isAuthenticated, username, user) => {
     const connectSocket = () => {
       try {
         // Usar variable de entorno o fallback
-        // const socketUrl = import.meta.env.VITE_SOCKET_URL || "https://apisozarusac.com";
-         const socketUrl = import.meta.env.VITE_SOCKET_URL || "http://localhost:8747";
+         const socketUrl = import.meta.env.VITE_SOCKET_URL || "https://apisozarusac.com";
+        // const socketUrl = import.meta.env.VITE_SOCKET_URL || "http://localhost:8747";
 
         socket.current = io(socketUrl, {
           transports: ["websocket", "polling"],
