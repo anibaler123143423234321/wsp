@@ -6,7 +6,7 @@
   z-index: 10;
 }
 
-/* Overlay para mejorar legibilidad */
+/* Overlay para mejorar legibilidad - DESACTIVADO */
 .left-sidebar-container::before {
   content: '';
   position: absolute;
@@ -14,7 +14,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.4) 100%);
+  background: none;
   z-index: -1;
   pointer-events: none;
 }
@@ -23,7 +23,7 @@
 .left-sidebar-icon {
   color: #FFFFFF !important;
   fill: #FFFFFF !important;
-  filter: drop-shadow(0 0.125rem 0.25rem rgba(0, 0, 0, 0.4));
+  filter: none;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -38,7 +38,7 @@
 .left-sidebar-button {
   position: relative;
   z-index: 1;
-  backdrop-filter: blur(0.5rem);
+  backdrop-filter: none;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100% !important;
   max-width: 100% !important;

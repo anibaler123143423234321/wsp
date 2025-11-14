@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { FaTimes, FaUser, FaComments, FaInfoCircle, FaSearch } from 'react-icons/fa';
+import { FaTimes, FaUser, FaComments, FaInfoCircle, FaSearch, FaCheck } from 'react-icons/fa';
+import BaseModal from './BaseModal';
 import './Modal.css';
 import './CreateConversationModal.css';
 import apiService from '../../apiService';
@@ -423,329 +424,648 @@ const CreateConversationModal = ({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="conversation-modal-container" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="conversation-modal-header">
-          <div className="flex items-center gap-2">
-            <div className="icon-wrapper">
-              <FaComments className="text-lg" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-white">Crear Conversación Individual</h2>
-              <p className="text-xs text-gray-400">Asigna una conversación entre dos usuarios</p>
-            </div>
+    <BaseModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Crear Conversación Individual"
+      icon={<FaComments />}
+      onSubmit={handleSubmit}
+      headerBgColor="#A50104"
+      bodyBgColor="#FFFFFF"
+      titleColor="#FFFFFF"
+      maxWidth="1000px"
+    >
+      <div className="create-conversation-content">
+        {error && (
+          <div className="error-message" style={{
+            backgroundColor: '#fee',
+            border: '1px solid #fcc',
+            borderRadius: '4px',
+            padding: '10px',
+            marginBottom: '15px',
+            color: '#c00',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <FaInfoCircle />
+            <span>{error}</span>
           </div>
-          <button
-            className="close-button"
-            onClick={onClose}
-            type="button"
-          >
-            <FaTimes />
-          </button>
-        </div>
+        )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="conversation-modal-body">
-            {error && (
-              <div className="error-banner">
-                <FaInfoCircle className="text-lg" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {/* 🔥 Selector de sede */}
-            <div className="sede-selector">
-              <label className="section-label">Buscar usuarios en:</label>
-              <div className="sede-buttons-group">
-                <button
-                  type="button"
-                  className={`sede-button ${selectedSede === 'CHICLAYO_PIURA' ? 'active' : ''}`}
-                  onClick={() => {
-                    setSelectedSede('CHICLAYO_PIURA');
-                    // 🔥 NO limpiar usuarios seleccionados, solo limpiar búsquedas
-                    setSearchUser1('');
-                    setSearchUser2('');
-                    setSearchResults1([]);
-                    setSearchResults2([]);
-                    setPageUser1(1);
-                    setPageUser2(1);
-                  }}
-                  disabled={loadingBackendUsers}
-                >
-                  CHICLAYO / PIURA
-                </button>
-                <button
-                  type="button"
-                  className={`sede-button ${selectedSede === 'LIMA' ? 'active' : ''}`}
-                  onClick={() => {
-                    setSelectedSede('LIMA');
-                    // 🔥 NO limpiar usuarios seleccionados, solo limpiar búsquedas
-                    setSearchUser1('');
-                    setSearchUser2('');
-                    setSearchResults1([]);
-                    setSearchResults2([]);
-                    setPageUser1(1);
-                    setPageUser2(1);
-                  }}
-                  disabled={loadingBackendUsers}
-                >
-                  LIMA
-                </button>
-              </div>
-            </div>
-
-            {/* Usuario 1 */}
-            <div className="user-selection-card">
-              <div className="card-header">
-                <FaUser className="text-emerald-400" />
-                <h3 className="text-base font-medium text-white">Primer Usuario</h3>
-              </div>
-
-              <div className="card-body">
-                {/* Búsqueda */}
-                <div className="search-input-wrapper">
-                  <FaSearch className="search-input-icon" />
-                  <input
-                    type="text"
-                    placeholder="Buscar por nombre o usuario..."
-                    value={searchUser1}
-                    onChange={(e) => handleSearchUser1(e.target.value)}
-                    className="search-input"
-                  />
-                </div>
-
-                {/* Lista de usuarios */}
-                <div className="modal-users-list">
-                  {loadingBackendUsers ? (
-                    <div className="modal-empty-state">
-                      <p>⏳ Cargando usuarios...</p>
-                    </div>
-                  ) : paginatedUsers1.length === 0 ? (
-                    <div className="modal-empty-state">
-                      <p>No se encontraron usuarios</p>
-                    </div>
-                  ) : (
-                    paginatedUsers1.map((user, index) => {
-                      const username = typeof user === 'string' ? user : user.username;
-                      const displayName = typeof user === 'object' && user.nombre && user.apellido
-                        ? `${user.nombre} ${user.apellido}`
-                        : username;
-                      const isSelected = selectedUser1 === username;
-
-                      return (
-                        <div
-                          key={index}
-                          className={`modal-user-item ${isSelected ? 'selected' : ''}`}
-                          onClick={() => {
-                            if (isSelected) {
-                              setSelectedUser1(null);
-                              setSelectedUser1Obj(null);
-                            } else {
-                              setSelectedUser1(username);
-                              setSelectedUser1Obj(user); // 🔥 Guardar objeto completo
-                            }
-                          }}
-                        >
-                          <div className="modal-user-avatar">
-                            {displayName.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="modal-user-info">
-                            <p className="modal-user-name">{displayName}</p>
-                          </div>
-                          {isSelected && (
-                            <div className="modal-check-icon">✓</div>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                {/* Paginación */}
-                {totalPagesUser1 > 1 && (
-                  <div className="pagination-wrapper">
-                    <button
-                      type="button"
-                      onClick={() => setPageUser1(prev => Math.max(1, prev - 1))}
-                      disabled={pageUser1 === 1}
-                      className="pagination-btn"
-                    >
-                      ← Anterior
-                    </button>
-                    <span className="pagination-info">
-                      {pageUser1} / {totalPagesUser1}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setPageUser1(prev => Math.min(totalPagesUser1, prev + 1))}
-                      disabled={pageUser1 === totalPagesUser1}
-                      className="pagination-btn"
-                    >
-                      Siguiente →
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Usuario 2 */}
-            <div className="user-selection-card">
-              <div className="card-header">
-                <FaUser className="text-emerald-400" />
-                <h3 className="text-base font-medium text-white">Segundo Usuario</h3>
-              </div>
-
-              <div className="card-body">
-                {/* Búsqueda */}
-                <div className="search-input-wrapper">
-                  <FaSearch className="search-input-icon" />
-                  <input
-                    type="text"
-                    placeholder="Buscar por nombre o usuario..."
-                    value={searchUser2}
-                    onChange={(e) => handleSearchUser2(e.target.value)}
-                    className="search-input"
-                  />
-                </div>
-
-                {/* Lista de usuarios */}
-                <div className="modal-users-list">
-                  {loadingBackendUsers ? (
-                    <div className="modal-empty-state">
-                      <p>⏳ Cargando usuarios...</p>
-                    </div>
-                  ) : paginatedUsers2.length === 0 ? (
-                    <div className="modal-empty-state">
-                      <p>No se encontraron usuarios</p>
-                    </div>
-                  ) : (
-                    paginatedUsers2.map((user, index) => {
-                      const username = typeof user === 'string' ? user : user.username;
-                      const displayName = typeof user === 'object' && user.nombre && user.apellido
-                        ? `${user.nombre} ${user.apellido}`
-                        : username;
-                      const isSelected = selectedUser2 === username;
-
-                      return (
-                        <div
-                          key={index}
-                          className={`modal-user-item ${isSelected ? 'selected' : ''}`}
-                          onClick={() => {
-                            if (isSelected) {
-                              setSelectedUser2(null);
-                              setSelectedUser2Obj(null);
-                            } else {
-                              setSelectedUser2(username);
-                              setSelectedUser2Obj(user); // 🔥 Guardar objeto completo
-                            }
-                          }}
-                        >
-                          <div className="modal-user-avatar">
-                            {displayName.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="modal-user-info">
-                            <p className="modal-user-name">{displayName}</p>
-                          </div>
-                          {isSelected && (
-                            <div className="modal-check-icon">✓</div>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                {/* Paginación */}
-                {totalPagesUser2 > 1 && (
-                  <div className="pagination-wrapper">
-                    <button
-                      type="button"
-                      onClick={() => setPageUser2(prev => Math.max(1, prev - 1))}
-                      disabled={pageUser2 === 1}
-                      className="pagination-btn"
-                    >
-                      ← Anterior
-                    </button>
-                    <span className="pagination-info">
-                      {pageUser2} / {totalPagesUser2}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setPageUser2(prev => Math.min(totalPagesUser2, prev + 1))}
-                      disabled={pageUser2 === totalPagesUser2}
-                      className="pagination-btn"
-                    >
-                      Siguiente →
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Nombre de la conversación */}
-            <div className="conversation-name-section">
-              <label className="section-label">
-                <FaComments className="text-emerald-400" />
-                Nombre de la Conversación
-              </label>
-              <input
-                type="text"
-                value={conversationName}
-                onChange={(e) => setConversationName(e.target.value)}
-                placeholder="Selecciona ambos usuarios para generar el nombre..."
-                className="conversation-name-input"
-                required
-              />
-              <p className="input-hint">
-                {conversationName ? (
-                  <>
-                    ✏️ Puedes editar el nombre si lo deseas
-                  </>
-                ) : (
-                  <>
-                    El nombre se genera automáticamente al seleccionar ambos usuarios
-                  </>
-                )}
-              </p>
-            </div>
-
-            {/* Info */}
-            <div className="info-banner">
-              <FaInfoCircle className="text-base text-blue-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-white text-sm mb-0.5">Conversación Administrada</p>
-                <p className="text-xs text-gray-400">
-                  Los usuarios podrán chatear entre sí, pero solo el administrador puede eliminar la conversación.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="conversation-modal-footer">
+        {/* Selector de sede */}
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{
+            display: 'block',
+            marginBottom: '8px',
+            color: '#000',
+            fontWeight: '500',
+            fontSize: '14px'
+          }}>
+            Buscar usuarios en:
+          </label>
+          <div style={{ display: 'flex', gap: '10px' }}>
             <button
               type="button"
-              className="footer-btn cancel-btn"
-              onClick={onClose}
+              onClick={() => {
+                setSelectedSede('CHICLAYO_PIURA');
+                setSearchUser1('');
+                setSearchUser2('');
+                setSearchResults1([]);
+                setSearchResults2([]);
+                setPageUser1(1);
+                setPageUser2(1);
+              }}
+              disabled={loadingBackendUsers}
+              style={{
+                flex: 1,
+                padding: '8px 16px',
+                background: selectedSede === 'CHICLAYO_PIURA' ? '#A50104' : '#f0f0f0',
+                color: selectedSede === 'CHICLAYO_PIURA' ? '#fff' : '#333',
+                border: selectedSede === 'CHICLAYO_PIURA' ? '2px solid #A50104' : '2px solid #ddd',
+                borderRadius: '6px',
+                cursor: loadingBackendUsers ? 'not-allowed' : 'pointer',
+                fontWeight: '600',
+                fontSize: '13px',
+                transition: 'all 0.2s',
+                opacity: loadingBackendUsers ? 0.5 : 1
+              }}
             >
-              Cancelar
+              CHICLAYO / PIURA
             </button>
             <button
-              type="submit"
-              className="footer-btn create-btn"
-              disabled={!selectedUser1 || !selectedUser2 || selectedUser1 === selectedUser2 || isSubmitting}
+              type="button"
+              onClick={() => {
+                setSelectedSede('LIMA');
+                setSearchUser1('');
+                setSearchUser2('');
+                setSearchResults1([]);
+                setSearchResults2([]);
+                setPageUser1(1);
+                setPageUser2(1);
+              }}
+              disabled={loadingBackendUsers}
+              style={{
+                flex: 1,
+                padding: '8px 16px',
+                background: selectedSede === 'LIMA' ? '#A50104' : '#f0f0f0',
+                color: selectedSede === 'LIMA' ? '#fff' : '#333',
+                border: selectedSede === 'LIMA' ? '2px solid #A50104' : '2px solid #ddd',
+                borderRadius: '6px',
+                cursor: loadingBackendUsers ? 'not-allowed' : 'pointer',
+                fontWeight: '600',
+                fontSize: '13px',
+                transition: 'all 0.2s',
+                opacity: loadingBackendUsers ? 0.5 : 1
+              }}
             >
-              <FaComments />
-              {isSubmitting ? 'Creando...' : 'Crear Conversación'}
+              LIMA
             </button>
           </div>
-        </form>
+        </div>
+
+        {/* Grid de 2 columnas */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '20px',
+          marginBottom: '20px'
+        }}>
+          {/* Usuario 1 */}
+          <div style={{
+            border: '1px solid #ddd',
+            borderRadius: '8px',
+            overflow: 'hidden',
+            backgroundColor: '#fafafa'
+          }}>
+            <div style={{
+              background: '#A50104',
+              padding: '10px 15px',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <FaUser />
+              <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '600' }}>Primer Usuario</h3>
+            </div>
+
+            <div style={{ padding: '15px' }}>
+              {/* Búsqueda */}
+              <div style={{ position: 'relative', marginBottom: '10px' }}>
+                <FaSearch style={{
+                  position: 'absolute',
+                  left: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: '#999',
+                  fontSize: '12px'
+                }} />
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre o usuario..."
+                  value={searchUser1}
+                  onChange={(e) => handleSearchUser1(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px 8px 32px',
+                    border: '1px solid #ddd',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    outline: 'none',
+                    backgroundColor: '#fff',
+                    color: '#000'
+                  }}
+                />
+              </div>
+
+              {/* Lista de usuarios */}
+              <div style={{
+                maxHeight: '200px',
+                overflowY: 'auto',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+                backgroundColor: '#fff'
+              }}>
+                {loadingBackendUsers ? (
+                  <div style={{ padding: '20px', textAlign: 'center', color: '#999', fontSize: '13px' }}>
+                    <p>⏳ Cargando usuarios...</p>
+                  </div>
+                ) : paginatedUsers1.length === 0 ? (
+                  <div style={{ padding: '20px', textAlign: 'center', color: '#999', fontSize: '13px' }}>
+                    <p>No se encontraron usuarios</p>
+                  </div>
+                ) : (
+                  paginatedUsers1.map((user, index) => {
+                    const username = typeof user === 'string' ? user : user.username;
+                    const displayName = typeof user === 'object' && user.nombre && user.apellido
+                      ? `${user.nombre} ${user.apellido}`
+                      : username;
+                    const isSelected = selectedUser1 === username;
+
+                    return (
+                      <div
+                        key={index}
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedUser1(null);
+                            setSelectedUser1Obj(null);
+                          } else {
+                            setSelectedUser1(username);
+                            setSelectedUser1Obj(user);
+                          }
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '8px 12px',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid #f0f0f0',
+                          backgroundColor: isSelected ? '#fff5f5' : 'transparent',
+                          borderLeft: isSelected ? '3px solid #A50104' : '3px solid transparent',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) e.currentTarget.style.backgroundColor = '#f9f9f9';
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
+                      >
+                        <div style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '6px',
+                          background: '#A50104',
+                          color: '#fff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: '600',
+                          fontSize: '14px',
+                          flexShrink: 0
+                        }}>
+                          {displayName.charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{
+                            margin: 0,
+                            fontSize: '13px',
+                            fontWeight: '500',
+                            color: '#000',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}>
+                            {displayName}
+                          </p>
+                        </div>
+                        {isSelected && (
+                          <div style={{
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            background: '#A50104',
+                            color: '#fff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            flexShrink: 0
+                          }}>
+                            <FaCheck />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Paginación */}
+              {totalPagesUser1 > 1 && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginTop: '10px',
+                  paddingTop: '10px',
+                  borderTop: '1px solid #eee'
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setPageUser1(prev => Math.max(1, prev - 1))}
+                    disabled={pageUser1 === 1}
+                    style={{
+                      padding: '5px 12px',
+                      background: pageUser1 === 1 ? '#f0f0f0' : '#fff',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      cursor: pageUser1 === 1 ? 'not-allowed' : 'pointer',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      color: pageUser1 === 1 ? '#999' : '#000',
+                      opacity: pageUser1 === 1 ? 0.5 : 1
+                    }}
+                  >
+                    ← Anterior
+                  </button>
+                  <span style={{ color: '#666', fontSize: '12px', fontWeight: '500' }}>
+                    {pageUser1} / {totalPagesUser1}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPageUser1(prev => Math.min(totalPagesUser1, prev + 1))}
+                    disabled={pageUser1 === totalPagesUser1}
+                    style={{
+                      padding: '5px 12px',
+                      background: pageUser1 === totalPagesUser1 ? '#f0f0f0' : '#fff',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      cursor: pageUser1 === totalPagesUser1 ? 'not-allowed' : 'pointer',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      color: pageUser1 === totalPagesUser1 ? '#999' : '#000',
+                      opacity: pageUser1 === totalPagesUser1 ? 0.5 : 1
+                    }}
+                  >
+                    Siguiente →
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Usuario 2 */}
+          <div style={{
+            border: '1px solid #ddd',
+            borderRadius: '8px',
+            overflow: 'hidden',
+            backgroundColor: '#fafafa'
+          }}>
+            <div style={{
+              background: '#A50104',
+              padding: '10px 15px',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <FaUser />
+              <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '600' }}>Segundo Usuario</h3>
+            </div>
+
+            <div style={{ padding: '15px' }}>
+              {/* Búsqueda */}
+              <div style={{ position: 'relative', marginBottom: '10px' }}>
+                <FaSearch style={{
+                  position: 'absolute',
+                  left: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: '#999',
+                  fontSize: '12px'
+                }} />
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre o usuario..."
+                  value={searchUser2}
+                  onChange={(e) => handleSearchUser2(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px 8px 32px',
+                    border: '1px solid #ddd',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    outline: 'none',
+                    backgroundColor: '#fff',
+                    color: '#000'
+                  }}
+                />
+              </div>
+
+              {/* Lista de usuarios */}
+              <div style={{
+                maxHeight: '200px',
+                overflowY: 'auto',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+                backgroundColor: '#fff'
+              }}>
+                {loadingBackendUsers ? (
+                  <div style={{ padding: '20px', textAlign: 'center', color: '#999', fontSize: '13px' }}>
+                    <p>⏳ Cargando usuarios...</p>
+                  </div>
+                ) : paginatedUsers2.length === 0 ? (
+                  <div style={{ padding: '20px', textAlign: 'center', color: '#999', fontSize: '13px' }}>
+                    <p>No se encontraron usuarios</p>
+                  </div>
+                ) : (
+                  paginatedUsers2.map((user, index) => {
+                    const username = typeof user === 'string' ? user : user.username;
+                    const displayName = typeof user === 'object' && user.nombre && user.apellido
+                      ? `${user.nombre} ${user.apellido}`
+                      : username;
+                    const isSelected = selectedUser2 === username;
+
+                    return (
+                      <div
+                        key={index}
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedUser2(null);
+                            setSelectedUser2Obj(null);
+                          } else {
+                            setSelectedUser2(username);
+                            setSelectedUser2Obj(user);
+                          }
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '8px 12px',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid #f0f0f0',
+                          backgroundColor: isSelected ? '#fff5f5' : 'transparent',
+                          borderLeft: isSelected ? '3px solid #A50104' : '3px solid transparent',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) e.currentTarget.style.backgroundColor = '#f9f9f9';
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
+                      >
+                        <div style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '6px',
+                          background: '#A50104',
+                          color: '#fff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: '600',
+                          fontSize: '14px',
+                          flexShrink: 0
+                        }}>
+                          {displayName.charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{
+                            margin: 0,
+                            fontSize: '13px',
+                            fontWeight: '500',
+                            color: '#000',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}>
+                            {displayName}
+                          </p>
+                        </div>
+                        {isSelected && (
+                          <div style={{
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            background: '#A50104',
+                            color: '#fff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            flexShrink: 0
+                          }}>
+                            <FaCheck />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Paginación */}
+              {totalPagesUser2 > 1 && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginTop: '10px',
+                  paddingTop: '10px',
+                  borderTop: '1px solid #eee'
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setPageUser2(prev => Math.max(1, prev - 1))}
+                    disabled={pageUser2 === 1}
+                    style={{
+                      padding: '5px 12px',
+                      background: pageUser2 === 1 ? '#f0f0f0' : '#fff',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      cursor: pageUser2 === 1 ? 'not-allowed' : 'pointer',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      color: pageUser2 === 1 ? '#999' : '#000',
+                      opacity: pageUser2 === 1 ? 0.5 : 1
+                    }}
+                  >
+                    ← Anterior
+                  </button>
+                  <span style={{ color: '#666', fontSize: '12px', fontWeight: '500' }}>
+                    {pageUser2} / {totalPagesUser2}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPageUser2(prev => Math.min(totalPagesUser2, prev + 1))}
+                    disabled={pageUser2 === totalPagesUser2}
+                    style={{
+                      padding: '5px 12px',
+                      background: pageUser2 === totalPagesUser2 ? '#f0f0f0' : '#fff',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      cursor: pageUser2 === totalPagesUser2 ? 'not-allowed' : 'pointer',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      color: pageUser2 === totalPagesUser2 ? '#999' : '#000',
+                      opacity: pageUser2 === totalPagesUser2 ? 0.5 : 1
+                    }}
+                  >
+                    Siguiente →
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Nombre de la conversación */}
+        <div className="form-group" style={{ marginBottom: '15px' }}>
+          <label htmlFor="conversationName" style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            color: '#000',
+            fontWeight: '500',
+            fontSize: '14px',
+            marginBottom: '8px'
+          }}>
+            <FaComments style={{ color: '#A50104' }} />
+            Nombre de la Conversación
+          </label>
+          <input
+            type="text"
+            id="conversationName"
+            value={conversationName}
+            onChange={(e) => setConversationName(e.target.value)}
+            placeholder="Selecciona ambos usuarios para generar el nombre..."
+            required
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              border: '1px solid #d1d7db',
+              borderRadius: '6px',
+              fontSize: '13px',
+              outline: 'none',
+              backgroundColor: '#fff',
+              color: '#000'
+            }}
+          />
+          <p style={{
+            marginTop: '6px',
+            marginBottom: 0,
+            color: '#666',
+            fontSize: '12px',
+            fontStyle: 'italic'
+          }}>
+            {conversationName ? (
+              <>✏️ Puedes editar el nombre si lo deseas</>
+            ) : (
+              <>El nombre se genera automáticamente al seleccionar ambos usuarios</>
+            )}
+          </p>
+        </div>
+
+        {/* Info */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '10px',
+          background: '#e3f2fd',
+          border: '1px solid #90caf9',
+          borderRadius: '6px',
+          padding: '12px',
+          marginBottom: '15px'
+        }}>
+          <FaInfoCircle style={{ color: '#1976d2', fontSize: '16px', flexShrink: 0, marginTop: '2px' }} />
+          <div>
+            <p style={{ margin: 0, fontWeight: '600', color: '#000', fontSize: '13px', marginBottom: '4px' }}>
+              Conversación Administrada
+            </p>
+            <p style={{ margin: 0, color: '#555', fontSize: '12px' }}>
+              Los usuarios podrán chatear entre sí, pero solo el administrador puede eliminar la conversación.
+            </p>
+          </div>
+        </div>
+
+        {/* Botones */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: '10px',
+          paddingTop: '15px',
+          borderTop: '1px solid #eee'
+        }}>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              padding: '8px 20px',
+              background: '#f0f0f0',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: '600',
+              color: '#333',
+              transition: 'all 0.2s'
+            }}
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={!selectedUser1 || !selectedUser2 || selectedUser1 === selectedUser2 || isSubmitting}
+            style={{
+              padding: '8px 20px',
+              background: (!selectedUser1 || !selectedUser2 || selectedUser1 === selectedUser2 || isSubmitting) ? '#ccc' : '#A50104',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: (!selectedUser1 || !selectedUser2 || selectedUser1 === selectedUser2 || isSubmitting) ? 'not-allowed' : 'pointer',
+              fontSize: '13px',
+              fontWeight: '600',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s',
+              opacity: (!selectedUser1 || !selectedUser2 || selectedUser1 === selectedUser2 || isSubmitting) ? 0.6 : 1
+            }}
+          >
+            <FaComments />
+            {isSubmitting ? 'Creando...' : 'Crear Conversación'}
+          </button>
+        </div>
       </div>
-    </div>
+    </BaseModal>
   );
 };
 

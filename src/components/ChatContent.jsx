@@ -1,11 +1,28 @@
 import { useEffect, useRef, useState } from 'react';
-import { FaPaperclip, FaPaperPlane, FaEdit, FaTimes, FaReply, FaSmile, FaInfoCircle, FaComments, FaTrash, FaChevronDown, FaCopy } from 'react-icons/fa';
+import { FaPaperPlane, FaEdit, FaTimes, FaReply, FaSmile, FaInfoCircle, FaComments, FaTrash, FaChevronDown, FaCopy } from 'react-icons/fa';
 import EmojiPicker from 'emoji-picker-react';
 import LoadMoreMessages from './LoadMoreMessages';
 import WelcomeScreen from './WelcomeScreen';
 import AudioPlayer from './AudioPlayer';
 import VoiceRecorder from './VoiceRecorder';
 import './ChatContent.css';
+
+// Icono de emoji personalizado (estilo WhatsApp)
+const EmojiIcon = ({ className, style }) => (
+  <svg
+    viewBox="0 0 24 24"
+    height="24"
+    width="24"
+    preserveAspectRatio="xMidYMid meet"
+    className={className}
+    style={style}
+    fill="none"
+  >
+    <path d="M8.49893 10.2521C9.32736 10.2521 9.99893 9.5805 9.99893 8.75208C9.99893 7.92365 9.32736 7.25208 8.49893 7.25208C7.6705 7.25208 6.99893 7.92365 6.99893 8.75208C6.99893 9.5805 7.6705 10.2521 8.49893 10.2521Z" fill="currentColor" />
+    <path d="M17.0011 8.75208C17.0011 9.5805 16.3295 10.2521 15.5011 10.2521C14.6726 10.2521 14.0011 9.5805 14.0011 8.75208C14.0011 7.92365 14.6726 7.25208 15.5011 7.25208C16.3295 7.25208 17.0011 7.92365 17.0011 8.75208Z" fill="currentColor" />
+    <path fillRule="evenodd" clipRule="evenodd" d="M16.8221 19.9799C15.5379 21.2537 13.8087 21.9781 12 22H9.27273C5.25611 22 2 18.7439 2 14.7273V9.27273C2 5.25611 5.25611 2 9.27273 2H14.7273C18.7439 2 22 5.25611 22 9.27273V11.8141C22 13.7532 21.2256 15.612 19.8489 16.9776L16.8221 19.9799ZM14.7273 4H9.27273C6.36068 4 4 6.36068 4 9.27273V14.7273C4 17.6393 6.36068 20 9.27273 20H11.3331C11.722 19.8971 12.0081 19.5417 12.0058 19.1204L11.9935 16.8564C11.9933 16.8201 11.9935 16.784 11.9941 16.7479C11.0454 16.7473 10.159 16.514 9.33502 16.0479C8.51002 15.5812 7.84752 14.9479 7.34752 14.1479C7.24752 13.9479 7.25585 13.7479 7.37252 13.5479C7.48919 13.3479 7.66419 13.2479 7.89752 13.2479L13.5939 13.2479C14.4494 12.481 15.5811 12.016 16.8216 12.0208L19.0806 12.0296C19.5817 12.0315 19.9889 11.6259 19.9889 11.1248V9.07648H19.9964C19.8932 6.25535 17.5736 4 14.7273 4ZM14.0057 19.1095C14.0066 19.2605 13.9959 19.4089 13.9744 19.5537C14.5044 19.3124 14.9926 18.9776 15.4136 18.5599L18.4405 15.5576C18.8989 15.1029 19.2653 14.5726 19.5274 13.996C19.3793 14.0187 19.2275 14.0301 19.0729 14.0295L16.8138 14.0208C15.252 14.0147 13.985 15.2837 13.9935 16.8455L14.0057 19.1095Z" fill="currentColor" />
+  </svg>
+);
 
 const ChatContent = ({
   messages,
@@ -329,7 +346,14 @@ const ChatContent = ({
 
   // Manejar selección de emoji
   const handleEmojiClick = (emojiData) => {
-    setInput(prevInput => prevInput + emojiData.emoji);
+    // Si hay un mensaje guardado para reaccionar, usar el emoji como reacción
+    if (window.currentReactionMessage) {
+      handleReaction(window.currentReactionMessage, emojiData.emoji);
+      window.currentReactionMessage = null; // Limpiar el mensaje guardado
+    } else {
+      // Si no, agregar el emoji al input de texto
+      setInput(prevInput => prevInput + emojiData.emoji);
+    }
     setShowEmojiPicker(false);
   };
 
@@ -872,9 +896,17 @@ const ChatContent = ({
                     setShowMessageMenu(null);
                   } else {
                     const rect = e.currentTarget.getBoundingClientRect();
+                    const menuHeight = 200; // Altura aproximada del menú
+                    const windowHeight = window.innerHeight;
+                    const spaceBelow = windowHeight - rect.bottom;
+                    const spaceAbove = rect.top;
+
+                    // Decidir si mostrar arriba o abajo
+                    const showAbove = spaceBelow < menuHeight && spaceAbove > spaceBelow;
+
                     setMenuPosition({
-                      top: rect.bottom + 4,
-                      left: rect.right - 180
+                      top: showAbove ? rect.top - menuHeight - 4 : rect.bottom + 4,
+                      left: Math.min(rect.right - 180, window.innerWidth - 190) // Evitar que se salga por la derecha
                     });
                     setShowMessageMenu(message.id);
                   }
@@ -1001,34 +1033,7 @@ const ChatContent = ({
                     <FaCopy style={{ color: '#8696a0' }} /> Copiar
                   </button>
 
-                  {/* Responder en hilo */}
-                  {onOpenThread && (
-                    <button
-                      onClick={() => {
-                        onOpenThread(message);
-                        setShowMessageMenu(null);
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '10px 16px',
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        color: '#111',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px',
-                        transition: 'background-color 0.2s'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f2f5'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
-                      <FaComments style={{ color: '#8696a0' }} />
-                      {message.threadCount > 0 ? `${message.threadCount} ${message.threadCount === 1 ? 'respuesta' : 'respuestas'}` : 'Hilo'}
-                    </button>
-                  )}
+
 
                   {/* Info - solo para mensajes propios en salas */}
                   {isOwnMessage && isGroup && message.id && (
@@ -1189,7 +1194,7 @@ const ChatContent = ({
                 }
               }}
               style={{
-                backgroundColor: isOwnMessage ? 'rgba(0, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0.3)',
+                backgroundColor: '#d1f4dd',
                 borderLeft: '2px solid #00a884',
                 padding: '4px 6px',
                 borderRadius: '4px',
@@ -1199,10 +1204,10 @@ const ChatContent = ({
                 transition: 'background-color 0.2s ease'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = isOwnMessage ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.4)';
+                e.currentTarget.style.backgroundColor = '#c0edd0';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = isOwnMessage ? 'rgba(0, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0.3)';
+                e.currentTarget.style.backgroundColor = '#d1f4dd';
               }}
             >
               <div style={{ color: '#00a884', fontWeight: '600', marginBottom: '1px' }}>
@@ -1711,6 +1716,41 @@ const ChatContent = ({
                         {emoji}
                       </button>
                     ))}
+                    {/* Botón + para más emojis */}
+                    <button
+                      onClick={() => {
+                        setShowReactionPicker(null);
+                        setShowEmojiPicker(true);
+                        // Guardar el mensaje actual para reaccionar después
+                        window.currentReactionMessage = message;
+                      }}
+                      style={{
+                        backgroundColor: '#f0f2f5',
+                        border: 'none',
+                        width: '28px',
+                        height: '28px',
+                        cursor: 'pointer',
+                        padding: '0',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'scale(1.2)';
+                        e.target.style.backgroundColor = '#e4e6eb';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'scale(1)';
+                        e.target.style.backgroundColor = '#f0f2f5';
+                      }}
+                      title="Más emojis"
+                    >
+                      <svg viewBox="0 0 24 24" width="20" height="20" preserveAspectRatio="xMidYMid meet">
+                        <path fill="currentColor" d="M19,13h-6v6h-2v-6H5v-2h6V5h2v6h6V13z" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
               )}
@@ -1971,6 +2011,41 @@ const ChatContent = ({
                         {emoji}
                       </button>
                     ))}
+                    {/* Botón + para más emojis */}
+                    <button
+                      onClick={() => {
+                        setShowReactionPicker(null);
+                        setShowEmojiPicker(true);
+                        // Guardar el mensaje actual para reaccionar después
+                        window.currentReactionMessage = message;
+                      }}
+                      style={{
+                        backgroundColor: '#f0f2f5',
+                        border: 'none',
+                        width: '28px',
+                        height: '28px',
+                        cursor: 'pointer',
+                        padding: '0',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'scale(1.2)';
+                        e.target.style.backgroundColor = '#e4e6eb';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'scale(1)';
+                        e.target.style.backgroundColor = '#f0f2f5';
+                      }}
+                      title="Más emojis"
+                    >
+                      <svg viewBox="0 0 24 24" width="20" height="20" preserveAspectRatio="xMidYMid meet">
+                        <path fill="currentColor" d="M19,13h-6v6h-2v-6H5v-2h6V5h2v6h6V13z" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
               )}
@@ -2017,6 +2092,48 @@ const ChatContent = ({
                       </span>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* Botón de Hilo visible debajo del mensaje */}
+              {onOpenThread && !message.isDeleted && (
+                <div
+                  onClick={() => onOpenThread(message)}
+                  style={{
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    color: '#00a884',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    padding: '4px 0',
+                    marginTop: '4px',
+                    fontWeight: '500',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2px',
+                    transition: 'opacity 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.opacity = '0.7'}
+                  onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <FaComments style={{ fontSize: '14px' }} />
+                    <span>
+                      {message.threadCount > 0
+                        ? `${message.threadCount} ${message.threadCount === 1 ? 'respuesta' : 'respuestas'}`
+                        : 'Responder en hilo'}
+                    </span>
+                  </div>
+                  {message.lastReplyFrom && message.threadCount > 0 && (
+                    <div style={{
+                      fontSize: '11px',
+                      color: '#8696a0',
+                      marginLeft: '20px',
+                      fontWeight: '400'
+                    }}>
+                      Última respuesta de {message.lastReplyFrom}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -2138,7 +2255,7 @@ const ChatContent = ({
         {replyingTo && (
           <div
             style={{
-              backgroundColor: '#202c33',
+              backgroundColor: '#d1f4dd',
               borderLeft: '3px solid #00a884',
               padding: '8px 12px',
               display: 'flex',
@@ -2151,7 +2268,7 @@ const ChatContent = ({
               <div style={{ color: '#00a884', fontSize: '12px', fontWeight: '600', marginBottom: '2px' }}>
                 Respondiendo a {replyingTo.sender}
               </div>
-              <div style={{ color: '#8696a0', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ color: '#1f2937', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {replyingTo.text || 'Archivo multimedia'}
               </div>
             </div>
@@ -2160,7 +2277,7 @@ const ChatContent = ({
               style={{
                 backgroundColor: 'transparent',
                 border: 'none',
-                color: '#8696a0',
+                color: '#00a884',
                 cursor: 'pointer',
                 fontSize: '18px',
                 padding: '4px 8px',
@@ -2184,8 +2301,8 @@ const ChatContent = ({
               style={{ display: 'none' }}
               disabled={!canSendMessages}
             />
-            <svg className="attach-icon" width="15" height="17" viewBox="0 0 15 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M0.50407 7.51959C0.370931 7.38644 0.296136 7.20586 0.296136 7.01756C0.296136 6.82927 0.370931 6.64869 0.50407 6.51554L5.52325 1.49956C5.98225 1.02877 6.53016 0.653797 7.1352 0.396398C7.74024 0.138999 8.39037 0.00429558 9.04787 0.000101073C9.70538 -0.00409343 10.3572 0.122304 10.9654 0.371963C11.5737 0.621622 12.1264 0.989572 12.5913 1.45447C13.0563 1.91937 13.4243 2.47196 13.6741 3.0802C13.9238 3.68844 14.0503 4.34021 14.0463 4.99772C14.0422 5.65522 13.9076 6.30537 13.6502 6.91045C13.3929 7.51553 13.018 8.0635 12.5473 8.52257L6.02474 15.0452C5.35651 15.6967 4.45843 16.0588 3.52511 16.0528C2.5918 16.0468 1.69843 15.6733 1.03861 15.0132C0.378784 14.3531 0.00564932 13.4596 6.36217e-05 12.5262C-0.00552208 11.5929 0.356891 10.695 1.00877 10.027L6.5273 4.5085C6.92821 4.11717 7.46721 3.89963 8.02744 3.90306C8.58767 3.90649 9.12397 4.13061 9.52005 4.52683C9.91613 4.92306 10.1401 5.45943 10.1433 6.01966C10.1465 6.5799 9.9288 7.11882 9.53731 7.51959L5.52325 11.5326C5.39025 11.6656 5.20986 11.7403 5.02176 11.7403C4.83367 11.7403 4.65327 11.6656 4.52027 11.5326C4.38727 11.3996 4.31255 11.2192 4.31255 11.0311C4.31255 10.843 4.38727 10.6626 4.52027 10.5296L8.53326 6.51554C8.59912 6.44968 8.65136 6.3715 8.687 6.28545C8.72264 6.1994 8.74099 6.10718 8.74099 6.01405C8.74099 5.92091 8.72264 5.82869 8.687 5.74264C8.65136 5.65659 8.59912 5.57841 8.53326 5.51256C8.46741 5.4467 8.38922 5.39446 8.30318 5.35882C8.21713 5.32318 8.12491 5.30483 8.03177 5.30483C7.93864 5.30483 7.84641 5.32318 7.76037 5.35882C7.67432 5.39446 7.59614 5.4467 7.53028 5.51256L2.01175 11.0311C1.6126 11.4302 1.38836 11.9716 1.38836 12.5361C1.38836 12.8156 1.44341 13.0924 1.55037 13.3506C1.65733 13.6088 1.81411 13.8435 2.01175 14.0411C2.20939 14.2387 2.44402 14.3955 2.70225 14.5025C2.96048 14.6094 3.23725 14.6645 3.51676 14.6645C4.08124 14.6645 4.62261 14.4403 5.02176 14.0411L11.5443 7.51852C11.8868 7.19206 12.1604 6.80042 12.3493 6.36663C12.5381 5.93285 12.6382 5.46567 12.6438 4.99261C12.6494 4.51954 12.5603 4.05013 12.3818 3.612C12.2033 3.17386 11.939 2.77586 11.6044 2.4414C11.2698 2.10693 10.8717 1.84277 10.4335 1.66445C9.99526 1.48613 9.52581 1.39726 9.05274 1.40305C8.57968 1.40885 8.11255 1.5092 7.67884 1.69821C7.24514 1.88721 6.85361 2.16105 6.5273 2.50361L1.51026 7.51959C1.37715 7.6524 1.1968 7.72699 1.00877 7.72699C0.820736 7.72699 0.640383 7.6524 0.507278 7.51959" fill="black" fillOpacity="0.45"/>
+            <svg className="attach-icon" width="24" height="24" viewBox="0 0 15 17" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path d="M0.50407 7.51959C0.370931 7.38644 0.296136 7.20586 0.296136 7.01756C0.296136 6.82927 0.370931 6.64869 0.50407 6.51554L5.52325 1.49956C5.98225 1.02877 6.53016 0.653797 7.1352 0.396398C7.74024 0.138999 8.39037 0.00429558 9.04787 0.000101073C9.70538 -0.00409343 10.3572 0.122304 10.9654 0.371963C11.5737 0.621622 12.1264 0.989572 12.5913 1.45447C13.0563 1.91937 13.4243 2.47196 13.6741 3.0802C13.9238 3.68844 14.0503 4.34021 14.0463 4.99772C14.0422 5.65522 13.9076 6.30537 13.6502 6.91045C13.3929 7.51553 13.018 8.0635 12.5473 8.52257L6.02474 15.0452C5.35651 15.6967 4.45843 16.0588 3.52511 16.0528C2.5918 16.0468 1.69843 15.6733 1.03861 15.0132C0.378784 14.3531 0.00564932 13.4596 6.36217e-05 12.5262C-0.00552208 11.5929 0.356891 10.695 1.00877 10.027L6.5273 4.5085C6.92821 4.11717 7.46721 3.89963 8.02744 3.90306C8.58767 3.90649 9.12397 4.13061 9.52005 4.52683C9.91613 4.92306 10.1401 5.45943 10.1433 6.01966C10.1465 6.5799 9.9288 7.11882 9.53731 7.51959L5.52325 11.5326C5.39025 11.6656 5.20986 11.7403 5.02176 11.7403C4.83367 11.7403 4.65327 11.6656 4.52027 11.5326C4.38727 11.3996 4.31255 11.2192 4.31255 11.0311C4.31255 10.843 4.38727 10.6626 4.52027 10.5296L8.53326 6.51554C8.59912 6.44968 8.65136 6.3715 8.687 6.28545C8.72264 6.1994 8.74099 6.10718 8.74099 6.01405C8.74099 5.92091 8.72264 5.82869 8.687 5.74264C8.65136 5.65659 8.59912 5.57841 8.53326 5.51256C8.46741 5.4467 8.38922 5.39446 8.30318 5.35882C8.21713 5.32318 8.12491 5.30483 8.03177 5.30483C7.93864 5.30483 7.84641 5.32318 7.76037 5.35882C7.67432 5.39446 7.59614 5.4467 7.53028 5.51256L2.01175 11.0311C1.6126 11.4302 1.38836 11.9716 1.38836 12.5361C1.38836 12.8156 1.44341 13.0924 1.55037 13.3506C1.65733 13.6088 1.81411 13.8435 2.01175 14.0411C2.20939 14.2387 2.44402 14.3955 2.70225 14.5025C2.96048 14.6094 3.23725 14.6645 3.51676 14.6645C4.08124 14.6645 4.62261 14.4403 5.02176 14.0411L11.5443 7.51852C11.8868 7.19206 12.1604 6.80042 12.3493 6.36663C12.5381 5.93285 12.6382 5.46567 12.6438 4.99261C12.6494 4.51954 12.5603 4.05013 12.3818 3.612C12.2033 3.17386 11.939 2.77586 11.6044 2.4414C11.2698 2.10693 10.8717 1.84277 10.4335 1.66445C9.99526 1.48613 9.52581 1.39726 9.05274 1.40305C8.57968 1.40885 8.11255 1.5092 7.67884 1.69821C7.24514 1.88721 6.85361 2.16105 6.5273 2.50361L1.51026 7.51959C1.37715 7.6524 1.1968 7.72699 1.00877 7.72699C0.820736 7.72699 0.640383 7.6524 0.507278 7.51959"/>
             </svg>
           </label>
 
@@ -2196,17 +2313,8 @@ const ChatContent = ({
               className={`btn-attach ${!canSendMessages ? 'disabled' : ''}`}
               disabled={!canSendMessages}
               title="Emojis"
-              style={{
-                backgroundColor: 'transparent',
-                border: 'none',
-                cursor: canSendMessages ? 'pointer' : 'not-allowed',
-                padding: '0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
             >
-              <FaSmile className="attach-icon" style={{ color: showEmojiPicker ? '#00a884' : '#8696a0' }} />
+              <EmojiIcon className="attach-icon" />
             </button>
 
             {/* Emoji Picker */}
@@ -2243,7 +2351,7 @@ const ChatContent = ({
               value={input}
               onChange={handleInputChange}
               onKeyDown={handleKeyPress}
-              placeholder={canSendMessages ? "Escribe tu mensaje aquí." : "Solo puedes monitorear esta conversación"}
+              placeholder={canSendMessages ? "Escribe un mensaje" : "Solo puedes monitorear esta conversación"}
               className="message-input"
               disabled={isRecording || !canSendMessages}
             />

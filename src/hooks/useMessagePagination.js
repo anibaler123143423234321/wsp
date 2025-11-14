@@ -95,6 +95,8 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         isDeleted: msg.isDeleted || false,
         deletedBy: msg.deletedBy || null,
         deletedAt: msg.deletedAt || null,
+        // 🔥 Campos de reacciones
+        reactions: msg.reactions || [],
       }));
 
       // Los mensajes ya vienen en orden cronológico correcto del backend
@@ -199,6 +201,8 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         isDeleted: msg.isDeleted || false,
         deletedBy: msg.deletedBy || null,
         deletedAt: msg.deletedAt || null,
+        // 🔥 Campos de reacciones
+        reactions: msg.reactions || [],
       }));
 
       // Agregar mensajes más antiguos al inicio (estilo WhatsApp)

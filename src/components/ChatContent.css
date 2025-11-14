@@ -217,8 +217,8 @@
     height: 16px;
   }
   .attach-icon {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
   }
 }
 
@@ -275,8 +275,8 @@
     height: 14px;
   }
   .attach-icon {
-    width: 14px;
-    height: 14px;
+    width: 18px;
+    height: 18px;
   }
 }
 /* Estilos del contenido del chat */
@@ -609,7 +609,7 @@
 .chat-input-container {
   background: #ffffff;
   border-top: 1px solid #e5e7eb;
-  padding: 6px 8px;
+  padding: 4px 8px;
   box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
@@ -623,7 +623,7 @@
   background: #ffffff;
   border: none;
   border-radius: 30px;
-  padding: 4px 10px;
+  padding: 3px 10px;
   transition: all 0.2s ease;
   width: 100%;
   max-width: 100%;
@@ -631,7 +631,7 @@
   height: auto;
   justify-content: flex-start;
   flex-wrap: nowrap;
-  padding-top: 6px;
+  padding-top: 4px;
 }
 
 .input-group:hover {
@@ -689,31 +689,37 @@
   border: none;
   color: #6b7280;
   cursor: pointer;
-  padding: 0;
+  padding: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
   flex-shrink: 0;
+  border-radius: 50%;
 }
 
-.btn-attach:hover {
-  color: #374151;
+.btn-attach:hover:not(.disabled) {
+  background: rgba(0, 168, 132, 0.1);
 }
 
-.btn-attach.disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.btn-attach:active {
+.btn-attach:active:not(.disabled) {
   transform: scale(0.95);
 }
 
+.btn-attach.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .attach-icon {
-  width: 16px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
+  color: #8696a0;
+  transition: color 0.2s ease;
+}
+
+.btn-attach:hover:not(.disabled) .attach-icon {
+  color: #00a884;
 }
 
 .btn {
@@ -940,8 +946,8 @@
   }
 
   .attach-icon {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
   }
 
   .welcome-screen {
@@ -994,8 +1000,8 @@
   }
 
   .attach-icon {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
   }
 
   .chat-input-container {
@@ -1032,8 +1038,8 @@
   }
 
   .attach-icon {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
   }
 
   .chat-input-container {

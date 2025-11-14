@@ -235,13 +235,14 @@
 }
 
 .room-code {
-  color: #8696a0;
+  color: #00a884 !important;
   font-size: 10px;
   font-weight: 500;
-  background: rgba(134, 150, 160, 0.1);
+  background: #d1f4dd !important;
+  background-color: #d1f4dd !important;
   padding: 1px 4px;
   border-radius: 3px;
-  border: 1px solid rgba(134, 150, 160, 0.2);
+  border: 1px solid rgba(0, 168, 132, 0.3);
   margin-left: 4px;
   font-family: "Courier New", monospace;
   letter-spacing: 0.3px;

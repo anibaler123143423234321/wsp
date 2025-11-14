@@ -348,6 +348,8 @@ const ChatPage = () => {
             isDeleted: msg.isDeleted || false,
             deletedBy: msg.deletedBy || null,
             deletedAt: msg.deletedAt || null,
+            // 🔥 Campos de reacciones
+            reactions: msg.reactions || [],
           };
         });
 
@@ -627,7 +629,8 @@ const ChatPage = () => {
           replyToSender: data.replyToSender || null,
           replyToText: data.replyToText || null,
           threadCount: data.threadCount || 0,
-          lastReplyFrom: data.lastReplyFrom || null
+          lastReplyFrom: data.lastReplyFrom || null,
+          reactions: data.reactions || []
         };
 
         addNewMessage(newMessage);
@@ -765,6 +768,9 @@ const ChatPage = () => {
         // Agregar información de hilos
         newMessage.threadCount = data.threadCount || 0;
         newMessage.lastReplyFrom = data.lastReplyFrom || null;
+
+        // Agregar información de reacciones
+        newMessage.reactions = data.reactions || [];
 
         // console.log('✅ Agregando mensaje a la vista actual');
         addNewMessage(newMessage);
@@ -1233,6 +1239,8 @@ const ChatPage = () => {
     setIsGroup(false); // Establecer que NO es grupo
     setCurrentRoomCode(null); // Limpiar código de sala
     currentRoomCodeRef.current = null;
+    setReplyingTo(null); // 🔥 Limpiar estado de respuesta
+    setThreadMessage(null); // 🔥 Limpiar panel de hilo
 
     // Si es una conversación de admin (conversationData presente), guardarla
     if (conversationData) {
@@ -1270,6 +1278,8 @@ const ChatPage = () => {
     setAdminViewConversation(null); // Limpiar vista de admin
     setCurrentRoomCode(null); // Limpiar código de sala
     currentRoomCodeRef.current = null;
+    setReplyingTo(null); // 🔥 Limpiar estado de respuesta
+    setThreadMessage(null); // 🔥 Limpiar panel de hilo
 
     // Establecer nuevo estado
     setTo(group.name);
@@ -1290,6 +1300,8 @@ const ChatPage = () => {
     setCurrentRoomCode(null);
     currentRoomCodeRef.current = null;
     setAdminViewConversation(null); // Limpiar vista de admin
+    setReplyingTo(null); // 🔥 Limpiar estado de respuesta
+    setThreadMessage(null); // 🔥 Limpiar panel de hilo
 
     setTo(username);
   };
@@ -1304,6 +1316,8 @@ const ChatPage = () => {
     setRoomUsers([]);
     setAdminViewConversation(null);
     clearMessages();
+    setReplyingTo(null); // 🔥 Limpiar estado de respuesta
+    setThreadMessage(null); // 🔥 Limpiar panel de hilo
 
     // En mobile, mostrar el sidebar
     if (window.innerWidth <= 768) {
@@ -1448,6 +1462,8 @@ const ChatPage = () => {
     currentRoomCodeRef.current = null;
     setAdminViewConversation(null);
     clearMessages();
+    setReplyingTo(null); // 🔥 Limpiar estado de respuesta
+    setThreadMessage(null); // 🔥 Limpiar panel de hilo
 
     // En mobile, mostrar el sidebar
     if (window.innerWidth <= 768) {
@@ -1491,6 +1507,8 @@ const ChatPage = () => {
       clearMessages(); // Limpiar mensajes primero
       setAdminViewConversation(null); // Limpiar vista de admin
       setRoomUsers([]); // Limpiar usuarios de la sala anterior
+      setReplyingTo(null); // 🔥 Limpiar estado de respuesta
+      setThreadMessage(null); // 🔥 Limpiar panel de hilo
 
       // Unirse a la sala seleccionada
       setTo(room.name);
@@ -2139,6 +2157,14 @@ const ChatPage = () => {
         fromId: user.id
       };
 
+      // 🔥 Agregar campos multimedia si existen
+      if (messageData.mediaType) {
+        messageObj.mediaType = messageData.mediaType;
+        messageObj.mediaData = messageData.mediaData;
+        messageObj.fileName = messageData.fileName;
+        messageObj.fileSize = messageData.fileSize;
+      }
+
       // Guardar en BD
       const savedMessage = await apiService.createMessage(messageObj);
 
@@ -2535,6 +2561,8 @@ const ChatPage = () => {
       setAdminViewConversation(null);
       clearMessages();
       clearInput();
+      setReplyingTo(null); // 🔥 Limpiar estado de respuesta
+      setThreadMessage(null); // 🔥 Limpiar panel de hilo
 
       // Desconectar socket
       if (socket) {

@@ -3,6 +3,8 @@ import { FaTimes, FaPaperPlane, FaPaperclip, FaSmile } from 'react-icons/fa';
 import EmojiPicker from 'emoji-picker-react';
 import apiService from '../apiService';
 import AudioPlayer from './AudioPlayer';
+import VoiceRecorder from './VoiceRecorder';
+import { formatPeruTime } from '../utils/dateUtils';
 import './ThreadPanel.css';
 import './ThreadPanelWrapper.css';
 
@@ -18,16 +20,33 @@ const ThreadPanel = ({
   const [loading, setLoading] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [currentThreadCount, setCurrentThreadCount] = useState(message?.threadCount || 0);
+  const [mediaFiles, setMediaFiles] = useState([]);
+  const [mediaPreviews, setMediaPreviews] = useState([]);
+  const [panelWidth, setPanelWidth] = useState(450); // Ancho inicial del panel
+  const [isResizing, setIsResizing] = useState(false);
   const messagesEndRef = useRef(null);
   const emojiPickerRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const panelRef = useRef(null);
 
-  // Agregar clase al body cuando el hilo está abierto
+  // Agregar clase al body cuando el hilo está abierto y ajustar margen del chat
   useEffect(() => {
     document.body.classList.add('thread-open');
+
+    // Ajustar el margen del chat content según el ancho del panel
+    const chatContent = document.querySelector('.flex-1.flex.flex-col.bg-white');
+    if (chatContent && window.innerWidth > 768) {
+      chatContent.style.marginRight = `${panelWidth}px`;
+    }
+
     return () => {
       document.body.classList.remove('thread-open');
+      const chatContent = document.querySelector('.flex-1.flex.flex-col.bg-white');
+      if (chatContent) {
+        chatContent.style.marginRight = '0';
+      }
     };
-  }, []);
+  }, [panelWidth]);
 
   // Cargar mensajes del hilo
   useEffect(() => {
@@ -78,6 +97,44 @@ const ThreadPanel = ({
     };
   }, [socket, message?.id]);
 
+  // Manejo del redimensionamiento del panel
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isResizing) return;
+
+      const newWidth = window.innerWidth - e.clientX;
+      const minWidth = 350;
+      const maxWidth = window.innerWidth * 0.6; // Máximo 60% del ancho de la ventana
+
+      if (newWidth >= minWidth && newWidth <= maxWidth) {
+        setPanelWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.body.style.cursor = 'default';
+      document.body.style.userSelect = 'auto';
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
+
+  const handleResizeStart = (e) => {
+    e.preventDefault();
+    setIsResizing(true);
+  };
+
   const loadThreadMessages = async () => {
     setLoading(true);
     try {
@@ -96,23 +153,147 @@ const ThreadPanel = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSend = () => {
-    if (!input.trim()) return;
-
-    const messageData = {
-      text: input,
-      threadId: message.id,
-      from: currentUsername,
-      to: message.from === currentUsername ? message.to : message.from,
-      isGroup: message.isGroup,
-      roomCode: message.roomCode
-    };
-
-    onSendMessage(messageData);
-    setInput('');
+  // Función para convertir archivo a base64
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+      if (file.size > MAX_FILE_SIZE) {
+        reject(new Error("El archivo es demasiado grande. Máximo 10MB."));
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+      reader.readAsDataURL(file);
+    });
   };
 
-  const handleKeyPress = (e) => {
+  // Manejar selección de archivos
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    const oversizedFiles = files.filter(file => file.size > MAX_FILE_SIZE);
+    if (oversizedFiles.length > 0) {
+      alert(`❌ Algunos archivos superan el límite de 10MB:\n${oversizedFiles.map(f => `- ${f.name} (${(f.size / 1024 / 1024).toFixed(2)}MB)`).join('\n')}`);
+      e.target.value = '';
+      return;
+    }
+
+    if (files.length > 5) {
+      alert("❌ Máximo 5 archivos a la vez");
+      e.target.value = '';
+      return;
+    }
+
+    setMediaFiles(files);
+
+    const previewPromises = files.map((file) => fileToBase64(file));
+    Promise.all(previewPromises)
+      .then((results) => {
+        const previews = results.map((data, index) => {
+          const file = files[index];
+          const fileType = file.type;
+          let type = 'file';
+          if (fileType.startsWith('image/')) type = 'image';
+          else if (fileType.startsWith('video/')) type = 'video';
+          else if (fileType.startsWith('audio/')) type = 'audio';
+          else if (fileType === 'application/pdf') type = 'pdf';
+          else if (fileType.includes('document') || fileType.includes('word')) type = 'document';
+          else if (fileType.includes('sheet') || fileType.includes('excel')) type = 'spreadsheet';
+
+          return {
+            data,
+            name: file.name,
+            size: file.size,
+            type
+          };
+        });
+        setMediaPreviews(previews);
+      })
+      .catch((error) => {
+        console.error("Error al procesar archivos:", error);
+        alert("Error al procesar archivos: " + error.message);
+        e.target.value = '';
+      });
+  };
+
+  // Remover archivo de la lista
+  const handleRemoveMediaFile = (index) => {
+    const newFiles = mediaFiles.filter((_, i) => i !== index);
+    const newPreviews = mediaPreviews.filter((_, i) => i !== index);
+    setMediaFiles(newFiles);
+    setMediaPreviews(newPreviews);
+  };
+
+  // Cancelar subida de archivos
+  const cancelMediaUpload = () => {
+    setMediaFiles([]);
+    setMediaPreviews([]);
+  };
+
+  const handleSend = async () => {
+    if (!input.trim() && mediaFiles.length === 0) return;
+
+    try {
+      const messageData = {
+        text: input,
+        threadId: message.id,
+        from: currentUsername,
+        to: message.from === currentUsername ? message.to : message.from,
+        isGroup: message.isGroup,
+        roomCode: message.roomCode
+      };
+
+      // Si hay archivos, subirlos primero
+      if (mediaFiles.length > 0) {
+        const file = mediaFiles[0]; // Por ahora solo soportamos un archivo a la vez en hilos
+        const uploadResult = await apiService.uploadFile(file, 'chat');
+
+        messageData.mediaType = file.type.split('/')[0];
+        messageData.mediaData = uploadResult.fileUrl;
+        messageData.fileName = uploadResult.fileName;
+        messageData.fileSize = uploadResult.fileSize;
+      }
+
+      onSendMessage(messageData);
+      setInput('');
+      cancelMediaUpload();
+    } catch (error) {
+      console.error('Error al enviar mensaje en hilo:', error);
+      alert('Error al enviar el mensaje. Inténtalo de nuevo.');
+    }
+  };
+
+  // Manejar envío de mensaje de voz
+  const handleSendVoiceMessage = async (audioFile) => {
+    if (!audioFile) return;
+
+    try {
+      const uploadResult = await apiService.uploadFile(audioFile, 'chat');
+
+      const messageData = {
+        text: '',
+        threadId: message.id,
+        from: currentUsername,
+        to: message.from === currentUsername ? message.to : message.from,
+        isGroup: message.isGroup,
+        roomCode: message.roomCode,
+        mediaType: 'audio',
+        mediaData: uploadResult.fileUrl,
+        fileName: uploadResult.fileName,
+        fileSize: uploadResult.fileSize
+      };
+
+      onSendMessage(messageData);
+    } catch (error) {
+      console.error('Error al enviar audio en hilo:', error);
+      alert('Error al enviar el audio. Inténtalo de nuevo.');
+    }
+  };
+
+  const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -126,14 +307,24 @@ const ThreadPanel = ({
 
   const formatTime = (date) => {
     if (!date) return '';
-    const d = new Date(date);
-    return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
+    // Usar la función de utilidades que convierte a zona horaria de Perú (UTC-5)
+    return formatPeruTime(date);
   };
 
   if (!message) return null;
 
   return (
-    <div className="thread-panel">
+    <div
+      ref={panelRef}
+      className="thread-panel"
+      style={{ width: `${panelWidth}px` }}
+    >
+      {/* Handle de redimensionamiento */}
+      <div
+        className="thread-resize-handle"
+        onMouseDown={handleResizeStart}
+      />
+
       <div className="thread-panel-header">
         <div className="thread-panel-title">
           <span className="thread-icon">🧵</span>
@@ -228,7 +419,67 @@ const ThreadPanel = ({
                 <strong>{msg.from}</strong>
                 <span className="thread-message-time">{formatTime(msg.sentAt)}</span>
               </div>
-              <div className="thread-message-text">{msg.message || msg.text}</div>
+
+              {/* Mostrar contenido multimedia si existe */}
+              {msg.mediaType === 'audio' && msg.mediaData ? (
+                <div className="thread-message-media">
+                  <AudioPlayer
+                    src={msg.mediaData}
+                    fileName={msg.fileName}
+                    onDownload={(src, fileName) => {
+                      const link = document.createElement('a');
+                      link.href = src;
+                      link.download = fileName || 'audio';
+                      link.click();
+                    }}
+                    time={msg.time || msg.sentAt}
+                    isOwnMessage={msg.from === currentUsername}
+                    isRead={msg.isRead}
+                    isSent={msg.isSent}
+                    readBy={msg.readBy}
+                  />
+                  {msg.message && <div className="thread-message-text">{msg.message || msg.text}</div>}
+                </div>
+              ) : msg.mediaType === 'image' && msg.mediaData ? (
+                <div className="thread-message-media">
+                  <img
+                    src={msg.mediaData}
+                    alt={msg.fileName || 'Imagen'}
+                    style={{ maxWidth: '100%', borderRadius: '8px', cursor: 'pointer' }}
+                    onClick={() => window.open(msg.mediaData, '_blank')}
+                  />
+                  {msg.message && <div className="thread-message-text">{msg.message || msg.text}</div>}
+                </div>
+              ) : msg.mediaType === 'video' && msg.mediaData ? (
+                <div className="thread-message-media">
+                  <video
+                    src={msg.mediaData}
+                    controls
+                    style={{ maxWidth: '100%', borderRadius: '8px' }}
+                  />
+                  {msg.message && <div className="thread-message-text">{msg.message || msg.text}</div>}
+                </div>
+              ) : msg.mediaType && msg.mediaData ? (
+                <div className="thread-message-media">
+                  <div style={{
+                    padding: '8px 12px',
+                    backgroundColor: '#f0f0f0',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => window.open(msg.mediaData, '_blank')}
+                  >
+                    <span>📎</span>
+                    <span style={{ fontSize: '13px' }}>{msg.fileName || 'Archivo'}</span>
+                  </div>
+                  {msg.message && <div className="thread-message-text">{msg.message || msg.text}</div>}
+                </div>
+              ) : (
+                <div className="thread-message-text">{msg.message || msg.text}</div>
+              )}
             </div>
           ))
         )}
@@ -236,13 +487,82 @@ const ThreadPanel = ({
       </div>
 
       <div className="thread-input-container">
+        {/* Vista previa de archivos */}
+        {mediaFiles.length > 0 && (
+          <div className="thread-media-preview">
+            {mediaPreviews.map((preview, index) => {
+              const getFileIcon = (type) => {
+                switch(type) {
+                  case 'image': return '🖼️';
+                  case 'pdf': return '📄';
+                  case 'video': return '🎥';
+                  case 'audio': return '🎵';
+                  case 'document': return '📝';
+                  case 'spreadsheet': return '📊';
+                  default: return '📎';
+                }
+              };
+
+              return (
+                <div key={index} className="thread-media-preview-item">
+                  {preview.type === 'image' ? (
+                    <img
+                      src={preview.data}
+                      alt={preview.name}
+                      className="thread-preview-image"
+                    />
+                  ) : (
+                    <div className="thread-preview-file">
+                      <div className="thread-preview-icon">{getFileIcon(preview.type)}</div>
+                      <div className="thread-preview-name">{preview.name}</div>
+                      <div className="thread-preview-size">
+                        {preview.size > 1024 * 1024
+                          ? `${(preview.size / 1024 / 1024).toFixed(1)} MB`
+                          : `${(preview.size / 1024).toFixed(1)} KB`
+                        }
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    className="thread-remove-media-btn"
+                    onClick={() => handleRemoveMediaFile(index)}
+                    title="Eliminar archivo"
+                  >
+                    ✕
+                  </button>
+                </div>
+              );
+            })}
+            <button
+              className="thread-cancel-media-btn"
+              onClick={cancelMediaUpload}
+            >
+              Cancelar
+            </button>
+          </div>
+        )}
+
         {showEmojiPicker && (
           <div className="thread-emoji-picker" ref={emojiPickerRef}>
             <EmojiPicker onEmojiClick={handleEmojiClick} width={280} height={350} />
           </div>
         )}
-        
+
         <div className="thread-input-wrapper">
+          {/* Botón de adjuntar archivos */}
+          <label className="thread-attach-btn" title="Adjuntar archivos">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="*/*"
+              onChange={handleFileSelect}
+              style={{ display: 'none' }}
+            />
+            <FaPaperclip />
+          </label>
+
+          {/* Botón de emoji */}
           <button
             className="thread-emoji-btn"
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -250,20 +570,26 @@ const ThreadPanel = ({
           >
             <FaSmile />
           </button>
-          
+
           <textarea
             className="thread-input"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyDown}
             placeholder="Responder en hilo..."
             rows={1}
           />
-          
+
+          {/* Botón de grabación de voz */}
+          <VoiceRecorder
+            onSendAudio={handleSendVoiceMessage}
+            canSendMessages={true}
+          />
+
           <button
             className="thread-send-btn"
             onClick={handleSend}
-            disabled={!input.trim()}
+            disabled={!input.trim() && mediaFiles.length === 0}
             title="Enviar"
           >
             <FaPaperPlane />
