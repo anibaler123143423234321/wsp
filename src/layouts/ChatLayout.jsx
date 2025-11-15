@@ -33,7 +33,7 @@ const ChatLayout = ({
   unreadMessages,
 
   // Props del socket
-  soundsEnabled, onEnableSounds, socket, isTyping,
+  soundsEnabled, onEnableSounds, socket, isTyping, typingUser,
 
   // Props del usuario
   currentUsername,
@@ -238,6 +238,9 @@ const ChatLayout = ({
           onOpenThread={onOpenThread}
           onSendVoiceMessage={onSendVoiceMessage}
           isAdmin={isAdmin}
+          isOtherUserTyping={isTyping}
+          typingUser={typingUser}
+          roomTypingUsers={roomTypingUsers}
         />
       </div>
       

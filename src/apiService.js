@@ -220,6 +220,7 @@ class ApiService {
   async refreshToken() {
     // Si ya hay un refresh en progreso, esperar a que termine
     if (this._refreshPromise) {
+      console.log('⏳ Ya hay un refresh en progreso, esperando...');
       return this._refreshPromise;
     }
 
@@ -227,8 +228,11 @@ class ApiService {
       try {
         const currentToken = localStorage.getItem("token");
         if (!currentToken) {
+          console.error('❌ No hay token para renovar');
           throw new Error('No hay token para renovar');
         }
+
+        console.log('🔄 Intentando renovar token...');
 
         // Intentar renovar con el endpoint del backend de Java
         const refreshResp = await fetch(
@@ -242,14 +246,56 @@ class ApiService {
           }
         );
 
+        console.log(`📡 Respuesta de refresh-token: ${refreshResp.status}`);
+
+        // 🔥 Si el refresh falla, verificar el tipo de error
         if (!refreshResp.ok) {
+          let errorData = null;
+          try {
+            errorData = await refreshResp.json();
+          } catch {
+            const errorText = await refreshResp.text();
+            console.error(`❌ Error ${refreshResp.status} al renovar token:`, errorText);
+          }
+
+          // Si el backend devuelve rpta: 0 con mensaje de token inválido, cerrar sesión
+          if (errorData?.rpta === 0) {
+            const errorMsg = errorData.msg || '';
+            console.error('❌ Error al renovar token:', errorMsg);
+
+            // Verificar si es un error de token inválido/expirado
+            if (
+              errorMsg.includes('inválido') ||
+              errorMsg.includes('invalido') ||
+              errorMsg.includes('expirado') ||
+              errorMsg.includes('Token') ||
+              refreshResp.status === 400
+            ) {
+              console.error('❌ Token no se puede renovar. Cerrando sesión.');
+              this.logout();
+              window.location.href = '/';
+              throw new Error('Token no se puede renovar');
+            }
+          }
+
+          // Para otros errores (401, 403, 500, etc.), también cerrar sesión
+          if (refreshResp.status === 401 || refreshResp.status === 403) {
+            console.error('❌ Token no se puede renovar (401/403). Cerrando sesión.');
+            this.logout();
+            window.location.href = '/';
+            throw new Error('Token no se puede renovar');
+          }
+
           throw new Error(`Error ${refreshResp.status} al renovar token`);
         }
 
         const refreshData = await refreshResp.json();
+        console.log('📦 Datos de refresh:', refreshData);
 
         if (refreshData?.rpta === 1 && refreshData?.data?.token) {
           const newToken = refreshData.data.token;
+
+          console.log('✅ Token renovado exitosamente');
 
           // Actualizar token en localStorage
           localStorage.setItem("token", newToken);
@@ -276,10 +322,16 @@ class ApiService {
 
           return newToken;
         } else {
+          console.error('❌ Respuesta de refresh token inválida:', refreshData);
           throw new Error('Respuesta de refresh token inválida');
         }
       } catch (error) {
         console.error('❌ Error al renovar token:', error);
+        // Si el error no es de logout, limpiar sesión
+        if (!error.message?.includes('Token no se puede renovar')) {
+          this.logout();
+          window.location.href = '/';
+        }
         throw error;
       } finally {
         // Limpiar la promesa después de 1 segundo
@@ -312,10 +364,53 @@ class ApiService {
 
     let response = await doRequest(headers);
 
-    // ✅ Renovar token automáticamente en caso de 401 o 403
-    if (response.status === 401 || response.status === 403) {
+    // 🔥 Manejo de errores 400, 401 y 403
+    if (response.status === 400) {
+      // 400 = Verificar si es un error de token inválido del backend
       try {
-        // Intentar renovar el token
+        const errorData = await response.clone().json();
+        if (errorData?.rpta === 0) {
+          const errorMsg = errorData.msg || '';
+
+          // Si el mensaje indica token inválido/expirado, intentar renovar
+          if (
+            errorMsg.includes('inválido') ||
+            errorMsg.includes('invalido') ||
+            errorMsg.includes('expirado') ||
+            errorMsg.includes('Token')
+          ) {
+            console.log('⚠️ Error 400 con token inválido detectado, intentando renovar...');
+            try {
+              const newToken = await this.refreshToken();
+
+              // Reintentar la petición original con el nuevo token
+              const retryHeaders = {
+                ...headers,
+                Authorization: `Bearer ${newToken}`,
+              };
+
+              response = await doRequest(retryHeaders);
+
+              // Si aún falla después del refresh, cerrar sesión
+              if (response.status === 401 || response.status === 403 || response.status === 400) {
+                console.error('❌ Error después de renovar token. Cerrando sesión.');
+                this.logout();
+                window.location.href = '/';
+              }
+            } catch (error) {
+              console.error('❌ Error al renovar token:', error);
+              this.logout();
+              window.location.href = '/';
+            }
+          }
+        }
+      } catch (e) {
+        // Si no se puede parsear el JSON, continuar normalmente
+      }
+    } else if (response.status === 401) {
+      // 401 = Token expirado o inválido → Intentar renovar
+      console.log('⚠️ Error 401 detectado, intentando renovar token...');
+      try {
         const newToken = await this.refreshToken();
 
         // Reintentar la petición original con el nuevo token
@@ -338,6 +433,11 @@ class ApiService {
         this.logout();
         window.location.href = '/';
       }
+    } else if (response.status === 403) {
+      // 403 = Sin permisos o token expirado definitivamente → Cerrar sesión directamente
+      console.error('❌ Error 403: Acceso denegado. Cerrando sesión.');
+      this.logout();
+      window.location.href = '/';
     }
 
     return response;
@@ -817,7 +917,7 @@ class ApiService {
   }
 
   // Obtener mensajes de un hilo
-  async getThreadMessages(threadId, limit = 50, offset = 0) {
+  async getThreadMessages(threadId, limit = 100, offset = 0) {
     try {
       const response = await fetch(
         `${this.baseChatUrl}api/messages/thread/${threadId}?limit=${limit}&offset=${offset}`,

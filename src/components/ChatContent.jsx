@@ -53,7 +53,10 @@ const ChatContent = ({
   onCancelReply,
   onOpenThread,
   onSendVoiceMessage,
-  isAdmin = false
+  isAdmin = false,
+  isOtherUserTyping,
+  typingUser,
+  roomTypingUsers
 }) => {
   const chatHistoryRef = useRef(null);
   const isUserScrollingRef = useRef(false);
@@ -442,6 +445,30 @@ const ChatContent = ({
     lastMessageCountRef.current = messages.length;
   }, [messages]);
 
+  // 🔥 Scroll automático cuando aparece/desaparece el indicador de "está escribiendo"
+  useEffect(() => {
+    if (!chatHistoryRef.current) return;
+
+    const chatHistory = chatHistoryRef.current;
+    const isAtBottom = chatHistory.scrollHeight - chatHistory.scrollTop <= chatHistory.clientHeight + 150;
+
+    // Determinar si hay alguien escribiendo
+    const someoneIsTyping = (!isGroup && isOtherUserTyping && typingUser) ||
+                           (isGroup && currentRoomCode && roomTypingUsers &&
+                            roomTypingUsers[currentRoomCode] &&
+                            roomTypingUsers[currentRoomCode].length > 0);
+
+    // Si alguien está escribiendo y el usuario está cerca del final, hacer scroll suave
+    if (someoneIsTyping && (isAtBottom || !isUserScrollingRef.current)) {
+      setTimeout(() => {
+        chatHistory.scrollTo({
+          top: chatHistory.scrollHeight,
+          behavior: 'smooth'
+        });
+      }, 100);
+    }
+  }, [isOtherUserTyping, typingUser, roomTypingUsers, currentRoomCode, isGroup]);
+
   // Marcar mensajes de sala como leídos cuando se visualizan
   useEffect(() => {
     if (!socket || !socket.connected || !isGroup || !currentRoomCode || !currentUsername) return;
@@ -825,9 +852,9 @@ const ChatContent = ({
         className={`message ${isOwnMessage ? 'own-message' : 'other-message'} ${isHighlighted ? 'highlighted-message' : ''}`}
         style={{
           display: 'flex',
-          justifyContent: isOwnMessage ? 'flex-end' : 'flex-start',
           alignItems: 'flex-end',
-          margin: '2px 0',
+          marginTop: '2px',
+          marginBottom: '2px',
           padding: '0 8px',
           gap: '6px',
           transition: 'all 0.3s ease',
@@ -886,9 +913,9 @@ const ChatContent = ({
             transition: 'all 0.3s ease',
             border: isHighlighted ? '2px solid #00a884' : 'none',
             overflow: 'visible',
-            // 🔥 CORREGIDO: Usar maxWidth en inline style en lugar de clases de Tailwind
-            // Esto asegura que el mensaje se expanda completamente sin truncamiento
-            maxWidth: message.mediaType ? '400px' : 'calc(100vw - 100px)'
+            // 🔥 El maxWidth se controla en el CSS de .own-message y .other-message (75%)
+            // Solo aplicamos maxWidth para media (imágenes, videos, etc.)
+            ...(message.mediaType && { maxWidth: '400px' })
           }}
         >
           {/* 🔥 Botón de menú en esquina superior derecha */}
@@ -1042,8 +1069,8 @@ const ChatContent = ({
 
 
 
-                  {/* Info - solo para mensajes propios en salas */}
-                  {isOwnMessage && isGroup && message.id && (
+                  {/* Info - para todos los mensajes */}
+                  {message.id && (
                     <button
                       onClick={() => {
                         setShowMessageInfo(message);
@@ -1493,10 +1520,15 @@ const ChatContent = ({
                           style={{
                             color: (message.readBy && message.readBy.length > 0) ? '#53bdeb' : '#fff',
                             fontSize: '12px',
-                            letterSpacing: '-2px'
+                            display: 'inline-flex',
+                            alignItems: 'center'
                           }}
                         >
-                          {message.isSent ? '✓✓' : '⏳'}
+                          {message.isSent ? (
+                            <svg viewBox="0 0 18 18" height="18" width="18" preserveAspectRatio="xMidYMid meet" version="1.1" x="0px" y="0px" enableBackground="new 0 0 18 18">
+                              <path fill="currentColor" d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"></path>
+                            </svg>
+                          ) : '⏳'}
                         </span>
                       )}
                     </div>
@@ -1571,10 +1603,15 @@ const ChatContent = ({
                             style={{
                               color: (message.readBy && message.readBy.length > 0) ? '#53bdeb' : '#8696a0',
                               fontSize: '12px',
-                              letterSpacing: '-2px'
+                              display: 'inline-flex',
+                              alignItems: 'center'
                             }}
                           >
-                            {message.isSent ? '✓✓' : '⏳'}
+                            {message.isSent ? (
+                              <svg viewBox="0 0 18 18" height="18" width="18" preserveAspectRatio="xMidYMid meet" version="1.1" x="0px" y="0px" enableBackground="new 0 0 18 18">
+                                <path fill="currentColor" d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"></path>
+                              </svg>
+                            ) : '⏳'}
                           </span>
                         )}
                       </div>
@@ -1696,10 +1733,16 @@ const ChatContent = ({
                             <span
                               style={{
                                 color: message.isRead ? '#53bdeb' : '#8696a0',
-                                fontSize: '12px'
+                                fontSize: '12px',
+                                display: 'inline-flex',
+                                alignItems: 'center'
                               }}
                             >
-                              {message.isSent ? '✓✓' : '⏳'}
+                              {message.isSent ? (
+                                <svg viewBox="0 0 18 18" height="18" width="18" preserveAspectRatio="xMidYMid meet" version="1.1" x="0px" y="0px" enableBackground="new 0 0 18 18">
+                                  <path fill="currentColor" d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"></path>
+                                </svg>
+                              ) : '⏳'}
                             </span>
                           </>
                         )}
@@ -1948,18 +1991,6 @@ const ChatContent = ({
                         >
                           {renderTextWithMentions(displayText)}
                           {shouldTruncate && !isExpanded && '...'}
-                          {message.isEdited && (
-                            <span
-                              style={{
-                                fontSize: '10px',
-                            color: '#8696a0',
-                            marginLeft: '4px',
-                            fontStyle: 'italic'
-                          }}
-                        >
-                          (editado)
-                        </span>
-                      )}
                       {/* Hora y checks inline */}
                       {(!shouldTruncate || isExpanded) && (
                         <span
@@ -1993,7 +2024,8 @@ const ChatContent = ({
                                   color: (message.readBy && message.readBy.length > 0) ? '#27AE60' : '#8696a0',
                                   fontSize: '11px',
                                   cursor: isGroup ? 'pointer' : 'default',
-                                  letterSpacing: '-2px'
+                                  display: 'inline-flex',
+                                  alignItems: 'center'
                                 }}
                                 onClick={() => {
                                   if (isGroup && message.id) {
@@ -2002,7 +2034,11 @@ const ChatContent = ({
                                 }}
                                 title={isGroup ? 'Ver información de lectura' : ''}
                               >
-                                {message.isSent ? '✓✓' : '⏳'}
+                                {message.isSent ? (
+                                  <svg viewBox="0 0 18 18" height="18" width="18" preserveAspectRatio="xMidYMid meet" version="1.1" x="0px" y="0px" enableBackground="new 0 0 18 18">
+                                    <path fill="currentColor" d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"></path>
+                                  </svg>
+                                ) : '⏳'}
                               </span>
                             </>
                           )}
@@ -2074,7 +2110,8 @@ const ChatContent = ({
                                     color: (message.readBy && message.readBy.length > 0) ? '#27AE60' : '#8696a0',
                                     fontSize: '11px',
                                     cursor: isGroup ? 'pointer' : 'default',
-                                    letterSpacing: '-2px'
+                                    display: 'inline-flex',
+                                    alignItems: 'center'
                                   }}
                                   onClick={() => {
                                     if (isGroup && message.id) {
@@ -2083,7 +2120,11 @@ const ChatContent = ({
                                   }}
                                   title={isGroup ? 'Ver información de lectura' : ''}
                                 >
-                                  {message.isSent ? '✓✓' : '⏳'}
+                                  {message.isSent ? (
+                                    <svg viewBox="0 0 18 18" height="18" width="18" preserveAspectRatio="xMidYMid meet" version="1.1" x="0px" y="0px" enableBackground="new 0 0 18 18">
+                                      <path fill="currentColor" d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"></path>
+                                    </svg>
+                                  ) : '⏳'}
                                 </span>
                               </>
                             )}
@@ -2319,6 +2360,251 @@ const ChatContent = ({
             return renderMessage(item.data, item.index);
           }
         })}
+
+        {/* === 🔥 INDICADOR DE "ESTÁ ESCRIBIENDO" 🔥 === */}
+        {(((!isGroup && isOtherUserTyping && typingUser) ||
+          (isGroup && currentRoomCode && roomTypingUsers && roomTypingUsers[currentRoomCode] && roomTypingUsers[currentRoomCode].length > 0))) && (
+          <div className="typing-indicator-container">
+            {/* Para chats individuales */}
+            {!isGroup && isOtherUserTyping && typingUser && (
+          <div
+            className="message other-message"
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-start',
+              alignItems: 'flex-end',
+              margin: '2px 0',
+              padding: '0 8px',
+              gap: '6px',
+            }}
+          >
+            {/* Avatar - Mostrar imagen si existe, sino iniciales o emoji */}
+            <div
+              className="message-avatar"
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                background: typingUser?.picture
+                  ? `url(${typingUser.picture}) center/cover no-repeat`
+                  : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                flexShrink: 0,
+                marginBottom: '2px',
+                color: 'white',
+                fontWeight: '600'
+              }}
+            >
+              {!typingUser?.picture && (
+                typingUser?.nombre
+                  ? typingUser.nombre.charAt(0).toUpperCase()
+                  : (to?.charAt(0).toUpperCase() || '👤')
+              )}
+            </div>
+
+            {/* Contenedor del SVG */}
+            <div
+              className="message-content"
+              style={{
+                backgroundColor: '#E8E6F0', // Mismo color que "other-message"
+                padding: '6px 12px',
+                borderTopRightRadius: '17.11px',
+                borderBottomRightRadius: '17.11px',
+                borderBottomLeftRadius: '17.11px',
+                borderTopLeftRadius: '4px',
+                boxShadow: '0 1px 0.5px rgba(0,0,0,.13)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '2px',
+                width: 'auto',
+                height: 'auto'
+              }}
+            >
+              {/* Nombre del usuario que está escribiendo */}
+              <div
+                style={{
+                  color: '#00a884',
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  marginBottom: '2px'
+                }}
+              >
+                {typingUser.nombre && typingUser.apellido
+                  ? `${typingUser.nombre} ${typingUser.apellido}`
+                  : (typingUser.nombre || typingUser.username || to)}
+              </div>
+
+              <div className="typing-svg-container">
+                {/* SVG Convertido a JSX */}
+                <svg xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" viewBox="0 0 72 72" preserveAspectRatio="xMidYMid meet" style={{ width: '100%', height: '100%', transform: 'translate3d(0px, 0px, 0px)', contentVisibility: 'visible' }}>
+                  <defs>
+                    <clipPath id="_lottie_element_352">
+                      <rect width="72" height="72" x="0" y="0"></rect>
+                    </clipPath>
+                  </defs>
+                  <g clipPath="url(#_lottie_element_352)">
+                    <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,37.752864837646484)" opacity="1">
+                      <g opacity="1" transform="matrix(1,0,0,1,-23,0)">
+                        <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7.397884368896484 C4.082892417907715,-7.397884368896484 7.397884368896484,-4.082892417907715 7.397884368896484,0 C7.397884368896484,4.082892417907715 4.082892417907715,7.397884368896484 0,7.397884368896484 C-4.082892417907715,7.397884368896484 -7.397884368896484,4.082892417907715 -7.397884368896484,0 C-7.397884368896484,-4.082892417907715 -4.082892417907715,-7.397884368896484 0,-7.397884368896484z"></path>
+                      </g>
+                    </g>
+                    <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,34.76784896850586)" opacity="1">
+                      <g opacity="1" transform="matrix(1,0,0,1,0,0)">
+                        <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
+                      </g>
+                    </g>
+                    <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,30.869281768798828)" opacity="1">
+                      <g opacity="1" transform="matrix(1,0,0,1,23,0)">
+                        <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
+                      </g>
+                    </g>
+                    <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,37.752864837646484)" opacity="1">
+                      <g opacity="1" transform="matrix(1,0,0,1,-23,0)">
+                        <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7.397884368896484 C4.082892417907715,-7.397884368896484 7.397884368896484,-4.082892417907715 7.397884368896484,0 C7.397884368896484,4.082892417907715 4.082892417907715,7.397884368896484 0,7.397884368896484 C-4.082892417907715,7.397884368896484 -7.397884368896484,4.082892417907715 -7.397884368896484,0 C-7.397884368896484,-4.082892417907715 -4.082892417907715,-7.397884368896484 0,-7.397884368896484z"></path>
+                      </g>
+                    </g>
+                    <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,34.76784896850586)" opacity="1">
+                      <g opacity="1" transform="matrix(1,0,0,1,0,0)">
+                        <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
+                      </g>
+                    </g>
+                    <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,30.869281768798828)" opacity="1">
+                      <g opacity="1" transform="matrix(1,0,0,1,23,0)">
+                        <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
+                      </g>
+                    </g>
+                  </g>
+                </svg>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Para grupos/salas - Mostrar todos los usuarios que están escribiendo */}
+        {isGroup && currentRoomCode && roomTypingUsers && roomTypingUsers[currentRoomCode] && roomTypingUsers[currentRoomCode].length > 0 && (
+          roomTypingUsers[currentRoomCode].map((typingUserInRoom, index) => (
+            <div
+              key={`typing-${typingUserInRoom.username}-${index}`}
+              className="message other-message"
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-start',
+                alignItems: 'flex-end',
+                margin: '2px 0',
+                padding: '0 8px',
+                gap: '6px',
+              }}
+            >
+              {/* Avatar - Mostrar imagen si existe, sino iniciales o emoji */}
+              <div
+                className="message-avatar"
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  background: typingUserInRoom?.picture
+                    ? `url(${typingUserInRoom.picture}) center/cover no-repeat`
+                    : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '12px',
+                  flexShrink: 0,
+                  marginBottom: '2px',
+                  color: 'white',
+                  fontWeight: '600'
+                }}
+              >
+                {!typingUserInRoom?.picture && (
+                  typingUserInRoom?.nombre
+                    ? typingUserInRoom.nombre.charAt(0).toUpperCase()
+                    : (typingUserInRoom.username?.charAt(0).toUpperCase() || '👤')
+                )}
+              </div>
+
+              {/* Contenedor del SVG */}
+              <div
+                className="message-content"
+                style={{
+                  backgroundColor: '#E8E6F0',
+                  padding: '6px 12px',
+                  borderTopRightRadius: '17.11px',
+                  borderBottomRightRadius: '17.11px',
+                  borderBottomLeftRadius: '17.11px',
+                  borderTopLeftRadius: '4px',
+                  boxShadow: '0 1px 0.5px rgba(0,0,0,.13)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '2px',
+                  width: 'auto',
+                  height: 'auto'
+                }}
+              >
+                {/* Nombre del usuario que está escribiendo */}
+                <div
+                  style={{
+                    color: '#00a884',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    marginBottom: '2px'
+                  }}
+                >
+                  {typingUserInRoom.nombre && typingUserInRoom.apellido
+                    ? `${typingUserInRoom.nombre} ${typingUserInRoom.apellido}`
+                    : (typingUserInRoom.nombre || typingUserInRoom.username)}
+                </div>
+
+                <div className="typing-svg-container">
+                  {/* SVG Convertido a JSX */}
+                  <svg xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" viewBox="0 0 72 72" preserveAspectRatio="xMidYMid meet" style={{ width: '100%', height: '100%', transform: 'translate3d(0px, 0px, 0px)', contentVisibility: 'visible' }}>
+                    <defs>
+                      <clipPath id={`_lottie_element_${index}`}>
+                        <rect width="72" height="72" x="0" y="0"></rect>
+                      </clipPath>
+                    </defs>
+                    <g clipPath={`url(#_lottie_element_${index})`}>
+                      <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,37.752864837646484)" opacity="1">
+                        <g opacity="1" transform="matrix(1,0,0,1,-23,0)">
+                          <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7.397884368896484 C4.082892417907715,-7.397884368896484 7.397884368896484,-4.082892417907715 7.397884368896484,0 C7.397884368896484,4.082892417907715 4.082892417907715,7.397884368896484 0,7.397884368896484 C-4.082892417907715,7.397884368896484 -7.397884368896484,4.082892417907715 -7.397884368896484,0 C-7.397884368896484,-4.082892417907715 -4.082892417907715,-7.397884368896484 0,-7.397884368896484z"></path>
+                        </g>
+                      </g>
+                      <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,34.76784896850586)" opacity="1">
+                        <g opacity="1" transform="matrix(1,0,0,1,0,0)">
+                          <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
+                        </g>
+                      </g>
+                      <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,30.869281768798828)" opacity="1">
+                        <g opacity="1" transform="matrix(1,0,0,1,23,0)">
+                          <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
+                        </g>
+                      </g>
+                      <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,37.752864837646484)" opacity="1">
+                        <g opacity="1" transform="matrix(1,0,0,1,-23,0)">
+                          <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7.397884368896484 C4.082892417907715,-7.397884368896484 7.397884368896484,-4.082892417907715 7.397884368896484,0 C7.397884368896484,4.082892417907715 4.082892417907715,7.397884368896484 0,7.397884368896484 C-4.082892417907715,7.397884368896484 -7.397884368896484,4.082892417907715 -7.397884368896484,0 C-7.397884368896484,-4.082892417907715 -4.082892417907715,-7.397884368896484 0,-7.397884368896484z"></path>
+                        </g>
+                      </g>
+                      <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,34.76784896850586)" opacity="1">
+                        <g opacity="1" transform="matrix(1,0,0,1,0,0)">
+                          <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
+                        </g>
+                      </g>
+                      <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,30.869281768798828)" opacity="1">
+                        <g opacity="1" transform="matrix(1,0,0,1,23,0)">
+                          <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
+                        </g>
+                      </g>
+                    </g>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+          </div>
+        )}
       </div>
 
       <div className="chat-input-container">
@@ -2650,8 +2936,11 @@ const ChatContent = ({
               </div>
 
               <div style={{ marginBottom: '12px' }}>
-                <h4 style={{ fontSize: '13px', fontWeight: '600', color: '#00a884', marginBottom: '8px' }}>
-                  ✓✓ Leído por ({showMessageInfo.readBy?.length || 0})
+                <h4 style={{ fontSize: '13px', fontWeight: '600', color: '#00a884', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <svg viewBox="0 0 18 18" height="18" width="18" preserveAspectRatio="xMidYMid meet" version="1.1" x="0px" y="0px" enableBackground="new 0 0 18 18">
+                    <path fill="currentColor" d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"></path>
+                  </svg>
+                  Leído por ({showMessageInfo.readBy?.length || 0})
                 </h4>
                 {showMessageInfo.readBy && showMessageInfo.readBy.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -2688,8 +2977,10 @@ const ChatContent = ({
                             {reader}
                           </p>
                         </div>
-                        <div style={{ fontSize: '16px', color: '#53bdeb' }}>
-                          ✓✓
+                        <div style={{ fontSize: '16px', color: '#53bdeb', display: 'flex', alignItems: 'center' }}>
+                          <svg viewBox="0 0 18 18" height="18" width="18" preserveAspectRatio="xMidYMid meet" version="1.1" x="0px" y="0px" enableBackground="new 0 0 18 18">
+                            <path fill="currentColor" d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"></path>
+                          </svg>
                         </div>
                       </div>
                     ))}

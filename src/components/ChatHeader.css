@@ -136,16 +136,18 @@
 
 /* Avatar del usuario/grupo */
 .chat-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  width: 38px; /* O el tamaño que ya tengas definido */
+  height: 38px; /* O el tamaño que ya tengas definido */
+  border-radius: 50%; /* Para que sea circular */
   display: flex;
-  align-items: center;
   justify-content: center;
-  font-size: 18px;
-  flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  align-items: center;
+  background-color: white; /* ¡CAMBIO AQUÍ! Fondo blanco */
+  border: 1px solid #e0e0e0; /* Opcional: un borde sutil para que se destaque si el fondo principal es blanco */
+}
+
+.chat-avatar svg path {
+  fill: #606263 !important; /* <-- Asegúrate de que esta regla exista */
 }
 
 .chat-avatar-img {

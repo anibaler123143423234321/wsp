@@ -1,7 +1,13 @@
-import { FaTimes, FaKey, FaUserCircle } from 'react-icons/fa';
+import { FaTimes, FaKey, FaUserCircle, FaCog } from 'react-icons/fa'; // Añadido FaCog
 import './SettingsPanel.css';
 
-const SettingsPanel = ({ isOpen, onClose, user }) => {
+const SettingsPanel = ({ 
+  isOpen, 
+  onClose, 
+  user,
+  isSoundEnabled,   // Nueva prop
+  onSoundToggle     // Nueva prop
+}) => {
   if (!isOpen) return null;
 
   return (
@@ -35,6 +41,7 @@ const SettingsPanel = ({ isOpen, onClose, user }) => {
               <h3>Cuenta</h3>
             </div>
             <div className="settings-section-content">
+              {/* ... (items de Nombre de usuario, Nombre completo, Rol se mantienen igual) ... */}
               <div className="settings-item">
                 <div className="settings-item-label">Nombre de usuario</div>
                 <div className="settings-item-value">{user?.username || 'N/A'}</div>
@@ -53,6 +60,29 @@ const SettingsPanel = ({ isOpen, onClose, user }) => {
               </div>
             </div>
           </div>
+
+          {/* --- NUEVA SECCIÓN: PREFERENCIAS --- */}
+          <div className="settings-section">
+            <div className="settings-section-header">
+              <FaCog className="settings-section-icon" />
+              <h3>Preferencias</h3>
+            </div>
+            <div className="settings-section-content">
+              <div className="settings-toggle-item">
+                <span className="settings-toggle-label">Sonido de notificaciones</span>
+                <label className="toggle-switch">
+                  <input 
+                    type="checkbox" 
+                    checked={isSoundEnabled}
+                    onChange={onSoundToggle}
+                  />
+                  <span className="slider round"></span>
+                </label>
+              </div>
+              {/* Aquí podrías añadir más toggles, como "Modo Oscuro" */}
+            </div>
+          </div>
+          {/* --- FIN DE LA NUEVA SECCIÓN --- */}
 
           {/* Notificaciones de seguridad */}
           <div className="settings-section">
@@ -76,4 +106,3 @@ const SettingsPanel = ({ isOpen, onClose, user }) => {
 };
 
 export default SettingsPanel;
-

@@ -180,3 +180,76 @@
   }
 }
 
+/* Contenedor para el item de tipo toggle */
+.settings-toggle-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0; /* Un padding un poco menor que el item normal */
+}
+
+/* Etiqueta de texto para el toggle */
+.settings-toggle-label {
+  font-size: 15px;
+  color: #111827;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  margin-right: 16px;
+}
+
+/* El interruptor (switch) */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;  /* Ancho del switch */
+  height: 28px; /* Alto del switch */
+}
+
+/* Oculta el checkbox nativo */
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* La barra deslizante (track) */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc; /* Color de fondo (apagado) */
+  transition: .4s;
+}
+
+/* El círculo (thumb) */
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px; /* Tamaño del círculo */
+  width: 20px;  /* Tamaño del círculo */
+  left: 4px;    /* Posición inicial (izq) */
+  bottom: 4px;  /* Posición inicial (abajo) */
+  background-color: white;
+  transition: .4s;
+}
+
+/* Estilos cuando está ACTIVADO (checked) */
+input:checked + .slider {
+  background-color: #3B82F6; /* Color azul (encendido) */
+}
+
+input:checked + .slider:before {
+  transform: translateX(22px); /* Mueve el círculo a la derecha */
+}
+
+/* Versión redondeada */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}

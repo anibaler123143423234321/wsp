@@ -86,8 +86,12 @@ const ChatPage = () => {
   // Estados adicionales del chat
   const [unreadMessages] = useState({});
   const [socketConnected, setSocketConnected] = useState(false);
-  const [soundsEnabled, setSoundsEnabled] = useState(false);
-  const [isTyping, setIsTyping] = useState(false); // El otro usuario está escribiendo
+  const [soundsEnabled, setSoundsEnabled] = useState(() => {
+    // 🔥 Leer preferencia de sonido desde localStorage
+    const saved = localStorage.getItem('soundsEnabled');
+    return saved === 'true'; // Por defecto false si no existe
+  });
+  const [typingUser, setTypingUser] = useState(null); // Usuario que está escribiendo (objeto con username, nombre, picture)
   const [typingTimeout, setTypingTimeout] = useState(null); // Timeout para detectar cuando deja de escribir
   const [roomTypingUsers, setRoomTypingUsers] = useState({}); // Usuarios escribiendo en cada sala { roomCode: [username1, username2] }
   const [adminViewConversation, setAdminViewConversation] = useState(null); // Conversación que el admin está viendo
@@ -1197,17 +1201,25 @@ const ChatPage = () => {
 
       // Solo mostrar si el mensaje es del usuario con el que estamos chateando
       if (from === to) {
-        setIsTyping(typing);
+        if (typing) {
+          // Buscar información del usuario en userList
+          const userInfo = userList.find(u => u.username === from);
 
-        // Si está escribiendo, limpiar el timeout anterior
-        if (typing && typingTimeout) {
-          clearTimeout(typingTimeout);
-        }
+          setTypingUser({
+            username: from,
+            nombre: userInfo?.nombre || from,
+            apellido: userInfo?.apellido || '',
+            picture: userInfo?.picture || null
+          });
 
-        // Si dejó de escribir, ocultar el indicador después de 1 segundo
-        if (!typing) {
+          // Si está escribiendo, limpiar el timeout anterior
+          if (typingTimeout) {
+            clearTimeout(typingTimeout);
+          }
+        } else {
+          // Si dejó de escribir, ocultar el indicador después de 1 segundo
           const timeout = setTimeout(() => {
-            setIsTyping(false);
+            setTypingUser(null);
           }, 1000);
           setTypingTimeout(timeout);
         }
@@ -1222,16 +1234,27 @@ const ChatPage = () => {
         const currentTyping = prev[roomCode] || [];
 
         if (typing) {
+          // Buscar información del usuario en userList
+          const userInfo = userList.find(u => u.username === from);
+
+          const userTypingInfo = {
+            username: from,
+            nombre: userInfo?.nombre || from,
+            apellido: userInfo?.apellido || '',
+            picture: userInfo?.picture || null
+          };
+
           // Agregar usuario si no está ya en la lista
-          if (!currentTyping.includes(from)) {
+          const existingIndex = currentTyping.findIndex(u => u.username === from);
+          if (existingIndex === -1) {
             return {
               ...prev,
-              [roomCode]: [...currentTyping, from]
+              [roomCode]: [...currentTyping, userTypingInfo]
             };
           }
         } else {
           // Remover usuario de la lista
-          const filtered = currentTyping.filter(user => user !== from);
+          const filtered = currentTyping.filter(user => user.username !== from);
           if (filtered.length === 0) {
             const { [roomCode]: _, ...rest } = prev;
             return rest;
@@ -1506,7 +1529,7 @@ const ChatPage = () => {
       // 🔥 Reproducir sonido si el mensaje es de otro usuario
       if (data.from !== username && data.from !== currentUserFullName) {
         // console.log('🔔 Reproduciendo sonido de notificación para mensaje de hilo');
-        playMessageSound(true);
+        playMessageSound(soundsEnabled);
       }
     });
 
@@ -2196,7 +2219,7 @@ const ChatPage = () => {
           newMessage.lastReplyFrom = null;
 
           addNewMessage(newMessage);
-          playMessageSound(true);
+          playMessageSound(soundsEnabled);
 
           // 🔥 NUEVO: Actualizar la lista de conversaciones asignadas después de enviar
           setAssignedConversations(prevConversations => {
@@ -2480,8 +2503,8 @@ const ChatPage = () => {
         setReplyingTo(null);
       }
 
-      // 🔥 NUEVO: Reproducir sonido siempre
-      playMessageSound(true);
+      // 🔥 Reproducir sonido si está habilitado
+      playMessageSound(soundsEnabled);
 
     } catch (error) {
       console.error('❌ Error al enviar mensaje de voz:', error);
@@ -2950,10 +2973,18 @@ const ChatPage = () => {
         messageSound.current.currentTime = 0;
         await messageSound.current.play();
         setSoundsEnabled(true);
+        localStorage.setItem('soundsEnabled', 'true');
       }
     } catch {
       // Silenciar errores de sonido
     }
+  };
+
+  // 🔥 Función para toggle del sonido de notificaciones
+  const handleSoundToggle = () => {
+    const newValue = !soundsEnabled;
+    setSoundsEnabled(newValue);
+    localStorage.setItem('soundsEnabled', newValue.toString());
   };
 
   const handleLoginSuccess = (userData) => {
@@ -3137,7 +3168,8 @@ const ChatPage = () => {
       currentUsername={username}
       onEditMessage={handleEditMessage}
       onDeleteMessage={handleDeleteMessage}
-      isTyping={isTyping}
+      isTyping={typingUser !== null}
+      typingUser={typingUser}
       highlightMessageId={highlightMessageId}
       onMessageHighlighted={() => setHighlightMessageId(null)}
       replyingTo={replyingTo}
@@ -3243,6 +3275,8 @@ const ChatPage = () => {
       isOpen={showAdminMenu}
       onClose={() => setShowAdminMenu(false)}
       user={user}
+      isSoundEnabled={soundsEnabled}
+      onSoundToggle={handleSoundToggle}
     />
     </>
   );

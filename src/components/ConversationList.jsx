@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { FaTimes, FaBars, FaSignInAlt, FaStar, FaRegStar } from 'react-icons/fa';
-import { MessageSquare, Home } from 'lucide-react';
+import { FaTimes, FaBars, FaSignInAlt, FaStar, FaRegStar, FaChevronDown, FaChevronRight } from 'react-icons/fa';
+import { MessageSquare, Home, Users } from 'lucide-react';
 import clsx from 'clsx';
 import apiService from '../apiService';
 import './ConversationList.css';
@@ -119,10 +119,9 @@ const ConversationList = ({
   onLoadMoreUsers,
   roomTypingUsers = {} // Nuevo prop: objeto con roomCode como key y array de usuarios escribiendo
 }) => {
-  // 🔥 Módulo activo por defecto: 'assigned' (Chats Asignados)
-  const [activeModule, setActiveModule] = useState('assigned');
+  // 🔥 Módulo activo por defecto: 'chats' (Asignados + Grupos fusionados)
+  const [activeModule, setActiveModule] = useState('chats');
   const [searchTerm, setSearchTerm] = useState('');
-  const [roomsSearchTerm, setRoomsSearchTerm] = useState('');
   const [assignedSearchTerm, setAssignedSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [isSearching, setIsSearching] = useState(false);
@@ -131,6 +130,8 @@ const ConversationList = ({
   const [favoriteConversationIds, setFavoriteConversationIds] = useState([]); // IDs de conversaciones favoritas
   const [userCache, setUserCache] = useState({}); // Cache de información de usuarios (incluyendo desconectados)
   const [messageSearchResults, setMessageSearchResults] = useState([]); // Resultados de búsqueda de mensajes
+  const [showGroups, setShowGroups] = useState(true);
+  const [showAssigned, setShowAssigned] = useState(true);
   const searchTimeoutRef = useRef(null);
 
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'JEFEPISO';
@@ -382,18 +383,17 @@ const ConversationList = ({
   }).length || 0;
 
   // Definimos las pestañas como un array de objetos
-  // 🔥 Para ADMIN: Asignados, Monitoreo, Grupos
-  // 🔥 Para usuarios normales: Asignados, Grupos
+  // 🔥 Para ADMIN: Chats (Asignados + Grupos), Monitoreo
+  // 🔥 Para usuarios normales: Chats (Asignados + Grupos)
   // 🔥 CONTADOR: Solo muestra conversaciones/grupos NO LEÍDOS
   const tabs = isAdmin ? [
     {
-      id: 'assigned',
-      label: 'Asignados',
-      shortLabel: 'Asignados',
-      icon: CommunityIcon,
-      notificationCount: unreadAssignedCount, // Solo no leídos
+      id: 'chats',
+      label: 'Chats',
+      shortLabel: 'Chats',
+      icon: Home,
+      notificationCount: unreadAssignedCount + unreadRoomsCount, // Suma de asignados + grupos
       adminOnly: false,
-      showOnlyIfHasConversations: true,
     },
     {
       id: 'monitoring',
@@ -403,33 +403,14 @@ const ConversationList = ({
       notificationCount: unreadMonitoringCount, // Solo no leídos
       adminOnly: true,
     },
-    {
-      id: 'rooms',
-      label: 'Grupos',
-      shortLabel: 'Grupos',
-      icon: Home,
-      notificationCount: unreadRoomsCount, // Solo no leídos
-      adminOnly: false,
-      showOnlyIfHasRooms: true,
-    },
   ] : [
     {
-      id: 'assigned',
-      label: 'Asignados',
-      shortLabel: 'Asignados',
-      icon: CommunityIcon,
-      notificationCount: unreadAssignedCount, // Solo no leídos
-      adminOnly: false,
-      showOnlyIfHasConversations: true,
-    },
-    {
-      id: 'rooms',
-      label: 'Grupos',
-      shortLabel: 'Grupos',
+      id: 'chats',
+      label: 'Chats',
+      shortLabel: 'Chats',
       icon: Home,
-      notificationCount: unreadRoomsCount, // Solo no leídos
+      notificationCount: unreadAssignedCount + unreadRoomsCount, // Suma de asignados + grupos
       adminOnly: false,
-      showOnlyIfHasRooms: true,
     },
   ];
 
@@ -524,17 +505,12 @@ const ConversationList = ({
               fontWeight: 400
             }}
             value={
-              activeModule === 'rooms' ? roomsSearchTerm :
-              activeModule === 'assigned' || activeModule === 'monitoring' ? assignedSearchTerm :
+              activeModule === 'chats' || activeModule === 'monitoring' ? assignedSearchTerm :
               searchTerm
             }
             onChange={(e) => {
               const value = e.target.value;
-              if (activeModule === 'rooms') {
-                setRoomsSearchTerm(value);
-                // Buscar en mensajes también
-                handleMessageSearch(value);
-              } else if (activeModule === 'assigned' || activeModule === 'monitoring') {
+              if (activeModule === 'chats' || activeModule === 'monitoring') {
                 setAssignedSearchTerm(value);
                 // Buscar en mensajes también
                 handleMessageSearch(value);
@@ -546,17 +522,13 @@ const ConversationList = ({
             }}
           />
           {((activeModule === 'conversations' && searchTerm) ||
-            (activeModule === 'rooms' && roomsSearchTerm) ||
-            (activeModule === 'assigned' && assignedSearchTerm) ||
+            (activeModule === 'chats' && assignedSearchTerm) ||
             (activeModule === 'monitoring' && assignedSearchTerm)) && (
             <button
               className="bg-transparent border-none text-gray-500 cursor-pointer p-0.5 flex items-center justify-center rounded-full transition-all duration-200 hover:bg-gray-200 hover:text-gray-800 active:scale-95 max-[1280px]:!text-xs max-[1024px]:!text-[11px] max-[1024px]:!p-0.5"
               style={{ fontSize: '13px' }}
               onClick={() => {
-                if (activeModule === 'rooms') {
-                  setRoomsSearchTerm('');
-                  setMessageSearchResults([]);
-                } else if (activeModule === 'assigned' || activeModule === 'monitoring') {
+                if (activeModule === 'chats' || activeModule === 'monitoring') {
                   setAssignedSearchTerm('');
                   setMessageSearchResults([]);
                 } else {
@@ -571,7 +543,7 @@ const ConversationList = ({
         </div>
 
         {/* Ordenar por */}
-        {(activeModule === 'conversations' || activeModule === 'assigned' || activeModule === 'monitoring') && (
+        {(activeModule === 'conversations' || activeModule === 'chats' || activeModule === 'monitoring') && (
           <div className="flex items-center gap-2 max-[1280px]:!mt-2 max-[1280px]:!gap-1.5 max-[1024px]:!mt-1.5 max-[1024px]:!gap-1" style={{ marginTop: '12px' }}>
             <span
               className="text-gray-600 max-[1280px]:!text-sm max-[1024px]:!text-xs"
@@ -605,10 +577,10 @@ const ConversationList = ({
       </div>
 
       {/* Contenido según módulo activo */}
-      {activeModule === 'rooms' && (
+      {activeModule === 'chats' && (
         <div className="flex-1 overflow-y-auto bg-white px-4">
           {/* Mostrar resultados de búsqueda de mensajes si hay búsqueda activa */}
-          {roomsSearchTerm.trim() && messageSearchResults.length > 0 && (
+          {assignedSearchTerm.trim() && messageSearchResults.length > 0 && (
             <div className="mb-4">
               <div className="text-xs text-gray-500 font-semibold mb-2 px-2" style={{ fontFamily: 'Inter, sans-serif' }}>
                 📝 Mensajes encontrados ({messageSearchResults.length})
@@ -677,13 +649,29 @@ const ConversationList = ({
             </div>
           )}
 
-          {myActiveRooms && myActiveRooms.length > 0 ? (
+          {/* 🔥 SECCIÓN DE GRUPOS */}
+          {myActiveRooms && myActiveRooms.length > 0 && (
             <>
-              {myActiveRooms
+              <div
+                className="text-xs text-gray-500 font-semibold mb-2 px-4 mt-4 flex items-center justify-between cursor-pointer select-none"
+                style={{ fontFamily: 'Inter, sans-serif' }}
+                onClick={() => setShowGroups(prev => !prev)}
+              >
+                <div className="flex items-center gap-2">
+                  <Users className="w-3.5 h-3.5" />
+                  <span>GRUPOS</span>
+                </div>
+                {showGroups ? (
+                  <FaChevronDown className="w-3 h-3 text-gray-400" />
+                ) : (
+                  <FaChevronRight className="w-3 h-3 text-gray-400" />
+                )}
+              </div>
+              {showGroups && myActiveRooms
                 .filter(room =>
-                  roomsSearchTerm.trim() === '' ||
-                  room.name.toLowerCase().includes(roomsSearchTerm.toLowerCase()) ||
-                  room.roomCode.toLowerCase().includes(roomsSearchTerm.toLowerCase())
+                  assignedSearchTerm.trim() === '' ||
+                  room.name.toLowerCase().includes(assignedSearchTerm.toLowerCase()) ||
+                  room.roomCode.toLowerCase().includes(assignedSearchTerm.toLowerCase())
                 )
                 // Ordenar: menciones primero, luego favoritas, luego por fecha
                 .sort((a, b) => {
@@ -813,9 +801,10 @@ const ConversationList = ({
                                 fontWeight: 400
                               }}
                             >
-                              <span className="animate-pulse">✍️</span>
                               {typingUsers.length === 1
-                                ? `${typingUsers[0]} está escribiendo...`
+                                ? `${typingUsers[0].nombre && typingUsers[0].apellido
+                                    ? `${typingUsers[0].nombre} ${typingUsers[0].apellido}`
+                                    : (typingUsers[0].nombre || typingUsers[0].username)} está escribiendo...`
                                 : `${typingUsers.length} personas están escribiendo...`
                               }
                             </p>
@@ -886,91 +875,26 @@ const ConversationList = ({
                   );
                 })}
             </>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-[60px] px-5 text-center">
-              <div className="text-5xl mb-4 opacity-50">🏠</div>
-              <div className="text-sm text-gray-600 font-medium">
-                {roomsSearchTerm ? `No se encontraron resultados para "${roomsSearchTerm}"` : 'No tienes salas activas'}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {activeModule === 'assigned' && (
-        <div className="flex-1 overflow-y-auto bg-white px-4 w-full min-w-0">
-          {/* Mostrar resultados de búsqueda de mensajes si hay búsqueda activa */}
-          {assignedSearchTerm.trim() && messageSearchResults.length > 0 && (
-            <div className="mb-4">
-              <div className="text-xs text-gray-500 font-semibold mb-2 px-2" style={{ fontFamily: 'Inter, sans-serif' }}>
-                📝 Mensajes encontrados ({messageSearchResults.length})
-              </div>
-              {messageSearchResults.map((msg) => {
-                const isGroupMsg = msg.isGroup;
-                const conversationName = isGroupMsg ? msg.roomCode : msg.to;
-                const messagePreview = msg.message || (msg.fileName ? `📎 ${msg.fileName}` : 'Archivo');
-
-                return (
-                  <div
-                    key={msg.id}
-                    className="flex items-start gap-3 p-3 mb-2 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors"
-                    onClick={() => {
-                      if (isGroupMsg) {
-                        // Buscar el objeto de sala completo
-                        const room = myActiveRooms?.find(r => r.roomCode === msg.roomCode);
-                        if (room && onRoomSelect) {
-                          // Navegar a grupo con el objeto completo y el messageId
-                          onRoomSelect(room, msg.id);
-                        } else {
-                          console.error('Sala no encontrada:', msg.roomCode);
-                        }
-                      } else {
-                        // Navegar a chat directo
-                        onUserSelect(msg.to, null, msg.id);
-                      }
-                    }}
-                  >
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-200 flex items-center justify-center text-lg">
-                      {isGroupMsg ? '👥' : '💬'}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-sm text-gray-800" style={{ fontFamily: 'Inter, sans-serif' }}>
-                          {conversationName}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {isGroupMsg ? 'Grupo' : 'Chat'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-700 truncate" style={{ fontFamily: 'Inter, sans-serif' }}>
-                        {messagePreview}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {new Date(msg.sentAt).toLocaleString('es-ES', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-              <div className="border-t border-gray-200 my-3"></div>
-            </div>
           )}
 
-          {/* Mostrar indicador de búsqueda */}
-          {isSearching && (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-sm text-gray-500">Buscando mensajes...</div>
+          {/* 🔥 SECCIÓN DE ASIGNADOS */}
+          <div
+            className="text-xs text-gray-500 font-semibold mb-2 px-4 mt-4 flex items-center justify-between cursor-pointer select-none"
+            style={{ fontFamily: 'Inter, sans-serif' }}
+            onClick={() => setShowAssigned(prev => !prev)}
+          >
+            <div className="flex items-center gap-2">
+              <CommunityIcon size={14} />
+              <span>ASIGNADOS</span>
             </div>
-          )}
-
+            {showAssigned ? (
+              <FaChevronDown className="w-3 h-3 text-gray-400" />
+            ) : (
+              <FaChevronRight className="w-3 h-3 text-gray-400" />
+            )}
+          </div>
           {(() => {
-            // Filtrar solo las conversaciones donde el usuario es participante
+            // Filtrar conversaciones asignadas
             // Aplicar búsqueda sobre myAssignedConversations
             const myConversations = myAssignedConversations.filter(conv => {
               if (!assignedSearchTerm.trim()) return true;
@@ -982,6 +906,10 @@ const ConversationList = ({
                 conv.lastMessage?.toLowerCase().includes(searchLower)
               );
             });
+
+            if (!showAssigned) {
+              return null;
+            }
 
             return myConversations.length > 0 ? (
               <>
