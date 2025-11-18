@@ -292,6 +292,7 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
       bodyBgColor="#FFFFFF"
       titleColor="#FFFFFF"
       maxWidth="700px"
+      closeOnOverlayClick={false}
     >
       <div style={{ padding: '0' }}>
         {/* Info de la sala */}
@@ -445,117 +446,117 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
             <>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {users.map((user) => {
-                const displayName = user.nombre && user.apellido
-                  ? `${user.nombre} ${user.apellido}`
-                  : user.username;
-                const isSelected = selectedUsers.includes(displayName);
+                  const displayName = user.nombre && user.apellido
+                    ? `${user.nombre} ${user.apellido}`
+                    : user.username;
+                  const isSelected = selectedUsers.includes(displayName);
 
-                return (
-                  <div
-                    key={user.username}
-                    onClick={() => handleToggleUser(user)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      padding: '10px 12px',
-                      border: `2px solid ${isSelected ? '#A50104' : '#e0e0e0'}`,
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      background: isSelected ? '#fff5f5' : '#fff',
-                      transition: 'all 0.2s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.background = '#f9f9f9';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.background = '#fff';
-                      }
-                    }}
-                  >
-                    {/* Avatar */}
-                    {user.picture ? (
-                      <img
-                        src={user.picture}
-                        alt={displayName}
-                        style={{
-                          width: '40px',
-                          height: '40px',
-                          borderRadius: '6px',
-                          objectFit: 'cover'
-                        }}
-                      />
-                    ) : (
+                  return (
+                    <div
+                      key={user.username}
+                      onClick={() => handleToggleUser(user)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '10px 12px',
+                        border: `2px solid ${isSelected ? '#A50104' : '#e0e0e0'}`,
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        background: isSelected ? '#fff5f5' : '#fff',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.background = '#f9f9f9';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.background = '#fff';
+                        }
+                      }}
+                    >
+                      {/* Avatar */}
+                      {user.picture ? (
+                        <img
+                          src={user.picture}
+                          alt={displayName}
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '6px',
+                            objectFit: 'cover'
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '6px',
+                            background: '#A50104',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            fontWeight: 600,
+                            fontSize: '16px'
+                          }}
+                        >
+                          {displayName[0]?.toUpperCase() || '?'}
+                        </div>
+                      )}
+
+                      {/* Info */}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, color: '#000', fontSize: '14px' }}>{displayName}</div>
+                        <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>@{user.username}</div>
+                        {user.numeroAgente && (
+                          <div style={{ fontSize: '11px', color: '#A50104', marginTop: '3px', fontWeight: 500 }}>
+                            N° Agente: {user.numeroAgente}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Checkbox */}
                       <div
                         style={{
-                          width: '40px',
-                          height: '40px',
-                          borderRadius: '6px',
-                          background: '#A50104',
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          border: `2px solid ${isSelected ? '#A50104' : '#ccc'}`,
+                          background: isSelected ? '#A50104' : 'transparent',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           color: 'white',
-                          fontWeight: 600,
-                          fontSize: '16px'
+                          fontWeight: 'bold',
+                          fontSize: '12px',
+                          flexShrink: 0
                         }}
                       >
-                        {displayName[0]?.toUpperCase() || '?'}
+                        {isSelected && <FaCheck />}
                       </div>
-                    )}
-
-                    {/* Info */}
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, color: '#000', fontSize: '14px' }}>{displayName}</div>
-                      <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>@{user.username}</div>
-                      {user.numeroAgente && (
-                        <div style={{ fontSize: '11px', color: '#A50104', marginTop: '3px', fontWeight: 500 }}>
-                          N° Agente: {user.numeroAgente}
-                        </div>
-                      )}
                     </div>
-
-                    {/* Checkbox */}
-                    <div
-                      style={{
-                        width: '24px',
-                        height: '24px',
-                        borderRadius: '50%',
-                        border: `2px solid ${isSelected ? '#A50104' : '#ccc'}`,
-                        background: isSelected ? '#A50104' : 'transparent',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontWeight: 'bold',
-                        fontSize: '12px',
-                        flexShrink: 0
-                      }}
-                    >
-                      {isSelected && <FaCheck />}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Indicador de carga de más usuarios */}
-            {loadingMore && (
-              <div style={{ textAlign: 'center', padding: '12px', color: '#999', fontSize: '13px' }}>
-                Cargando más usuarios...
+                  );
+                })}
               </div>
-            )}
 
-            {/* Mensaje de no hay más usuarios */}
-            {!hasMore && users.length > 0 && (
-              <div style={{ textAlign: 'center', padding: '12px', color: '#999', fontSize: '12px' }}>
-                No hay más usuarios
-              </div>
-            )}
-          </>
+              {/* Indicador de carga de más usuarios */}
+              {loadingMore && (
+                <div style={{ textAlign: 'center', padding: '12px', color: '#999', fontSize: '13px' }}>
+                  Cargando más usuarios...
+                </div>
+              )}
+
+              {/* Mensaje de no hay más usuarios */}
+              {!hasMore && users.length > 0 && (
+                <div style={{ textAlign: 'center', padding: '12px', color: '#999', fontSize: '12px' }}>
+                  No hay más usuarios
+                </div>
+              )}
+            </>
           )}
         </div>
 

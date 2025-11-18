@@ -50,7 +50,18 @@ const Sidebar = ({
   to,
   sidebarCollapsed,
   onToggleCollapse,
-  roomTypingUsers = {}
+  roomTypingUsers = {},
+  // 🔥 NUEVOS PROPS para paginación real
+  assignedPage = 1,
+  assignedTotal = 0,
+  assignedTotalPages = 0,
+  assignedLoading = false,
+  onLoadAssignedConversations,
+  roomsPage = 1,
+  roomsTotal = 0,
+  roomsTotalPages = 0,
+  roomsLoading = false,
+  onLoadUserRooms
 }) => {
   return (
     <>
@@ -100,6 +111,16 @@ const Sidebar = ({
           userListLoading={userListLoading}
           onLoadMoreUsers={onLoadMoreUsers}
           roomTypingUsers={roomTypingUsers}
+          assignedPage={assignedPage}
+          assignedTotal={assignedTotal}
+          assignedTotalPages={assignedTotalPages}
+          assignedLoading={assignedLoading}
+          onLoadAssignedConversations={onLoadAssignedConversations}
+          roomsPage={roomsPage}
+          roomsTotal={roomsTotal}
+          roomsTotalPages={roomsTotalPages}
+          roomsLoading={roomsLoading}
+          onLoadUserRooms={onLoadUserRooms}
         />
       </div>
 
@@ -128,6 +149,16 @@ const Sidebar = ({
             userListLoading={userListLoading}
             onLoadMoreUsers={onLoadMoreUsers}
             roomTypingUsers={roomTypingUsers}
+            assignedPage={assignedPage}
+            assignedTotal={assignedTotal}
+            assignedTotalPages={assignedTotalPages}
+            assignedLoading={assignedLoading}
+            onLoadAssignedConversations={onLoadAssignedConversations}
+            roomsPage={roomsPage}
+            roomsTotal={roomsTotal}
+            roomsTotalPages={roomsTotalPages}
+            roomsLoading={roomsLoading}
+            onLoadUserRooms={onLoadUserRooms}
           />
         </div>
       )}

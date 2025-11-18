@@ -26,7 +26,8 @@ const BaseModal = ({
   titleColor = '#FFFFFF',
   maxWidth = '900px',
   icon = null,
-  onSubmit = null
+  onSubmit = null,
+  closeOnOverlayClick = true
 }) => {
   if (!isOpen) return null;
 
@@ -37,24 +38,30 @@ const BaseModal = ({
     }
   };
 
+  const handleOverlayClick = (e) => {
+    if (closeOnOverlayClick) {
+      onClose();
+    }
+  };
+
   const ContentWrapper = onSubmit ? 'form' : 'div';
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div 
-        className="modal-content" 
+    <div className="modal-overlay" onClick={handleOverlayClick}>
+      <div
+        className="modal-content"
         onClick={(e) => e.stopPropagation()}
-        style={{ 
+        style={{
           backgroundColor: bodyBgColor,
           maxWidth: maxWidth
         }}
       >
         {/* Header */}
-        <div 
-          className="modal-header" 
+        <div
+          className="modal-header"
           style={{ backgroundColor: headerBgColor }}
         >
-          <h2 style={{ 
+          <h2 style={{
             color: titleColor,
             display: 'flex',
             alignItems: 'center',
@@ -63,8 +70,8 @@ const BaseModal = ({
             {icon && <span>{icon}</span>}
             {title}
           </h2>
-          <button 
-            className="modal-close" 
+          <button
+            className="modal-close"
             onClick={onClose}
             style={{ color: titleColor }}
           >
@@ -73,7 +80,7 @@ const BaseModal = ({
         </div>
 
         {/* Body */}
-        <ContentWrapper 
+        <ContentWrapper
           onSubmit={onSubmit ? handleSubmit : undefined}
           className="modal-body"
           style={{ backgroundColor: bodyBgColor }}

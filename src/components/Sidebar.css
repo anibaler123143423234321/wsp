@@ -21,21 +21,21 @@
   }
 }
 
-/* En 1280px: LeftSidebar 70px + ConversationList 250px = 320px (estilo WhatsApp) */
+/* En 1280px: LeftSidebar 70px + ConversationList 230px = 300px (más compacto) */
 @media (max-width: 1280px) {
   .sidebar-responsive-container {
-    width: 320px;
-    max-width: 320px;
-    min-width: 320px;
+    width: 300px;
+    max-width: 300px;
+    min-width: 300px;
   }
 }
 
-/* En 1024px: LeftSidebar 70px + ConversationList 250px = 320px (estilo WhatsApp) */
+/* En 1024px: LeftSidebar 70px + ConversationList 210px = 280px (aún más compacto) */
 @media (max-width: 1024px) {
   .sidebar-responsive-container {
-    width: 320px;
-    max-width: 320px;
-    min-width: 320px;
+    width: 280px;
+    max-width: 280px;
+    min-width: 280px;
   }
 }
 

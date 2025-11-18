@@ -13,15 +13,6 @@
   top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
-  background: none;
-  z-index: -1;
-  pointer-events: none;
-}
-
-/* Asegurar que todos los iconos sean visibles */
-.left-sidebar-icon {
-  color: #FFFFFF !important;
   fill: #FFFFFF !important;
   filter: none;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -224,7 +215,7 @@
 
 /* Footer con padding seguro para iPhone */
 @media (max-width: 768px) {
-  .left-sidebar-container > div:last-child {
+  .left-sidebar-container>div:last-child {
     padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
   }
 }

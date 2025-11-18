@@ -83,6 +83,18 @@ const ChatPage = () => {
   const [monitoringTotalPages, setMonitoringTotalPages] = useState(0);
   const [monitoringLoading, setMonitoringLoading] = useState(false);
 
+  // 🔥 NUEVOS: Estados para paginación real de conversaciones asignadas
+  const [assignedPage, setAssignedPage] = useState(1);
+  const [assignedTotal, setAssignedTotal] = useState(0);
+  const [assignedTotalPages, setAssignedTotalPages] = useState(0);
+  const [assignedLoading, setAssignedLoading] = useState(false);
+
+  // 🔥 NUEVOS: Estados para paginación real de salas del usuario
+  const [roomsPage, setRoomsPage] = useState(1);
+  const [roomsTotal, setRoomsTotal] = useState(0);
+  const [roomsTotalPages, setRoomsTotalPages] = useState(0);
+  const [roomsLoading, setRoomsLoading] = useState(false);
+
   // Hook para paginación de mensajes
   const {
     messages,
@@ -181,43 +193,73 @@ const ChatPage = () => {
     }
   }, [socket]);
 
-  // Función para cargar las salas activas del usuario (solo para ADMIN y JEFEPISO)
-  const loadMyActiveRooms = useCallback(async () => {
-    try {
-      // Si es ADMIN o JEFEPISO, cargar todas las salas activas
-      if (
-        user?.role === "ADMIN" ||
-        user?.role === "JEFEPISO" ||
-        user?.role === "PROGRAMADOR"
-      ) {
-        // Cargar todas las salas activas (sin paginación para el sidebar)
-        const response = await apiService.getAdminRooms(1, 1000, "");
-        // Filtrar solo las salas activas
-        const activeRooms = response.data
-          ? response.data.filter((room) => room.isActive)
-          : [];
-        setMyActiveRooms(activeRooms);
-      } else {
-        // Para usuarios normales, cargar su sala activa
-        const response = await apiService.getCurrentUserRoom();
-        // console.log('📥 Respuesta getCurrentUserRoom:', response);
-        if (response && response.inRoom && response.room) {
-          // console.log('✅ Sala encontrada, agregando a myActiveRooms:', response.room);
-          setMyActiveRooms([response.room]);
+  // 🔥 NUEVO: Función para cargar las salas activas del usuario con paginación real
+  const loadMyActiveRooms = useCallback(
+    async (page = 1, append = false) => {
+      try {
+        setRoomsLoading(true);
+
+        // Si es ADMIN o JEFEPISO, cargar todas las salas activas
+        if (
+          user?.role === "ADMIN" ||
+          user?.role === "JEFEPISO" ||
+          user?.role === "PROGRAMADOR"
+        ) {
+          // Para admin, usar paginación con límite de 10
+          const response = await apiService.getAdminRooms(1, 10, "");
+          const activeRooms = response.data
+            ? response.data.filter((room) => room.isActive)
+            : [];
+
+          // Usar paginación real para admins también
+          setRoomsPage(response.page || 1);
+          setRoomsTotal(response.total || 0);
+          setRoomsTotalPages(Math.ceil((response.total || 0) / 10));
+          setMyActiveRooms(activeRooms);
         } else {
-          // console.log('❌ No se encontró sala activa para el usuario');
+          // Para usuarios normales, usar paginación real
+          const result = await apiService.getUserRoomsPaginated(page, 10);
+
+          // Actualizar estados de paginación
+          setRoomsPage(result.page);
+          setRoomsTotal(result.total);
+          setRoomsTotalPages(result.totalPages);
+
+          // Actualizar salas (append o replace)
+          if (append && page > 1) {
+            setMyActiveRooms((prev) => [...prev, ...result.rooms]);
+          } else {
+            setMyActiveRooms(result.rooms);
+          }
+        }
+      } catch (error) {
+        console.error("Error al cargar salas activas:", error);
+        if (!append) {
           setMyActiveRooms([]);
         }
+      } finally {
+        setRoomsLoading(false);
       }
-    } catch (error) {
-      console.error("Error al cargar salas activas:", error);
-      setMyActiveRooms([]);
-    }
-  }, [user?.role]);
+    },
+    [user?.role]
+  );
 
-  // Efectos
-  // ❌ ELIMINADO: No reconectar automáticamente a salas al hacer login
-  // Los usuarios solo deben unirse a salas cuando:
+  // 🔥 NUEVO: Función para marcar mensajes de grupo como leídos
+  const markRoomMessagesAsRead = useCallback(
+    async (roomCode) => {
+      if (!socket || !socket.connected || !roomCode) {
+        console.log("⚠️ No se puede marcar mensajes: socket no conectado o sin roomCode");
+        return;
+      }
+
+      // Emitir evento para marcar como leídos
+      socket.emit('markRoomMessagesAsRead', {
+        roomCode,
+        username,
+      });
+    },
+    [socket, username]
+  );
   // 1. Crean una sala nueva
   // 2. Ingresan manualmente el código de una sala
   // 3. Acceden mediante un enlace directo (URL con hash)
@@ -261,6 +303,31 @@ const ChatPage = () => {
       loadInitialMessages();
     }
   }, [currentRoomCode, username, isGroup, loadInitialMessages]);
+
+  // 🔥 NUEVO: Marcar mensajes como leídos cuando se carguen en un grupo
+  // Usar ref para evitar múltiples ejecuciones
+  const markedRoomsRef = useRef(new Set());
+
+  useEffect(() => {
+    if (isGroup && currentRoomCode && messages.length > 0) {
+      // Solo marcar si no se ha marcado antes para esta sala
+      if (!markedRoomsRef.current.has(currentRoomCode)) {
+        markedRoomsRef.current.add(currentRoomCode);
+
+        // Esperar a que los mensajes se rendericen
+        const timer = setTimeout(() => {
+          markRoomMessagesAsRead(currentRoomCode);
+        }, 500);
+
+        return () => clearTimeout(timer);
+      }
+    }
+
+    // Limpiar el set cuando se cambia de sala
+    if (!isGroup || !currentRoomCode) {
+      markedRoomsRef.current.clear();
+    }
+  }, [isGroup, currentRoomCode, messages.length, markRoomMessagesAsRead]);
 
   // Cargar mensajes cuando cambie 'to' (para conversaciones individuales)
   useEffect(() => {
@@ -492,47 +559,57 @@ const ChatPage = () => {
     currentUserFullName,
   ]);
 
-  // Función para cargar conversaciones asignadas
-  const loadAssignedConversations = useCallback(async () => {
-    if (!isAuthenticated || !username) {
-      return;
-    }
-
-    try {
-      // Si el usuario es admin, obtener TODAS las conversaciones
-      // Si no es admin, obtener solo las conversaciones asignadas al usuario
-      let conversations;
-      if (user?.role === "ADMIN") {
-        conversations = await apiService.getAllAssignedConversations();
-      } else {
-        conversations = await apiService.getMyAssignedConversations();
+  // 🔥 NUEVO: Función para cargar conversaciones asignadas con paginación real
+  const loadAssignedConversations = useCallback(
+    async (page = 1, append = false) => {
+      if (!isAuthenticated || !username) {
+        return;
       }
 
-      // 🔍 DEBUG: Ver qué nombres tienen las conversaciones
-      // console.log('📋 Conversaciones cargadas desde el backend:');
-      // conversations?.forEach(conv => {
-      //   console.log(`  - ID ${conv.id}: name="${conv.name}", participants=`, conv.participants);
-      // });
+      try {
+        setAssignedLoading(true);
 
-      setAssignedConversations(conversations || []);
+        // Usar paginación para todos los usuarios (admin y normales)
+        const result = await apiService.getAssignedConversationsPaginated(page, 10);
 
-      // Actualizar el registro del socket con las conversaciones asignadas
-      if (socket && conversations && conversations.length > 0) {
-        const displayName =
-          user?.nombre && user?.apellido
-            ? `${user.nombre} ${user.apellido}`
-            : user?.username || user?.email;
+        // Actualizar estados de paginación
+        setAssignedPage(result.page);
+        setAssignedTotal(result.total);
+        setAssignedTotalPages(result.totalPages);
 
-        socket.emit("updateAssignedConversations", {
-          username: displayName,
-          assignedConversations: conversations,
-        });
+        // Actualizar conversaciones (append o replace)
+        if (append && page > 1) {
+          setAssignedConversations((prev) => [
+            ...prev,
+            ...result.conversations,
+          ]);
+        } else {
+          setAssignedConversations(result.conversations);
+        }
+
+        // Actualizar el registro del socket con las conversaciones asignadas
+        if (socket && result.conversations && result.conversations.length > 0) {
+          const displayName =
+            user?.nombre && user?.apellido
+              ? `${user.nombre} ${user.apellido}`
+              : user?.username || user?.email;
+
+          socket.emit("updateAssignedConversations", {
+            username: displayName,
+            assignedConversations: result.conversations,
+          });
+        }
+      } catch (error) {
+        console.error("❌ Error al cargar conversaciones asignadas:", error);
+        if (!append) {
+          setAssignedConversations([]);
+        }
+      } finally {
+        setAssignedLoading(false);
       }
-    } catch (error) {
-      console.error("❌ Error al cargar conversaciones asignadas:", error);
-      setAssignedConversations([]);
-    }
-  }, [isAuthenticated, username, socket, user]);
+    },
+    [isAuthenticated, username, socket, user]
+  );
 
   // 🔥 NUEVO: Función para cargar conversaciones de monitoreo con paginación
   const loadMonitoringConversations = useCallback(
@@ -605,6 +682,22 @@ const ChatPage = () => {
 
     return () => clearTimeout(timeoutId);
   }, [isAuthenticated, username, user?.role, loadMonitoringConversations]);
+
+  // 🔥 NUEVO: Callback para cargar más conversaciones asignadas
+  const handleLoadAssignedConversations = useCallback(
+    async (page) => {
+      await loadAssignedConversations(page, true); // append = true
+    },
+    [loadAssignedConversations]
+  );
+
+  // 🔥 NUEVO: Callback para cargar más salas del usuario
+  const handleLoadUserRooms = useCallback(
+    async (page) => {
+      await loadMyActiveRooms(page, true); // append = true
+    },
+    [loadMyActiveRooms]
+  );
 
   // 🔥 NUEVO: Cargar conteos de mensajes no leídos al autenticarse
   useEffect(() => {
@@ -794,19 +887,19 @@ const ChatPage = () => {
               prevRooms.map((room) =>
                 room.roomCode === data.roomCode
                   ? {
-                      ...room,
-                      lastMessage: {
-                        text: data.message || "",
-                        from: data.from,
-                        time: timeString,
-                        sentAt: dateTimeString,
-                        mediaType: data.mediaType || null,
-                        fileName: data.fileName || null,
-                      },
-                      lastMessageFrom: data.from,
-                      lastMessageTime: timeString,
-                      lastMessageAt: dateTimeString,
-                    }
+                    ...room,
+                    lastMessage: {
+                      text: data.message || "",
+                      from: data.from,
+                      time: timeString,
+                      sentAt: dateTimeString,
+                      mediaType: data.mediaType || null,
+                      fileName: data.fileName || null,
+                    },
+                    lastMessageFrom: data.from,
+                    lastMessageTime: timeString,
+                    lastMessageAt: dateTimeString,
+                  }
                   : room
               )
             );
@@ -877,19 +970,19 @@ const ChatPage = () => {
             prevRooms.map((room) =>
               room.roomCode === data.roomCode
                 ? {
-                    ...room,
-                    lastMessage: {
-                      text: data.message || "",
-                      from: data.from,
-                      time: timeString,
-                      sentAt: dateTimeString,
-                      mediaType: data.mediaType || null,
-                      fileName: data.fileName || null,
-                    },
-                    lastMessageFrom: data.from,
-                    lastMessageTime: timeString,
-                    lastMessageAt: dateTimeString,
-                  }
+                  ...room,
+                  lastMessage: {
+                    text: data.message || "",
+                    from: data.from,
+                    time: timeString,
+                    sentAt: dateTimeString,
+                    mediaType: data.mediaType || null,
+                    fileName: data.fileName || null,
+                  },
+                  lastMessageFrom: data.from,
+                  lastMessageTime: timeString,
+                  lastMessageAt: dateTimeString,
+                }
                 : room
             )
           );
@@ -1319,14 +1412,9 @@ const ChatPage = () => {
     s.on("newConversationAssigned", async (data) => {
       // Recargar conversaciones asignadas
       try {
-        // Si el usuario es admin, obtener TODAS las conversaciones
-        // Si no es admin, obtener solo las conversaciones asignadas al usuario
-        let conversations;
-        if (user?.role === "ADMIN") {
-          conversations = await apiService.getAllAssignedConversations();
-        } else {
-          conversations = await apiService.getMyAssignedConversations();
-        }
+        // Usar paginación para todos los usuarios (admin y normales)
+        const result = await apiService.getAssignedConversationsPaginated(1, 10);
+        const conversations = result.conversations;
 
         setAssignedConversations(conversations);
 
@@ -1808,19 +1896,19 @@ const ChatPage = () => {
           prevRooms.map((room) =>
             room.roomCode === data.roomCode
               ? {
-                  ...room,
-                  lastMessage: {
-                    text: data.lastMessage.text,
-                    from: data.lastMessage.from,
-                    time: data.lastMessage.time,
-                    sentAt: data.lastMessage.sentAt,
-                    mediaType: data.lastMessage.mediaType || null,
-                    fileName: data.lastMessage.fileName || null,
-                  },
-                  lastMessageFrom: data.lastMessage.from,
-                  lastMessageTime: data.lastMessage.time,
-                  lastMessageAt: data.lastMessage.sentAt,
-                }
+                ...room,
+                lastMessage: {
+                  text: data.lastMessage.text,
+                  from: data.lastMessage.from,
+                  time: data.lastMessage.time,
+                  sentAt: data.lastMessage.sentAt,
+                  mediaType: data.lastMessage.mediaType || null,
+                  fileName: data.lastMessage.fileName || null,
+                },
+                lastMessageFrom: data.lastMessage.from,
+                lastMessageTime: data.lastMessage.time,
+                lastMessageAt: data.lastMessage.sentAt,
+              }
               : room
           )
         );
@@ -2509,57 +2597,98 @@ const ChatPage = () => {
       // Esperar a que el backend lo confirme y lo envíe de vuelta
       // Esto evita duplicados y problemas de sincronización
       if (isGroup) {
-        console.log("📤 Enviando mensaje de grupo:", {
+        console.log("📤 Enviando mensaje de grupo (Estrategia: Guardar -> Emitir):", {
           to,
           currentRoomCode,
           messageObj,
-          myActiveRooms: myActiveRooms.map((r) => ({
-            name: r.name,
-            roomCode: r.roomCode,
-          })),
         });
-        socket.emit("message", messageObj);
-        console.log(
-          "📤 Mensaje de grupo enviado, esperando confirmación del backend..."
-        );
 
-        // 🔥 CRÍTICO: Limpiar input INMEDIATAMENTE después de emitir
-        // Esto evita que se agregue el mensaje duplicado si el socket listener se ejecuta rápido
-        clearInput();
-        setReplyingTo(null);
-
-        // 🔥 Actualizar el preview del último mensaje en la lista de conversaciones asignadas
-        if (assignedConv) {
-          setAssignedConversations((prevConversations) => {
-            return prevConversations.map((conv) => {
-              if (conv.id === assignedConv.id) {
-                return {
-                  ...conv,
-                  lastMessage:
-                    input ||
-                    (messageObj.fileName ? `📎 ${messageObj.fileName}` : ""),
-                  lastMessageTime: new Date().toISOString(),
-                  lastMessageFrom: currentUserFullName,
-                };
-              }
-              return conv;
-            });
+        try {
+          // 1. 🔥 Guardar primero en la BD para asegurar persistencia
+          const savedMessage = await apiService.createMessage({
+            from: currentUserFullName,
+            fromId: user.id,
+            to: to, // En grupos, 'to' suele ser el nombre del grupo
+            roomCode: currentRoomCode,
+            message: input,
+            isGroup: true,
+            mediaType: messageObj.mediaType,
+            mediaData: messageObj.mediaData,
+            fileName: messageObj.fileName,
+            fileSize: messageObj.fileSize,
+            // No enviamos time/sentAt, el backend lo genera
+            replyToMessageId: replyingTo?.id,
+            replyToSender: replyingTo?.sender,
+            replyToText: replyingTo?.text,
           });
-        }
 
-        // 🔥 NUEVO: Actualizar también myActiveRooms para mostrar el último mensaje inmediatamente
-        if (currentRoomCode) {
-          setMyActiveRooms((prevRooms) =>
-            prevRooms.map((room) =>
-              room.roomCode === currentRoomCode
-                ? {
+          console.log("✅ Mensaje de grupo guardado en BD:", savedMessage);
+
+          // 2. 🔥 Actualizar messageObj con los datos reales de la BD
+          messageObj.id = savedMessage.id;
+          messageObj.sentAt = savedMessage.sentAt;
+          messageObj.time = savedMessage.time;
+
+          // Asegurar que senderRole y senderNumeroAgente estén presentes si el backend los devuelve
+          if (savedMessage.senderRole) messageObj.senderRole = savedMessage.senderRole;
+          if (savedMessage.senderNumeroAgente) messageObj.senderNumeroAgente = savedMessage.senderNumeroAgente;
+
+          // 3. 🔥 Emitir por socket con el ID real
+          socket.emit("message", messageObj);
+          console.log("📤 Mensaje emitido por socket con ID real:", messageObj.id);
+
+          // 4. 🔥 Agregar mensaje localmente (feedback inmediato)
+          const newMessage = {
+            sender: "Tú",
+            realSender: currentUserFullName,
+            receiver: to,
+            text: input || (messageObj.fileName ? `📎 ${messageObj.fileName}` : ""),
+            time: savedMessage.time, // Usar la hora del servidor
+            isSent: true,
+            isSelf: true,
+            mediaType: messageObj.mediaType || null,
+            mediaData: messageObj.mediaData || null,
+            fileName: messageObj.fileName || null,
+            fileSize: messageObj.fileSize || null,
+            id: savedMessage.id, // ID real
+            sentAt: savedMessage.sentAt,
+            // Datos de respuesta
+            replyToMessageId: replyingTo?.id,
+            replyToSender: replyingTo?.sender,
+            replyToText: replyingTo?.text,
+          };
+
+          addNewMessage(newMessage);
+
+          // 5. 🔥 Limpiar input y estado
+          clearInput();
+          setReplyingTo(null);
+
+          // 6. 🔥 Actualizar sidebars (AssignedConversations y MyActiveRooms)
+          if (assignedConv) {
+            setAssignedConversations((prevConversations) => {
+              return prevConversations.map((conv) => {
+                if (conv.id === assignedConv.id) {
+                  return {
+                    ...conv,
+                    lastMessage: input || (messageObj.fileName ? `📎 ${messageObj.fileName}` : ""),
+                    lastMessageTime: new Date().toISOString(),
+                    lastMessageFrom: currentUserFullName,
+                  };
+                }
+                return conv;
+              });
+            });
+          }
+
+          if (currentRoomCode) {
+            setMyActiveRooms((prevRooms) =>
+              prevRooms.map((room) =>
+                room.roomCode === currentRoomCode
+                  ? {
                     ...room,
                     lastMessage: {
-                      text:
-                        input ||
-                        (messageObj.fileName
-                          ? `📎 ${messageObj.fileName}`
-                          : ""),
+                      text: input || (messageObj.fileName ? `📎 ${messageObj.fileName}` : ""),
                       from: currentUserFullName,
                       time: new Date().toISOString(),
                       sentAt: new Date().toISOString(),
@@ -2570,13 +2699,18 @@ const ChatPage = () => {
                     lastMessageTime: new Date().toISOString(),
                     lastMessageAt: new Date().toISOString(),
                   }
-                : room
-            )
+                  : room
+              )
+            );
+          }
+
+        } catch (error) {
+          console.error("❌ Error al enviar mensaje de grupo:", error);
+          await showErrorAlert(
+            "Error al enviar",
+            "No se pudo enviar el mensaje. Por favor, verifica tu conexión e inténtalo de nuevo."
           );
-          console.log(
-            "📊 Último mensaje actualizado localmente en myActiveRooms para sala:",
-            currentRoomCode
-          );
+          // NO limpiamos el input para que el usuario pueda reintentar
         }
 
         return;
@@ -3419,14 +3553,13 @@ const ChatPage = () => {
       const usersList =
         roomUsersData.users && roomUsersData.users.length > 0
           ? roomUsersData.users
-              .map((user) =>
-                typeof user === "string"
-                  ? `• ${user}`
-                  : `• ${user.displayName || user.username} ${
-                      user.isOnline ? "🟢" : "🔴"
-                    }`
-              )
-              .join("\n")
+            .map((user) =>
+              typeof user === "string"
+                ? `• ${user}`
+                : `• ${user.displayName || user.username} ${user.isOnline ? "🟢" : "🔴"
+                }`
+            )
+            .join("\n")
           : "No hay usuarios conectados";
 
       modalContent.innerHTML = `
@@ -3444,9 +3577,8 @@ const ChatPage = () => {
           </div>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid #374045;">
-          <span style="color: #8696a0;">Total: ${
-            roomUsersData.totalUsers || 0
-          }/${roomUsersData.maxCapacity || 0}</span>
+          <span style="color: #8696a0;">Total: ${roomUsersData.totalUsers || 0
+        }/${roomUsersData.maxCapacity || 0}</span>
           <button onclick="this.closest('.modal-overlay').remove()" style="background: #00a884; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Cerrar</button>
         </div>
       `;
@@ -3617,6 +3749,17 @@ const ChatPage = () => {
         monitoringTotalPages={monitoringTotalPages}
         monitoringLoading={monitoringLoading}
         onLoadMonitoringConversations={loadMonitoringConversations}
+        // 🔥 NUEVOS PROPS para paginación real
+        assignedPage={assignedPage}
+        assignedTotal={assignedTotal}
+        assignedTotalPages={assignedTotalPages}
+        assignedLoading={assignedLoading}
+        onLoadAssignedConversations={handleLoadAssignedConversations}
+        roomsPage={roomsPage}
+        roomsTotal={roomsTotal}
+        roomsTotalPages={roomsTotalPages}
+        roomsLoading={roomsLoading}
+        onLoadUserRooms={handleLoadUserRooms}
         isAdmin={isAdmin}
         showAdminMenu={showAdminMenu}
         setShowAdminMenu={setShowAdminMenu}
@@ -3632,8 +3775,8 @@ const ChatPage = () => {
         onShowAdminRooms={handleShowAdminRooms}
         onShowCreateConversation={() => setShowCreateConversationModal(true)}
         onShowManageConversations={() => setShowManageConversationsModal(true)}
-        onShowManageUsers={() => {}}
-        onShowSystemConfig={() => {}}
+        onShowManageUsers={() => { }}
+        onShowSystemConfig={() => { }}
         unreadMessages={unreadMessages}
         myActiveRooms={myActiveRooms}
         onRoomSelect={handleRoomSelect}

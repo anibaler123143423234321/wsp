@@ -84,6 +84,7 @@ const RemoveUsersFromRoomModal = ({ isOpen, onClose, roomCode, roomName, current
       bodyBgColor="#FFFFFF"
       titleColor="#FFFFFF"
       maxWidth="650px"
+      closeOnOverlayClick={false}
     >
       <div style={{ padding: '0' }}>
         {/* Info de la sala */}

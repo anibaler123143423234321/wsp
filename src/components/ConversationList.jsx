@@ -43,7 +43,7 @@ const PinIcon = ({ size = 14, className, style }) => (
 // Componente reutilizable para cada pestaña (botón) - Estilo igual al LeftSidebar pero responsive
 const TabButton = ({ isActive, onClick, label, shortLabel, icon: Icon, notificationCount }) => {
   return (
-<button
+    <button
       onClick={onClick}
       className={clsx(
         // Clases base - Mismo estilo que left-sidebar-button
@@ -106,7 +106,7 @@ const ConversationList = ({
   monitoringTotalPages = 0,
   monitoringLoading = false,
   onLoadMonitoringConversations,
-  myActiveRooms,
+  myActiveRooms = [],
   currentRoomCode,
   isGroup,
   onUserSelect,
@@ -117,7 +117,18 @@ const ConversationList = ({
   userListHasMore,
   userListLoading,
   onLoadMoreUsers,
-  roomTypingUsers = {} // Nuevo prop: objeto con roomCode como key y array de usuarios escribiendo
+  roomTypingUsers = {}, // Nuevo prop: objeto con roomCode como key y array de usuarios escribiendo
+  // 🔥 NUEVOS PROPS para paginación real
+  assignedPage = 1,
+  assignedTotal = 0,
+  assignedTotalPages = 0,
+  assignedLoading = false,
+  onLoadAssignedConversations,
+  roomsPage = 1,
+  roomsTotal = 0,
+  roomsTotalPages = 0,
+  roomsLoading = false,
+  onLoadUserRooms
 }) => {
   // 🔥 Módulo activo por defecto: 'chats' (Asignados + Grupos fusionados)
   const [activeModule, setActiveModule] = useState('chats');
@@ -339,6 +350,8 @@ const ConversationList = ({
     };
   }, []);
 
+
+
   // Filtrar conversaciones según búsqueda
   const filteredConversations = userList?.filter(conversation => {
     if (!searchTerm.trim()) return true;
@@ -354,16 +367,7 @@ const ConversationList = ({
   }) || [];
 
   // Filtrar conversaciones asignadas
-  const filteredAssigned = assignedConversations.filter(conv => {
-    if (!assignedSearchTerm.trim()) return true;
-    const searchLower = assignedSearchTerm.toLowerCase();
-    const participants = conv.participants || [];
-    return (
-      conv.name?.toLowerCase().includes(searchLower) ||
-      participants.some(p => p?.toLowerCase().includes(searchLower)) ||
-      conv.lastMessage?.toLowerCase().includes(searchLower)
-    );
-  });
+
 
   // Filtrar conversaciones asignadas donde el usuario es participante
   const myAssignedConversations = assignedConversations.filter(conv => {
@@ -425,24 +429,26 @@ const ConversationList = ({
       <div className="hidden max-[768px]:flex items-center justify-between bg-white px-3 py-2 border-b border-gray-200">
         <button
           onClick={onToggleSidebar}
-          className="flex items-center justify-center w-10 h-10 bg-[#13467A] text-white rounded-lg hover:bg-[#0f3660] transition-all duration-200 active:scale-95"
+          className="flex items-center justify-center w-9 h-9 bg-[#13467A] text-white rounded-lg hover:bg-[#0f3660] transition-all duration-200 active:scale-95"
           title="Ver módulos"
         >
-          <FaBars className="text-lg" />
+          <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" fill="currentColor" />
+          </svg>
         </button>
         <span className="text-sm font-semibold text-gray-700">Chats</span>
-        <div className="w-10"></div> {/* Spacer para centrar el título */}
+        <div className="w-9"></div> {/* Spacer para centrar el título */}
       </div>
 
-      {/* Pestañas de módulos - Estilo similar a LeftSidebar */}
+      {/* Pestañas de módulos - Diseño más compacto */}
       <div
-        className="tabs-container bg-white flex-nowrap overflow-x-auto scrollbar-hide"
+        className="tabs-container bg-white flex-nowrap overflow-x-auto scrollbar-hide max-[1280px]:!py-1.5 max-[1280px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!px-1.5"
         style={{
-          paddingLeft: '16px',
-          paddingRight: '16px',
-          paddingTop: '12px',
-          paddingBottom: '6px',
-          marginTop: '6px'
+          paddingLeft: '12px',
+          paddingRight: '12px',
+          paddingTop: '10px',
+          paddingBottom: '4px',
+          marginTop: '4px'
         }}
       >
         {tabs
@@ -473,40 +479,41 @@ const ConversationList = ({
           ))}
       </div>
 
-      {/* Barra de búsqueda - MÁS COMPACTA */}
-      <div className="bg-white flex flex-col max-[1280px]:!px-3 max-[1280px]:!py-1.5 max-[1024px]:!px-2 max-[1024px]:!py-1 max-[768px]:!px-3 max-[768px]:!py-1.5" style={{ paddingTop: '8px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: '8px' }}>
+      {/* Barra de búsqueda - DISEÑO COMPACTO */}
+      <div className="bg-white flex flex-col max-[1280px]:!px-2 max-[1280px]:!py-1 max-[1024px]:!px-1.5 max-[1024px]:!py-0.5 max-[768px]:!px-3 max-[768px]:!py-1.5" style={{ paddingTop: '6px', paddingLeft: '12px', paddingRight: '12px', paddingBottom: '6px' }}>
         {/* Input de búsqueda */}
         <div
           className="relative flex items-center bg-[#E8E8E8] overflow-hidden max-[1280px]:!w-full max-[1280px]:!h-9 max-[1280px]:!px-2.5 max-[1280px]:!py-1.5 max-[1280px]:!gap-1.5 max-[1024px]:!h-8 max-[1024px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!gap-1 max-[768px]:!w-full max-[768px]:!h-9 max-[768px]:!px-2.5 max-[768px]:!py-1.5 max-[768px]:!gap-1.5"
           style={{
             width: '100%',
-            height: '38px',
-            borderRadius: '12px',
-            paddingTop: '8px',
-            paddingRight: '12px',
-            paddingBottom: '8px',
-            paddingLeft: '12px',
-            gap: '10px'
+            height: '34px',
+            borderRadius: '10px',
+            paddingTop: '6px',
+            paddingRight: '10px',
+            paddingBottom: '6px',
+            paddingLeft: '10px',
+            gap: '8px'
           }}
         >
           <span className="text-gray-500 flex-shrink-0" style={{ display: 'flex', alignItems: 'center' }}>
-            <svg viewBox="0 0 20 20" height="20" width="20" preserveAspectRatio="xMidYMid meet" fill="none">
-              <path fillRule="evenodd" clipRule="evenodd" d="M4.36653 4.3664C5.36341 3.36953 6.57714 2.87 8.00012 2.87C9.42309 2.87 10.6368 3.36953 11.6337 4.3664C12.6306 5.36329 13.1301 6.57724 13.1301 8.00062C13.1301 8.57523 13.0412 9.11883 12.8624 9.63057C12.6972 10.1038 12.4733 10.5419 12.1909 10.9444L16.5712 15.3247C16.7454 15.4989 16.8385 15.7046 16.8385 15.9375C16.8385 16.1704 16.7454 16.3761 16.5712 16.5503C16.396 16.7254 16.1866 16.8175 15.948 16.8175C15.7095 16.8175 15.5001 16.7254 15.3249 16.5503L10.9448 12.1906C10.5421 12.4731 10.104 12.697 9.63069 12.8623C9.11895 13.041 8.57535 13.13 8.00074 13.13C6.57736 13.13 5.36341 12.6305 4.36653 11.6336C3.36965 10.6367 2.87012 9.42297 2.87012 8C2.87012 6.57702 3.36965 5.36328 4.36653 4.3664ZM8.00012 4.63C7.06198 4.63 6.26877 4.95685 5.61287 5.61275C4.95698 6.26865 4.63012 7.06186 4.63012 8C4.63012 8.93813 4.95698 9.73134 5.61287 10.3872C6.26877 11.0431 7.06198 11.37 8.00012 11.37C8.93826 11.37 9.73146 11.0431 10.3874 10.3872C11.0433 9.73134 11.3701 8.93813 11.3701 8C11.3701 7.06186 11.0433 6.26865 10.3874 5.61275C9.73146 4.95685 8.93826 4.63 8.00012 4.63Z" fill="currentColor" />
+            <svg viewBox="0 0 24 24" height="18" width="18" fill="none" className="text-gray-500">
+              <path d="M10.5 18C14.6421 18 18 14.6421 18 10.5C18 6.35786 14.6421 3 10.5 3C6.35786 3 3 6.35786 3 10.5C3 14.6421 6.35786 18 10.5 18Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M21 21L15.8 15.8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </span>
           <input
             type="text"
-            placeholder="Buscar un chat o iniciar uno nuevo"
+            placeholder={`${activeModule === 'monitoring' ? 'Buscar en monitoreo' : 'Buscar un chat o iniciar uno nuevo'}`}
             className="flex-1 bg-transparent border-none text-gray-800 outline-none placeholder:text-gray-400 max-[1280px]:!text-sm max-[1280px]:placeholder:!text-xs max-[1024px]:!text-xs max-[1024px]:placeholder:!text-[11px] max-[768px]:!text-sm max-[768px]:placeholder:!text-xs"
             style={{
               fontSize: '13px',
-              lineHeight: '18px',
+              lineHeight: '16px',
               fontFamily: 'Inter, sans-serif',
               fontWeight: 400
             }}
             value={
               activeModule === 'chats' || activeModule === 'monitoring' ? assignedSearchTerm :
-              searchTerm
+                searchTerm
             }
             onChange={(e) => {
               const value = e.target.value;
@@ -524,34 +531,36 @@ const ConversationList = ({
           {((activeModule === 'conversations' && searchTerm) ||
             (activeModule === 'chats' && assignedSearchTerm) ||
             (activeModule === 'monitoring' && assignedSearchTerm)) && (
-            <button
-              className="bg-transparent border-none text-gray-500 cursor-pointer p-0.5 flex items-center justify-center rounded-full transition-all duration-200 hover:bg-gray-200 hover:text-gray-800 active:scale-95 max-[1280px]:!text-xs max-[1024px]:!text-[11px] max-[1024px]:!p-0.5"
-              style={{ fontSize: '13px' }}
-              onClick={() => {
-                if (activeModule === 'chats' || activeModule === 'monitoring') {
-                  setAssignedSearchTerm('');
-                  setMessageSearchResults([]);
-                } else {
-                  setSearchTerm('');
-                  setMessageSearchResults([]);
-                }
-              }}
-            >
-              <FaTimes />
-            </button>
-          )}
+              <button
+                className="bg-transparent border-none text-gray-500 cursor-pointer p-0.5 flex items-center justify-center rounded-full transition-all duration-200 hover:bg-gray-200 hover:text-gray-800 active:scale-95 max-[1280px]:!text-xs max-[1024px]:!text-[11px] max-[1024px]:!p-0.5"
+                style={{ fontSize: '12px' }}
+                onClick={() => {
+                  if (activeModule === 'chats' || activeModule === 'monitoring') {
+                    setAssignedSearchTerm('');
+                    setMessageSearchResults([]);
+                  } else {
+                    setSearchTerm('');
+                    setMessageSearchResults([]);
+                  }
+                }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" className="w-3.5 h-3.5">
+                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            )}
         </div>
 
         {/* Ordenar por */}
         {(activeModule === 'conversations' || activeModule === 'chats' || activeModule === 'monitoring') && (
-          <div className="flex items-center gap-2 max-[1280px]:!mt-2 max-[1280px]:!gap-1.5 max-[1024px]:!mt-1.5 max-[1024px]:!gap-1" style={{ marginTop: '12px' }}>
+          <div className="flex items-center gap-2 max-[1280px]:!mt-2 max-[1280px]:!gap-1.5 max-[1024px]:!mt-1.5 max-[1024px]:!gap-1" style={{ marginTop: '8px' }}>
             <span
               className="text-gray-600 max-[1280px]:!text-sm max-[1024px]:!text-xs"
               style={{
                 fontFamily: 'Inter, sans-serif',
                 fontWeight: 400,
-                fontSize: '15.55px',
-                lineHeight: '20.73px',
+                fontSize: '14px',
+                lineHeight: '18px',
                 color: 'rgba(0, 0, 0, 0.65)'
               }}
             >
@@ -562,8 +571,8 @@ const ConversationList = ({
               style={{
                 fontFamily: 'Inter, sans-serif',
                 fontWeight: 400,
-                fontSize: '15.55px',
-                lineHeight: '20.73px'
+                fontSize: '14px',
+                lineHeight: '18px'
               }}
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
@@ -578,7 +587,7 @@ const ConversationList = ({
 
       {/* Contenido según módulo activo */}
       {activeModule === 'chats' && (
-        <div className="flex-1 overflow-y-auto bg-white px-4">
+        <div className="flex-1 overflow-y-auto bg-white px-3">
           {/* Mostrar resultados de búsqueda de mensajes si hay búsqueda activa */}
           {assignedSearchTerm.trim() && messageSearchResults.length > 0 && (
             <div className="mb-4">
@@ -653,261 +662,286 @@ const ConversationList = ({
           {myActiveRooms && myActiveRooms.length > 0 && (
             <>
               <div
-                className="text-xs text-gray-500 font-semibold mb-2 px-4 mt-4 flex items-center justify-between cursor-pointer select-none"
-                style={{ fontFamily: 'Inter, sans-serif' }}
+                className="text-[11px] text-gray-400 font-bold mb-2 px-6 mt-3 flex items-center justify-between cursor-pointer select-none tracking-wider max-[1280px]:px-4 max-[1024px]:px-3"
+                style={{ fontFamily: 'Inter, sans-serif', marginLeft: '8px', marginRight: '8px' }}
                 onClick={() => setShowGroups(prev => !prev)}
               >
                 <div className="flex items-center gap-2">
-                  <Users className="w-3.5 h-3.5" />
+                  <Users className="w-3 h-3" />
                   <span>GRUPOS</span>
+
                 </div>
                 {showGroups ? (
-                  <FaChevronDown className="w-3 h-3 text-gray-400" />
+                  <FaChevronDown className="w-2.5 h-2.5 text-gray-400" />
                 ) : (
-                  <FaChevronRight className="w-3 h-3 text-gray-400" />
+                  <FaChevronRight className="w-2.5 h-2.5 text-gray-400" />
                 )}
               </div>
-              {showGroups && myActiveRooms
-                .filter(room =>
-                  assignedSearchTerm.trim() === '' ||
-                  room.name.toLowerCase().includes(assignedSearchTerm.toLowerCase()) ||
-                  room.roomCode.toLowerCase().includes(assignedSearchTerm.toLowerCase())
-                )
-                // Ordenar: menciones primero, luego favoritas, luego por fecha
-                .sort((a, b) => {
-                  // Verificar si hay menciones al usuario en el último mensaje
-                  const aHasMention = hasMentionToUser(a.lastMessage?.text);
-                  const bHasMention = hasMentionToUser(b.lastMessage?.text);
+              {showGroups && (() => {
+                const filteredRooms = myActiveRooms
+                  .filter(room =>
+                    assignedSearchTerm.trim() === '' ||
+                    room.name.toLowerCase().includes(assignedSearchTerm.toLowerCase()) ||
+                    room.roomCode.toLowerCase().includes(assignedSearchTerm.toLowerCase())
+                  )
+                  // Ordenar: menciones primero, luego favoritas, luego por fecha
+                  .sort((a, b) => {
+                    // Verificar si hay menciones al usuario en el último mensaje
+                    const aHasMention = hasMentionToUser(a.lastMessage?.text);
+                    const bHasMention = hasMentionToUser(b.lastMessage?.text);
 
-                  // Si una tiene mención y la otra no, la que tiene mención va primero
-                  if (aHasMention && !bHasMention) return -1;
-                  if (!aHasMention && bHasMention) return 1;
+                    // Si una tiene mención y la otra no, la que tiene mención va primero
+                    if (aHasMention && !bHasMention) return -1;
+                    if (!aHasMention && bHasMention) return 1;
 
-                  // Si ambas tienen mención o ninguna, verificar favoritas
-                  const aIsFavorite = favoriteRoomCodes.includes(a.roomCode);
-                  const bIsFavorite = favoriteRoomCodes.includes(b.roomCode);
+                    // Si ambas tienen mención o ninguna, verificar favoritas
+                    const aIsFavorite = favoriteRoomCodes.includes(a.roomCode);
+                    const bIsFavorite = favoriteRoomCodes.includes(b.roomCode);
 
-                  // Si una es favorita y la otra no, la favorita va primero
-                  if (aIsFavorite && !bIsFavorite) return -1;
-                  if (!aIsFavorite && bIsFavorite) return 1;
+                    // Si una es favorita y la otra no, la favorita va primero
+                    if (aIsFavorite && !bIsFavorite) return -1;
+                    if (!aIsFavorite && bIsFavorite) return 1;
 
-                  // Si ambas son favoritas o ninguna lo es, ordenar por fecha
-                  return new Date(b.createdAt) - new Date(a.createdAt);
-                })
-                .map((room) => {
-                  // Obtener usuarios escribiendo en esta sala
-                  const typingUsers = roomTypingUsers[room.roomCode] || [];
-                  const isTypingInRoom = typingUsers.length > 0;
-                  const isFavorite = favoriteRoomCodes.includes(room.roomCode);
-                  // 🔥 NUEVO: Obtener contador de mensajes no leídos para esta sala
-                  const roomUnreadCount = unreadMessages?.[room.roomCode] || 0;
+                    // Si ambas son favoritas o ninguna lo es, ordenar por fecha
+                    return new Date(b.createdAt) - new Date(a.createdAt);
+                  });
 
-                  return (
-                    <div
-                      key={room.id}
-                      className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer ${currentRoomCode === room.roomCode ? 'bg-[#e7f3f0]' : ''}`}
-                      style={{
-                        padding: '8px 12px',
-                        gap: '10px',
-                        minHeight: '56px'
-                      }}
-                      onClick={() => onRoomSelect && onRoomSelect(room)}
-                    >
-                      {/* Icono de sala */}
-                      <div className="relative flex-shrink-0" style={{ width: '36px', height: '36px' }}>
+                // 🔥 PAGINACIÓN REAL: Usar datos del backend
+                const hasMoreRooms = roomsPage < roomsTotalPages;
+
+                return (
+                  <>
+                    {filteredRooms.map((room) => {
+                      // Obtener usuarios escribiendo en esta sala
+                      const typingUsers = roomTypingUsers[room.roomCode] || [];
+                      const isTypingInRoom = typingUsers.length > 0;
+                      const isFavorite = favoriteRoomCodes.includes(room.roomCode);
+                      // 🔥 NUEVO: Obtener contador de mensajes no leídos para esta sala
+                      const roomUnreadCount = unreadMessages?.[room.roomCode] || 0;
+
+                      return (
                         <div
-                          className="rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold"
+                          key={room.id}
+                          className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer max-[1280px]:!py-1.5 max-[1280px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!px-1.5 ${currentRoomCode === room.roomCode ? 'bg-[#e7f3f0]' : ''}`}
                           style={{
-                            width: '36px',
-                            height: '36px',
-                            border: '1.3px solid rgba(0, 0, 0, 0.1)',
-                            fontSize: '16px'
+                            padding: '8px 12px',
+                            gap: '10px',
+                            minHeight: '56px'
                           }}
+                          onClick={() => onRoomSelect && onRoomSelect(room)}
                         >
-                          🏠
-                        </div>
-                        {/* Indicador de sala activa - más pequeño y en la esquina */}
-                        {room.isActive && (
-                          <div
-                            className="absolute bottom-0 right-0 rounded-full bg-white flex items-center justify-center"
-                            style={{
-                              width: '12px',
-                              height: '12px',
-                              border: '2px solid white'
-                            }}
-                          >
+                          {/* Icono de sala */}
+                          <div className="relative flex-shrink-0 max-[1280px]:!w-8 max-[1280px]:!h-8 max-[1024px]:!w-7 max-[1024px]:!h-7" style={{ width: '36px', height: '36px' }}>
                             <div
-                              className="rounded-full bg-green-500"
+                              className="rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold max-[1280px]:!text-sm max-[1024px]:!text-xs"
                               style={{
-                                width: '8px',
-                                height: '8px'
-                              }}
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Info de la sala */}
-                      <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px' }}>
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            {/* Indicador de Fijado */}
-                            {isFavorite && (
-                              <span
-                                className="flex-shrink-0 text-yellow-500 font-semibold flex items-center gap-1"
-                                style={{
-                                  fontSize: '10px',
-                                  lineHeight: '12px',
-                                  fontFamily: 'Inter, sans-serif',
-                                  fontWeight: 600,
-                                  textTransform: 'uppercase',
-                                  letterSpacing: '0.5px'
-                                }}
-                              >
-                                <PinIcon size={12} className="text-yellow-500" /> Fijado
-                              </span>
-                            )}
-                            <h3
-                              className="font-semibold text-[#111] truncate flex-1"
-                              style={{
-                                fontSize: '14px',
-                                lineHeight: '18px',
-                                fontFamily: 'Inter, sans-serif',
-                                fontWeight: 600
+                                width: '36px',
+                                height: '36px',
+                                border: '1.3px solid rgba(0, 0, 0, 0.1)',
+                                fontSize: '16px'
                               }}
                             >
-                              {room.name}
-                            </h3>
-                            {/* 🔥 NUEVO: Badge de mensajes no leídos */}
-                            {roomUnreadCount > 0 && (
+                              🏠
+                            </div>
+                            {/* Indicador de sala activa - más pequeño y en la esquina */}
+                            {room.isActive && (
                               <div
-                                className="flex-shrink-0 rounded-full bg-[#00a884] text-white flex items-center justify-center ml-2"
+                                className="absolute bottom-0 right-0 rounded-full bg-white flex items-center justify-center"
                                 style={{
-                                  minWidth: '20px',
-                                  height: '20px',
-                                  fontSize: '11px',
-                                  fontWeight: 'bold',
-                                  padding: roomUnreadCount > 99 ? '0 4px' : '0'
+                                  width: '12px',
+                                  height: '12px',
+                                  border: '2px solid white'
                                 }}
                               >
-                                {roomUnreadCount > 99 ? '99+' : roomUnreadCount}
+                                <div
+                                  className="rounded-full bg-green-500"
+                                  style={{
+                                    width: '8px',
+                                    height: '8px'
+                                  }}
+                                />
                               </div>
                             )}
                           </div>
-                          {/* Botón de favorito */}
-                          <button
-                            onClick={(e) => handleToggleFavorite(room, e)}
-                            className="flex-shrink-0 p-1 hover:bg-gray-200 rounded-full transition-colors"
-                            title={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
-                            style={{
-                              color: isFavorite ? '#fbbf24' : '#9ca3af',
-                              fontSize: '16px'
-                            }}
-                          >
-                            {isFavorite ? <FaStar /> : <FaRegStar />}
-                          </button>
-                        </div>
-                        <div className="flex items-center justify-between gap-2">
-                          {isTypingInRoom ? (
-                            <p
-                              className="text-green-600 italic truncate flex items-center gap-1"
-                              style={{
-                                fontSize: '11px',
-                                lineHeight: '14px',
-                                fontFamily: 'Inter, sans-serif',
-                                fontWeight: 400
-                              }}
-                            >
-                              {typingUsers.length === 1
-                                ? `${typingUsers[0].nombre && typingUsers[0].apellido
-                                    ? `${typingUsers[0].nombre} ${typingUsers[0].apellido}`
-                                    : (typingUsers[0].nombre || typingUsers[0].username)} está escribiendo...`
-                                : `${typingUsers.length} personas están escribiendo...`
-                              }
-                            </p>
-                          ) : room.lastMessage ? (
-                            <div className="flex-1 min-w-0">
-                              <p
-                                className="text-gray-700 truncate"
-                                style={{
-                                  fontSize: '12px',
-                                  lineHeight: '16px',
-                                  fontFamily: 'Inter, sans-serif',
-                                  fontWeight: 400
-                                }}
-                              >
-                                <span className="font-semibold text-gray-800">{room.lastMessage.from}:</span>{' '}
-                                {room.lastMessage.mediaType ? (
-                                  room.lastMessage.mediaType === 'image' ? '📷 Imagen' :
-                                  room.lastMessage.mediaType === 'video' ? '🎥 Video' :
-                                  room.lastMessage.mediaType === 'audio' ? '🎵 Audio' :
-                                  room.lastMessage.fileName ? `📎 ${room.lastMessage.fileName}` : 'Archivo'
-                                ) : (
-                                  room.lastMessage.text
+
+                          {/* Info de la sala */}
+                          <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px' }}>
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                {/* Indicador de Fijado */}
+                                {isFavorite && (
+                                  <span
+                                    className="flex-shrink-0 text-yellow-500 font-semibold flex items-center gap-1"
+                                    style={{
+                                      fontSize: '10px',
+                                      lineHeight: '12px',
+                                      fontFamily: 'Inter, sans-serif',
+                                      fontWeight: 600,
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.5px'
+                                    }}
+                                  >
+                                    <PinIcon size={12} className="text-yellow-500" /> Fijado
+                                  </span>
                                 )}
-                              </p>
-                              <p
-                                className="text-gray-500 text-xs mt-0.5"
+                                <h3
+                                  className="font-semibold text-[#111] truncate flex-1"
+                                  style={{
+                                    fontSize: '14px',
+                                    lineHeight: '18px',
+                                    fontFamily: 'Inter, sans-serif',
+                                    fontWeight: 600
+                                  }}
+                                >
+                                  {room.name}
+                                </h3>
+                                {/* 🔥 NUEVO: Badge de mensajes no leídos */}
+                                {roomUnreadCount > 0 && (
+                                  <div
+                                    className="flex-shrink-0 rounded-full bg-[#00a884] text-white flex items-center justify-center ml-2"
+                                    style={{
+                                      minWidth: '20px',
+                                      height: '20px',
+                                      fontSize: '11px',
+                                      fontWeight: 'bold',
+                                      padding: roomUnreadCount > 99 ? '0 4px' : '0'
+                                    }}
+                                  >
+                                    {roomUnreadCount > 99 ? '99+' : roomUnreadCount}
+                                  </div>
+                                )}
+                              </div>
+                              {/* Botón de favorito */}
+                              <button
+                                onClick={(e) => handleToggleFavorite(room, e)}
+                                className="flex-shrink-0 p-1 hover:bg-gray-200 rounded-full transition-colors"
+                                title={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
                                 style={{
-                                  fontSize: '10px',
-                                  lineHeight: '12px',
-                                  fontFamily: 'Inter, sans-serif',
-                                  fontWeight: 400
+                                  color: isFavorite ? '#fbbf24' : '#9ca3af',
+                                  fontSize: '16px'
                                 }}
                               >
-                                {isAdmin && `Código: ${room.roomCode} • `}
-                                {room.currentMembers}/{room.maxCapacity} usuarios
-                              </p>
+                                {isFavorite ? <FaStar /> : <FaRegStar />}
+                              </button>
                             </div>
-                          ) : (
-                            <p
-                              className="text-gray-600 truncate"
-                              style={{
-                                fontSize: '11px',
-                                lineHeight: '14px',
-                                fontFamily: 'Inter, sans-serif',
-                                fontWeight: 400
-                              }}
-                            >
-                              {/* Solo mostrar código de sala a ADMIN y JEFEPISO */}
-                              {isAdmin ? (
-                                <>Código: {room.roomCode} • {room.currentMembers}/{room.maxCapacity} usuarios</>
+                            <div className="flex items-center justify-between gap-2">
+                              {isTypingInRoom ? (
+                                <p
+                                  className="text-green-600 italic truncate flex items-center gap-1"
+                                  style={{
+                                    fontSize: '11px',
+                                    lineHeight: '14px',
+                                    fontFamily: 'Inter, sans-serif',
+                                    fontWeight: 400
+                                  }}
+                                >
+                                  {typingUsers.length === 1
+                                    ? `${typingUsers[0].nombre && typingUsers[0].apellido
+                                      ? `${typingUsers[0].nombre} ${typingUsers[0].apellido}`
+                                      : (typingUsers[0].nombre || typingUsers[0].username)} está escribiendo...`
+                                    : `${typingUsers.length} personas están escribiendo...`
+                                  }
+                                </p>
+                              ) : room.lastMessage ? (
+                                <div className="flex-1 min-w-0">
+                                  <p
+                                    className="text-gray-700 truncate"
+                                    style={{
+                                      fontSize: '12px',
+                                      lineHeight: '16px',
+                                      fontFamily: 'Inter, sans-serif',
+                                      fontWeight: 400
+                                    }}
+                                  >
+                                    <span className="font-semibold text-gray-800">{room.lastMessage.from}:</span>{' '}
+                                    {room.lastMessage.mediaType ? (
+                                      room.lastMessage.mediaType === 'image' ? '📷 Imagen' :
+                                        room.lastMessage.mediaType === 'video' ? '🎥 Video' :
+                                          room.lastMessage.mediaType === 'audio' ? '🎵 Audio' :
+                                            room.lastMessage.fileName ? `📎 ${room.lastMessage.fileName}` : 'Archivo'
+                                    ) : (
+                                      room.lastMessage.text
+                                    )}
+                                  </p>
+                                  <p
+                                    className="text-gray-500 text-xs mt-0.5"
+                                    style={{
+                                      fontSize: '10px',
+                                      lineHeight: '12px',
+                                      fontFamily: 'Inter, sans-serif',
+                                      fontWeight: 400
+                                    }}
+                                  >
+                                    {isAdmin && `Código: ${room.roomCode} • `}
+                                    {room.currentMembers}/{room.maxCapacity} usuarios
+                                  </p>
+                                </div>
                               ) : (
-                                <>{room.currentMembers}/{room.maxCapacity} usuarios</>
+                                <p
+                                  className="text-gray-600 truncate"
+                                  style={{
+                                    fontSize: '11px',
+                                    lineHeight: '14px',
+                                    fontFamily: 'Inter, sans-serif',
+                                    fontWeight: 400
+                                  }}
+                                >
+                                  {/* Solo mostrar código de sala a ADMIN y JEFEPISO */}
+                                  {isAdmin ? (
+                                    <>Código: {room.roomCode} • {room.currentMembers}/{room.maxCapacity} usuarios</>
+                                  ) : (
+                                    <>{room.currentMembers}/{room.maxCapacity} usuarios</>
+                                  )}
+                                </p>
                               )}
-                            </p>
-                          )}
-                          {/* Ícono de menciones si el mensaje contiene una mención al usuario */}
-                          {hasMentionToUser(room.lastMessage?.text) && (
-                            <span aria-hidden="true" data-icon="mentions-refreshed" style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                              <svg viewBox="0 0 24 24" height="20" preserveAspectRatio="xMidYMid meet" fill="none">
-                                <title>mentions-refreshed</title>
-                                <path d="M11.9873 21C10.7513 21 9.58985 20.7663 8.50285 20.2989C7.4157 19.8314 6.46047 19.186 5.63715 18.3629C4.81397 17.5395 4.16862 16.5818 3.70108 15.4896C3.23369 14.3975 3 13.2305 3 11.9886C3 10.7469 3.23369 9.58368 3.70108 8.49906C4.16862 7.41444 4.81397 6.46047 5.63715 5.63715C6.46047 4.81397 7.41823 4.16862 8.51044 3.70108C9.6025 3.23369 10.7695 3 12.0114 3C13.2531 3 14.4163 3.23369 15.5009 3.70108C16.5856 4.16862 17.5395 4.81397 18.3629 5.63715C19.186 6.46047 19.8314 7.41332 20.2989 8.49571C20.7663 9.57824 21 10.7421 21 11.9873V13.3265C21 14.1986 20.6799 14.9414 20.0398 15.5547C19.3995 16.1681 18.6323 16.4748 17.7383 16.4748C17.205 16.4748 16.7143 16.3441 16.2661 16.0826C15.8177 15.8213 15.4436 15.4655 15.1436 15.0153C14.763 15.4804 14.2969 15.8399 13.7455 16.0938C13.1938 16.3478 12.612 16.4748 12 16.4748C10.7554 16.4748 9.69848 16.0396 8.82918 15.1693C7.95987 14.2989 7.52522 13.2408 7.52522 11.9949C7.52522 10.7489 7.96039 9.69253 8.83074 8.8256C9.70108 7.95868 10.7592 7.52522 12.0051 7.52522C13.2511 7.52522 14.3075 7.95987 15.1744 8.82917C16.0413 9.69848 16.4748 10.7554 16.4748 12V13.2256C16.4748 13.5789 16.6007 13.8778 16.8527 14.1224C17.1047 14.3669 17.404 14.4892 17.7506 14.4892C18.0972 14.4892 18.3923 14.3669 18.6361 14.1224C18.8799 13.8778 19.0019 13.5789 19.0019 13.2256V11.9873C19.0019 10.0528 18.3185 8.40442 16.9518 7.04199C15.585 5.67941 13.9344 4.99811 12 4.99811C10.0656 4.99811 8.41498 5.68149 7.04824 7.04824C5.68149 8.41498 4.99812 10.0656 4.99812 12C4.99812 13.9344 5.67941 15.585 7.04199 16.9518C8.40442 18.3185 10.0555 19.0019 11.9953 19.0019H15.2927C15.5739 19.0019 15.8097 19.0965 16 19.2858C16.1903 19.4752 16.2855 19.7099 16.2855 19.9898C16.2855 20.2667 16.1903 20.5043 16 20.7025C15.8097 20.9008 15.5739 21 15.2927 21H11.9873ZM12.0022 14.4892C12.6943 14.4892 13.2818 14.247 13.7646 13.7626C14.2477 13.2781 14.4892 12.6898 14.4892 11.9978C14.4892 11.3057 14.247 10.7182 13.7626 10.2354C13.2781 9.75234 12.6898 9.51084 11.9978 9.51084C11.3057 9.51084 10.7182 9.75301 10.2354 10.2374C9.75234 10.7219 9.51084 11.3102 9.51084 12.0022C9.51084 12.6943 9.75301 13.2818 10.2374 13.7646C10.7219 14.2477 11.3102 14.4892 12.0022 14.4892Z" fill="currentColor" style={{ color: '#00a884' }}></path>
-                              </svg>
-                            </span>
-                          )}
+                              {/* Ícono de menciones si el mensaje contiene una mención al usuario */}
+                              {hasMentionToUser(room.lastMessage?.text) && (
+                                <span aria-hidden="true" data-icon="mentions-refreshed" style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                                  <svg viewBox="0 0 24 24" height="20" preserveAspectRatio="xMidYMid meet" fill="none">
+                                    <title>mentions-refreshed</title>
+                                    <path d="M11.9873 21C10.7513 21 9.58985 20.7663 8.50285 20.2989C7.4157 19.8314 6.46047 19.186 5.63715 18.3629C4.81397 17.5395 4.16862 16.5818 3.70108 15.4896C3.23369 14.3975 3 13.2305 3 11.9886C3 10.7469 3.23369 9.58368 3.70108 8.49906C4.16862 7.41444 4.81397 6.46047 5.63715 5.63715C6.46047 4.81397 7.41823 4.16862 8.51044 3.70108C9.6025 3.23369 10.7695 3 12.0114 3C13.2531 3 14.4163 3.23369 15.5009 3.70108C16.5856 4.16862 17.5395 4.81397 18.3629 5.63715C19.186 6.46047 19.8314 7.41332 20.2989 8.49571C20.7663 9.57824 21 10.7421 21 11.9873V13.3265C21 14.1986 20.6799 14.9414 20.0398 15.5547C19.3995 16.1681 18.6323 16.4748 17.7383 16.4748C17.205 16.4748 16.7143 16.3441 16.2661 16.0826C15.8177 15.8213 15.4436 15.4655 15.1436 15.0153C14.763 15.4804 14.2969 15.8399 13.7455 16.0938C13.1938 16.3478 12.612 16.4748 12 16.4748C10.7554 16.4748 9.69848 16.0396 8.82918 15.1693C7.95987 14.2989 7.52522 13.2408 7.52522 11.9949C7.52522 10.7489 7.96039 9.69253 8.83074 8.8256C9.70108 7.95868 10.7592 7.52522 12.0051 7.52522C13.2511 7.52522 14.3075 7.95987 15.1744 8.82917C16.0413 9.69848 16.4748 10.7554 16.4748 12V13.2256C16.4748 13.5789 16.6007 13.8778 16.8527 14.1224C17.1047 14.3669 17.404 14.4892 17.7506 14.4892C18.0972 14.4892 18.3923 14.3669 18.6361 14.1224C18.8799 13.8778 19.0019 13.5789 19.0019 13.2256V11.9873C19.0019 10.0528 18.3185 8.40442 16.9518 7.04199C15.585 5.67941 13.9344 4.99811 12 4.99811C10.0656 4.99811 8.41498 5.68149 7.04824 7.04824C5.68149 8.41498 4.99812 10.0656 4.99812 12C4.99812 13.9344 5.67941 15.585 7.04199 16.9518C8.40442 18.3185 10.0555 19.0019 11.9953 19.0019H15.2927C15.5739 19.0019 15.8097 19.0965 16 19.2858C16.1903 19.4752 16.2855 19.7099 16.2855 19.9898C16.2855 20.2667 16.1903 20.5043 16 20.7025C15.8097 20.9008 15.5739 21 15.2927 21H11.9873ZM12.0022 14.4892C12.6943 14.4892 13.2818 14.247 13.7646 13.7626C14.2477 13.2781 14.4892 12.6898 14.4892 11.9978C14.4892 11.3057 14.247 10.7182 13.7626 10.2354C13.2781 9.75234 12.6898 9.51084 11.9978 9.51084C11.3057 9.51084 10.7182 9.75301 10.2354 10.2374C9.75234 10.7219 9.51084 11.3102 9.51084 12.0022C9.51084 12.6943 9.75301 13.2818 10.2374 13.7646C10.7219 14.2477 11.3102 14.4892 12.0022 14.4892Z" fill="currentColor" style={{ color: '#00a884' }}></path>
+                                  </svg>
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
+                      );
+                    })}
+
+                    {/* Botón Ver más grupos */}
+                    {hasMoreRooms && (
+                      <div className="px-4 py-2">
+                        <button
+                          onClick={() => onLoadUserRooms && onLoadUserRooms(roomsPage + 1)}
+                          disabled={roomsLoading}
+                          className="w-full text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 py-2 px-3 rounded-lg transition-colors duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ fontFamily: 'Inter, sans-serif' }}
+                        >
+                          {roomsLoading ? 'Cargando...' : `Ver más grupos (${roomsTotal - myActiveRooms.length} restantes)`}
+                        </button>
                       </div>
-                    </div>
-                  );
-                })}
+                    )}
+                  </>
+                );
+              })()}
             </>
           )}
 
           {/* 🔥 SECCIÓN DE ASIGNADOS */}
           <div
-            className="text-xs text-gray-500 font-semibold mb-2 px-4 mt-4 flex items-center justify-between cursor-pointer select-none"
-            style={{ fontFamily: 'Inter, sans-serif' }}
+            className="text-[11px] text-gray-400 font-bold mb-2 px-6 mt-3 flex items-center justify-between cursor-pointer select-none tracking-wider max-[1280px]:px-4 max-[1024px]:px-3"
+            style={{ fontFamily: 'Inter, sans-serif', marginLeft: '8px', marginRight: '8px' }}
             onClick={() => setShowAssigned(prev => !prev)}
           >
             <div className="flex items-center gap-2">
-              <CommunityIcon size={14} />
+              <CommunityIcon size={12} className="text-gray-400" />
               <span>ASIGNADOS</span>
             </div>
             {showAssigned ? (
-              <FaChevronDown className="w-3 h-3 text-gray-400" />
+              <FaChevronDown className="w-2.5 h-2.5 text-gray-400" />
             ) : (
-              <FaChevronRight className="w-3 h-3 text-gray-400" />
+              <FaChevronRight className="w-2.5 h-2.5 text-gray-400" />
             )}
           </div>
           {(() => {
@@ -928,31 +962,36 @@ const ConversationList = ({
               return null;
             }
 
+            // 🔥 PAGINACIÓN REAL: Usar datos del backend
+            const sortedConversations = myConversations
+              // Ordenar: favoritas primero, luego según sortBy
+              .sort((a, b) => {
+                const aIsFavorite = favoriteConversationIds.includes(a.id);
+                const bIsFavorite = favoriteConversationIds.includes(b.id);
+
+                // Si una es favorita y la otra no, la favorita va primero
+                if (aIsFavorite && !bIsFavorite) return -1;
+                if (!aIsFavorite && bIsFavorite) return 1;
+
+                // Si ambas son favoritas o ninguna lo es, ordenar según sortBy
+                if (sortBy === 'newest') {
+                  return new Date(b.lastMessageTime || b.createdAt) - new Date(a.lastMessageTime || a.createdAt);
+                } else if (sortBy === 'oldest') {
+                  return new Date(a.lastMessageTime || a.createdAt) - new Date(b.lastMessageTime || b.createdAt);
+                } else if (sortBy === 'name') {
+                  const aName = (a.name || '').toLowerCase();
+                  const bName = (b.name || '').toLowerCase();
+                  return aName.localeCompare(bName);
+                }
+                return 0;
+              });
+
+            // 🔥 PAGINACIÓN REAL: Usar datos del backend
+            const hasMoreAssigned = assignedPage < assignedTotalPages;
+
             return myConversations.length > 0 ? (
               <>
-                {myConversations
-                  // Ordenar: favoritas primero, luego según sortBy
-                  .sort((a, b) => {
-                    const aIsFavorite = favoriteConversationIds.includes(a.id);
-                    const bIsFavorite = favoriteConversationIds.includes(b.id);
-
-                    // Si una es favorita y la otra no, la favorita va primero
-                    if (aIsFavorite && !bIsFavorite) return -1;
-                    if (!aIsFavorite && bIsFavorite) return 1;
-
-                    // Si ambas son favoritas o ninguna lo es, ordenar según sortBy
-                    if (sortBy === 'newest') {
-                      return new Date(b.lastMessageTime || b.createdAt) - new Date(a.lastMessageTime || a.createdAt);
-                    } else if (sortBy === 'oldest') {
-                      return new Date(a.lastMessageTime || a.createdAt) - new Date(b.lastMessageTime || b.createdAt);
-                    } else if (sortBy === 'name') {
-                      const aName = (a.name || '').toLowerCase();
-                      const bName = (b.name || '').toLowerCase();
-                      return aName.localeCompare(bName);
-                    }
-                    return 0;
-                  })
-                  .map((conv) => {
+                {sortedConversations.map((conv) => {
                   // Obtener nombres de los participantes desde el array participants
                   const participants = conv.participants || [];
                   const participant1Name = participants[0] || 'Usuario 1';
@@ -1029,7 +1068,7 @@ const ConversationList = ({
                   return (
                     <div
                       key={conv.id}
-                      className="flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group overflow-visible relative"
+                      className="flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group overflow-visible relative max-[1280px]:!py-1.5 max-[1280px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!px-1.5"
                       style={{
                         padding: '8px 12px',
                         gap: '10px',
@@ -1050,9 +1089,9 @@ const ConversationList = ({
                       }}
                     >
                       {/* Avatar único para el otro participante */}
-                      <div className="relative flex-shrink-0" style={{ width: '40px', height: '40px' }}>
+                      <div className="relative flex-shrink-0 max-[1280px]:!w-9 max-[1280px]:!h-9 max-[1024px]:!w-8 max-[1024px]:!h-8" style={{ width: '40px', height: '40px' }}>
                         <div
-                          className="rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-white font-bold"
+                          className="rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-white font-bold max-[1280px]:!text-sm max-[1024px]:!text-xs"
                           style={{
                             width: '40px',
                             height: '40px',
@@ -1246,6 +1285,20 @@ const ConversationList = ({
                     </div>
                   );
                 })}
+
+                {/* Botón Ver más conversaciones asignadas */}
+                {hasMoreAssigned && (
+                  <div className="px-4 py-2">
+                    <button
+                      onClick={() => onLoadAssignedConversations && onLoadAssignedConversations(assignedPage + 1)}
+                      disabled={assignedLoading}
+                      className="w-full text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 py-2 px-3 rounded-lg transition-colors duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ fontFamily: 'Inter, sans-serif' }}
+                    >
+                      {assignedLoading ? 'Cargando...' : `Ver más conversaciones (${assignedTotal - myConversations.length} restantes)`}
+                    </button>
+                  </div>
+                )}
               </>
             ) : (
               <div className="flex flex-col items-center justify-center py-[60px] px-5 text-center">
@@ -1256,667 +1309,671 @@ const ConversationList = ({
               </div>
             );
           })()}
-        </div>
+        </div >
       )}
 
       {/* Módulo de Chats Monitoreo (solo para ADMIN) */}
-      {activeModule === 'monitoring' && isAdmin && (
-        <div className="flex-1 overflow-y-auto bg-white px-4 w-full min-w-0">
-          {/* Mostrar resultados de búsqueda de mensajes si hay búsqueda activa */}
-          {assignedSearchTerm.trim() && messageSearchResults.length > 0 && (
-            <div className="mb-4">
-              <div className="text-xs text-gray-500 font-semibold mb-2 px-2" style={{ fontFamily: 'Inter, sans-serif' }}>
-                📝 Mensajes encontrados ({messageSearchResults.length})
-              </div>
-              {messageSearchResults.map((msg) => {
-                const isGroupMsg = msg.isGroup;
-                const conversationName = isGroupMsg ? msg.roomCode : msg.to;
-                const messagePreview = msg.message || (msg.fileName ? `📎 ${msg.fileName}` : 'Archivo');
+      {
+        activeModule === 'monitoring' && isAdmin && (
+          <div className="flex-1 overflow-y-auto bg-white px-4 w-full min-w-0">
+            {/* Mostrar resultados de búsqueda de mensajes si hay búsqueda activa */}
+            {assignedSearchTerm.trim() && messageSearchResults.length > 0 && (
+              <div className="mb-4">
+                <div className="text-xs text-gray-500 font-semibold mb-2 px-2" style={{ fontFamily: 'Inter, sans-serif' }}>
+                  📝 Mensajes encontrados ({messageSearchResults.length})
+                </div>
+                {messageSearchResults.map((msg) => {
+                  const isGroupMsg = msg.isGroup;
+                  const conversationName = isGroupMsg ? msg.roomCode : msg.to;
+                  const messagePreview = msg.message || (msg.fileName ? `📎 ${msg.fileName}` : 'Archivo');
 
-                return (
-                  <div
-                    key={msg.id}
-                    className="flex items-start gap-3 p-3 mb-2 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors"
-                    onClick={() => {
-                      if (isGroupMsg) {
-                        // Buscar el objeto de sala completo
-                        const room = myActiveRooms?.find(r => r.roomCode === msg.roomCode);
-                        if (room && onRoomSelect) {
-                          // Navegar a grupo con el objeto completo y el messageId
-                          onRoomSelect(room, msg.id);
-                        } else {
-                          console.error('Sala no encontrada:', msg.roomCode);
-                        }
-                      } else {
-                        // Navegar a chat directo
-                        onUserSelect(msg.to, null, msg.id);
-                      }
-                    }}
-                  >
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-200 flex items-center justify-center text-lg">
-                      {isGroupMsg ? '👥' : '💬'}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-sm text-gray-800" style={{ fontFamily: 'Inter, sans-serif' }}>
-                          {conversationName}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {isGroupMsg ? 'Grupo' : 'Chat'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-700 truncate" style={{ fontFamily: 'Inter, sans-serif' }}>
-                        {messagePreview}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {new Date(msg.sentAt).toLocaleString('es-ES', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-              <div className="border-t border-gray-200 my-3"></div>
-            </div>
-          )}
-
-          {/* Mostrar indicador de búsqueda */}
-          {isSearching && (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-sm text-gray-500">Buscando mensajes...</div>
-            </div>
-          )}
-
-          {(() => {
-            // Filtrar conversaciones de monitoreo con búsqueda
-            const filteredMonitoring = monitoringConversations.filter(conv => {
-              if (!assignedSearchTerm.trim()) return true;
-              const searchLower = assignedSearchTerm.toLowerCase();
-              const participants = conv.participants || [];
-              return (
-                conv.name?.toLowerCase().includes(searchLower) ||
-                participants.some(p => p?.toLowerCase().includes(searchLower)) ||
-                conv.lastMessage?.toLowerCase().includes(searchLower)
-              );
-            });
-
-            return filteredMonitoring.length > 0 ? (
-            <>
-              {filteredMonitoring
-                // Ordenar: favoritas primero, luego según sortBy
-                .sort((a, b) => {
-                  const aIsFavorite = favoriteConversationIds.includes(a.id);
-                  const bIsFavorite = favoriteConversationIds.includes(b.id);
-
-                  // Si una es favorita y la otra no, la favorita va primero
-                  if (aIsFavorite && !bIsFavorite) return -1;
-                  if (!aIsFavorite && bIsFavorite) return 1;
-
-                  // Si ambas son favoritas o ninguna lo es, ordenar según sortBy
-                  if (sortBy === 'newest') {
-                    return new Date(b.lastMessageTime || b.createdAt) - new Date(a.lastMessageTime || a.createdAt);
-                  } else if (sortBy === 'oldest') {
-                    return new Date(a.lastMessageTime || a.createdAt) - new Date(b.lastMessageTime || b.createdAt);
-                  } else if (sortBy === 'name') {
-                    const aName = (a.name || '').toLowerCase();
-                    const bName = (b.name || '').toLowerCase();
-                    return aName.localeCompare(bName);
-                  }
-                  return 0;
-                })
-                .map((conv) => {
-                // Obtener nombres de los participantes desde el array participants
-                const participants = conv.participants || [];
-                const participant1Name = participants[0] || 'Usuario 1';
-                const participant2Name = participants[1] || 'Usuario 2';
-
-                // Obtener iniciales
-                const getInitials = (name) => {
-                  const parts = name.split(' ');
-                  if (parts.length >= 2) {
-                    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-                  }
-                  return name[0]?.toUpperCase() || 'U';
-                };
-
-                const isFavorite = favoriteConversationIds.includes(conv.id);
-
-                return (
-                  <div
-                    key={conv.id}
-                    className="flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group relative"
-                    style={{
-                      padding: '10px 12px',
-                      gap: '10px',
-                      minHeight: '72px',
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      width: '100%',
-                      minWidth: 0,
-                      position: 'relative'
-                    }}
-                    onClick={() => {
-                      // console.log('Admin monitoreando conversación:', conv);
-                      // 🔥 IMPORTANTE: Pasar el nombre del otro participante, no el nombre de la conversación
-                      // Esto es crítico para que la API cargue los mensajes correctamente
-                      if (onUserSelect) {
-                        // Obtener el nombre completo del admin actual
-                        const adminFullName = user?.nombre && user?.apellido
-                          ? `${user.nombre} ${user.apellido}`
-                          : user?.username;
-
-                        // Obtener el nombre del otro participante (no el del admin)
-                        const otherParticipant = participants.find(p =>
-                          p.toLowerCase().trim() !== adminFullName?.toLowerCase().trim()
-                        ) || participant2Name;
-
-                        onUserSelect(otherParticipant, null, conv);
-                      }
-                    }}
-                  >
-                    {/* Avatar doble para conversación */}
+                  return (
                     <div
-                      className="relative flex-shrink-0 cursor-pointer group"
-                      style={{ width: '40px', height: '40px' }}
-                      title={`${participant1Name} ↔️ ${participant2Name}`}
+                      key={msg.id}
+                      className="flex items-start gap-3 p-3 mb-2 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors"
+                      onClick={() => {
+                        if (isGroupMsg) {
+                          // Buscar el objeto de sala completo
+                          const room = myActiveRooms?.find(r => r.roomCode === msg.roomCode);
+                          if (room && onRoomSelect) {
+                            // Navegar a grupo con el objeto completo y el messageId
+                            onRoomSelect(room, msg.id);
+                          } else {
+                            console.error('Sala no encontrada:', msg.roomCode);
+                          }
+                        } else {
+                          // Navegar a chat directo
+                          onUserSelect(msg.to, null, msg.id);
+                        }
+                      }}
                     >
-                      <div className="relative" style={{ width: '40px', height: '40px' }}>
-                        {/* Avatar 1 */}
-                        <div
-                          className="absolute rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-white font-bold hover:ring-2 hover:ring-purple-400 transition-all"
-                          style={{
-                            width: '26px',
-                            height: '26px',
-                            border: '1.3px solid rgba(0, 0, 0, 0.1)',
-                            fontSize: '11px',
-                            top: '0',
-                            left: '0',
-                            zIndex: 2,
-                            cursor: 'pointer'
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (onUserSelect) {
-                              onUserSelect(participant1Name, null, { ...conv, selectedParticipant: participant1Name });
-                            }
-                          }}
-                        >
-                          {getInitials(participant1Name)}
+                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-200 flex items-center justify-center text-lg">
+                        {isGroupMsg ? '👥' : '💬'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-sm text-gray-800" style={{ fontFamily: 'Inter, sans-serif' }}>
+                            {conversationName}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {isGroupMsg ? 'Grupo' : 'Chat'}
+                          </span>
                         </div>
-                        {/* Avatar 2 */}
-                        <div
-                          className="absolute rounded-full overflow-hidden bg-gradient-to-br from-pink-500 to-pink-700 flex items-center justify-center text-white font-bold hover:ring-2 hover:ring-pink-400 transition-all"
-                          style={{
-                            width: '26px',
-                            height: '26px',
-                            border: '1.3px solid rgba(0, 0, 0, 0.1)',
-                            fontSize: '11px',
-                            bottom: '0',
-                            right: '0',
-                            zIndex: 1,
-                            cursor: 'pointer'
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (onUserSelect) {
-                              onUserSelect(participant2Name, null, { ...conv, selectedParticipant: participant2Name });
-                            }
-                          }}
-                        >
-                          {getInitials(participant2Name)}
-                        </div>
+                        <p className="text-xs text-gray-700 truncate" style={{ fontFamily: 'Inter, sans-serif' }}>
+                          {messagePreview}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(msg.sentAt).toLocaleString('es-ES', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
                       </div>
                     </div>
+                  );
+                })}
+                <div className="border-t border-gray-200 my-3"></div>
+              </div>
+            )}
 
-                    {/* Info de la conversación */}
-                    <div className="flex-1 min-w-0 flex flex-col relative" style={{ gap: '4px', position: 'relative' }}>
-                      <div className="flex items-start justify-between gap-2 w-full min-w-0 relative" style={{ position: 'relative' }}>
-                        <div className="flex flex-col gap-1 flex-1 min-w-0">
-                          {/* Indicador de Fijado */}
-                          {isFavorite && (
+            {/* Mostrar indicador de búsqueda */}
+            {isSearching && (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-sm text-gray-500">Buscando mensajes...</div>
+              </div>
+            )}
+
+            {(() => {
+              // Filtrar conversaciones de monitoreo con búsqueda
+              const filteredMonitoring = monitoringConversations.filter(conv => {
+                if (!assignedSearchTerm.trim()) return true;
+                const searchLower = assignedSearchTerm.toLowerCase();
+                const participants = conv.participants || [];
+                return (
+                  conv.name?.toLowerCase().includes(searchLower) ||
+                  participants.some(p => p?.toLowerCase().includes(searchLower)) ||
+                  conv.lastMessage?.toLowerCase().includes(searchLower)
+                );
+              });
+
+              return filteredMonitoring.length > 0 ? (
+                <>
+                  {filteredMonitoring
+                    // Ordenar: favoritas primero, luego según sortBy
+                    .sort((a, b) => {
+                      const aIsFavorite = favoriteConversationIds.includes(a.id);
+                      const bIsFavorite = favoriteConversationIds.includes(b.id);
+
+                      // Si una es favorita y la otra no, la favorita va primero
+                      if (aIsFavorite && !bIsFavorite) return -1;
+                      if (!aIsFavorite && bIsFavorite) return 1;
+
+                      // Si ambas son favoritas o ninguna lo es, ordenar según sortBy
+                      if (sortBy === 'newest') {
+                        return new Date(b.lastMessageTime || b.createdAt) - new Date(a.lastMessageTime || a.createdAt);
+                      } else if (sortBy === 'oldest') {
+                        return new Date(a.lastMessageTime || a.createdAt) - new Date(b.lastMessageTime || b.createdAt);
+                      } else if (sortBy === 'name') {
+                        const aName = (a.name || '').toLowerCase();
+                        const bName = (b.name || '').toLowerCase();
+                        return aName.localeCompare(bName);
+                      }
+                      return 0;
+                    })
+                    .map((conv) => {
+                      // Obtener nombres de los participantes desde el array participants
+                      const participants = conv.participants || [];
+                      const participant1Name = participants[0] || 'Usuario 1';
+                      const participant2Name = participants[1] || 'Usuario 2';
+
+                      // Obtener iniciales
+                      const getInitials = (name) => {
+                        const parts = name.split(' ');
+                        if (parts.length >= 2) {
+                          return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+                        }
+                        return name[0]?.toUpperCase() || 'U';
+                      };
+
+                      const isFavorite = favoriteConversationIds.includes(conv.id);
+
+                      return (
+                        <div
+                          key={conv.id}
+                          className="flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group relative"
+                          style={{
+                            padding: '10px 12px',
+                            gap: '10px',
+                            minHeight: '72px',
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            width: '100%',
+                            minWidth: 0,
+                            position: 'relative'
+                          }}
+                          onClick={() => {
+                            // console.log('Admin monitoreando conversación:', conv);
+                            // 🔥 IMPORTANTE: Pasar el nombre del otro participante, no el nombre de la conversación
+                            // Esto es crítico para que la API cargue los mensajes correctamente
+                            if (onUserSelect) {
+                              // Obtener el nombre completo del admin actual
+                              const adminFullName = user?.nombre && user?.apellido
+                                ? `${user.nombre} ${user.apellido}`
+                                : user?.username;
+
+                              // Obtener el nombre del otro participante (no el del admin)
+                              const otherParticipant = participants.find(p =>
+                                p.toLowerCase().trim() !== adminFullName?.toLowerCase().trim()
+                              ) || participant2Name;
+
+                              onUserSelect(otherParticipant, null, conv);
+                            }
+                          }}
+                        >
+                          {/* Avatar doble para conversación */}
+                          <div
+                            className="relative flex-shrink-0 cursor-pointer group"
+                            style={{ width: '40px', height: '40px' }}
+                            title={`${participant1Name} ↔️ ${participant2Name}`}
+                          >
+                            <div className="relative" style={{ width: '40px', height: '40px' }}>
+                              {/* Avatar 1 */}
+                              <div
+                                className="absolute rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-white font-bold hover:ring-2 hover:ring-purple-400 transition-all"
+                                style={{
+                                  width: '26px',
+                                  height: '26px',
+                                  border: '1.3px solid rgba(0, 0, 0, 0.1)',
+                                  fontSize: '11px',
+                                  top: '0',
+                                  left: '0',
+                                  zIndex: 2,
+                                  cursor: 'pointer'
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (onUserSelect) {
+                                    onUserSelect(participant1Name, null, { ...conv, selectedParticipant: participant1Name });
+                                  }
+                                }}
+                              >
+                                {getInitials(participant1Name)}
+                              </div>
+                              {/* Avatar 2 */}
+                              <div
+                                className="absolute rounded-full overflow-hidden bg-gradient-to-br from-pink-500 to-pink-700 flex items-center justify-center text-white font-bold hover:ring-2 hover:ring-pink-400 transition-all"
+                                style={{
+                                  width: '26px',
+                                  height: '26px',
+                                  border: '1.3px solid rgba(0, 0, 0, 0.1)',
+                                  fontSize: '11px',
+                                  bottom: '0',
+                                  right: '0',
+                                  zIndex: 1,
+                                  cursor: 'pointer'
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (onUserSelect) {
+                                    onUserSelect(participant2Name, null, { ...conv, selectedParticipant: participant2Name });
+                                  }
+                                }}
+                              >
+                                {getInitials(participant2Name)}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Info de la conversación */}
+                          <div className="flex-1 min-w-0 flex flex-col relative" style={{ gap: '4px', position: 'relative' }}>
+                            <div className="flex items-start justify-between gap-2 w-full min-w-0 relative" style={{ position: 'relative' }}>
+                              <div className="flex flex-col gap-1 flex-1 min-w-0">
+                                {/* Indicador de Fijado */}
+                                {isFavorite && (
+                                  <span
+                                    className="flex-shrink-0 text-yellow-500 font-semibold flex items-center gap-1"
+                                    style={{
+                                      fontSize: '10px',
+                                      lineHeight: '12px',
+                                      fontFamily: 'Inter, sans-serif',
+                                      fontWeight: 600,
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.5px'
+                                    }}
+                                  >
+                                    <PinIcon size={12} className="text-yellow-500" /> Fijado
+                                  </span>
+                                )}
+                                <div className="flex items-center gap-1 w-full min-w-0">
+                                  <div className="flex-1 min-w-0">
+                                    <p
+                                      className="font-semibold text-[#111]"
+                                      style={{
+                                        fontSize: '12px',
+                                        lineHeight: '16px',
+                                        fontFamily: 'Inter, sans-serif',
+                                        fontWeight: 600,
+                                        width: '100%',
+                                        minWidth: 0,
+                                        maxWidth: '100%',
+                                        display: '-webkit-box',
+                                        WebkitLineClamp: 2,
+                                        WebkitBoxOrient: 'vertical',
+                                        overflow: 'hidden',
+                                        wordBreak: 'break-word'
+                                      }}
+                                      title={`${participant1Name} • ${participant2Name}`}
+                                    >
+                                      {participant1Name} • {participant2Name}
+                                    </p>
+                                  </div>
+                                  {/* Botón de favorito */}
+                                  <button
+                                    onClick={(e) => handleToggleConversationFavorite(conv, e)}
+                                    className="flex-shrink-0 p-0.5 rounded-full hover:bg-gray-200 transition-all duration-200 opacity-0 group-hover:opacity-100"
+                                    style={{
+                                      opacity: isFavorite ? 1 : undefined,
+                                      width: '20px',
+                                      height: '20px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}
+                                    title={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+                                  >
+                                    {isFavorite ? (
+                                      <FaStar className="text-yellow-500" size={12} />
+                                    ) : (
+                                      <FaRegStar className="text-gray-400" size={12} />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                              {/* Timestamp */}
+                              {conv.lastMessageTimestamp && (
+                                <span className="conversation-timestamp">
+                                  {conv.lastMessageTimestamp}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Último mensaje */}
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                {conv.lastMessage ? (
+                                  <>
+                                    {conv.lastMessageFrom && (
+                                      <span
+                                        className="text-gray-500 font-medium"
+                                        style={{
+                                          fontSize: '12px',
+                                          lineHeight: '16px',
+                                          fontFamily: 'Inter, sans-serif',
+                                          fontWeight: 500
+                                        }}
+                                      >
+                                        {conv.lastMessageFrom.split(' ')[0]}:{' '}
+                                      </span>
+                                    )}
+                                    <p
+                                      className="text-gray-600"
+                                      style={{
+                                        fontSize: '12px',
+                                        lineHeight: '16px',
+                                        fontFamily: 'Inter, sans-serif',
+                                        fontWeight: 400,
+                                        display: '-webkit-box',
+                                        WebkitLineClamp: 2,
+                                        WebkitBoxOrient: 'vertical',
+                                        overflow: 'hidden',
+                                        wordBreak: 'break-word'
+                                      }}
+                                    >
+                                      {conv.lastMessageMediaType ? (
+                                        <span className="flex items-center gap-1">
+                                          {conv.lastMessageMediaType === 'image' && '📷 Imagen'}
+                                          {conv.lastMessageMediaType === 'video' && '🎥 Video'}
+                                          {conv.lastMessageMediaType === 'audio' && '🎵 Audio'}
+                                          {conv.lastMessageMediaType === 'document' && '📄 Documento'}
+                                          {!['image', 'video', 'audio', 'document'].includes(conv.lastMessageMediaType) && '📎 Archivo'}
+                                        </span>
+                                      ) : conv.lastMessageThreadCount > 0 ? (
+                                        // Si el último mensaje tiene respuestas en hilos, mostrar el contador
+                                        <span className="flex items-center gap-1">
+                                          <span className="text-gray-500">🧵</span>
+                                          <span className="font-semibold text-[#00a884]">
+                                            {conv.lastMessageThreadCount} {conv.lastMessageThreadCount === 1 ? 'respuesta' : 'respuestas'}
+                                          </span>
+                                          {conv.lastMessageLastReplyFrom && (
+                                            <span className="text-gray-500">
+                                              • {conv.lastMessageLastReplyFrom}
+                                            </span>
+                                          )}
+                                        </span>
+                                      ) : (
+                                        conv.lastMessage
+                                      )}
+                                    </p>
+                                  </>
+                                ) : (
+                                  <p
+                                    className="text-gray-400 italic truncate"
+                                    style={{
+                                      fontSize: '12px',
+                                      lineHeight: '16px',
+                                      fontFamily: 'Inter, sans-serif',
+                                      fontWeight: 400
+                                    }}
+                                  >
+                                    Sin mensajes aún
+                                  </p>
+                                )}
+                              </div>
+                              {/* Ícono de menciones si el mensaje contiene una mención al usuario */}
+                              {hasMentionToUser(conv.lastMessage) && (
+                                <span aria-hidden="true" data-icon="mentions-refreshed" style={{ display: 'flex', alignItems: 'center', flexShrink: 0, marginRight: '4px' }}>
+                                  <svg viewBox="0 0 24 24" height="20" preserveAspectRatio="xMidYMid meet" fill="none">
+                                    <title>mentions-refreshed</title>
+                                    <path d="M11.9873 21C10.7513 21 9.58985 20.7663 8.50285 20.2989C7.4157 19.8314 6.46047 19.186 5.63715 18.3629C4.81397 17.5395 4.16862 16.5818 3.70108 15.4896C3.23369 14.3975 3 13.2305 3 11.9886C3 10.7469 3.23369 9.58368 3.70108 8.49906C4.16862 7.41444 4.81397 6.46047 5.63715 5.63715C6.46047 4.81397 7.41823 4.16862 8.51044 3.70108C9.6025 3.23369 10.7695 3 12.0114 3C13.2531 3 14.4163 3.23369 15.5009 3.70108C16.5856 4.16862 17.5395 4.81397 18.3629 5.63715C19.186 6.46047 19.8314 7.41332 20.2989 8.49571C20.7663 9.57824 21 10.7421 21 11.9873V13.3265C21 14.1986 20.6799 14.9414 20.0398 15.5547C19.3995 16.1681 18.6323 16.4748 17.7383 16.4748C17.205 16.4748 16.7143 16.3441 16.2661 16.0826C15.8177 15.8213 15.4436 15.4655 15.1436 15.0153C14.763 15.4804 14.2969 15.8399 13.7455 16.0938C13.1938 16.3478 12.612 16.4748 12 16.4748C10.7554 16.4748 9.69848 16.0396 8.82918 15.1693C7.95987 14.2989 7.52522 13.2408 7.52522 11.9949C7.52522 10.7489 7.96039 9.69253 8.83074 8.8256C9.70108 7.95868 10.7592 7.52522 12.0051 7.52522C13.2511 7.52522 14.3075 7.95987 15.1744 8.82917C16.0413 9.69848 16.4748 10.7554 16.4748 12V13.2256C16.4748 13.5789 16.6007 13.8778 16.8527 14.1224C17.1047 14.3669 17.404 14.4892 17.7506 14.4892C18.0972 14.4892 18.3923 14.3669 18.6361 14.1224C18.8799 13.8778 19.0019 13.5789 19.0019 13.2256V11.9873C19.0019 10.0528 18.3185 8.40442 16.9518 7.04199C15.585 5.67941 13.9344 4.99811 12 4.99811C10.0656 4.99811 8.41498 5.68149 7.04824 7.04824C5.68149 8.41498 4.99812 10.0656 4.99812 12C4.99812 13.9344 5.67941 15.585 7.04199 16.9518C8.40442 18.3185 10.0555 19.0019 11.9953 19.0019H15.2927C15.5739 19.0019 15.8097 19.0965 16 19.2858C16.1903 19.4752 16.2855 19.7099 16.2855 19.9898C16.2855 20.2667 16.1903 20.5043 16 20.7025C15.8097 20.9008 15.5739 21 15.2927 21H11.9873ZM12.0022 14.4892C12.6943 14.4892 13.2818 14.247 13.7646 13.7626C14.2477 13.2781 14.4892 12.6898 14.4892 11.9978C14.4892 11.3057 14.247 10.7182 13.7626 10.2354C13.2781 9.75234 12.6898 9.51084 11.9978 9.51084C11.3057 9.51084 10.7182 9.75301 10.2354 10.2374C9.75234 10.7219 9.51084 11.3102 9.51084 12.0022C9.51084 12.6943 9.75301 13.2818 10.2374 13.7646C10.7219 14.2477 11.3102 14.4892 12.0022 14.4892Z" fill="currentColor" style={{ color: '#00a884' }}></path>
+                                  </svg>
+                                </span>
+                              )}
+                              {/* Badge de mensajes no leídos */}
+                              {conv.unreadCount > 0 && (
+                                <div
+                                  className="flex-shrink-0 rounded-full bg-[#00a884] text-white flex items-center justify-center"
+                                  style={{
+                                    minWidth: '20px',
+                                    height: '20px',
+                                    padding: '0 6px',
+                                    fontSize: '11px',
+                                    fontWeight: 600,
+                                    fontFamily: 'Inter, sans-serif'
+                                  }}
+                                >
+                                  {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  {/* Paginación */}
+                  {monitoringTotalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2 py-4 border-t border-gray-200">
+                      <button
+                        onClick={() => onLoadMonitoringConversations(monitoringPage - 1)}
+                        disabled={monitoringPage === 1 || monitoringLoading}
+                        className="px-3 py-1 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        ← Anterior
+                      </button>
+                      <span className="text-sm text-gray-600">
+                        Página {monitoringPage} de {monitoringTotalPages}
+                      </span>
+                      <button
+                        onClick={() => onLoadMonitoringConversations(monitoringPage + 1)}
+                        disabled={monitoringPage === monitoringTotalPages || monitoringLoading}
+                        className="px-3 py-1 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        Siguiente →
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-[60px] px-5 text-center">
+                  <div className="text-5xl mb-4 opacity-50">👁️</div>
+                  <div className="text-sm text-gray-600 font-medium">
+                    {assignedSearchTerm ? `No se encontraron resultados para "${assignedSearchTerm}"` : 'No hay chats para monitorear'}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )
+      }
+
+      {/* Lista de conversaciones */}
+      {
+        activeModule === 'conversations' && (
+          <div
+            ref={conversationsListRef}
+            className="flex-1 overflow-y-auto bg-white px-4"
+            onScroll={handleScroll}
+          >
+            {/* Mostrar resultados de búsqueda de mensajes si hay búsqueda activa */}
+            {searchTerm.trim() && messageSearchResults.length > 0 && (
+              <div className="mb-4">
+                <div className="text-xs text-gray-500 font-semibold mb-2 px-2" style={{ fontFamily: 'Inter, sans-serif' }}>
+                  📝 Mensajes encontrados ({messageSearchResults.length})
+                </div>
+                {messageSearchResults.map((msg) => {
+                  const isGroupMsg = msg.isGroup;
+                  const conversationName = isGroupMsg ? msg.roomCode : msg.to;
+                  const messagePreview = msg.message || (msg.fileName ? `📎 ${msg.fileName}` : 'Archivo');
+
+                  return (
+                    <div
+                      key={msg.id}
+                      className="flex items-start gap-3 p-3 mb-2 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors"
+                      onClick={() => {
+                        if (isGroupMsg) {
+                          // Buscar el objeto de sala completo
+                          const room = myActiveRooms?.find(r => r.roomCode === msg.roomCode);
+                          if (room && onRoomSelect) {
+                            // Navegar a grupo con el objeto completo y el messageId
+                            onRoomSelect(room, msg.id);
+                          } else {
+                            console.error('Sala no encontrada:', msg.roomCode);
+                          }
+                        } else {
+                          // Navegar a chat directo
+                          onUserSelect(msg.to, null, msg.id);
+                        }
+                      }}
+                    >
+                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-200 flex items-center justify-center text-lg">
+                        {isGroupMsg ? '👥' : '💬'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-sm text-gray-800" style={{ fontFamily: 'Inter, sans-serif' }}>
+                            {conversationName}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {isGroupMsg ? 'Grupo' : 'Chat'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-700 truncate" style={{ fontFamily: 'Inter, sans-serif' }}>
+                          {messagePreview}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(msg.sentAt).toLocaleString('es-ES', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="border-t border-gray-200 my-3"></div>
+              </div>
+            )}
+
+            {isSearching ? (
+              <div className="p-5 text-center text-[#00a884] text-sm">
+                <p>🔍 Buscando mensajes...</p>
+              </div>
+            ) : filteredConversations.length === 0 && messageSearchResults.length === 0 ? (
+              <div className="p-5 text-center text-[#999] text-sm">
+                {searchTerm.trim().length > 0 ? (
+                  <p>No se encontraron resultados para "{searchTerm}"</p>
+                ) : !isAdmin && !isGroup ? (
+                  <>
+                    <p>No tienes conversaciones asignadas</p>
+                    <p className="text-xs mt-2">
+                      Espera a que un administrador te asigne una conversación
+                    </p>
+                  </>
+                ) : (
+                  <p>No hay usuarios conectados</p>
+                )}
+              </div>
+            ) : (
+              <>
+                {filteredConversations.map((conversation) => {
+                  const unreadCount = unreadMessages?.[conversation.username] || 0;
+
+                  // Determinar el nombre a mostrar
+                  const displayName = conversation.nombre && conversation.apellido
+                    ? `${conversation.nombre} ${conversation.apellido}`
+                    : conversation.username;
+
+                  // Obtener iniciales para el avatar
+                  const getInitials = () => {
+                    if (conversation.nombre && conversation.apellido) {
+                      return `${conversation.nombre[0]}${conversation.apellido[0]}`.toUpperCase();
+                    }
+                    return conversation.username?.[0]?.toUpperCase() || 'U';
+                  };
+
+                  return (
+                    <div
+                      key={conversation.id || conversation.username}
+                      className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 ${conversation.username === user?.username ? 'bg-[#e9edef]' : ''} ${isGroup ? 'cursor-default opacity-60 hover:bg-transparent' : 'cursor-pointer'}`}
+                      style={{
+                        padding: '8px 12px',
+                        gap: '10px',
+                        minHeight: '60px'
+                      }}
+                      onClick={() => {
+                        if (isGroup) return;
+                        onUserSelect && onUserSelect(displayName);
+                      }}
+                    >
+                      {/* Avatar */}
+                      <div className="relative flex-shrink-0" style={{ width: '40px', height: '40px' }}>
+                        <div
+                          className="rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold"
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            border: '1.3px solid rgba(0, 0, 0, 0.1)',
+                            fontSize: '14px'
+                          }}
+                        >
+                          {conversation.picture ? (
+                            <img
+                              src={conversation.picture}
+                              alt={displayName}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.parentElement.innerHTML = getInitials();
+                              }}
+                            />
+                          ) : (
+                            getInitials()
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px' }}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-col flex-1 min-w-0">
+                            <h3
+                              className="font-semibold text-[#111] truncate"
+                              style={{
+                                fontSize: '14px',
+                                lineHeight: '18px',
+                                fontFamily: 'Inter, sans-serif',
+                                fontWeight: 600
+                              }}
+                            >
+                              {displayName}
+                            </h3>
                             <span
-                              className="flex-shrink-0 text-yellow-500 font-semibold flex items-center gap-1"
+                              className="text-gray-500 truncate"
                               style={{
                                 fontSize: '10px',
                                 lineHeight: '12px',
                                 fontFamily: 'Inter, sans-serif',
-                                fontWeight: 600,
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.5px'
+                                fontWeight: 300
                               }}
                             >
-                              <PinIcon size={12} className="text-yellow-500" /> Fijado
-                            </span>
-                          )}
-                          <div className="flex items-center gap-1 w-full min-w-0">
-                            <div className="flex-1 min-w-0">
-                              <p
-                                className="font-semibold text-[#111]"
-                                style={{
-                                  fontSize: '12px',
-                                  lineHeight: '16px',
-                                  fontFamily: 'Inter, sans-serif',
-                                  fontWeight: 600,
-                                  width: '100%',
-                                  minWidth: 0,
-                                  maxWidth: '100%',
-                                  display: '-webkit-box',
-                                  WebkitLineClamp: 2,
-                                  WebkitBoxOrient: 'vertical',
-                                  overflow: 'hidden',
-                                  wordBreak: 'break-word'
-                                }}
-                                title={`${participant1Name} • ${participant2Name}`}
-                              >
-                                {participant1Name} • {participant2Name}
-                              </p>
-                            </div>
-                            {/* Botón de favorito */}
-                            <button
-                              onClick={(e) => handleToggleConversationFavorite(conv, e)}
-                              className="flex-shrink-0 p-0.5 rounded-full hover:bg-gray-200 transition-all duration-200 opacity-0 group-hover:opacity-100"
-                              style={{
-                                opacity: isFavorite ? 1 : undefined,
-                                width: '20px',
-                                height: '20px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}
-                              title={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
-                            >
-                              {isFavorite ? (
-                                <FaStar className="text-yellow-500" size={12} />
+                              {conversation.role && conversation.numeroAgente ? (
+                                <>Rol: {conversation.role} • N° Agente: {conversation.numeroAgente}</>
+                              ) : conversation.numeroAgente ? (
+                                <>N° Agente: {conversation.numeroAgente}</>
                               ) : (
-                                <FaRegStar className="text-gray-400" size={12} />
+                                <>Rol: {conversation.role || 'Sin rol'}</>
                               )}
-                            </button>
+                            </span>
                           </div>
-                        </div>
-                        {/* Timestamp */}
-                        {conv.lastMessageTimestamp && (
                           <span className="conversation-timestamp">
-                            {conv.lastMessageTimestamp}
+                            {conversation.timestamp || ''}
                           </span>
-                        )}
-                      </div>
-
-                      {/* Último mensaje */}
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          {conv.lastMessage ? (
-                            <>
-                              {conv.lastMessageFrom && (
-                                <span
-                                  className="text-gray-500 font-medium"
-                                  style={{
-                                    fontSize: '12px',
-                                    lineHeight: '16px',
-                                    fontFamily: 'Inter, sans-serif',
-                                    fontWeight: 500
-                                  }}
-                                >
-                                  {conv.lastMessageFrom.split(' ')[0]}:{' '}
-                                </span>
-                              )}
-                              <p
-                                className="text-gray-600"
-                                style={{
-                                  fontSize: '12px',
-                                  lineHeight: '16px',
-                                  fontFamily: 'Inter, sans-serif',
-                                  fontWeight: 400,
-                                  display: '-webkit-box',
-                                  WebkitLineClamp: 2,
-                                  WebkitBoxOrient: 'vertical',
-                                  overflow: 'hidden',
-                                  wordBreak: 'break-word'
-                                }}
-                              >
-                                {conv.lastMessageMediaType ? (
-                                  <span className="flex items-center gap-1">
-                                    {conv.lastMessageMediaType === 'image' && '📷 Imagen'}
-                                    {conv.lastMessageMediaType === 'video' && '🎥 Video'}
-                                    {conv.lastMessageMediaType === 'audio' && '🎵 Audio'}
-                                    {conv.lastMessageMediaType === 'document' && '📄 Documento'}
-                                    {!['image', 'video', 'audio', 'document'].includes(conv.lastMessageMediaType) && '📎 Archivo'}
-                                  </span>
-                                ) : conv.lastMessageThreadCount > 0 ? (
-                                  // Si el último mensaje tiene respuestas en hilos, mostrar el contador
-                                  <span className="flex items-center gap-1">
-                                    <span className="text-gray-500">🧵</span>
-                                    <span className="font-semibold text-[#00a884]">
-                                      {conv.lastMessageThreadCount} {conv.lastMessageThreadCount === 1 ? 'respuesta' : 'respuestas'}
-                                    </span>
-                                    {conv.lastMessageLastReplyFrom && (
-                                      <span className="text-gray-500">
-                                        • {conv.lastMessageLastReplyFrom}
-                                      </span>
-                                    )}
-                                  </span>
-                                ) : (
-                                  conv.lastMessage
-                                )}
-                              </p>
-                            </>
-                          ) : (
-                            <p
-                              className="text-gray-400 italic truncate"
-                              style={{
-                                fontSize: '12px',
-                                lineHeight: '16px',
-                                fontFamily: 'Inter, sans-serif',
-                                fontWeight: 400
-                              }}
-                            >
-                              Sin mensajes aún
-                            </p>
-                          )}
                         </div>
-                        {/* Ícono de menciones si el mensaje contiene una mención al usuario */}
-                        {hasMentionToUser(conv.lastMessage) && (
-                          <span aria-hidden="true" data-icon="mentions-refreshed" style={{ display: 'flex', alignItems: 'center', flexShrink: 0, marginRight: '4px' }}>
-                            <svg viewBox="0 0 24 24" height="20" preserveAspectRatio="xMidYMid meet" fill="none">
-                              <title>mentions-refreshed</title>
-                              <path d="M11.9873 21C10.7513 21 9.58985 20.7663 8.50285 20.2989C7.4157 19.8314 6.46047 19.186 5.63715 18.3629C4.81397 17.5395 4.16862 16.5818 3.70108 15.4896C3.23369 14.3975 3 13.2305 3 11.9886C3 10.7469 3.23369 9.58368 3.70108 8.49906C4.16862 7.41444 4.81397 6.46047 5.63715 5.63715C6.46047 4.81397 7.41823 4.16862 8.51044 3.70108C9.6025 3.23369 10.7695 3 12.0114 3C13.2531 3 14.4163 3.23369 15.5009 3.70108C16.5856 4.16862 17.5395 4.81397 18.3629 5.63715C19.186 6.46047 19.8314 7.41332 20.2989 8.49571C20.7663 9.57824 21 10.7421 21 11.9873V13.3265C21 14.1986 20.6799 14.9414 20.0398 15.5547C19.3995 16.1681 18.6323 16.4748 17.7383 16.4748C17.205 16.4748 16.7143 16.3441 16.2661 16.0826C15.8177 15.8213 15.4436 15.4655 15.1436 15.0153C14.763 15.4804 14.2969 15.8399 13.7455 16.0938C13.1938 16.3478 12.612 16.4748 12 16.4748C10.7554 16.4748 9.69848 16.0396 8.82918 15.1693C7.95987 14.2989 7.52522 13.2408 7.52522 11.9949C7.52522 10.7489 7.96039 9.69253 8.83074 8.8256C9.70108 7.95868 10.7592 7.52522 12.0051 7.52522C13.2511 7.52522 14.3075 7.95987 15.1744 8.82917C16.0413 9.69848 16.4748 10.7554 16.4748 12V13.2256C16.4748 13.5789 16.6007 13.8778 16.8527 14.1224C17.1047 14.3669 17.404 14.4892 17.7506 14.4892C18.0972 14.4892 18.3923 14.3669 18.6361 14.1224C18.8799 13.8778 19.0019 13.5789 19.0019 13.2256V11.9873C19.0019 10.0528 18.3185 8.40442 16.9518 7.04199C15.585 5.67941 13.9344 4.99811 12 4.99811C10.0656 4.99811 8.41498 5.68149 7.04824 7.04824C5.68149 8.41498 4.99812 10.0656 4.99812 12C4.99812 13.9344 5.67941 15.585 7.04199 16.9518C8.40442 18.3185 10.0555 19.0019 11.9953 19.0019H15.2927C15.5739 19.0019 15.8097 19.0965 16 19.2858C16.1903 19.4752 16.2855 19.7099 16.2855 19.9898C16.2855 20.2667 16.1903 20.5043 16 20.7025C15.8097 20.9008 15.5739 21 15.2927 21H11.9873ZM12.0022 14.4892C12.6943 14.4892 13.2818 14.247 13.7646 13.7626C14.2477 13.2781 14.4892 12.6898 14.4892 11.9978C14.4892 11.3057 14.247 10.7182 13.7626 10.2354C13.2781 9.75234 12.6898 9.51084 11.9978 9.51084C11.3057 9.51084 10.7182 9.75301 10.2354 10.2374C9.75234 10.7219 9.51084 11.3102 9.51084 12.0022C9.51084 12.6943 9.75301 13.2818 10.2374 13.7646C10.7219 14.2477 11.3102 14.4892 12.0022 14.4892Z" fill="currentColor" style={{ color: '#00a884' }}></path>
-                            </svg>
-                          </span>
-                        )}
-                        {/* Badge de mensajes no leídos */}
-                        {conv.unreadCount > 0 && (
-                          <div
-                            className="flex-shrink-0 rounded-full bg-[#00a884] text-white flex items-center justify-center"
+                        <div className="flex items-center justify-between">
+                          <p
+                            className="text-gray-600 truncate"
                             style={{
-                              minWidth: '20px',
-                              height: '20px',
-                              padding: '0 6px',
-                              fontSize: '11px',
-                              fontWeight: 600,
-                              fontFamily: 'Inter, sans-serif'
+                              fontSize: '12px',
+                              lineHeight: '16px',
+                              fontFamily: 'Inter, sans-serif',
+                              fontWeight: 400
                             }}
                           >
-                            {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              {/* Paginación */}
-              {monitoringTotalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 py-4 border-t border-gray-200">
-                  <button
-                    onClick={() => onLoadMonitoringConversations(monitoringPage - 1)}
-                    disabled={monitoringPage === 1 || monitoringLoading}
-                    className="px-3 py-1 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    ← Anterior
-                  </button>
-                  <span className="text-sm text-gray-600">
-                    Página {monitoringPage} de {monitoringTotalPages}
-                  </span>
-                  <button
-                    onClick={() => onLoadMonitoringConversations(monitoringPage + 1)}
-                    disabled={monitoringPage === monitoringTotalPages || monitoringLoading}
-                    className="px-3 py-1 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Siguiente →
-                  </button>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-[60px] px-5 text-center">
-              <div className="text-5xl mb-4 opacity-50">👁️</div>
-              <div className="text-sm text-gray-600 font-medium">
-                {assignedSearchTerm ? `No se encontraron resultados para "${assignedSearchTerm}"` : 'No hay chats para monitorear'}
-              </div>
-            </div>
-          );
-          })()}
-        </div>
-      )}
-
-      {/* Lista de conversaciones */}
-      {activeModule === 'conversations' && (
-        <div
-          ref={conversationsListRef}
-          className="flex-1 overflow-y-auto bg-white px-4"
-          onScroll={handleScroll}
-        >
-          {/* Mostrar resultados de búsqueda de mensajes si hay búsqueda activa */}
-          {searchTerm.trim() && messageSearchResults.length > 0 && (
-            <div className="mb-4">
-              <div className="text-xs text-gray-500 font-semibold mb-2 px-2" style={{ fontFamily: 'Inter, sans-serif' }}>
-                📝 Mensajes encontrados ({messageSearchResults.length})
-              </div>
-              {messageSearchResults.map((msg) => {
-                const isGroupMsg = msg.isGroup;
-                const conversationName = isGroupMsg ? msg.roomCode : msg.to;
-                const messagePreview = msg.message || (msg.fileName ? `📎 ${msg.fileName}` : 'Archivo');
-
-                return (
-                  <div
-                    key={msg.id}
-                    className="flex items-start gap-3 p-3 mb-2 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors"
-                    onClick={() => {
-                      if (isGroupMsg) {
-                        // Buscar el objeto de sala completo
-                        const room = myActiveRooms?.find(r => r.roomCode === msg.roomCode);
-                        if (room && onRoomSelect) {
-                          // Navegar a grupo con el objeto completo y el messageId
-                          onRoomSelect(room, msg.id);
-                        } else {
-                          console.error('Sala no encontrada:', msg.roomCode);
-                        }
-                      } else {
-                        // Navegar a chat directo
-                        onUserSelect(msg.to, null, msg.id);
-                      }
-                    }}
-                  >
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-200 flex items-center justify-center text-lg">
-                      {isGroupMsg ? '👥' : '💬'}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-sm text-gray-800" style={{ fontFamily: 'Inter, sans-serif' }}>
-                          {conversationName}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {isGroupMsg ? 'Grupo' : 'Chat'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-700 truncate" style={{ fontFamily: 'Inter, sans-serif' }}>
-                        {messagePreview}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {new Date(msg.sentAt).toLocaleString('es-ES', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-              <div className="border-t border-gray-200 my-3"></div>
-            </div>
-          )}
-
-          {isSearching ? (
-            <div className="p-5 text-center text-[#00a884] text-sm">
-              <p>🔍 Buscando mensajes...</p>
-            </div>
-          ) : filteredConversations.length === 0 && messageSearchResults.length === 0 ? (
-            <div className="p-5 text-center text-[#999] text-sm">
-              {searchTerm.trim().length > 0 ? (
-                <p>No se encontraron resultados para "{searchTerm}"</p>
-              ) : !isAdmin && !isGroup ? (
-                <>
-                  <p>No tienes conversaciones asignadas</p>
-                  <p className="text-xs mt-2">
-                    Espera a que un administrador te asigne una conversación
-                  </p>
-                </>
-              ) : (
-                <p>No hay usuarios conectados</p>
-              )}
-            </div>
-          ) : (
-            <>
-              {filteredConversations.map((conversation) => {
-              const unreadCount = unreadMessages?.[conversation.username] || 0;
-
-              // Determinar el nombre a mostrar
-              const displayName = conversation.nombre && conversation.apellido
-                ? `${conversation.nombre} ${conversation.apellido}`
-                : conversation.username;
-
-              // Obtener iniciales para el avatar
-              const getInitials = () => {
-                if (conversation.nombre && conversation.apellido) {
-                  return `${conversation.nombre[0]}${conversation.apellido[0]}`.toUpperCase();
-                }
-                return conversation.username?.[0]?.toUpperCase() || 'U';
-              };
-
-              return (
-                <div
-                  key={conversation.id || conversation.username}
-                  className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 ${conversation.username === user?.username ? 'bg-[#e9edef]' : ''} ${isGroup ? 'cursor-default opacity-60 hover:bg-transparent' : 'cursor-pointer'}`}
-                  style={{
-                    padding: '8px 12px',
-                    gap: '10px',
-                    minHeight: '60px'
-                  }}
-                  onClick={() => {
-                    if (isGroup) return;
-                    onUserSelect && onUserSelect(displayName);
-                  }}
-                >
-                  {/* Avatar */}
-                  <div className="relative flex-shrink-0" style={{ width: '40px', height: '40px' }}>
-                    <div
-                      className="rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold"
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        border: '1.3px solid rgba(0, 0, 0, 0.1)',
-                        fontSize: '14px'
-                      }}
-                    >
-                      {conversation.picture ? (
-                        <img
-                          src={conversation.picture}
-                          alt={displayName}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.parentElement.innerHTML = getInitials();
-                          }}
-                        />
-                      ) : (
-                        getInitials()
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px' }}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-col flex-1 min-w-0">
-                        <h3
-                          className="font-semibold text-[#111] truncate"
-                          style={{
-                            fontSize: '14px',
-                            lineHeight: '18px',
-                            fontFamily: 'Inter, sans-serif',
-                            fontWeight: 600
-                          }}
-                        >
-                          {displayName}
-                        </h3>
-                        <span
-                          className="text-gray-500 truncate"
-                          style={{
-                            fontSize: '10px',
-                            lineHeight: '12px',
-                            fontFamily: 'Inter, sans-serif',
-                            fontWeight: 300
-                          }}
-                        >
-                          {conversation.role && conversation.numeroAgente ? (
-                            <>Rol: {conversation.role} • N° Agente: {conversation.numeroAgente}</>
-                          ) : conversation.numeroAgente ? (
-                            <>N° Agente: {conversation.numeroAgente}</>
-                          ) : (
-                            <>Rol: {conversation.role || 'Sin rol'}</>
+                            {conversation.lastMessage || 'Haz clic para chatear'}
+                          </p>
+                          {unreadCount > 0 && (
+                            <span
+                              className="bg-[#25d366] text-white font-bold rounded-full flex items-center justify-center ml-2 flex-shrink-0"
+                              style={{
+                                fontSize: '11.66px',
+                                minWidth: '20px',
+                                height: '20px',
+                                padding: '0 6px'
+                              }}
+                            >
+                              {unreadCount}
+                            </span>
                           )}
-                        </span>
+                        </div>
                       </div>
-                      <span className="conversation-timestamp">
-                        {conversation.timestamp || ''}
-                      </span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <p
-                        className="text-gray-600 truncate"
-                        style={{
-                          fontSize: '12px',
-                          lineHeight: '16px',
-                          fontFamily: 'Inter, sans-serif',
-                          fontWeight: 400
-                        }}
-                      >
-                        {conversation.lastMessage || 'Haz clic para chatear'}
-                      </p>
-                      {unreadCount > 0 && (
-                        <span
-                          className="bg-[#25d366] text-white font-bold rounded-full flex items-center justify-center ml-2 flex-shrink-0"
-                          style={{
-                            fontSize: '11.66px',
-                            minWidth: '20px',
-                            height: '20px',
-                            padding: '0 6px'
-                          }}
-                        >
-                          {unreadCount}
-                        </span>
-                      )}
-                    </div>
+                  );
+                })}
+
+                {/* Indicador de carga al final de la lista */}
+                {userListLoading && (
+                  <div className="p-4 text-center text-gray-500 text-sm">
+                    <p>⏳ Cargando más usuarios...</p>
                   </div>
-                </div>
-              );
-              })}
+                )}
 
-              {/* Indicador de carga al final de la lista */}
-              {userListLoading && (
-                <div className="p-4 text-center text-gray-500 text-sm">
-                  <p>⏳ Cargando más usuarios...</p>
-                </div>
-              )}
-
-              {/* Mensaje cuando no hay más usuarios */}
-              {!userListHasMore && !searchTerm && filteredConversations.length > 0 && (
-                <div className="p-4 text-center text-gray-400 text-xs">
-                  <p>✓ Todos los usuarios cargados</p>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-    </div>
+                {/* Mensaje cuando no hay más usuarios */}
+                {!userListHasMore && !searchTerm && filteredConversations.length > 0 && (
+                  <div className="p-4 text-center text-gray-400 text-xs">
+                    <p>✓ Todos los usuarios cargados</p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )
+      }
+    </div >
   );
 };
 

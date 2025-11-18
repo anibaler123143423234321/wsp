@@ -16,6 +16,9 @@ const ChatLayout = ({
   onShowCreateRoom, onShowJoinRoom, onShowAdminRooms, onShowCreateConversation, onShowManageConversations,
   onShowManageUsers, onShowSystemConfig, myActiveRooms, onRoomSelect, onKickUser,
   userListHasMore, userListLoading, onLoadMoreUsers, roomTypingUsers,
+  // 🔥 NUEVOS PROPS para paginación real
+  assignedPage, assignedTotal, assignedTotalPages, assignedLoading, onLoadAssignedConversations,
+  roomsPage, roomsTotal, roomsTotalPages, roomsLoading, onLoadUserRooms,
 
       // Props del chat
       to, isGroup, currentRoomCode, roomUsers, messages, input, setInput,
@@ -161,6 +164,16 @@ const ChatLayout = ({
         roomTypingUsers={roomTypingUsers}
         sidebarCollapsed={sidebarCollapsed}
         onToggleCollapse={onToggleCollapse}
+        assignedPage={assignedPage}
+        assignedTotal={assignedTotal}
+        assignedTotalPages={assignedTotalPages}
+        assignedLoading={assignedLoading}
+        onLoadAssignedConversations={onLoadAssignedConversations}
+        roomsPage={roomsPage}
+        roomsTotal={roomsTotal}
+        roomsTotalPages={roomsTotalPages}
+        roomsLoading={roomsLoading}
+        onLoadUserRooms={onLoadUserRooms}
       />
 
       {/* LeftSidebar overlay para mobile */}

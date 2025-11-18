@@ -557,6 +557,12 @@ class ApiService {
 
   async getAdminRooms(page = 1, limit = 10, search = '') {
     try {
+      // Obtener el usuario actual para incluir su displayName
+      const user = this.getCurrentUser();
+      const displayName = user?.nombre && user?.apellido
+        ? `${user.nombre} ${user.apellido}`
+        : (user?.username || user?.email);
+
       // Construir query params
       const params = new URLSearchParams({
         page: page.toString(),
@@ -565,6 +571,10 @@ class ApiService {
 
       if (search && search.trim()) {
         params.append('search', search.trim());
+      }
+
+      if (displayName) {
+        params.append('username', displayName);
       }
 
       const response = await this.fetchWithAuth(
@@ -1142,6 +1152,72 @@ class ApiService {
       return result;
     } catch (error) {
       console.error("Error al obtener todas las conversaciones:", error);
+      throw error;
+    }
+  }
+
+  // 🔥 NUEVO: Obtener conversaciones asignadas con paginación
+  async getAssignedConversationsPaginated(page = 1, limit = 10) {
+    try {
+      const user = this.getCurrentUser();
+      const displayName = user?.nombre && user?.apellido
+        ? `${user.nombre} ${user.apellido}`
+        : (user?.username || user?.email);
+
+      if (!displayName) {
+        throw new Error('Usuario no encontrado');
+      }
+
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/temporary-conversations/assigned/list?username=${encodeURIComponent(displayName)}&page=${page}&limit=${limit}`,
+        {
+          method: "GET",
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Error del servidor: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al obtener conversaciones asignadas paginadas:", error);
+      throw error;
+    }
+  }
+
+  // 🔥 NUEVO: Obtener salas del usuario con paginación
+  async getUserRoomsPaginated(page = 1, limit = 10) {
+    try {
+      const user = this.getCurrentUser();
+      const username = user?.username;
+
+      if (!username) {
+        throw new Error('Usuario no encontrado');
+      }
+
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/temporary-rooms/user/list?username=${encodeURIComponent(username)}&page=${page}&limit=${limit}`,
+        {
+          method: "GET",
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Error del servidor: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al obtener salas del usuario paginadas:", error);
       throw error;
     }
   }

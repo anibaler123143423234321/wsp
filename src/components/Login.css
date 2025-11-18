@@ -247,36 +247,72 @@
   text-align: center;
 }
 
+/* 1. El botón: Caja inflexible */
 .login-button {
+  height: 48px !important;        /* Altura fija obligatoria */
+  width: 100% !important;
+  display: flex !important;       /* Flexbox obligatorio */
+  align-items: center !important; /* Centrado vertical */
+  justify-content: center !important; /* Centrado horizontal */
+  padding: 0 !important;          /* Sin relleno que deforme */
+  overflow: hidden !important;    /* Si algo sobra, que lo corte */
+  
+  /* Tus estilos visuales */
   background: #c62d42;
   color: white;
   border: none;
-  padding: 0.625rem 2rem;
   border-radius: 12px;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
   margin-top: 0.25rem;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  min-height: 38px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+}
+
+.login-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* 2. El contenedor interno: Alineación estricta */
+.button-content {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;      /* Evita alturas de línea extrañas */
+  width: auto !important;         /* Que ocupe solo lo necesario */
+}
+
+/* 3. El culpable (Spinner): Tamaño minúsculo forzado */
+.loading-spinner {
+  width: 20px !important;         /* ANCHO FIJO */
+  height: 20px !important;        /* ALTO FIJO */
+  min-width: 20px !important;     /* No te encojas */
+  min-height: 20px !important;    /* No te encojas */
+  max-width: 20px !important;     /* No crezcas JAMÁS */
+  max-height: 20px !important;    /* No crezcas JAMÁS */
+  
+  /* Diseño */
+  border: 2px solid rgba(255,255,255, 0.3) !important;
+  border-top: 2px solid #666 !important; /* Color del giro */
+  border-radius: 50% !important;
+  margin-right: 10px !important;  /* Espacio a la derecha del texto */
+  margin-left: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  box-sizing: border-box !important;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .login-button:hover:not(:disabled) {
   background: #a8253a;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(198, 45, 66, 0.3);
-}
-
-.login-button:disabled {
-  background: #ccc;
-  color: #999;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
 }
 
 /* Estilos para el selector de sede */
@@ -341,31 +377,6 @@
 
 .forgot-password a:hover {
   color: #c62d42;
-}
-
-.button-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-}
-
-.loading-spinner {
-  width: 12px;
-  height: 12px;
-  border: 1.5px solid transparent;
-  border-top: 1.5px solid currentColor;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
 }
 
 /* Responsive */
