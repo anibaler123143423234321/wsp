@@ -795,7 +795,14 @@ const ChatPage = () => {
                 room.roomCode === data.roomCode
                   ? {
                       ...room,
-                      lastMessage: data.message || "",
+                      lastMessage: {
+                        text: data.message || "",
+                        from: data.from,
+                        time: timeString,
+                        sentAt: dateTimeString,
+                        mediaType: data.mediaType || null,
+                        fileName: data.fileName || null,
+                      },
                       lastMessageFrom: data.from,
                       lastMessageTime: timeString,
                       lastMessageAt: dateTimeString,
@@ -871,7 +878,14 @@ const ChatPage = () => {
               room.roomCode === data.roomCode
                 ? {
                     ...room,
-                    lastMessage: data.message || "",
+                    lastMessage: {
+                      text: data.message || "",
+                      from: data.from,
+                      time: timeString,
+                      sentAt: dateTimeString,
+                      mediaType: data.mediaType || null,
+                      fileName: data.fileName || null,
+                    },
                     lastMessageFrom: data.from,
                     lastMessageTime: timeString,
                     lastMessageAt: dateTimeString,
@@ -1757,9 +1771,9 @@ const ChatPage = () => {
 
     // 🔥 NUEVO: Listener para actualizaciones de conteos de mensajes no leídos
     s.on("unreadCountUpdate", (data) => {
-      console.log("📊 Evento unreadCountUpdate recibido:", data);
-      console.log("📊 DEBUG - Tipo de data:", typeof data);
-      console.log("📊 DEBUG - Keys de data:", Object.keys(data));
+      // console.log("📊 Evento unreadCountUpdate recibido:", data);
+      // console.log("📊 DEBUG - Tipo de data:", typeof data);
+      // console.log("📊 DEBUG - Keys de data:", Object.keys(data));
       // data = { roomCode: string, count: number, lastMessage?: { text, from, time, sentAt } }
 
       // Actualizar contador solo si count > 0
@@ -1769,13 +1783,27 @@ const ChatPage = () => {
             ...prev,
             [data.roomCode]: (prev[data.roomCode] || 0) + data.count, // Sumar al contador existente
           };
-          console.log("📊 Estado unreadMessages actualizado:", updated);
+          // console.log("📊 Estado unreadMessages actualizado:", updated);
           return updated;
         });
+
+        // 🔊 Reproducir sonido de notificación solo cuando hay mensajes no leídos
+        try {
+          const audio = new Audio(
+            "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
+          );
+          audio.volume = 0.5; // Volumen al 50%
+          audio
+            .play()
+            .catch((e) => console.log("No se pudo reproducir sonido:", e));
+        } catch (error) {
+          console.log("Error al reproducir sonido:", error);
+        }
       }
 
-      // 🔥 SIEMPRE actualizar último mensaje en myActiveRooms si se proporciona
-      if (data.lastMessage) {
+      // 🔥 SOLO actualizar último mensaje si NO es la sala actual donde el usuario está escribiendo
+      // Esto evita que se sobrescriba el mensaje que el usuario acaba de enviar
+      if (data.lastMessage && data.roomCode !== currentRoomCode) {
         setMyActiveRooms((prevRooms) =>
           prevRooms.map((room) =>
             room.roomCode === data.roomCode
@@ -1796,23 +1824,29 @@ const ChatPage = () => {
               : room
           )
         );
-        console.log(
-          "📊 Último mensaje actualizado en myActiveRooms para sala:",
-          data.roomCode
-        );
+        // console.log(
+        //   "📊 Último mensaje actualizado en myActiveRooms para sala:",
+        //   data.roomCode
+        // );
+      } else if (data.lastMessage && data.roomCode === currentRoomCode) {
+        // console.log(
+        //   "📊 Ignorando actualización de lastMessage para sala actual:",
+        //   data.roomCode,
+        //   "- El usuario está escribiendo en esta sala"
+        // );
       }
     });
 
     // 🔥 NUEVO: Listener para resetear contador cuando el usuario entra a una sala
     s.on("unreadCountReset", (data) => {
-      console.log("📊 Evento unreadCountReset recibido:", data);
+      // console.log("📊 Evento unreadCountReset recibido:", data);
       // data = { roomCode: string }
       setUnreadMessages((prev) => {
         const updated = {
           ...prev,
           [data.roomCode]: 0,
         };
-        console.log("📊 Estado unreadMessages reseteado:", updated);
+        // console.log("📊 Estado unreadMessages reseteado:", updated);
         return updated;
       });
     });
@@ -2511,6 +2545,38 @@ const ChatPage = () => {
               return conv;
             });
           });
+        }
+
+        // 🔥 NUEVO: Actualizar también myActiveRooms para mostrar el último mensaje inmediatamente
+        if (currentRoomCode) {
+          setMyActiveRooms((prevRooms) =>
+            prevRooms.map((room) =>
+              room.roomCode === currentRoomCode
+                ? {
+                    ...room,
+                    lastMessage: {
+                      text:
+                        input ||
+                        (messageObj.fileName
+                          ? `📎 ${messageObj.fileName}`
+                          : ""),
+                      from: currentUserFullName,
+                      time: new Date().toISOString(),
+                      sentAt: new Date().toISOString(),
+                      mediaType: messageObj.mediaType || null,
+                      fileName: messageObj.fileName || null,
+                    },
+                    lastMessageFrom: currentUserFullName,
+                    lastMessageTime: new Date().toISOString(),
+                    lastMessageAt: new Date().toISOString(),
+                  }
+                : room
+            )
+          );
+          console.log(
+            "📊 Último mensaje actualizado localmente en myActiveRooms para sala:",
+            currentRoomCode
+          );
         }
 
         return;
