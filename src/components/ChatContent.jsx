@@ -87,33 +87,30 @@ const ChatContent = ({
 
   // Función para formatear la fecha del separador
   const formatDateSeparator = (date) => {
-    // Convertir la fecha del mensaje a hora de Perú (UTC-5)
+    // 🔥 CORREGIDO: El backend ya envía fechas en hora de Perú, no aplicar offset adicional
     const messageDate = new Date(date);
-    const peruOffset = -5 * 60 * 60 * 1000; // -5 horas en milisegundos
-    const messageDatePeru = new Date(messageDate.getTime() + peruOffset);
 
-    // Obtener la fecha actual en hora de Perú
+    // Obtener la fecha actual
     const now = new Date();
-    const todayPeru = new Date(now.getTime() + peruOffset);
-    const yesterdayPeru = new Date(todayPeru);
-    yesterdayPeru.setUTCDate(yesterdayPeru.getUTCDate() - 1);
+    const today = new Date(now);
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
 
-    // Resetear horas para comparación (usar UTC para evitar problemas de zona horaria)
-    messageDatePeru.setUTCHours(0, 0, 0, 0);
-    todayPeru.setUTCHours(0, 0, 0, 0);
-    yesterdayPeru.setUTCHours(0, 0, 0, 0);
+    // Resetear horas para comparación
+    messageDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    yesterday.setHours(0, 0, 0, 0);
 
-    if (messageDatePeru.getTime() === todayPeru.getTime()) {
+    if (messageDate.getTime() === today.getTime()) {
       return 'Hoy';
-    } else if (messageDatePeru.getTime() === yesterdayPeru.getTime()) {
+    } else if (messageDate.getTime() === yesterday.getTime()) {
       return 'Ayer';
     } else {
       // Formato: "Sábado, 9 de noviembre"
-      return messageDatePeru.toLocaleDateString('es-PE', {
+      return messageDate.toLocaleDateString('es-PE', {
         weekday: 'long',
         day: 'numeric',
-        month: 'long',
-        timeZone: 'UTC'
+        month: 'long'
       });
     }
   };

@@ -1,13 +1,13 @@
 // Servicio para conectar con la API (múltiples backends según sede)
 // URLs para CHICLAYO / PIURA
 const API_BASE_URL_CHICLAYO = "https://apisozarusac.com/BackendJava/";
-const API_BASECHAT_URL_CHICLAYO = "https://apisozarusac.com/BackendChat/";
-//const API_BASECHAT_URL_CHICLAYO = "http://localhost:8747/";
+//const API_BASECHAT_URL_CHICLAYO = "https://apisozarusac.com/BackendChat/";
+const API_BASECHAT_URL_CHICLAYO = "http://localhost:8747/";
 
 // URLs para LIMA
 const API_BASE_URL_LIMA = "https://apisozarusac.com/BackendJavaMidas/";
-const API_BASECHAT_URL_LIMA = "https://apisozarusac.com/BackendChat/";
-//const API_BASECHAT_URL_LIMA = "http://localhost:8747/";
+//const API_BASECHAT_URL_LIMA = "https://apisozarusac.com/BackendChat/";
+const API_BASECHAT_URL_LIMA = "http://localhost:8747/";
 
 class ApiService {
   constructor() {
@@ -1419,6 +1419,47 @@ class ApiService {
     }
   }
 
+  // 🔥 NUEVO: Obtener conteos de mensajes no leídos para todas las salas del usuario
+  async getUnreadCounts() {
+    try {
+      const token = localStorage.getItem("token");
+      const user = this.getCurrentUser();
+      
+      if (!token || !user) {
+        throw new Error("No hay token de autenticación o usuario");
+      }
+
+      // Calcular el username de la misma forma que en useAuth
+      const username = user.nombre && user.apellido
+        ? `${user.nombre} ${user.apellido}`
+        : user.username || user.email;
+
+      const response = await fetch(
+        `${this.baseChatUrl}api/messages/unread-counts?username=${encodeURIComponent(username)}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Error del servidor: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al obtener conteos de mensajes no leídos:", error);
+      throw error;
+    }
+  }
+
   // Marcar toda una conversación como leída
   async markConversationAsRead(from, to) {
     try {
@@ -1709,6 +1750,62 @@ class ApiService {
     } catch (error) {
       console.error("Error al verificar favorito de conversación:", error);
       return false;
+    }
+  }
+  // 🔥 NUEVO: Obtener conteo de mensajes no leídos para un usuario en una sala
+  async getUnreadCountForUserInRoom(roomCode, username) {
+    try {
+      const response = await fetch(
+        `${this.baseChatUrl}api/messages/unread-count/${encodeURIComponent(roomCode)}/${encodeURIComponent(username)}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Error del servidor: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+      return result.unreadCount || 0;
+    } catch (error) {
+      console.error("Error al obtener conteo de mensajes no leídos:", error);
+      return 0; // Retornar 0 en caso de error
+    }
+  }
+
+  // 🔥 NUEVO: Obtener conteo de mensajes no leídos para múltiples salas
+  async getUnreadCountsForUserInRooms(roomCodes, username) {
+    try {
+      const response = await fetch(
+        `${this.baseChatUrl}api/messages/unread-counts`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ roomCodes, username }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Error del servidor: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+      return result.unreadCounts || {};
+    } catch (error) {
+      console.error("Error al obtener conteos de mensajes no leídos:", error);
+      return {}; // Retornar objeto vacío en caso de error
     }
   }
 }

@@ -699,6 +699,8 @@ const ConversationList = ({
                   const typingUsers = roomTypingUsers[room.roomCode] || [];
                   const isTypingInRoom = typingUsers.length > 0;
                   const isFavorite = favoriteRoomCodes.includes(room.roomCode);
+                  // 🔥 NUEVO: Obtener contador de mensajes no leídos para esta sala
+                  const roomUnreadCount = unreadMessages?.[room.roomCode] || 0;
 
                   return (
                     <div
@@ -776,6 +778,21 @@ const ConversationList = ({
                             >
                               {room.name}
                             </h3>
+                            {/* 🔥 NUEVO: Badge de mensajes no leídos */}
+                            {roomUnreadCount > 0 && (
+                              <div
+                                className="flex-shrink-0 rounded-full bg-[#00a884] text-white flex items-center justify-center ml-2"
+                                style={{
+                                  minWidth: '20px',
+                                  height: '20px',
+                                  fontSize: '11px',
+                                  fontWeight: 'bold',
+                                  padding: roomUnreadCount > 99 ? '0 4px' : '0'
+                                }}
+                              >
+                                {roomUnreadCount > 99 ? '99+' : roomUnreadCount}
+                              </div>
+                            )}
                           </div>
                           {/* Botón de favorito */}
                           <button
