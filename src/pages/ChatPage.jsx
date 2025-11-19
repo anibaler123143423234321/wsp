@@ -240,12 +240,27 @@ const ChatPage = () => {
           user?.role === "JEFEPISO" ||
           user?.role === "PROGRAMADOR";
 
+        console.log("🏠 loadMyActiveRooms - Iniciando carga de salas:", {
+          username,
+          role: user?.role,
+          isPrivilegedUser,
+          page,
+          parsedLimit,
+        });
+
         // Si es ADMIN/JEFEPISO/PROGRAMADOR usar endpoint de admin pero respetando paginación
         if (isPrivilegedUser) {
+          console.log("👑 Usuario privilegiado - Usando endpoint de admin");
           const response = await apiService.getAdminRooms(page, parsedLimit, "");
           const activeRooms = response.data
             ? response.data.filter((room) => room.isActive)
             : [];
+
+          console.log("✅ Salas de admin cargadas:", {
+            total: response.total,
+            activeRooms: activeRooms.length,
+            rooms: activeRooms.map(r => ({ name: r.name, roomCode: r.roomCode })),
+          });
 
           const nextPage = Number(response.page ?? page) || page;
           const totalRooms =
@@ -274,10 +289,17 @@ const ChatPage = () => {
           }
         } else {
           // Para usuarios normales, usar paginación real
+          console.log("👤 Usuario normal - Usando endpoint de usuario");
           const result = await apiService.getUserRoomsPaginated(
             page,
             parsedLimit
           );
+
+          console.log("✅ Salas de usuario cargadas:", {
+            total: result.total,
+            rooms: result.rooms?.length || 0,
+            roomsList: result.rooms?.map(r => ({ name: r.name, roomCode: r.roomCode, members: r.members })) || [],
+          });
 
           // Actualizar estados de paginación
           const nextPage = Number(result.page ?? page) || page;
@@ -304,11 +326,12 @@ const ChatPage = () => {
               return [...prev, ...newRooms];
             });
           } else {
-            setMyActiveRooms(result.rooms);
+            console.log("📝 Actualizando myActiveRooms con:", result.rooms?.length || 0, "salas");
+            setMyActiveRooms(result.rooms || []);
           }
         }
       } catch (error) {
-        console.error("Error al cargar salas activas:", error);
+        console.error("❌ Error al cargar salas activas:", error);
         if (!append) {
           setMyActiveRooms([]);
         }
@@ -316,7 +339,7 @@ const ChatPage = () => {
         setRoomsLoading(false);
       }
     },
-    [user?.role, roomsLimit]
+    [user?.role, roomsLimit, username]
   );
 
   // 🔥 NUEVO: Función para marcar mensajes de grupo como leídos
@@ -811,26 +834,6 @@ const ChatPage = () => {
     console.log("📊 DEBUG: unreadMessages cambió:", unreadMessages);
   }, [unreadMessages]);
 
-  // 🔥 NUEVO: Listener para navegar a una mención desde la alerta
-  useEffect(() => {
-    const handleNavigateToMention = async (event) => {
-      const { roomCode, groupName, messageId } = event.detail;
-
-      // Buscar la sala en myActiveRooms
-      const room = myActiveRooms.find(r => r.roomCode === roomCode);
-      if (room) {
-        await handleRoomSelect(room, messageId);
-      } else {
-        console.error('Sala no encontrada:', roomCode);
-      }
-    };
-
-    window.addEventListener('navigateToMention', handleNavigateToMention);
-    return () => {
-      window.removeEventListener('navigateToMention', handleNavigateToMention);
-    };
-  }, [myActiveRooms, handleRoomSelect]);
-
   // WebSocket listeners
   useEffect(() => {
     if (!socket) return;
@@ -1150,6 +1153,19 @@ const ChatPage = () => {
         return;
       } else {
         // 🔥 IMPORTANTE: Solo agregar el mensaje si el usuario está viendo el chat correcto
+        console.log("📨 Mensaje 1-a-1 recibido:", {
+          from: data.from,
+          to: data.to,
+          message: data.message?.substring(0, 50),
+          isGroup: data.isGroup,
+          currentTo: to,
+          currentIsGroup: isGroup,
+          currentRoomCode,
+          username,
+          currentUserFullName,
+          adminViewConversation: !!adminViewConversation,
+        });
+
         let isViewingCorrectChat = false;
 
         if (adminViewConversation) {
@@ -1167,19 +1183,38 @@ const ChatPage = () => {
         } else {
           // 🔥 Si NO estás viendo una conversación asignada, verificar que sea tu chat directo
           // Puede ser un mensaje recibido (from = to actual) O un mensaje enviado (to = to actual)
+          const condition1 = !isGroup; // No está en un grupo
+          const condition2 = !currentRoomCode; // No está en una sala
+          const condition3 = !data.isGroup; // 🔥 CRÍTICO: El mensaje entrante NO debe ser de un grupo
+          const condition4 = !!to; // Hay un destinatario seleccionado
+          const condition5a = to?.toLowerCase().trim() === data.from?.toLowerCase().trim(); // Mensaje recibido del otro
+          const condition5b = (data.from === username || data.from === currentUserFullName) &&
+                to?.toLowerCase().trim() === data.to?.toLowerCase().trim(); // Mensaje enviado por mí al destinatario actual
+
+          console.log("🔍 Condiciones para isViewingCorrectChat:", {
+            condition1_notInGroup: condition1,
+            condition2_noRoomCode: condition2,
+            condition3_messageNotGroup: condition3,
+            condition4_hasRecipient: condition4,
+            condition5a_receivedFromOther: condition5a,
+            condition5b_sentByMe: condition5b,
+            "to?.toLowerCase()": to?.toLowerCase().trim(),
+            "data.from?.toLowerCase()": data.from?.toLowerCase().trim(),
+            "data.to?.toLowerCase()": data.to?.toLowerCase().trim(),
+          });
+
           isViewingCorrectChat =
-            !isGroup && // No está en un grupo
-            !currentRoomCode && // No está en una sala
-            !data.isGroup && // 🔥 CRÍTICO: El mensaje entrante NO debe ser de un grupo
-            to && // Hay un destinatario seleccionado
-            (
-              to.toLowerCase().trim() === data.from.toLowerCase().trim() || // Mensaje recibido del otro
-              ((data.from === username || data.from === currentUserFullName) &&
-                to.toLowerCase().trim() === data.to.toLowerCase().trim()) // Mensaje enviado por mí al destinatario actual
-            );
+            condition1 &&
+            condition2 &&
+            condition3 &&
+            condition4 &&
+            (condition5a || condition5b);
         }
 
+        console.log("🔍 isViewingCorrectChat:", isViewingCorrectChat);
+
         if (!isViewingCorrectChat) {
+          console.log("⚠️ No estás viendo el chat correcto, actualizando preview...");
           // 🔥 Actualizar el preview del último mensaje en la lista de conversaciones asignadas
           setAssignedConversations((prevConversations) => {
             return prevConversations.map((conv) => {
@@ -1253,9 +1288,24 @@ const ChatPage = () => {
           return;
         }
 
+        // 🔥 Determinar si el mensaje es nuestro (enviado por nosotros)
+        const isMyMessage =
+          data.from === currentUserFullName ||
+          data.from === username ||
+          data.fromId === user?.id;
+
+        console.log("🔍 Verificando si el mensaje es mío:", {
+          "data.from": data.from,
+          currentUserFullName,
+          username,
+          "data.fromId": data.fromId,
+          "user?.id": user?.id,
+          isMyMessage,
+        });
+
         const newMessage = {
           id: data.id,
-          sender: data.from,
+          sender: isMyMessage ? "Tú" : data.from, // 🔥 Si es nuestro, mostrar "Tú"
           realSender: data.from, // 🔥 Nombre real del remitente
           senderRole: data.senderRole || null, // 🔥 Incluir role del remitente
           senderNumeroAgente: data.senderNumeroAgente || null, // 🔥 Incluir numeroAgente del remitente
@@ -1263,8 +1313,8 @@ const ChatPage = () => {
           text: data.message || "",
           isGroup: false,
           time: timeString,
-          isSent: false,
-          isSelf: false, // 🔥 Mensaje recibido, siempre a la izquierda
+          isSent: isMyMessage, // 🔥 Si es nuestro, marcarlo como enviado
+          isSelf: isMyMessage, // 🔥 Si es nuestro, mostrarlo a la derecha
           isRead: data.isRead || false,
           readAt: data.readAt,
           sentAt: data.sentAt,
@@ -2492,16 +2542,37 @@ const ChatPage = () => {
     }
   };
 
+  // 🔥 NUEVO: Listener para navegar a una mención desde la alerta
+  useEffect(() => {
+    const handleNavigateToMention = async (event) => {
+      const { roomCode, messageId } = event.detail;
+
+      // Buscar la sala en myActiveRooms
+      const room = myActiveRooms.find(r => r.roomCode === roomCode);
+      if (room) {
+        await handleRoomSelect(room, messageId);
+      } else {
+        console.error('Sala no encontrada:', roomCode);
+      }
+    };
+
+    window.addEventListener('navigateToMention', handleNavigateToMention);
+    return () => {
+      window.removeEventListener('navigateToMention', handleNavigateToMention);
+    };
+  }, [myActiveRooms]);
+
   const handleSendMessage = async () => {
     if ((!input && mediaFiles.length === 0) || !to) return;
 
-    // console.log('📤 handleSendMessage - Estado actual:', {
-    //   to,
-    //   isGroup,
-    //   currentRoomCode,
-    //   username,
-    //   input: input?.substring(0, 50)
-    // });
+    console.log('📤 handleSendMessage - Estado actual:', {
+      to,
+      isGroup,
+      currentRoomCode,
+      username,
+      currentUserFullName,
+      input: input?.substring(0, 50)
+    });
 
     // Buscar si esta conversación es asignada (normalizado)
     const currentUserNormalized = normalizeUsername(currentUserFullName);
@@ -2520,7 +2591,7 @@ const ChatPage = () => {
       );
     });
 
-    // console.log('📧 Conversación asignada encontrada:', assignedConv);
+    console.log('📧 Conversación asignada encontrada:', assignedConv);
 
     // Si es una conversación asignada y el usuario NO está en ella, no permitir enviar
     // 🔥 MODIFICADO: Comparación normalizada para nombres
@@ -2545,10 +2616,10 @@ const ChatPage = () => {
       .toString(36)
       .substring(2, 11)}`;
 
-    if (input || mediaFiles.length === 1) {
-      // 🔥 Si es una conversación asignada, FORZAR isGroup a false
-      const effectiveIsGroup = assignedConv ? false : isGroup;
+    // 🔥 Si es una conversación asignada, FORZAR isGroup a false
+    const effectiveIsGroup = assignedConv ? false : isGroup;
 
+    if (input || mediaFiles.length === 1) {
       const messageObj = {
         id: messageId,
         to,
@@ -2685,6 +2756,11 @@ const ChatPage = () => {
         return;
       }
 
+      console.log("🔌 Verificando conexión del socket...", {
+        hasSocket: !!socket,
+        isConnected: socket?.connected,
+      });
+
       // Verificar que el socket esté conectado antes de enviar
       if (!socket || !socket.connected) {
         console.error("❌ Socket no conectado, no se puede enviar mensaje");
@@ -2695,16 +2771,17 @@ const ChatPage = () => {
         return;
       }
 
+      console.log("✅ Socket conectado, continuando...");
+      console.log("🔍 effectiveIsGroup:", effectiveIsGroup, "isGroup:", isGroup);
+      console.log("🔍 Punto A - Antes del if");
+
       // 🔥 IMPORTANTE: Para grupos, NO agregar el mensaje localmente
       // Esperar a que el backend lo confirme y lo envíe de vuelta
       // Esto evita duplicados y problemas de sincronización
-      if (isGroup) {
-        console.log("📤 Enviando mensaje de grupo (Estrategia: Guardar -> Emitir):", {
-          to,
-          currentRoomCode,
-          messageObj,
-        });
-
+      console.log("🔍 Punto B - Justo antes del if");
+      if (effectiveIsGroup) {
+        console.log("🔍 Punto C - Dentro del if (grupo)");
+        console.log("📤 Enviando mensaje de grupo");
         try {
           // 1. 🔥 Guardar primero en la BD para asegurar persistencia
           const savedMessage = await apiService.createMessage({
@@ -2745,63 +2822,6 @@ const ChatPage = () => {
           // Esto evita duplicados porque el servidor enviará el mensaje de vuelta
           // con el timestamp correcto de Perú
 
-          /*
-          // ELIMINADO: No agregar localmente para evitar duplicados
-          const newMessage = {
-            sender: "Tú",
-            realSender: currentUserFullName,
-            receiver: to,
-            text: input || (messageObj.fileName ? `📎 ${messageObj.fileName}` : ""),
-            time: savedMessage.time, // Usar la hora del servidor
-            isSent: true,
-            isSelf: true,
-            mediaType: messageObj.mediaType || null,
-            mediaData: messageObj.mediaData || null,
-            fileName: messageObj.fileName || null,
-            fileSize: messageObj.fileSize || null,
-            id: savedMessage.id, // ID real
-            sentAt: savedMessage.sentAt,
-            // Datos de respuesta
-            replyToMessageId: replyingTo?.id,
-            replyToSender: replyingTo?.sender,
-            replyToText: replyingTo?.text,
-            replyToSenderNumeroAgente: replyingTo?.numeroAgente,
-          };
-
-                    ...conv,
-                    lastMessage: input || (messageObj.fileName ? `📎 ${messageObj.fileName}` : ""),
-                    lastMessageTime: new Date().toISOString(),
-                    lastMessageFrom: currentUserFullName,
-                  };
-                }
-                return conv;
-              });
-            });
-          }
-
-          if (currentRoomCode) {
-            setMyActiveRooms((prevRooms) =>
-              prevRooms.map((room) =>
-                room.roomCode === currentRoomCode
-                  ? {
-                    ...room,
-                    lastMessage: {
-                      text: input || (messageObj.fileName ? `📎 ${messageObj.fileName}` : ""),
-                      from: currentUserFullName,
-                      time: new Date().toISOString(),
-                      sentAt: new Date().toISOString(),
-                      mediaType: messageObj.mediaType || null,
-                      fileName: messageObj.fileName || null,
-                    },
-                    lastMessageFrom: currentUserFullName,
-                    lastMessageTime: new Date().toISOString(),
-                    lastMessageAt: new Date().toISOString(),
-                  }
-                  : room
-              )
-            );
-          }
-
         } catch (error) {
           console.error("❌ Error al enviar mensaje de grupo:", error);
           await showErrorAlert(
@@ -2812,10 +2832,15 @@ const ChatPage = () => {
           setIsUploadingFile(false); // 🔥 Desactivar loading en error
         }
 
+        console.log("🔚 Finalizando bloque de grupos con return");
         return;
       } else {
+        console.log("🔍 Punto D - Dentro del else (1-a-1)");
+        console.log("✅ effectiveIsGroup es FALSE - Entrando al bloque de mensajes 1-a-1");
+        console.log("📤 Procesando mensaje 1-a-1 (NO es grupo)");
         // 🔥 Para mensajes individuales, guardar en BD primero para obtener el ID real
         try {
+          console.log("💾 Guardando mensaje 1-a-1 en BD...");
           // Guardar en BD y obtener el mensaje con ID
           const savedMessage = await apiService.createMessage({
             from: currentUserFullName,
@@ -2834,83 +2859,21 @@ const ChatPage = () => {
             replyToText: replyingTo?.text,
             replyToSenderNumeroAgente: replyingTo?.numeroAgente,
           });
+          console.log("✅ Mensaje 1-a-1 guardado en BD:", savedMessage);
 
           // Emitir por socket con el ID real de la BD
+          console.log("📤 Emitiendo mensaje 1-a-1 por socket:", {
+            ...messageObj,
+            id: savedMessage.id,
+          });
           socket.emit("message", {
             ...messageObj,
             id: savedMessage.id, // 🔥 Usar el ID de la BD
           });
+          console.log("✅ Mensaje 1-a-1 emitido exitosamente");
 
           // 🔥 ELIMINADO: No agregar localmente para evitar duplicados
           // Esperar a que el mensaje vuelva del servidor con el timestamp correcto de Perú
-          /*
-          const displayTime =
-            savedMessage.time ||
-            new Date(savedMessage.sentAt).toLocaleTimeString("es-ES", {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            });
-
-          const newMessage = {
-            id: savedMessage.id, // 🔥 Usar el ID de la BD
-            sender: "Tú",
-            realSender: currentUserFullName,
-            receiver: to,
-            text: input || "",
-            isGroup: false,
-            time: displayTime, // 🔥 Usar la hora extraída de sentAt
-            isSent: true,
-            isSelf: true,
-            sentAt: savedMessage.sentAt, // 🔥 Usar la fecha que devolvió el backend
-          };
-
-          if (messageObj.mediaType) {
-            newMessage.mediaType = messageObj.mediaType;
-            newMessage.mediaData = messageObj.mediaData;
-            newMessage.fileName = messageObj.fileName;
-            newMessage.fileSize = messageObj.fileSize;
-          }
-
-          if (replyingTo) {
-            newMessage.replyToMessageId = replyingTo.id;
-            newMessage.replyToSender = replyingTo.sender;
-            newMessage.replyToText = replyingTo.text;
-            newMessage.replyToSenderNumeroAgente = replyingTo.numeroAgente;
-          }
-
-          newMessage.threadCount = 0;
-          newMessage.lastReplyFrom = null;
-
-          addNewMessage(newMessage);
-          */
-
-          // playMessageSound(soundsEnabled); // El sonido se reproducirá cuando llegue del socket
-
-          // 🔥 NUEVO: Actualizar la lista de conversaciones asignadas después de enviar
-          setAssignedConversations((prevConversations) => {
-            return prevConversations.map((conv) => {
-              // Buscar la conversación que corresponde a este mensaje
-              const otherUser = conv.participants?.find(
-                (p) => p !== currentUserFullName
-              );
-              const isThisConversation =
-                otherUser?.toLowerCase().trim() === to.toLowerCase().trim();
-
-              if (isThisConversation) {
-                return {
-                  ...conv,
-                  lastMessage:
-                    input ||
-                    (messageObj.fileName ? `📎 ${messageObj.fileName}` : ""),
-                  lastMessageTime: savedMessage.sentAt, // 🔥 Usar sentAt del backend
-                  lastMessageFrom: currentUserFullName,
-                };
-              }
-
-              return conv;
-            });
-          });
         } catch (error) {
           console.error("❌ Error al guardar mensaje en BD:", error);
           await showErrorAlert(

@@ -1194,14 +1194,24 @@ class ApiService {
   async getUserRoomsPaginated(page = 1, limit = 10) {
     try {
       const user = this.getCurrentUser();
-      const username = user?.username;
+      // 🔥 IMPORTANTE: Usar el displayName (nombre completo) porque el backend busca por displayName en los members
+      const displayName = user?.nombre && user?.apellido
+        ? `${user.nombre} ${user.apellido}`
+        : (user?.username || user?.email);
 
-      if (!username) {
+      if (!displayName) {
         throw new Error('Usuario no encontrado');
       }
 
+      console.log('🔍 getUserRoomsPaginated - Enviando request:', {
+        displayName,
+        userObject: user,
+        page,
+        limit,
+      });
+
       const response = await this.fetchWithAuth(
-        `${this.baseChatUrl}api/temporary-rooms/user/list?username=${encodeURIComponent(username)}&page=${page}&limit=${limit}`,
+        `${this.baseChatUrl}api/temporary-rooms/user/list?username=${encodeURIComponent(displayName)}&page=${page}&limit=${limit}`,
         {
           method: "GET",
         }
@@ -1215,9 +1225,10 @@ class ApiService {
       }
 
       const result = await response.json();
+      console.log('✅ getUserRoomsPaginated - Respuesta recibida:', result);
       return result;
     } catch (error) {
-      console.error("Error al obtener salas del usuario paginadas:", error);
+      console.error("❌ Error al obtener salas del usuario paginadas:", error);
       throw error;
     }
   }
