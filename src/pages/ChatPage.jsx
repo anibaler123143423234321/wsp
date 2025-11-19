@@ -108,6 +108,7 @@ const ChatPage = () => {
     updateMessage,
     clearMessages,
     setInitialMessages,
+    isLoading: isLoadingMessages, // 🔥 Estado de carga inicial de mensajes
   } = useMessagePagination(
     currentRoomCode,
     username,
@@ -125,6 +126,8 @@ const ChatPage = () => {
     const saved = localStorage.getItem("soundsEnabled");
     return saved === "true"; // Por defecto false si no existe
   });
+  // 🔥 NUEVO: Estado para menciones pendientes (persisten hasta que el usuario entre al chat)
+  const [pendingMentions, setPendingMentions] = useState({});
   const [typingUser, setTypingUser] = useState(null); // Usuario que está escribiendo (objeto con username, nombre, picture)
   const [typingTimeout, setTypingTimeout] = useState(null); // Timeout para detectar cuando deja de escribir
   const [roomTypingUsers, setRoomTypingUsers] = useState({}); // Usuarios escribiendo en cada sala { roomCode: [username1, username2] }
@@ -808,6 +811,26 @@ const ChatPage = () => {
     console.log("📊 DEBUG: unreadMessages cambió:", unreadMessages);
   }, [unreadMessages]);
 
+  // 🔥 NUEVO: Listener para navegar a una mención desde la alerta
+  useEffect(() => {
+    const handleNavigateToMention = async (event) => {
+      const { roomCode, groupName, messageId } = event.detail;
+
+      // Buscar la sala en myActiveRooms
+      const room = myActiveRooms.find(r => r.roomCode === roomCode);
+      if (room) {
+        await handleRoomSelect(room, messageId);
+      } else {
+        console.error('Sala no encontrada:', roomCode);
+      }
+    };
+
+    window.addEventListener('navigateToMention', handleNavigateToMention);
+    return () => {
+      window.removeEventListener('navigateToMention', handleNavigateToMention);
+    };
+  }, [myActiveRooms, handleRoomSelect]);
+
   // WebSocket listeners
   useEffect(() => {
     if (!socket) return;
@@ -938,23 +961,74 @@ const ChatPage = () => {
       // 🔥 Notificación Toast (SweetAlert2)
       // Mostrar si el mensaje NO es propio
       if (data.from !== username && data.from !== currentUserFullName) {
-        const Toast = Swal.mixin({
-          toast: true,
-          position: 'bottom-end',
-          showConfirmButton: false,
-          timer: 3000,
-          timerProgressBar: true,
-          didOpen: (toast) => {
-            toast.addEventListener('mouseenter', Swal.stopTimer)
-            toast.addEventListener('mouseleave', Swal.resumeTimer)
-          }
-        });
+        // 🔥 NUEVO: Verificar si el usuario fue mencionado en un mensaje de grupo
+        const isMentioned = data.isGroup && data.hasMention;
 
-        Toast.fire({
-          icon: 'info',
-          title: `Nuevo mensaje de ${data.from}`,
-          text: data.message || (data.fileName ? '📎 Archivo adjunto' : 'Mensaje recibido')
-        });
+        if (isMentioned) {
+          // 🔥 Alerta especial para menciones (persiste hasta que el usuario entre al chat)
+          const mentionAlert = Swal.fire({
+            icon: 'warning',
+            title: '📢 ¡Te mencionaron!',
+            html: `
+              <strong>${data.from}</strong> te mencionó en <strong>${data.group || 'un grupo'}</strong>
+              <br><br>
+              <em>"${data.message?.substring(0, 100)}${data.message?.length > 100 ? '...' : ''}"</em>
+            `,
+            showConfirmButton: true,
+            confirmButtonText: 'Ver mensaje',
+            showCancelButton: true,
+            cancelButtonText: 'Cerrar',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+          }).then((result) => {
+            if (result.isConfirmed) {
+              // 🔥 Navegar al chat del grupo donde fue mencionado
+              // Esto se manejará en el componente padre
+              window.dispatchEvent(new CustomEvent('navigateToMention', {
+                detail: {
+                  roomCode: data.roomCode,
+                  groupName: data.group,
+                  messageId: data.id
+                }
+              }));
+            }
+          });
+
+          // 🔥 Guardar la mención pendiente
+          if (data.roomCode) {
+            setPendingMentions((prev) => ({
+              ...prev,
+              [data.roomCode]: {
+                from: data.from,
+                message: data.message,
+                group: data.group,
+                roomCode: data.roomCode,
+                messageId: data.id,
+                timestamp: dateTimeString,
+                alertInstance: mentionAlert,
+              }
+            }));
+          }
+        } else {
+          // Toast normal para mensajes sin mención
+          const Toast = Swal.mixin({
+            toast: true,
+            position: 'bottom-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+              toast.addEventListener('mouseenter', Swal.stopTimer)
+              toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+          });
+
+          Toast.fire({
+            icon: 'info',
+            title: `Nuevo mensaje de ${data.from}`,
+            text: data.message || (data.fileName ? '📎 Archivo adjunto' : 'Mensaje recibido')
+          });
+        }
       }
 
       if (data.isGroup) {
@@ -2328,6 +2402,16 @@ const ChatPage = () => {
         ...prev,
         [room.roomCode]: 0,
       }));
+
+      // 🔥 NUEVO: Cerrar alerta de mención si existe para esta sala
+      if (pendingMentions[room.roomCode]) {
+        Swal.close(); // Cerrar la alerta de SweetAlert2
+        setPendingMentions((prev) => {
+          const updated = { ...prev };
+          delete updated[room.roomCode];
+          return updated;
+        });
+      }
 
       // 🔥 MODIFICADO: Cargar usuarios de la sala ANTES de emitir joinRoom
       // para verificar si el usuario está realmente en la sala
@@ -3834,6 +3918,7 @@ const ChatPage = () => {
         onLeaveRoom={handleLeaveRoom}
         hasMoreMessages={hasMoreMessages}
         isLoadingMore={isLoadingMore}
+        isLoadingMessages={isLoadingMessages} // 🔥 Estado de carga inicial
         onLoadMoreMessages={loadMoreMessages}
         onToggleMenu={handleToggleMenu}
         socket={socket}

@@ -41,6 +41,7 @@ const ChatContent = ({
   roomUsers,
   hasMoreMessages,
   isLoadingMore,
+  isLoadingMessages, // 🔥 Estado de carga inicial de mensajes
   onLoadMoreMessages,
   currentUsername,
   onEditMessage,
@@ -2382,29 +2383,58 @@ const ChatContent = ({
         ref={chatHistoryRef}
         onScroll={handleScroll}
       >
-        <LoadMoreMessages
-          hasMoreMessages={hasMoreMessages}
-          isLoadingMore={isLoadingMore}
-          onLoadMore={onLoadMoreMessages}
-        />
+        {/* 🔥 Mostrar spinner de carga inicial */}
+        {isLoadingMessages ? (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '100%',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              border: '4px solid rgba(0, 168, 132, 0.2)',
+              borderTop: '4px solid #00a884',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }}></div>
+            <p style={{
+              color: '#8696a0',
+              fontSize: '14px',
+              fontFamily: 'Segoe UI, Helvetica Neue, Helvetica, Arial, sans-serif',
+              margin: 0
+            }}>
+              Cargando mensajes...
+            </p>
+          </div>
+        ) : (
+          <>
+            <LoadMoreMessages
+              hasMoreMessages={hasMoreMessages}
+              isLoadingMore={isLoadingMore}
+              onLoadMore={onLoadMoreMessages}
+            />
 
-        {/* Mensajes agrupados por fecha */}
-        {groupMessagesByDate(messages).map((item, idx) => {
-          if (item.type === 'date-separator') {
-            return (
-              <div key={`date-${idx}`} className="date-separator">
-                <div className="date-separator-content">{item.label}</div>
-              </div>
-            );
-          } else {
-            return renderMessage(item.data, item.index);
-          }
-        })}
+            {/* Mensajes agrupados por fecha */}
+            {groupMessagesByDate(messages).map((item, idx) => {
+              if (item.type === 'date-separator') {
+                return (
+                  <div key={`date-${idx}`} className="date-separator">
+                    <div className="date-separator-content">{item.label}</div>
+                  </div>
+                );
+              } else {
+                return renderMessage(item.data, item.index);
+              }
+            })}
 
-        {/* === 🔥 INDICADOR DE "ESTÁ ESCRIBIENDO" 🔥 === */}
-        {(((!isGroup && isOtherUserTyping && typingUser) ||
-          (isGroup && currentRoomCode && roomTypingUsers && roomTypingUsers[currentRoomCode] && roomTypingUsers[currentRoomCode].length > 0))) && (
-            <div className="typing-indicator-container">
+            {/* === 🔥 INDICADOR DE "ESTÁ ESCRIBIENDO" 🔥 === */}
+            {(((!isGroup && isOtherUserTyping && typingUser) ||
+              (isGroup && currentRoomCode && roomTypingUsers && roomTypingUsers[currentRoomCode] && roomTypingUsers[currentRoomCode].length > 0))) && (
+                <div className="typing-indicator-container">
               {/* Para chats individuales */}
               {!isGroup && isOtherUserTyping && typingUser && (
                 <div
@@ -2645,6 +2675,8 @@ const ChatContent = ({
               )}
             </div>
           )}
+          </>
+        )}
       </div>
 
       <div className="chat-input-container">

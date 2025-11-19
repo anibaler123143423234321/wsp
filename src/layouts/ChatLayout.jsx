@@ -24,7 +24,7 @@ const ChatLayout = ({
   to, isGroup, currentRoomCode, roomUsers, messages, input, setInput,
   onSendMessage, onFileSelect, onRecordAudio, onStopRecording, isRecording,
   mediaFiles, mediaPreviews, onCancelMediaUpload, onRemoveMediaFile, onLeaveRoom, onToggleMenu,
-  onEditMessage, onDeleteMessage, hasMoreMessages, isLoadingMore, onLoadMoreMessages,
+  onEditMessage, onDeleteMessage, hasMoreMessages, isLoadingMore, isLoadingMessages, onLoadMoreMessages,
   onStartCall, onStartVideoCall, hasCamera, canSendMessages, adminViewConversation,
 
   // Props de modales
@@ -239,6 +239,7 @@ const ChatLayout = ({
           onDeleteMessage={onDeleteMessage}
           hasMoreMessages={hasMoreMessages}
           isLoadingMore={isLoadingMore}
+          isLoadingMessages={isLoadingMessages} // 🔥 Estado de carga inicial
           onLoadMoreMessages={onLoadMoreMessages}
           socket={socket}
           highlightMessageId={highlightMessageId}

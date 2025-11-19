@@ -1,5 +1,6 @@
 import { useRef, useEffect } from "react";
 import io from "socket.io-client";
+import apiService from "../apiService";
 
 export const useSocket = (isAuthenticated, username, user) => {
   const socket = useRef(null);
@@ -55,13 +56,23 @@ export const useSocket = (isAuthenticated, username, user) => {
           }
         }, 15000);
 
-        socket.current.on("connect", () => {
+        socket.current.on("connect", async () => {
           clearTimeout(connectionTimeout.current);
           isConnecting.current = false;
           const displayName =
             user.nombre && user.apellido
               ? `${user.nombre} ${user.apellido}`
               : user.username || user.email;
+
+          // 🔥 Obtener conversaciones asignadas antes de registrar
+          let assignedConversations = [];
+          try {
+            const result = await apiService.getAssignedConversationsPaginated(1, 100); // Obtener todas las conversaciones
+            assignedConversations = result.conversations || [];
+            console.log(`✅ Conversaciones asignadas obtenidas: ${assignedConversations.length}`);
+          } catch (error) {
+            console.error("❌ Error al obtener conversaciones asignadas:", error);
+          }
 
           socket.current.emit("register", {
             username: displayName,
@@ -77,6 +88,7 @@ export const useSocket = (isAuthenticated, username, user) => {
               picture: user.picture || null,
               numeroAgente: user.numeroAgente || null,
             },
+            assignedConversations, // 🔥 Enviar conversaciones asignadas
           });
 
           // Emitir evento personalizado para notificar la conexión
@@ -104,7 +116,7 @@ export const useSocket = (isAuthenticated, username, user) => {
           clearTimeout(connectionTimeout.current);
         });
 
-        socket.current.on("reconnect", (attemptNumber) => {
+        socket.current.on("reconnect", async (attemptNumber) => {
           console.log(`✅ Socket reconectado después de ${attemptNumber} intentos`);
           isConnecting.current = false;
 
@@ -113,6 +125,16 @@ export const useSocket = (isAuthenticated, username, user) => {
             user.nombre && user.apellido
               ? `${user.nombre} ${user.apellido}`
               : user.username || user.email;
+
+          // 🔥 Obtener conversaciones asignadas antes de re-registrar
+          let assignedConversations = [];
+          try {
+            const result = await apiService.getAssignedConversationsPaginated(1, 100); // Obtener todas las conversaciones
+            assignedConversations = result.conversations || [];
+            console.log(`✅ Conversaciones asignadas obtenidas en reconexión: ${assignedConversations.length}`);
+          } catch (error) {
+            console.error("❌ Error al obtener conversaciones asignadas en reconexión:", error);
+          }
 
           socket.current.emit("register", {
             username: displayName,
@@ -128,6 +150,7 @@ export const useSocket = (isAuthenticated, username, user) => {
               picture: user.picture || null,
               numeroAgente: user.numeroAgente || null,
             },
+            assignedConversations, // 🔥 Enviar conversaciones asignadas
           });
         });
 
