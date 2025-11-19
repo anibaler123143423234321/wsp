@@ -217,47 +217,6 @@
 @media (max-width: 768px) {
   .left-sidebar-container>div:last-child {
     padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
-  }
-}
-
-/* Responsive width for LeftSidebar container */
-.left-sidebar-responsive {
-  width: 233.22px;
-  min-width: 90px;
-  max-width: 233.22px;
-  flex-shrink: 0;
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Estado colapsado */
-.left-sidebar-responsive.collapsed {
-  width: 70px;
-  max-width: 70px;
-  min-width: 70px;
-}
-
-/* Ocultar texto cuando está colapsado */
-.left-sidebar-responsive.collapsed .left-sidebar-text {
-  display: none;
-}
-
-/* Centrar iconos cuando está colapsado */
-.left-sidebar-responsive.collapsed .left-sidebar-button {
-  justify-content: center !important;
-  padding: 0.5rem !important;
-}
-
-/* En 1400px: ancho completo */
-@media (max-width: 1400px) {
-  .left-sidebar-responsive {
-    width: 233.22px;
-    max-width: 233.22px;
-  }
-}
-
-/* En 1280px: reducir a 70px (solo iconos) */
-@media (max-width: 1280px) {
-  .left-sidebar-responsive {
     width: 70px;
     max-width: 70px;
     min-width: 70px;
@@ -277,7 +236,34 @@
   }
 }
 
-/* En 1024px: reducir a 90px */
+/* Default width for LeftSidebar */
+.left-sidebar-responsive {
+  width: 220px;
+  max-width: 220px;
+  min-width: 220px;
+  flex-shrink: 0;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* En 1400px: mantener ancho completo */
+@media (max-width: 1400px) {
+  .left-sidebar-responsive {
+    width: 220px;
+    max-width: 220px;
+    min-width: 220px;
+  }
+}
+
+/* En 1280px: reducir a 90px para tablets */
+@media (max-width: 1280px) {
+  .left-sidebar-responsive {
+    width: 90px;
+    max-width: 90px;
+    min-width: 90px;
+  }
+}
+
+/* En 1024px: mantener 90px */
 @media (max-width: 1024px) {
   .left-sidebar-responsive {
     width: 90px;
@@ -286,11 +272,43 @@
   }
 }
 
-/* En 768px y menos: full width */
+/* En 768px y menos: mantener ancho fijo (no full width) */
 @media (max-width: 768px) {
   .left-sidebar-responsive {
-    width: 100%;
-    max-width: 100%;
-    min-width: 100%;
+    width: 220px;
+    max-width: 220px;
+    min-width: 220px;
+  }
+}
+
+/* Estado colapsado (manual) */
+.left-sidebar-responsive.collapsed {
+  width: 90px !important;
+  max-width: 90px !important;
+  min-width: 90px !important;
+}
+
+.left-sidebar-responsive.collapsed .left-sidebar-button span {
+  display: none !important;
+}
+
+.left-sidebar-responsive.collapsed .left-sidebar-button {
+  justify-content: center !important;
+  padding: 0.5rem !important;
+}
+
+.left-sidebar-responsive.collapsed .left-sidebar-title {
+  display: none !important;
+}
+
+/* Ocultar texto en tablets automáticamente */
+@media (max-width: 1280px) {
+  .left-sidebar-button span {
+    display: none !important;
+  }
+  
+  .left-sidebar-button {
+    justify-content: center !important;
+    padding: 0.5rem !important;
   }
 }

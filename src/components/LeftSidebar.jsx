@@ -1,8 +1,6 @@
 import { FaPlus, FaSignInAlt, FaDoorOpen, FaUserFriends, FaClipboardList, FaTimes } from 'react-icons/fa';
-import { HiMenu } from 'react-icons/hi';
 import logoutIcon from '../assets/mbrilogout_99583.svg';
 import menuBackground from '../assets/menu.png';
-import homeIcon from '../assets/home-solid.svg';
 import './LeftSidebar.css';
 
 const LeftSidebar = ({
@@ -21,7 +19,7 @@ const LeftSidebar = ({
 }) => {
   return (
     <div
-      className={`left-sidebar-container flex flex-col p-0 max-[768px]:w-full max-[768px]:h-screen flex-shrink-0 left-sidebar-responsive ${isCollapsed ? 'collapsed' : ''}`}
+      className={`left-sidebar-container group flex flex-col p-0 flex-shrink-0 left-sidebar-responsive h-full ${isCollapsed ? 'collapsed' : ''} relative`}
       style={{
         backgroundImage: `url(${menuBackground})`,
         backgroundSize: 'cover',
@@ -29,9 +27,59 @@ const LeftSidebar = ({
         backgroundRepeat: 'no-repeat'
       }}
     >
+      {/* Botón circular de toggle en el borde derecho - aparece con hover en todo el sidebar */}
+      {onToggleCollapse && (
+        <button
+          onClick={onToggleCollapse}
+          className={`flex items-center justify-center bg-gray-800 hover:bg-gray-700 rounded-full transition-all duration-200 active:scale-95 max-[768px]:hidden ${isCollapsed ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+          role="button"
+          tabIndex="0"
+          aria-label={isCollapsed ? "Expandir" : "Colapsar"}
+          title={isCollapsed ? "Expandir menú" : "Colapsar menú"}
+          style={{
+            width: '18px',
+            height: '18px',
+            position: 'absolute',
+            right: '-8px',
+            top: '50px',
+            zIndex: 50
+          }}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            className="w-3 h-3 text-white transition-transform duration-200"
+            style={{
+              transform: isCollapsed ? 'rotate(0deg)' : 'rotate(180deg)'
+            }}
+          >
+            <path
+              d="M9 18l6-6-6-6"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+      )}
+
+      {/* Área de cierre táctil para mobile - invisible pero funcional */}
+      {onToggleSidebar && (
+        <div
+          className="hidden max-[768px]:block absolute top-0 right-0 w-16 h-16 z-50"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggleSidebar();
+          }}
+          style={{ touchAction: 'manipulation' }}
+        />
+      )}
+
       {/* Header con título "Chat corporativo" */}
       <div
-        className="max-[1280px]:!pt-4 max-[1280px]:!px-4 max-[1280px]:!pb-4 max-[1024px]:!pt-3 max-[1024px]:!px-3 max-[1024px]:!pb-3 max-[768px]:flex max-[768px]:items-start max-[768px]:justify-between max-[768px]:!pt-4 max-[768px]:!px-4 max-[768px]:!pb-4"
+        className="max-[1280px]:!pt-4 max-[1280px]:!px-4 max-[1280px]:!pb-4 max-[1024px]:!pt-3 max-[1024px]:!px-3 max-[1024px]:!pb-3 max-[768px]:flex max-[768px]:items-start max-[768px]:justify-between max-[768px]:!pt-4 max-[768px]:!px-4 max-[768px]:!pb-4 relative"
         style={{
           paddingTop: '30px',
           paddingLeft: '20px',
@@ -39,38 +87,9 @@ const LeftSidebar = ({
           paddingBottom: '30px'
         }}
       >
-        <div className="flex items-center justify-start w-full gap-3">
-          {/* Botón hamburguesa para colapsar/expandir - Diseño profesional */}
-          {onToggleCollapse && (
-            <button
-              onClick={onToggleCollapse}
-              className="group flex items-center justify-center w-10 h-10 hover:bg-white/10 rounded-lg transition-all duration-200 active:scale-95 max-[768px]:hidden flex-shrink-0"
-              role="button"
-              tabIndex="0"
-              aria-label="Expandir/Colapsar menú"
-              aria-haspopup="true"
-              aria-expanded={!isCollapsed}
-              title={isCollapsed ? "Expandir menú" : "Colapsar menú"}
-              style={{
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                alignSelf: 'center',
-                position: 'relative'
-              }}
-            >
-              <img
-                src={homeIcon}
-                alt="Inicio"
-                style={{
-                  width: '16px',
-                  height: '16px',
-                  filter: 'brightness(0) invert(1)' // Para asegurar que sea blanco
-                }}
-              />
-            </button>
-          )}
-
+        <div className="flex items-center justify-center w-full gap-3 max-[1280px]:justify-center">
           <h1
-            className={`font-['Inter',-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] max-[1280px]:!text-base max-[1280px]:!leading-tight max-[1280px]:!w-auto max-[1280px]:!h-auto max-[1024px]:!text-sm max-[768px]:!text-lg max-[768px]:!leading-tight transition-opacity duration-300 ${isCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}
+            className={`font-['Inter',-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] max-[1280px]:hidden max-[768px]:!text-lg max-[768px]:!leading-tight max-[768px]:!block transition-opacity duration-300 ${isCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}
             style={{
               width: '139px',
               height: '42px',
@@ -83,19 +102,32 @@ const LeftSidebar = ({
               alignItems: 'center'
             }}
           >
-            <span className="max-[1280px]:hidden">Chat<br />corporativo</span>
-            <span className="hidden max-[1280px]:inline max-[768px]:hidden">Chat<br />corp.</span>
+            <span className="max-[768px]:hidden">Chat<br />corporativo</span>
             <span className="hidden max-[768px]:inline">Chat<br />corporativo</span>
           </h1>
 
           {/* Botón X para cerrar en mobile */}
           {onToggleSidebar && (
             <button
-              onClick={onToggleSidebar}
-              className="hidden max-[768px]:flex items-center justify-center w-8 h-8 bg-white/10 hover:bg-white/20 rounded-full transition-all duration-200 active:scale-95"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🔴 Botón X clickeado - cerrando sidebar');
+                onToggleSidebar();
+              }}
+              className="hidden max-[768px]:flex items-center justify-center w-12 h-12 bg-red-600/80 hover:bg-red-700/90 rounded-full transition-all duration-200 active:scale-95 z-50 shadow-lg"
               title="Cerrar menú"
+              style={{ 
+                minWidth: '48px', 
+                minHeight: '48px',
+                touchAction: 'manipulation',
+                border: '2px solid rgba(255, 255, 255, 0.5)',
+                position: 'absolute',
+                top: '16px',
+                right: '16px'
+              }}
             >
-              <FaTimes className="text-white text-base" />
+              <FaTimes className="text-white text-xl font-bold" />
             </button>
           )}
         </div>
@@ -129,7 +161,7 @@ const LeftSidebar = ({
               </div>
             )}
           </div>
-          <div className="flex flex-col flex-1 gap-1 min-w-0 overflow-hidden max-[1280px]:w-full max-[1280px]:gap-0.5">
+          <div className={`flex flex-col flex-1 gap-1 min-w-0 overflow-hidden max-[1280px]:w-full max-[1280px]:gap-0.5 ${isCollapsed ? 'hidden' : ''}`}>
             <div
               className="font-['Inter',-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] max-[1280px]:!text-[10px] max-[1024px]:!text-[11px] max-[768px]:!text-sm truncate max-[1280px]:break-words max-[1280px]:overflow-visible"
               style={{

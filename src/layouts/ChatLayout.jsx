@@ -119,7 +119,13 @@ const ChatLayout = ({
       {showSidebar && (
         <div
           className="hidden max-[768px]:block fixed top-0 left-0 w-screen h-screen bg-black/50 z-[99] animate-[fadeIn_0.3s_ease]"
-          onClick={onToggleMenu}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🔴 Overlay clickeado - cerrando sidebar');
+            onToggleMenu();
+          }}
+          style={{ touchAction: 'manipulation' }}
         ></div>
       )}
 
@@ -164,6 +170,7 @@ const ChatLayout = ({
         roomTypingUsers={roomTypingUsers}
         sidebarCollapsed={sidebarCollapsed}
         onToggleCollapse={onToggleCollapse}
+        showSidebar={showSidebar}
         assignedPage={assignedPage}
         assignedTotal={assignedTotal}
         assignedTotalPages={assignedTotalPages}
@@ -176,23 +183,7 @@ const ChatLayout = ({
         onLoadUserRooms={onLoadUserRooms}
       />
 
-      {/* LeftSidebar overlay para mobile */}
-      <div className={`hidden max-[768px]:block fixed left-0 top-0 h-screen z-[100] transition-transform duration-300 ease-in-out ${showSidebar ? 'translate-x-0' : '-translate-x-full'}`}>
-        <LeftSidebar
-          user={user}
-          onShowCreateRoom={onShowCreateRoom}
-          onShowJoinRoom={onShowJoinRoom}
-          onShowAdminRooms={onShowAdminRooms}
-          onShowCreateConversation={onShowCreateConversation}
-          onShowManageConversations={onShowManageConversations}
-          showAdminMenu={showAdminMenu}
-          setShowAdminMenu={setShowAdminMenu}
-          onLogout={onLogout}
-          onToggleSidebar={onToggleMenu}
-          isCollapsed={false}
-          onToggleCollapse={null}
-        />
-      </div>
+
 
       {/* ChatContent - Desktop: siempre visible | Mobile: solo cuando hay chat seleccionado */}
       <div className={`flex-1 flex flex-col bg-white relative transition-all duration-300 ease-in-out max-[768px]:h-[calc(100vh-60px)] max-[600px]:h-screen overflow-x-hidden max-w-full ${!to ? 'max-[768px]:hidden' : ''}`}>

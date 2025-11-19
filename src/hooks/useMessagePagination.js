@@ -84,6 +84,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         // Campos de respuesta
         replyToMessageId: msg.replyToMessageId,
         replyToSender: msg.replyToSender, // 🔥 Mantener el valor original de la BD
+        replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null, // 🔥 Incluir numeroAgente del remitente original
         replyToText: msg.replyToText,
         // Campos de hilos
         threadCount: msg.threadCount || 0,
@@ -190,6 +191,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         // Campos de respuesta
         replyToMessageId: msg.replyToMessageId,
         replyToSender: msg.replyToSender, // 🔥 Mantener el valor original de la BD
+        replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null, // 🔥 Incluir numeroAgente del remitente original
         replyToText: msg.replyToText,
         // Campos de hilos
         threadCount: msg.threadCount || 0,

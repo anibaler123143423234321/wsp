@@ -488,6 +488,7 @@ const ChatPage = () => {
             // Campos de respuesta
             replyToMessageId: msg.replyToMessageId,
             replyToSender: msg.replyToSender, // 🔥 Mantener el valor original de la BD
+            replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null,
             replyToText: msg.replyToText,
             // Campos de hilos
             threadCount: msg.threadCount || 0,
@@ -956,6 +957,7 @@ const ChatPage = () => {
           fileSize: data.fileSize || null,
           replyToMessageId: data.replyToMessageId || null,
           replyToSender: data.replyToSender || null,
+          replyToSenderNumeroAgente: data.replyToSenderNumeroAgente || null,
           replyToText: data.replyToText || null,
           threadCount: data.threadCount || 0,
           lastReplyFrom: data.lastReplyFrom || null,
@@ -1195,6 +1197,7 @@ const ChatPage = () => {
         if (data.replyToMessageId) {
           newMessage.replyToMessageId = data.replyToMessageId;
           newMessage.replyToSender = data.replyToSender;
+          newMessage.replyToSenderNumeroAgente = data.replyToSenderNumeroAgente;
           newMessage.replyToText = data.replyToText;
         }
 
@@ -2498,6 +2501,7 @@ const ChatPage = () => {
         messageObj.replyToMessageId = replyingTo.id;
         messageObj.replyToSender = replyingTo.sender;
         messageObj.replyToText = replyingTo.text;
+        messageObj.replyToSenderNumeroAgente = replyingTo.numeroAgente; // 🔥 Incluir número de agente del remitente original
       }
 
       // 🔥 NUEVO: Subir archivo al servidor primero
@@ -2544,6 +2548,7 @@ const ChatPage = () => {
           newMessage.replyToMessageId = replyingTo.id;
           newMessage.replyToSender = replyingTo.sender;
           newMessage.replyToText = replyingTo.text;
+          newMessage.replyToSenderNumeroAgente = replyingTo.numeroAgente; // 🔥 Incluir número de agente del remitente original
         }
 
         // Agregar información de hilos
@@ -2567,6 +2572,7 @@ const ChatPage = () => {
             replyToMessageId: replyingTo?.id,
             replyToSender: replyingTo?.sender,
             replyToText: replyingTo?.text,
+            replyToSenderNumeroAgente: replyingTo?.numeroAgente,
           });
 
           // 🔥 Usar el time calculado por el backend
@@ -2620,6 +2626,7 @@ const ChatPage = () => {
             replyToMessageId: replyingTo?.id,
             replyToSender: replyingTo?.sender,
             replyToText: replyingTo?.text,
+            replyToSenderNumeroAgente: replyingTo?.numeroAgente,
           });
 
           console.log("✅ Mensaje de grupo guardado en BD:", savedMessage);
@@ -2656,6 +2663,7 @@ const ChatPage = () => {
             replyToMessageId: replyingTo?.id,
             replyToSender: replyingTo?.sender,
             replyToText: replyingTo?.text,
+            replyToSenderNumeroAgente: replyingTo?.numeroAgente,
           };
 
           addNewMessage(newMessage);
@@ -2733,6 +2741,7 @@ const ChatPage = () => {
             replyToMessageId: replyingTo?.id,
             replyToSender: replyingTo?.sender,
             replyToText: replyingTo?.text,
+            replyToSenderNumeroAgente: replyingTo?.numeroAgente,
           });
 
           // Emitir por socket con el ID real de la BD
@@ -2775,6 +2784,7 @@ const ChatPage = () => {
             newMessage.replyToMessageId = replyingTo.id;
             newMessage.replyToSender = replyingTo.sender;
             newMessage.replyToText = replyingTo.text;
+            newMessage.replyToSenderNumeroAgente = replyingTo.numeroAgente;
           }
 
           newMessage.threadCount = 0;
@@ -2964,6 +2974,7 @@ const ChatPage = () => {
       text:
         message.text ||
         (message.fileName ? `📎 ${message.fileName}` : "Archivo multimedia"),
+      numeroAgente: message.numeroAgente, // 🔥 Incluir número de agente del mensaje original
     });
   };
 
@@ -3037,6 +3048,7 @@ const ChatPage = () => {
         messageObj.replyToMessageId = replyingTo.id;
         messageObj.replyToSender = replyingTo.sender;
         messageObj.replyToText = replyingTo.text;
+        messageObj.replyToSenderNumeroAgente = replyingTo.numeroAgente;
       }
 
       // Si es una sala activa
@@ -3067,6 +3079,7 @@ const ChatPage = () => {
         newMessage.replyToMessageId = replyingTo.id;
         newMessage.replyToSender = replyingTo.sender;
         newMessage.replyToText = replyingTo.text;
+        newMessage.replyToSenderNumeroAgente = replyingTo.numeroAgente;
       }
 
       addNewMessage(newMessage);

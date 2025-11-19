@@ -76,7 +76,7 @@ const TabButton = ({ isActive, onClick, label, shortLabel, icon: Icon, notificat
       />
       {/* Texto del label */}
       <span
-        className="font-medium whitespace-nowrap max-[1280px]:hidden"
+        className="font-medium whitespace-nowrap max-[768px]:block min-[769px]:max-[1280px]:hidden"
         style={{
           fontSize: '13px',
           lineHeight: '100%',
@@ -425,8 +425,8 @@ const ConversationList = ({
         borderRight: '1.3px solid #EEEEEE'
       }}
     >
-      {/* Botón de menú hamburguesa para mobile - solo visible en mobile */}
-      <div className="hidden max-[768px]:flex items-center justify-between bg-white px-3 py-2 border-b border-gray-200">
+      {/* Botón de menú hamburguesa - visible en mobile y desktop cuando el LeftSidebar está colapsado */}
+      <div className="flex items-center justify-between bg-white px-3 py-2 border-b border-gray-200 max-[768px]:flex min-[769px]:hidden">
         <button
           onClick={onToggleSidebar}
           className="flex items-center justify-center w-9 h-9 bg-[#13467A] text-white rounded-lg hover:bg-[#0f3660] transition-all duration-200 active:scale-95"
@@ -440,9 +440,12 @@ const ConversationList = ({
         <div className="w-9"></div> {/* Spacer para centrar el título */}
       </div>
 
+      {/* Botón home para desktop - solo visible cuando LeftSidebar está colapsado */}
+  
+
       {/* Pestañas de módulos - Diseño más compacto */}
       <div
-        className="tabs-container bg-white flex-nowrap overflow-x-auto scrollbar-hide max-[1280px]:!py-1.5 max-[1280px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!px-1.5"
+        className="tabs-container bg-white flex items-center gap-2 flex-nowrap overflow-x-auto scrollbar-hide max-[1280px]:!py-1.5 max-[1280px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!px-1.5 max-[768px]:justify-center max-[768px]:!px-3 max-[768px]:!py-2"
         style={{
           paddingLeft: '12px',
           paddingRight: '12px',
@@ -724,21 +727,21 @@ const ConversationList = ({
                           key={room.id}
                           className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer max-[1280px]:!py-1.5 max-[1280px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!px-1.5 ${currentRoomCode === room.roomCode ? 'bg-[#e7f3f0]' : ''}`}
                           style={{
-                            padding: '8px 12px',
-                            gap: '10px',
-                            minHeight: '56px'
+                            padding: '6px 16px',
+                            gap: '8px',
+                            minHeight: '50px'
                           }}
                           onClick={() => onRoomSelect && onRoomSelect(room)}
                         >
                           {/* Icono de sala */}
-                          <div className="relative flex-shrink-0 max-[1280px]:!w-8 max-[1280px]:!h-8 max-[1024px]:!w-7 max-[1024px]:!h-7" style={{ width: '36px', height: '36px' }}>
+                          <div className="relative flex-shrink-0 max-[1280px]:!w-8 max-[1280px]:!h-8 max-[1024px]:!w-7 max-[1024px]:!h-7" style={{ width: '32px', height: '32px' }}>
                             <div
                               className="rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold max-[1280px]:!text-sm max-[1024px]:!text-xs"
                               style={{
-                                width: '36px',
-                                height: '36px',
+                                width: '32px',
+                                height: '32px',
                                 border: '1.3px solid rgba(0, 0, 0, 0.1)',
-                                fontSize: '16px'
+                                fontSize: '14px'
                               }}
                             >
                               🏠
@@ -773,22 +776,22 @@ const ConversationList = ({
                                   <span
                                     className="flex-shrink-0 text-yellow-500 font-semibold flex items-center gap-1"
                                     style={{
-                                      fontSize: '10px',
-                                      lineHeight: '12px',
+                                      fontSize: '9px',
+                                      lineHeight: '11px',
                                       fontFamily: 'Inter, sans-serif',
                                       fontWeight: 600,
                                       textTransform: 'uppercase',
                                       letterSpacing: '0.5px'
                                     }}
                                   >
-                                    <PinIcon size={12} className="text-yellow-500" /> Fijado
+                                    <PinIcon size={10} className="text-yellow-500" /> Fijado
                                   </span>
                                 )}
                                 <h3
                                   className="font-semibold text-[#111] truncate flex-1"
                                   style={{
-                                    fontSize: '14px',
-                                    lineHeight: '18px',
+                                    fontSize: '11.5px',
+                                    lineHeight: '14px',
                                     fontFamily: 'Inter, sans-serif',
                                     fontWeight: 600
                                   }}
@@ -800,9 +803,9 @@ const ConversationList = ({
                                   <div
                                     className="flex-shrink-0 rounded-full bg-[#00a884] text-white flex items-center justify-center ml-2"
                                     style={{
-                                      minWidth: '20px',
-                                      height: '20px',
-                                      fontSize: '11px',
+                                      minWidth: '18px',
+                                      height: '18px',
+                                      fontSize: '10px',
                                       fontWeight: 'bold',
                                       padding: roomUnreadCount > 99 ? '0 4px' : '0'
                                     }}
@@ -847,8 +850,8 @@ const ConversationList = ({
                                   <p
                                     className="text-gray-700 truncate"
                                     style={{
-                                      fontSize: '12px',
-                                      lineHeight: '16px',
+                                      fontSize: '11px',
+                                      lineHeight: '14px',
                                       fontFamily: 'Inter, sans-serif',
                                       fontWeight: 400
                                     }}
@@ -897,7 +900,7 @@ const ConversationList = ({
                               {/* Ícono de menciones si el mensaje contiene una mención al usuario */}
                               {hasMentionToUser(room.lastMessage?.text) && (
                                 <span aria-hidden="true" data-icon="mentions-refreshed" style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                                  <svg viewBox="0 0 24 24" height="20" preserveAspectRatio="xMidYMid meet" fill="none">
+                                  <svg viewBox="0 0 24 24" height="16" preserveAspectRatio="xMidYMid meet" fill="none">
                                     <title>mentions-refreshed</title>
                                     <path d="M11.9873 21C10.7513 21 9.58985 20.7663 8.50285 20.2989C7.4157 19.8314 6.46047 19.186 5.63715 18.3629C4.81397 17.5395 4.16862 16.5818 3.70108 15.4896C3.23369 14.3975 3 13.2305 3 11.9886C3 10.7469 3.23369 9.58368 3.70108 8.49906C4.16862 7.41444 4.81397 6.46047 5.63715 5.63715C6.46047 4.81397 7.41823 4.16862 8.51044 3.70108C9.6025 3.23369 10.7695 3 12.0114 3C13.2531 3 14.4163 3.23369 15.5009 3.70108C16.5856 4.16862 17.5395 4.81397 18.3629 5.63715C19.186 6.46047 19.8314 7.41332 20.2989 8.49571C20.7663 9.57824 21 10.7421 21 11.9873V13.3265C21 14.1986 20.6799 14.9414 20.0398 15.5547C19.3995 16.1681 18.6323 16.4748 17.7383 16.4748C17.205 16.4748 16.7143 16.3441 16.2661 16.0826C15.8177 15.8213 15.4436 15.4655 15.1436 15.0153C14.763 15.4804 14.2969 15.8399 13.7455 16.0938C13.1938 16.3478 12.612 16.4748 12 16.4748C10.7554 16.4748 9.69848 16.0396 8.82918 15.1693C7.95987 14.2989 7.52522 13.2408 7.52522 11.9949C7.52522 10.7489 7.96039 9.69253 8.83074 8.8256C9.70108 7.95868 10.7592 7.52522 12.0051 7.52522C13.2511 7.52522 14.3075 7.95987 15.1744 8.82917C16.0413 9.69848 16.4748 10.7554 16.4748 12V13.2256C16.4748 13.5789 16.6007 13.8778 16.8527 14.1224C17.1047 14.3669 17.404 14.4892 17.7506 14.4892C18.0972 14.4892 18.3923 14.3669 18.6361 14.1224C18.8799 13.8778 19.0019 13.5789 19.0019 13.2256V11.9873C19.0019 10.0528 18.3185 8.40442 16.9518 7.04199C15.585 5.67941 13.9344 4.99811 12 4.99811C10.0656 4.99811 8.41498 5.68149 7.04824 7.04824C5.68149 8.41498 4.99812 10.0656 4.99812 12C4.99812 13.9344 5.67941 15.585 7.04199 16.9518C8.40442 18.3185 10.0555 19.0019 11.9953 19.0019H15.2927C15.5739 19.0019 15.8097 19.0965 16 19.2858C16.1903 19.4752 16.2855 19.7099 16.2855 19.9898C16.2855 20.2667 16.1903 20.5043 16 20.7025C15.8097 20.9008 15.5739 21 15.2927 21H11.9873ZM12.0022 14.4892C12.6943 14.4892 13.2818 14.247 13.7646 13.7626C14.2477 13.2781 14.4892 12.6898 14.4892 11.9978C14.4892 11.3057 14.247 10.7182 13.7626 10.2354C13.2781 9.75234 12.6898 9.51084 11.9978 9.51084C11.3057 9.51084 10.7182 9.75301 10.2354 10.2374C9.75234 10.7219 9.51084 11.3102 9.51084 12.0022C9.51084 12.6943 9.75301 13.2818 10.2374 13.7646C10.7219 14.2477 11.3102 14.4892 12.0022 14.4892Z" fill="currentColor" style={{ color: '#00a884' }}></path>
                                   </svg>
@@ -1070,13 +1073,13 @@ const ConversationList = ({
                       key={conv.id}
                       className="flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group overflow-visible relative max-[1280px]:!py-1.5 max-[1280px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!px-1.5"
                       style={{
-                        padding: '8px 12px',
-                        gap: '10px',
-                        minHeight: '60px',
+                        padding: '6px 16px',
+                        gap: '8px',
+                        minHeight: '50px',
+                        display: 'flex',
                         alignItems: 'flex-start',
                         width: '100%',
                         minWidth: 0,
-                        overflow: 'visible',
                         position: 'relative'
                       }}
                       onClick={() => {
@@ -1089,13 +1092,13 @@ const ConversationList = ({
                       }}
                     >
                       {/* Avatar único para el otro participante */}
-                      <div className="relative flex-shrink-0 max-[1280px]:!w-9 max-[1280px]:!h-9 max-[1024px]:!w-8 max-[1024px]:!h-8" style={{ width: '40px', height: '40px' }}>
+                      <div className="relative flex-shrink-0 max-[1280px]:!w-9 max-[1280px]:!h-9 max-[1024px]:!w-8 max-[1024px]:!h-8" style={{ width: '32px', height: '32px' }}>
                         <div
                           className="rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-white font-bold max-[1280px]:!text-sm max-[1024px]:!text-xs"
                           style={{
-                            width: '40px',
-                            height: '40px',
-                            fontSize: '16px'
+                            width: '32px',
+                            height: '32px',
+                            fontSize: '14px'
                           }}
                         >
                           {otherParticipantPicture ? (
@@ -1133,23 +1136,23 @@ const ConversationList = ({
                               <span
                                 className="flex-shrink-0 text-yellow-500 font-semibold flex items-center gap-1"
                                 style={{
-                                  fontSize: '10px',
-                                  lineHeight: '12px',
+                                  fontSize: '9px',
+                                  lineHeight: '11px',
                                   fontFamily: 'Inter, sans-serif',
                                   fontWeight: 600,
                                   textTransform: 'uppercase',
                                   letterSpacing: '0.5px'
                                 }}
                               >
-                                <PinIcon size={12} className="text-yellow-500" /> Fijado
+                                <PinIcon size={10} className="text-yellow-500" /> Fijado
                               </span>
                             )}
                             <div className="flex items-center gap-2 w-full min-w-0">
                               <h3
                                 className="font-semibold text-[#111] flex-1 min-w-0 truncate"
                                 style={{
-                                  fontSize: '12px',
-                                  lineHeight: '16px',
+                                  fontSize: '11.5px',
+                                  lineHeight: '14px',
                                   fontFamily: 'Inter, sans-serif',
                                   fontWeight: 600,
                                   maxWidth: '100%'
@@ -1196,8 +1199,8 @@ const ConversationList = ({
                                   <span
                                     className="font-semibold flex-shrink-0"
                                     style={{
-                                      fontSize: '12px',
-                                      lineHeight: '16px',
+                                      fontSize: '11px',
+                                      lineHeight: '14px',
                                       fontFamily: 'Inter, sans-serif',
                                       fontWeight: 600,
                                       color: '#00a884'
@@ -1209,8 +1212,8 @@ const ConversationList = ({
                                 <p
                                   className="text-gray-600 truncate"
                                   style={{
-                                    fontSize: '12px',
-                                    lineHeight: '16px',
+                                    fontSize: '11px',
+                                    lineHeight: '14px',
                                     fontFamily: 'Inter, sans-serif',
                                     fontWeight: 400
                                   }}
@@ -1258,7 +1261,7 @@ const ConversationList = ({
                           {/* Ícono de menciones si el mensaje contiene una mención al usuario */}
                           {hasMentionToUser(conv.lastMessage) && (
                             <span aria-hidden="true" data-icon="mentions-refreshed" style={{ display: 'flex', alignItems: 'center', flexShrink: 0, marginRight: '4px' }}>
-                              <svg viewBox="0 0 24 24" height="20" preserveAspectRatio="xMidYMid meet" fill="none">
+                              <svg viewBox="0 0 24 24" height="16" preserveAspectRatio="xMidYMid meet" fill="none">
                                 <title>mentions-refreshed</title>
                                 <path d="M11.9873 21C10.7513 21 9.58985 20.7663 8.50285 20.2989C7.4157 19.8314 6.46047 19.186 5.63715 18.3629C4.81397 17.5395 4.16862 16.5818 3.70108 15.4896C3.23369 14.3975 3 13.2305 3 11.9886C3 10.7469 3.23369 9.58368 3.70108 8.49906C4.16862 7.41444 4.81397 6.46047 5.63715 5.63715C6.46047 4.81397 7.41823 4.16862 8.51044 3.70108C9.6025 3.23369 10.7695 3 12.0114 3C13.2531 3 14.4163 3.23369 15.5009 3.70108C16.5856 4.16862 17.5395 4.81397 18.3629 5.63715C19.186 6.46047 19.8314 7.41332 20.2989 8.49571C20.7663 9.57824 21 10.7421 21 11.9873V13.3265C21 14.1986 20.6799 14.9414 20.0398 15.5547C19.3995 16.1681 18.6323 16.4748 17.7383 16.4748C17.205 16.4748 16.7143 16.3441 16.2661 16.0826C15.8177 15.8213 15.4436 15.4655 15.1436 15.0153C14.763 15.4804 14.2969 15.8399 13.7455 16.0938C13.1938 16.3478 12.612 16.4748 12 16.4748C10.7554 16.4748 9.69848 16.0396 8.82918 15.1693C7.95987 14.2989 7.52522 13.2408 7.52522 11.9949C7.52522 10.7489 7.96039 9.69253 8.83074 8.8256C9.70108 7.95868 10.7592 7.52522 12.0051 7.52522C13.2511 7.52522 14.3075 7.95987 15.1744 8.82917C16.0413 9.69848 16.4748 10.7554 16.4748 12V13.2256C16.4748 13.5789 16.6007 13.8778 16.8527 14.1224C17.1047 14.3669 17.404 14.4892 17.7506 14.4892C18.0972 14.4892 18.3923 14.3669 18.6361 14.1224C18.8799 13.8778 19.0019 13.5789 19.0019 13.2256V11.9873C19.0019 10.0528 18.3185 8.40442 16.9518 7.04199C15.585 5.67941 13.9344 4.99811 12 4.99811C10.0656 4.99811 8.41498 5.68149 7.04824 7.04824C5.68149 8.41498 4.99812 10.0656 4.99812 12C4.99812 13.9344 5.67941 15.585 7.04199 16.9518C8.40442 18.3185 10.0555 19.0019 11.9953 19.0019H15.2927C15.5739 19.0019 15.8097 19.0965 16 19.2858C16.1903 19.4752 16.2855 19.7099 16.2855 19.9898C16.2855 20.2667 16.1903 20.5043 16 20.7025C15.8097 20.9008 15.5739 21 15.2927 21H11.9873ZM12.0022 14.4892C12.6943 14.4892 13.2818 14.247 13.7646 13.7626C14.2477 13.2781 14.4892 12.6898 14.4892 11.9978C14.4892 11.3057 14.247 10.7182 13.7626 10.2354C13.2781 9.75234 12.6898 9.51084 11.9978 9.51084C11.3057 9.51084 10.7182 9.75301 10.2354 10.2374C9.75234 10.7219 9.51084 11.3102 9.51084 12.0022C9.51084 12.6943 9.75301 13.2818 10.2374 13.7646C10.7219 14.2477 11.3102 14.4892 12.0022 14.4892Z" fill="currentColor" style={{ color: '#00a884' }}></path>
                               </svg>
@@ -1269,10 +1272,10 @@ const ConversationList = ({
                             <div
                               className="flex-shrink-0 rounded-full bg-[#00a884] text-white flex items-center justify-center"
                               style={{
-                                minWidth: '20px',
-                                height: '20px',
-                                padding: '0 6px',
-                                fontSize: '11px',
+                                minWidth: '18px',
+                                height: '18px',
+                                padding: '0 5px',
+                                fontSize: '10px',
                                 fontWeight: 600,
                                 fontFamily: 'Inter, sans-serif'
                               }}
@@ -1445,9 +1448,9 @@ const ConversationList = ({
                           key={conv.id}
                           className="flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group relative"
                           style={{
-                            padding: '10px 12px',
-                            gap: '10px',
-                            minHeight: '72px',
+                            padding: '6px 10px', // Reduced padding
+                            gap: '8px', // Reduced gap
+                            minHeight: '50px', // Reduced minHeight
                             display: 'flex',
                             alignItems: 'flex-start',
                             width: '100%',
@@ -1473,21 +1476,21 @@ const ConversationList = ({
                             }
                           }}
                         >
-                          {/* Avatar doble para conversación */}
+                          {/* Avatar doble para conversación - REDUCIDO */}
                           <div
                             className="relative flex-shrink-0 cursor-pointer group"
-                            style={{ width: '40px', height: '40px' }}
+                            style={{ width: '32px', height: '32px' }} // Reduced size
                             title={`${participant1Name} ↔️ ${participant2Name}`}
                           >
-                            <div className="relative" style={{ width: '40px', height: '40px' }}>
+                            <div className="relative" style={{ width: '32px', height: '32px' }}>
                               {/* Avatar 1 */}
                               <div
                                 className="absolute rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-white font-bold hover:ring-2 hover:ring-purple-400 transition-all"
                                 style={{
-                                  width: '26px',
-                                  height: '26px',
+                                  width: '20px', // Reduced size
+                                  height: '20px', // Reduced size
                                   border: '1.3px solid rgba(0, 0, 0, 0.1)',
-                                  fontSize: '11px',
+                                  fontSize: '9px', // Reduced font size
                                   top: '0',
                                   left: '0',
                                   zIndex: 2,
@@ -1506,10 +1509,10 @@ const ConversationList = ({
                               <div
                                 className="absolute rounded-full overflow-hidden bg-gradient-to-br from-pink-500 to-pink-700 flex items-center justify-center text-white font-bold hover:ring-2 hover:ring-pink-400 transition-all"
                                 style={{
-                                  width: '26px',
-                                  height: '26px',
+                                  width: '20px', // Reduced size
+                                  height: '20px', // Reduced size
                                   border: '1.3px solid rgba(0, 0, 0, 0.1)',
-                                  fontSize: '11px',
+                                  fontSize: '9px', // Reduced font size
                                   bottom: '0',
                                   right: '0',
                                   zIndex: 1,
@@ -1528,23 +1531,23 @@ const ConversationList = ({
                           </div>
 
                           {/* Info de la conversación */}
-                          <div className="flex-1 min-w-0 flex flex-col relative" style={{ gap: '4px', position: 'relative' }}>
+                          <div className="flex-1 min-w-0 flex flex-col relative" style={{ gap: '2px', position: 'relative' }}>
                             <div className="flex items-start justify-between gap-2 w-full min-w-0 relative" style={{ position: 'relative' }}>
-                              <div className="flex flex-col gap-1 flex-1 min-w-0">
+                              <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                                 {/* Indicador de Fijado */}
                                 {isFavorite && (
                                   <span
                                     className="flex-shrink-0 text-yellow-500 font-semibold flex items-center gap-1"
                                     style={{
-                                      fontSize: '10px',
-                                      lineHeight: '12px',
+                                      fontSize: '9px',
+                                      lineHeight: '10px',
                                       fontFamily: 'Inter, sans-serif',
                                       fontWeight: 600,
                                       textTransform: 'uppercase',
                                       letterSpacing: '0.5px'
                                     }}
                                   >
-                                    <PinIcon size={12} className="text-yellow-500" /> Fijado
+                                    <PinIcon size={10} className="text-yellow-500" /> Fijado
                                   </span>
                                 )}
                                 <div className="flex items-center gap-1 w-full min-w-0">
@@ -1552,15 +1555,15 @@ const ConversationList = ({
                                     <p
                                       className="font-semibold text-[#111]"
                                       style={{
-                                        fontSize: '12px',
-                                        lineHeight: '16px',
+                                        fontSize: '11.5px', // Reduced font size
+                                        lineHeight: '14px',
                                         fontFamily: 'Inter, sans-serif',
                                         fontWeight: 600,
                                         width: '100%',
                                         minWidth: 0,
                                         maxWidth: '100%',
                                         display: '-webkit-box',
-                                        WebkitLineClamp: 2,
+                                        WebkitLineClamp: 1, // Limit to 1 line
                                         WebkitBoxOrient: 'vertical',
                                         overflow: 'hidden',
                                         wordBreak: 'break-word'
@@ -1576,8 +1579,8 @@ const ConversationList = ({
                                     className="flex-shrink-0 p-0.5 rounded-full hover:bg-gray-200 transition-all duration-200 opacity-0 group-hover:opacity-100"
                                     style={{
                                       opacity: isFavorite ? 1 : undefined,
-                                      width: '20px',
-                                      height: '20px',
+                                      width: '16px',
+                                      height: '16px',
                                       display: 'flex',
                                       alignItems: 'center',
                                       justifyContent: 'center'
@@ -1585,16 +1588,16 @@ const ConversationList = ({
                                     title={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
                                   >
                                     {isFavorite ? (
-                                      <FaStar className="text-yellow-500" size={12} />
+                                      <FaStar className="text-yellow-500" size={10} />
                                     ) : (
-                                      <FaRegStar className="text-gray-400" size={12} />
+                                      <FaRegStar className="text-gray-400" size={10} />
                                     )}
                                   </button>
                                 </div>
                               </div>
                               {/* Timestamp */}
                               {conv.lastMessageTimestamp && (
-                                <span className="conversation-timestamp">
+                                <span className="conversation-timestamp" style={{ fontSize: '10px' }}>
                                   {conv.lastMessageTimestamp}
                                 </span>
                               )}
@@ -1609,8 +1612,8 @@ const ConversationList = ({
                                       <span
                                         className="text-gray-500 font-medium"
                                         style={{
-                                          fontSize: '12px',
-                                          lineHeight: '16px',
+                                          fontSize: '11px', // Reduced font size
+                                          lineHeight: '14px',
                                           fontFamily: 'Inter, sans-serif',
                                           fontWeight: 500
                                         }}
@@ -1621,12 +1624,12 @@ const ConversationList = ({
                                     <p
                                       className="text-gray-600"
                                       style={{
-                                        fontSize: '12px',
-                                        lineHeight: '16px',
+                                        fontSize: '11px', // Reduced font size
+                                        lineHeight: '14px',
                                         fontFamily: 'Inter, sans-serif',
                                         fontWeight: 400,
                                         display: '-webkit-box',
-                                        WebkitLineClamp: 2,
+                                        WebkitLineClamp: 1, // Limit to 1 line
                                         WebkitBoxOrient: 'vertical',
                                         overflow: 'hidden',
                                         wordBreak: 'break-word'
@@ -1662,8 +1665,8 @@ const ConversationList = ({
                                   <p
                                     className="text-gray-400 italic truncate"
                                     style={{
-                                      fontSize: '12px',
-                                      lineHeight: '16px',
+                                      fontSize: '11px',
+                                      lineHeight: '14px',
                                       fontFamily: 'Inter, sans-serif',
                                       fontWeight: 400
                                     }}
@@ -1675,7 +1678,7 @@ const ConversationList = ({
                               {/* Ícono de menciones si el mensaje contiene una mención al usuario */}
                               {hasMentionToUser(conv.lastMessage) && (
                                 <span aria-hidden="true" data-icon="mentions-refreshed" style={{ display: 'flex', alignItems: 'center', flexShrink: 0, marginRight: '4px' }}>
-                                  <svg viewBox="0 0 24 24" height="20" preserveAspectRatio="xMidYMid meet" fill="none">
+                                  <svg viewBox="0 0 24 24" height="16" preserveAspectRatio="xMidYMid meet" fill="none">
                                     <title>mentions-refreshed</title>
                                     <path d="M11.9873 21C10.7513 21 9.58985 20.7663 8.50285 20.2989C7.4157 19.8314 6.46047 19.186 5.63715 18.3629C4.81397 17.5395 4.16862 16.5818 3.70108 15.4896C3.23369 14.3975 3 13.2305 3 11.9886C3 10.7469 3.23369 9.58368 3.70108 8.49906C4.16862 7.41444 4.81397 6.46047 5.63715 5.63715C6.46047 4.81397 7.41823 4.16862 8.51044 3.70108C9.6025 3.23369 10.7695 3 12.0114 3C13.2531 3 14.4163 3.23369 15.5009 3.70108C16.5856 4.16862 17.5395 4.81397 18.3629 5.63715C19.186 6.46047 19.8314 7.41332 20.2989 8.49571C20.7663 9.57824 21 10.7421 21 11.9873V13.3265C21 14.1986 20.6799 14.9414 20.0398 15.5547C19.3995 16.1681 18.6323 16.4748 17.7383 16.4748C17.205 16.4748 16.7143 16.3441 16.2661 16.0826C15.8177 15.8213 15.4436 15.4655 15.1436 15.0153C14.763 15.4804 14.2969 15.8399 13.7455 16.0938C13.1938 16.3478 12.612 16.4748 12 16.4748C10.7554 16.4748 9.69848 16.0396 8.82918 15.1693C7.95987 14.2989 7.52522 13.2408 7.52522 11.9949C7.52522 10.7489 7.96039 9.69253 8.83074 8.8256C9.70108 7.95868 10.7592 7.52522 12.0051 7.52522C13.2511 7.52522 14.3075 7.95987 15.1744 8.82917C16.0413 9.69848 16.4748 10.7554 16.4748 12V13.2256C16.4748 13.5789 16.6007 13.8778 16.8527 14.1224C17.1047 14.3669 17.404 14.4892 17.7506 14.4892C18.0972 14.4892 18.3923 14.3669 18.6361 14.1224C18.8799 13.8778 19.0019 13.5789 19.0019 13.2256V11.9873C19.0019 10.0528 18.3185 8.40442 16.9518 7.04199C15.585 5.67941 13.9344 4.99811 12 4.99811C10.0656 4.99811 8.41498 5.68149 7.04824 7.04824C5.68149 8.41498 4.99812 10.0656 4.99812 12C4.99812 13.9344 5.67941 15.585 7.04199 16.9518C8.40442 18.3185 10.0555 19.0019 11.9953 19.0019H15.2927C15.5739 19.0019 15.8097 19.0965 16 19.2858C16.1903 19.4752 16.2855 19.7099 16.2855 19.9898C16.2855 20.2667 16.1903 20.5043 16 20.7025C15.8097 20.9008 15.5739 21 15.2927 21H11.9873ZM12.0022 14.4892C12.6943 14.4892 13.2818 14.247 13.7646 13.7626C14.2477 13.2781 14.4892 12.6898 14.4892 11.9978C14.4892 11.3057 14.247 10.7182 13.7626 10.2354C13.2781 9.75234 12.6898 9.51084 11.9978 9.51084C11.3057 9.51084 10.7182 9.75301 10.2354 10.2374C9.75234 10.7219 9.51084 11.3102 9.51084 12.0022C9.51084 12.6943 9.75301 13.2818 10.2374 13.7646C10.7219 14.2477 11.3102 14.4892 12.0022 14.4892Z" fill="currentColor" style={{ color: '#00a884' }}></path>
                                   </svg>
@@ -1686,10 +1689,10 @@ const ConversationList = ({
                                 <div
                                   className="flex-shrink-0 rounded-full bg-[#00a884] text-white flex items-center justify-center"
                                   style={{
-                                    minWidth: '20px',
-                                    height: '20px',
-                                    padding: '0 6px',
-                                    fontSize: '11px',
+                                    minWidth: '18px',
+                                    height: '18px',
+                                    padding: '0 5px',
+                                    fontSize: '10px',
                                     fontWeight: 600,
                                     fontFamily: 'Inter, sans-serif'
                                   }}

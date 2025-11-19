@@ -451,9 +451,9 @@ const ChatContent = ({
 
     // Determinar si hay alguien escribiendo
     const someoneIsTyping = (!isGroup && isOtherUserTyping && typingUser) ||
-                           (isGroup && currentRoomCode && roomTypingUsers &&
-                            roomTypingUsers[currentRoomCode] &&
-                            roomTypingUsers[currentRoomCode].length > 0);
+      (isGroup && currentRoomCode && roomTypingUsers &&
+        roomTypingUsers[currentRoomCode] &&
+        roomTypingUsers[currentRoomCode].length > 0);
 
     // Si alguien está escribiendo y el usuario está cerca del final, hacer scroll suave
     if (someoneIsTyping && (isAtBottom || !isUserScrollingRef.current)) {
@@ -618,77 +618,77 @@ const ChatContent = ({
     const icons = {
       excel: (
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="4" y="2" width="16" height="20" rx="2" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5"/>
-          <path d="M8 2V22" stroke={fileInfo.color} strokeWidth="1.5"/>
-          <path d="M4 8H20" stroke={fileInfo.color} strokeWidth="1.5"/>
-          <path d="M4 14H20" stroke={fileInfo.color} strokeWidth="1.5"/>
+          <rect x="4" y="2" width="16" height="20" rx="2" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5" />
+          <path d="M8 2V22" stroke={fileInfo.color} strokeWidth="1.5" />
+          <path d="M4 8H20" stroke={fileInfo.color} strokeWidth="1.5" />
+          <path d="M4 14H20" stroke={fileInfo.color} strokeWidth="1.5" />
           <text x="14" y="18" fontSize="8" fontWeight="bold" fill={fileInfo.color}>X</text>
         </svg>
       ),
       word: (
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5"/>
-          <path d="M13 2V9H20" fill={fileInfo.color} stroke={fileInfo.color} strokeWidth="1.5"/>
+          <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5" />
+          <path d="M13 2V9H20" fill={fileInfo.color} stroke={fileInfo.color} strokeWidth="1.5" />
           <text x="8" y="18" fontSize="8" fontWeight="bold" fill={fileInfo.color}>W</text>
         </svg>
       ),
       powerpoint: (
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5"/>
-          <path d="M13 2V9H20" fill={fileInfo.color} stroke={fileInfo.color} strokeWidth="1.5"/>
+          <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5" />
+          <path d="M13 2V9H20" fill={fileInfo.color} stroke={fileInfo.color} strokeWidth="1.5" />
           <text x="9" y="18" fontSize="8" fontWeight="bold" fill={fileInfo.color}>P</text>
         </svg>
       ),
       pdf: (
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5"/>
-          <path d="M13 2V9H20" fill={fileInfo.color} stroke={fileInfo.color} strokeWidth="1.5"/>
+          <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5" />
+          <path d="M13 2V9H20" fill={fileInfo.color} stroke={fileInfo.color} strokeWidth="1.5" />
           <text x="6" y="17" fontSize="6" fontWeight="bold" fill={fileInfo.color}>PDF</text>
         </svg>
       ),
       zip: (
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5"/>
-          <path d="M12 2V6M12 6V10M12 10V14M12 14V18" stroke={fileInfo.color} strokeWidth="1.5" strokeDasharray="2 2"/>
-          <rect x="10" y="16" width="4" height="3" rx="0.5" fill={fileInfo.color}/>
+          <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5" />
+          <path d="M12 2V6M12 6V10M12 10V14M12 14V18" stroke={fileInfo.color} strokeWidth="1.5" strokeDasharray="2 2" />
+          <rect x="10" y="16" width="4" height="3" rx="0.5" fill={fileInfo.color} />
         </svg>
       ),
       image: (
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="4" y="4" width="16" height="16" rx="2" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5"/>
-          <circle cx="9" cy="9" r="2" fill={fileInfo.color}/>
-          <path d="M4 16L8 12L12 16L16 12L20 16V18C20 19.1046 19.1046 20 18 20H6C4.89543 20 4 19.1046 4 18V16Z" fill={fileInfo.color}/>
+          <rect x="4" y="4" width="16" height="16" rx="2" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5" />
+          <circle cx="9" cy="9" r="2" fill={fileInfo.color} />
+          <path d="M4 16L8 12L12 16L16 12L20 16V18C20 19.1046 19.1046 20 18 20H6C4.89543 20 4 19.1046 4 18V16Z" fill={fileInfo.color} />
         </svg>
       ),
       video: (
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="3" y="5" width="14" height="14" rx="2" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5"/>
-          <path d="M17 8.5L21 6V18L17 15.5V8.5Z" fill={fileInfo.color} stroke={fileInfo.color} strokeWidth="1.5"/>
-          <path d="M9 10L12 12L9 14V10Z" fill={fileInfo.color}/>
+          <rect x="3" y="5" width="14" height="14" rx="2" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5" />
+          <path d="M17 8.5L21 6V18L17 15.5V8.5Z" fill={fileInfo.color} stroke={fileInfo.color} strokeWidth="1.5" />
+          <path d="M9 10L12 12L9 14V10Z" fill={fileInfo.color} />
         </svg>
       ),
       audio: (
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="9" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5"/>
-          <path d="M12 8V16M9 11V13M15 11V13M6 12H7M17 12H18" stroke={fileInfo.color} strokeWidth="1.5" strokeLinecap="round"/>
+          <circle cx="12" cy="12" r="9" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5" />
+          <path d="M12 8V16M9 11V13M15 11V13M6 12H7M17 12H18" stroke={fileInfo.color} strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       ),
       text: (
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5"/>
-          <path d="M8 12H16M8 16H16M8 8H12" stroke={fileInfo.color} strokeWidth="1.5" strokeLinecap="round"/>
+          <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5" />
+          <path d="M8 12H16M8 16H16M8 8H12" stroke={fileInfo.color} strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       ),
       code: (
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5"/>
-          <path d="M9 12L7 14L9 16M15 12L17 14L15 16M13 10L11 18" stroke={fileInfo.color} strokeWidth="1.5" strokeLinecap="round"/>
+          <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5" />
+          <path d="M9 12L7 14L9 16M15 12L17 14L15 16M13 10L11 18" stroke={fileInfo.color} strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       ),
       default: (
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5"/>
-          <path d="M13 2V9H20" fill={fileInfo.color} stroke={fileInfo.color} strokeWidth="1.5"/>
+          <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" fill={fileInfo.bgColor} stroke={fileInfo.color} strokeWidth="1.5" />
+          <path d="M13 2V9H20" fill={fileInfo.color} stroke={fileInfo.color} strokeWidth="1.5" />
         </svg>
       )
     };
@@ -700,57 +700,81 @@ const ChatContent = ({
   const renderTextWithMentions = (text) => {
     if (!text) return text;
 
-    // Regex para detectar menciones @username (con nombres completos que pueden tener espacios)
-    // 🔥 MODIFICADO: Capturar nombres completos con espacios (ej: @KAREN CONDEMARIN)
-    // Captura: @ seguido de letras/números/espacios hasta encontrar un espacio doble, salto de línea, o fin de texto
-    const mentionRegex = /@([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s]+?)(?=\s{2,}|$|[.,!?;:]|\n)/g;
+    // Obtener lista de usuarios válidos para menciones
+    const validUsers = roomUsers ? roomUsers.map(user => {
+      if (typeof user === 'string') return user.toUpperCase();
+      return (user.username || user.nombre || '').toUpperCase();
+    }) : [];
+
+    // Regex mejorado: @ seguido de 1-3 palabras (nombre y apellido)
+    // Solo captura hasta 3 palabras para evitar capturar frases completas
+    const mentionRegex = /@([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ]+){0,2})(?=\s|$|[.,!?;:]|\n)/g;
     const parts = [];
     let lastIndex = 0;
     let match;
 
     while ((match = mentionRegex.exec(text)) !== null) {
-      // 🔥 NUEVO: Verificar si es parte de un email
-      // Buscar hacia atrás para ver si hay un carácter de email antes del @
+      // Verificar si es parte de un email
       const charBeforeMention = match.index > 0 ? text[match.index - 1] : '';
       const isPartOfEmail = /[a-zA-Z0-9._-]/.test(charBeforeMention);
 
-      // 🔥 NUEVO: Verificar si después del @ hay un dominio de email común
+      // Verificar si después del @ hay un dominio de email común
       const mentionedText = match[1].toLowerCase().trim();
       const emailDomains = ['gmail', 'outlook', 'hotmail', 'yahoo', 'icloud', 'live', 'msn', 'aol', 'protonmail', 'zoho'];
       const isEmailDomain = emailDomains.includes(mentionedText);
 
-      // Agregar texto antes de la mención (incluyendo el @ si es email)
+      // Agregar texto antes de la mención
       if (match.index > lastIndex) {
         parts.push(text.substring(lastIndex, match.index));
       }
 
-      // Si es parte de un email, agregar el @dominio sin resaltar
+      // Si es parte de un email, agregar sin resaltar
       if (isPartOfEmail || isEmailDomain) {
-        parts.push(match[0]); // Agregar @gmail, @outlook, etc. sin resaltar
+        parts.push(match[0]);
         lastIndex = match.index + match[0].length;
         continue;
       }
 
-      // Agregar la mención resaltada (solo si NO es email)
+      // Verificar si es un usuario válido en la sala
       const mentionedUser = match[1].trim();
-      const isCurrentUser = mentionedUser === currentUsername;
-
-      parts.push(
-        <span
-          key={match.index}
-          style={{
-            backgroundColor: isCurrentUser ? '#e3f2fd' : '#f3e5f5',
-            color: isCurrentUser ? '#1976d2' : '#7b1fa2',
-            padding: '2px 4px',
-            borderRadius: '4px',
-            fontWeight: '600',
-            cursor: 'pointer'
-          }}
-          title={`Mención a ${mentionedUser}`}
-        >
-          @{mentionedUser}
-        </span>
+      const isValidUser = validUsers.some(validUser =>
+        validUser === mentionedUser.toUpperCase() ||
+        validUser.includes(mentionedUser.toUpperCase())
       );
+
+      // Solo resaltar si es un usuario válido
+      if (isValidUser) {
+        const isCurrentUser = mentionedUser.toUpperCase() === currentUsername?.toUpperCase();
+
+        parts.push(
+          <span
+            key={match.index}
+            style={{
+              display: 'inline',
+              backgroundColor: isCurrentUser ? '#d3e4fd' : '#e8def8',
+              color: isCurrentUser ? '#0b57d0' : '#6750a4',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              fontWeight: '500',
+              fontSize: '0.95em',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = isCurrentUser ? '#c2d7f7' : '#d7c9f0';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = isCurrentUser ? '#d3e4fd' : '#e8def8';
+            }}
+            title={`Mención a ${mentionedUser}`}
+          >
+            @{mentionedUser}
+          </span>
+        );
+      } else {
+        // Si no es un usuario válido, agregar como texto normal
+        parts.push(match[0]);
+      }
 
       lastIndex = match.index + match[0].length;
     }
@@ -771,6 +795,15 @@ const ChatContent = ({
 
     const isInfoMessage = message.type === 'info';
     const isErrorMessage = message.type === 'error';
+
+    // 🔥 NUEVO: Detectar si este mensaje debe agruparse con el anterior
+    const previousMessage = index > 0 ? messages[index - 1] : null;
+    const isGroupedWithPrevious = previousMessage &&
+      previousMessage.type !== 'info' &&
+      previousMessage.type !== 'error' &&
+      !previousMessage.isDeleted &&
+      (previousMessage.isSelf !== undefined ? previousMessage.isSelf : (previousMessage.sender === 'Tú' || previousMessage.sender === currentUsername)) === isOwnMessage &&
+      (previousMessage.sender === message.sender || (isOwnMessage && previousMessage.isSelf === message.isSelf));
 
     if (isInfoMessage) {
       return (
@@ -850,7 +883,7 @@ const ChatContent = ({
         style={{
           display: 'flex',
           alignItems: 'flex-end',
-          marginTop: '2px',
+          marginTop: isGroupedWithPrevious ? '1px' : '8px',
           marginBottom: '2px',
           padding: '0 8px',
           gap: '6px',
@@ -860,8 +893,8 @@ const ChatContent = ({
           zIndex: showMessageMenu === message.id ? 10000 : 1
         }}
       >
-        {/* Avatar para mensajes de otros */}
-        {!isOwnMessage && (
+        {/* Avatar para mensajes de otros - ocultar si está agrupado */}
+        {!isOwnMessage && !isGroupedWithPrevious && (
           <div
             className="message-avatar"
             style={{
@@ -879,6 +912,10 @@ const ChatContent = ({
           >
             {message.sender?.charAt(0).toUpperCase() || '👤'}
           </div>
+        )}
+        {/* Espaciador invisible cuando el avatar está oculto */}
+        {!isOwnMessage && isGroupedWithPrevious && (
+          <div style={{ width: '28px', flexShrink: 0 }} />
         )}
 
         <div
@@ -1187,7 +1224,7 @@ const ChatContent = ({
             </div>
           )}
 
-          {!isOwnMessage && (
+          {!isOwnMessage && !isGroupedWithPrevious && (
             <div
               className="message-sender"
               style={{
@@ -1258,9 +1295,9 @@ const ChatContent = ({
                 }
               }}
               style={{
-                backgroundColor: '#d1f4dd',
-                borderLeft: '2px solid #00a884',
-                padding: '4px 6px',
+                backgroundColor: 'transparent',
+                borderLeft: '4px solid #00a884',
+                padding: '4px 8px',
                 borderRadius: '4px',
                 marginBottom: '4px',
                 fontSize: '11px',
@@ -1268,14 +1305,19 @@ const ChatContent = ({
                 transition: 'background-color 0.2s ease'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#c0edd0';
+                e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#d1f4dd';
+                e.currentTarget.style.backgroundColor = 'transparent';
               }}
             >
               <div style={{ color: '#00a884', fontWeight: '600', marginBottom: '1px' }}>
                 {message.replyToSender}
+                {message.replyToSenderNumeroAgente && (
+                  <span style={{ color: '#666', fontWeight: '400', marginLeft: '4px' }}>
+                    • N° {message.replyToSenderNumeroAgente}
+                  </span>
+                )}
               </div>
               <div style={{ color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {message.replyToText || 'Archivo multimedia'}
@@ -1337,7 +1379,7 @@ const ChatContent = ({
                   }}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="#54656f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="#54656f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   Seleccionar archivo
                 </label>
@@ -1361,7 +1403,7 @@ const ChatContent = ({
                     gap: '6px'
                   }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M20 6L9 17l-5-5" stroke="#00a884" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M20 6L9 17l-5-5" stroke="#00a884" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                     <span style={{ fontWeight: '500' }}>Nuevo archivo: {editFile.name}</span>
                   </div>
@@ -1489,247 +1531,33 @@ const ChatContent = ({
                           }}
                           onClick={() => setImagePreview({ url: message.mediaData, fileName: message.fileName || 'imagen' })}
                         />
-                    {/* 🔥 NUEVO: Hora y checks en la esquina inferior derecha de la imagen */}
-                    <div
-                      style={{
-                        position: 'absolute',
-                        bottom: '6px',
-                        right: '6px',
-                        backgroundColor: 'rgba(0,0,0,0.6)',
-                        color: '#fff',
-                        padding: '3px 8px',
-                        borderRadius: '12px',
-                        fontSize: '11px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        pointerEvents: 'none'
-                      }}
-                    >
-                      <span>{formatTime(message.time)}</span>
-                      {message.isEdited && (
-                        <span style={{ fontSize: '10px', color: 'rgba(255, 255, 255, 0.7)', marginLeft: '4px' }}>
-                          (editado)
-                        </span>
-                      )}
-                      {isOwnMessage && (
-                        <span
+                        {/* 🔥 NUEVO: Hora y checks en la esquina inferior derecha de la imagen */}
+                        <div
                           style={{
-                            color: (message.readBy && message.readBy.length > 0) ? '#53bdeb' : '#fff',
-                            fontSize: '12px',
-                            display: 'inline-flex',
-                            alignItems: 'center'
-                          }}
-                        >
-                          {message.isSent ? (
-                            <svg viewBox="0 0 18 18" height="18" width="18" preserveAspectRatio="xMidYMid meet" version="1.1" x="0px" y="0px" enableBackground="new 0 0 18 18">
-                              <path fill="currentColor" d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"></path>
-                            </svg>
-                          ) : '⏳'}
-                        </span>
-                      )}
-                    </div>
-                    {/* Botón de descargar */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownload(message.mediaData, message.fileName || 'imagen');
-                      }}
-                      style={{
-                        position: 'absolute',
-                        top: '6px',
-                        right: '6px',
-                        backgroundColor: 'rgba(0,0,0,0.6)',
-                        color: '#fff',
-                        padding: '6px 10px',
-                        borderRadius: '12px',
-                        fontSize: '10px',
-                        border: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '3px',
-                        cursor: 'pointer',
-                        transition: 'background-color 0.2s'
-                      }}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.8)'}
-                      onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.6)'}
-                    >
-                      ⬇️
-                    </button>
-                  </div>
-                ) : message.mediaType === 'video' ? (
-                  <div style={{ position: 'relative' }}>
-                    <video
-                      src={message.mediaData}
-                      controls
-                      preload="metadata"
-                      className="media-video"
-                      style={{
-                        maxWidth: '100%',
-                        borderRadius: '7.5px',
-                        display: 'block'
-                      }}
-                    />
-                    {/* 🔥 NUEVO: Hora y checks debajo del video */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginTop: '4px',
-                        gap: '8px'
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          fontSize: '11px',
-                          color: '#8696a0'
-                        }}
-                      >
-                        <span>{formatTime(message.time)}</span>
-                        {message.isEdited && (
-                          <span style={{ fontSize: '10px', color: '#8696a0', marginLeft: '4px' }}>
-                            (editado)
-                          </span>
-                        )}
-                        {isOwnMessage && (
-                          <span
-                            style={{
-                              color: (message.readBy && message.readBy.length > 0) ? '#53bdeb' : '#8696a0',
-                              fontSize: '12px',
-                              display: 'inline-flex',
-                              alignItems: 'center'
-                            }}
-                          >
-                            {message.isSent ? (
-                              <svg viewBox="0 0 18 18" height="18" width="18" preserveAspectRatio="xMidYMid meet" version="1.1" x="0px" y="0px" enableBackground="new 0 0 18 18">
-                                <path fill="currentColor" d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"></path>
-                              </svg>
-                            ) : '⏳'}
-                          </span>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => handleDownload(message.mediaData, message.fileName || 'video')}
-                        style={{
-                          backgroundColor: 'rgba(0,0,0,0.6)',
-                          color: '#fff',
-                          padding: '4px 10px',
-                          borderRadius: '12px',
-                          fontSize: '10px',
-                          border: 'none',
-                          cursor: 'pointer',
-                          transition: 'background-color 0.2s',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '3px'
-                        }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.8)'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.6)'}
-                      >
-                        ⬇️ Descargar
-                      </button>
-                    </div>
-                  </div>
-                ) : message.mediaType === 'audio' ? (
-                  <AudioPlayer
-                    src={message.mediaData}
-                    fileName={message.fileName}
-                    onDownload={handleDownload}
-                    time={message.time}
-                    isOwnMessage={isOwnMessage}
-                    isRead={message.isRead}
-                    isSent={message.isSent}
-                    readBy={message.readBy}
-                  />
-                ) : (
-                  <div
-                    className="file-message"
-                    onClick={() => handleDownload(message.mediaData, message.fileName || 'archivo')}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '8px 12px',
-                      backgroundColor: 'rgba(255,255,255,0.1)',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(255,255,255,0.2)',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      maxWidth: '280px'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)';
-                      e.currentTarget.style.transform = 'scale(1.02)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
-                      e.currentTarget.style.transform = 'scale(1)';
-                    }}
-                  >
-                    {/* 🔥 NUEVO: Ícono SVG de archivo según tipo */}
-                    <div className="file-icon" style={{ flexShrink: 0 }}>
-                      {renderFileIcon(message.fileName)}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      {/* 🔥 NUEVO: Badge con tipo de archivo */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                        <span
-                          style={{
-                            backgroundColor: getFileIcon(message.fileName).color,
+                            position: 'absolute',
+                            bottom: '6px',
+                            right: '6px',
+                            backgroundColor: 'rgba(0,0,0,0.6)',
                             color: '#fff',
-                            fontSize: '9px',
-                            fontWeight: '700',
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.5px'
+                            padding: '3px 8px',
+                            borderRadius: '12px',
+                            fontSize: '11px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            pointerEvents: 'none'
                           }}
                         >
-                          {getFileIcon(message.fileName).name}
-                        </span>
-                      </div>
-                      <div
-                        className="file-name"
-                        style={{
-                          color: '#000000D9',
-                          fontSize: '13px',
-                          fontWeight: '600',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          marginBottom: '4px'
-                        }}
-                      >
-                        {message.fileName}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
-                        {message.fileSize && (
-                          <span style={{ color: '#8696a0', fontSize: '11px', fontWeight: '400' }}>
-                            {(message.fileSize / 1024 / 1024).toFixed(2)} MB
-                          </span>
-                        )}
-                        {message.fileSize && <span style={{ color: '#8696a0', fontSize: '11px' }}>•</span>}
-                        <span style={{ color: '#8696a0', fontSize: '11px' }}>
-                          {formatTime(message.time)}
-                        </span>
-                        {message.isEdited && (
-                          <>
-                            <span style={{ color: '#8696a0', fontSize: '11px' }}>•</span>
-                            <span style={{ fontSize: '10px', color: '#8696a0' }}>
-                              editado
+                          <span>{formatTime(message.time)}</span>
+                          {message.isEdited && (
+                            <span style={{ fontSize: '10px', color: 'rgba(255, 255, 255, 0.7)', marginLeft: '4px' }}>
+                              (editado)
                             </span>
-                          </>
-                        )}
-                        {isOwnMessage && (
-                          <>
-                            <span style={{ color: '#8696a0', fontSize: '11px' }}>•</span>
+                          )}
+                          {isOwnMessage && (
                             <span
                               style={{
-                                color: message.isRead ? '#53bdeb' : '#8696a0',
+                                color: (message.readBy && message.readBy.length > 0) ? '#53bdeb' : '#fff',
                                 fontSize: '12px',
                                 display: 'inline-flex',
                                 alignItems: 'center'
@@ -1741,184 +1569,398 @@ const ChatContent = ({
                                 </svg>
                               ) : '⏳'}
                             </span>
-                          </>
-                        )}
+                          )}
+                        </div>
+                        {/* Botón de descargar */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownload(message.mediaData, message.fileName || 'imagen');
+                          }}
+                          style={{
+                            position: 'absolute',
+                            top: '6px',
+                            right: '6px',
+                            backgroundColor: 'rgba(0,0,0,0.6)',
+                            color: '#fff',
+                            padding: '6px 10px',
+                            borderRadius: '12px',
+                            fontSize: '10px',
+                            border: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.2s'
+                          }}
+                          onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.8)'}
+                          onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.6)'}
+                        >
+                          ⬇️
+                        </button>
+                      </div>
+                    ) : message.mediaType === 'video' ? (
+                      <div style={{ position: 'relative' }}>
+                        <video
+                          src={message.mediaData}
+                          controls
+                          preload="metadata"
+                          className="media-video"
+                          style={{
+                            maxWidth: '100%',
+                            borderRadius: '7.5px',
+                            display: 'block'
+                          }}
+                        />
+                        {/* 🔥 NUEVO: Hora y checks debajo del video */}
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginTop: '4px',
+                            gap: '8px'
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '11px',
+                              color: '#8696a0'
+                            }}
+                          >
+                            <span>{formatTime(message.time)}</span>
+                            {message.isEdited && (
+                              <span style={{ fontSize: '10px', color: '#8696a0', marginLeft: '4px' }}>
+                                (editado)
+                              </span>
+                            )}
+                            {isOwnMessage && (
+                              <span
+                                style={{
+                                  color: (message.readBy && message.readBy.length > 0) ? '#53bdeb' : '#8696a0',
+                                  fontSize: '12px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center'
+                                }}
+                              >
+                                {message.isSent ? (
+                                  <svg viewBox="0 0 18 18" height="18" width="18" preserveAspectRatio="xMidYMid meet" version="1.1" x="0px" y="0px" enableBackground="new 0 0 18 18">
+                                    <path fill="currentColor" d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"></path>
+                                  </svg>
+                                ) : '⏳'}
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => handleDownload(message.mediaData, message.fileName || 'video')}
+                            style={{
+                              backgroundColor: 'rgba(0,0,0,0.6)',
+                              color: '#fff',
+                              padding: '4px 10px',
+                              borderRadius: '12px',
+                              fontSize: '10px',
+                              border: 'none',
+                              cursor: 'pointer',
+                              transition: 'background-color 0.2s',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '3px'
+                            }}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.8)'}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.6)'}
+                          >
+                            ⬇️ Descargar
+                          </button>
+                        </div>
+                      </div>
+                    ) : message.mediaType === 'audio' ? (
+                      <AudioPlayer
+                        src={message.mediaData}
+                        fileName={message.fileName}
+                        onDownload={handleDownload}
+                        time={message.time}
+                        isOwnMessage={isOwnMessage}
+                        isRead={message.isRead}
+                        isSent={message.isSent}
+                        readBy={message.readBy}
+                      />
+                    ) : (
+                      <div
+                        className="file-message"
+                        onClick={() => handleDownload(message.mediaData, message.fileName || 'archivo')}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '8px 12px',
+                          backgroundColor: 'rgba(255,255,255,0.1)',
+                          borderRadius: '8px',
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          maxWidth: '280px'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)';
+                          e.currentTarget.style.transform = 'scale(1.02)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
+                          e.currentTarget.style.transform = 'scale(1)';
+                        }}
+                      >
+                        {/* 🔥 NUEVO: Ícono SVG de archivo según tipo */}
+                        <div className="file-icon" style={{ flexShrink: 0 }}>
+                          {renderFileIcon(message.fileName)}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          {/* 🔥 NUEVO: Badge con tipo de archivo */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                            <span
+                              style={{
+                                backgroundColor: getFileIcon(message.fileName).color,
+                                color: '#fff',
+                                fontSize: '9px',
+                                fontWeight: '700',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px'
+                              }}
+                            >
+                              {getFileIcon(message.fileName).name}
+                            </span>
+                          </div>
+                          <div
+                            className="file-name"
+                            style={{
+                              color: '#000000D9',
+                              fontSize: '13px',
+                              fontWeight: '600',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              marginBottom: '4px'
+                            }}
+                          >
+                            {message.fileName}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                            {message.fileSize && (
+                              <span style={{ color: '#8696a0', fontSize: '11px', fontWeight: '400' }}>
+                                {(message.fileSize / 1024 / 1024).toFixed(2)} MB
+                              </span>
+                            )}
+                            {message.fileSize && <span style={{ color: '#8696a0', fontSize: '11px' }}>•</span>}
+                            <span style={{ color: '#8696a0', fontSize: '11px' }}>
+                              {formatTime(message.time)}
+                            </span>
+                            {message.isEdited && (
+                              <>
+                                <span style={{ color: '#8696a0', fontSize: '11px' }}>•</span>
+                                <span style={{ fontSize: '10px', color: '#8696a0' }}>
+                                  editado
+                                </span>
+                              </>
+                            )}
+                            {isOwnMessage && (
+                              <>
+                                <span style={{ color: '#8696a0', fontSize: '11px' }}>•</span>
+                                <span
+                                  style={{
+                                    color: message.isRead ? '#53bdeb' : '#8696a0',
+                                    fontSize: '12px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center'
+                                  }}
+                                >
+                                  {message.isSent ? (
+                                    <svg viewBox="0 0 18 18" height="18" width="18" preserveAspectRatio="xMidYMid meet" version="1.1" x="0px" y="0px" enableBackground="new 0 0 18 18">
+                                      <path fill="currentColor" d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"></path>
+                                    </svg>
+                                  ) : '⏳'}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        {/* 🔥 NUEVO: Ícono de descarga mejorado */}
+                        <div style={{ flexShrink: 0 }}>
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="10" fill="#00a884" opacity="0.1" />
+                            <path d="M12 7V13M12 13L9.5 10.5M12 13L14.5 10.5" stroke="#00a884" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M8 16H16" stroke="#00a884" strokeWidth="2" strokeLinecap="round" />
+                          </svg>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Selector de reacciones (fuera del menú) */}
+                  {message.id && showReactionPicker === message.id && (
+                    <div style={{ position: 'relative', marginTop: '4px' }}>
+                      <div
+                        ref={reactionPickerRef}
+                        style={{
+                          position: 'absolute',
+                          bottom: '100%',
+                          left: isOwnMessage ? 'auto' : '0',
+                          right: isOwnMessage ? '0' : 'auto',
+                          backgroundColor: '#fff',
+                          borderRadius: '20px',
+                          padding: '8px',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                          display: 'flex',
+                          gap: '4px',
+                          zIndex: 1000,
+                          marginBottom: '4px'
+                        }}
+                      >
+                        {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(emoji => (
+                          <button
+                            key={emoji}
+                            onClick={() => handleReaction(message, emoji)}
+                            style={{
+                              backgroundColor: 'transparent',
+                              border: 'none',
+                              fontSize: '20px',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              borderRadius: '50%',
+                              transition: 'transform 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.target.style.transform = 'scale(1.2)'}
+                            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                        {/* Botón + para más emojis */}
+                        <button
+                          onClick={() => {
+                            setShowReactionPicker(null);
+                            setShowEmojiPicker(true);
+                            // Guardar el mensaje actual para reaccionar después
+                            window.currentReactionMessage = message;
+                          }}
+                          style={{
+                            backgroundColor: '#f0f2f5',
+                            border: 'none',
+                            width: '28px',
+                            height: '28px',
+                            cursor: 'pointer',
+                            padding: '0',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.transform = 'scale(1.2)';
+                            e.target.style.backgroundColor = '#e4e6eb';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.transform = 'scale(1)';
+                            e.target.style.backgroundColor = '#f0f2f5';
+                          }}
+                          title="Más emojis"
+                        >
+                          <svg viewBox="0 0 24 24" width="20" height="20" preserveAspectRatio="xMidYMid meet">
+                            <path fill="currentColor" d="M19,13h-6v6h-2v-6H5v-2h6V5h2v6h6V13z" />
+                          </svg>
+                        </button>
                       </div>
                     </div>
-                    {/* 🔥 NUEVO: Ícono de descarga mejorado */}
-                    <div style={{ flexShrink: 0 }}>
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="12" cy="12" r="10" fill="#00a884" opacity="0.1"/>
-                        <path d="M12 7V13M12 13L9.5 10.5M12 13L14.5 10.5" stroke="#00a884" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M8 16H16" stroke="#00a884" strokeWidth="2" strokeLinecap="round"/>
-                      </svg>
-                    </div>
-                  </div>
-                )}
-              </div>
+                  )}
 
-              {/* Selector de reacciones (fuera del menú) */}
-              {message.id && showReactionPicker === message.id && (
-                <div style={{ position: 'relative', marginTop: '4px' }}>
-                  <div
-                    ref={reactionPickerRef}
-                    style={{
-                      position: 'absolute',
-                      bottom: '100%',
-                      left: isOwnMessage ? 'auto' : '0',
-                      right: isOwnMessage ? '0' : 'auto',
-                      backgroundColor: '#fff',
-                      borderRadius: '20px',
-                      padding: '8px',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                      display: 'flex',
-                      gap: '4px',
-                      zIndex: 1000,
-                      marginBottom: '4px'
-                    }}
-                  >
-                    {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(emoji => (
-                      <button
-                        key={emoji}
-                        onClick={() => handleReaction(message, emoji)}
-                        style={{
-                          backgroundColor: 'transparent',
-                          border: 'none',
-                          fontSize: '20px',
-                          cursor: 'pointer',
-                          padding: '4px',
-                          borderRadius: '50%',
-                          transition: 'transform 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.target.style.transform = 'scale(1.2)'}
-                        onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                    {/* Botón + para más emojis */}
-                    <button
-                      onClick={() => {
-                        setShowReactionPicker(null);
-                        setShowEmojiPicker(true);
-                        // Guardar el mensaje actual para reaccionar después
-                        window.currentReactionMessage = message;
-                      }}
-                      style={{
-                        backgroundColor: '#f0f2f5',
-                        border: 'none',
-                        width: '28px',
-                        height: '28px',
-                        cursor: 'pointer',
-                        padding: '0',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.transform = 'scale(1.2)';
-                        e.target.style.backgroundColor = '#e4e6eb';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.transform = 'scale(1)';
-                        e.target.style.backgroundColor = '#f0f2f5';
-                      }}
-                      title="Más emojis"
-                    >
-                      <svg viewBox="0 0 24 24" width="20" height="20" preserveAspectRatio="xMidYMid meet">
-                        <path fill="currentColor" d="M19,13h-6v6h-2v-6H5v-2h6V5h2v6h6V13z" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Mostrar reacciones del mensaje (para mensajes con archivos adjuntos) */}
-              {Array.isArray(message.reactions) && message.reactions.length > 0 && (
-                <div
-                  style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '4px',
-                    marginTop: '4px'
-                  }}
-                >
-                  {/* Agrupar reacciones por emoji */}
-                  {Object.entries(
-                    message.reactions.reduce((acc, reaction) => {
-                      if (reaction && reaction.emoji) {
-                        if (!acc[reaction.emoji]) {
-                          acc[reaction.emoji] = [];
-                        }
-                        acc[reaction.emoji].push(reaction.username);
-                      }
-                      return acc;
-                    }, {})
-                  ).map(([emoji, users]) => (
+                  {/* Mostrar reacciones del mensaje (para mensajes con archivos adjuntos) */}
+                  {Array.isArray(message.reactions) && message.reactions.length > 0 && (
                     <div
-                      key={emoji}
                       style={{
-                        backgroundColor: users.includes(currentUsername) ? '#e1f4d6' : '#f5f6f6',
-                        border: users.includes(currentUsername) ? '1px solid #00a884' : '1px solid #ddd',
-                        borderRadius: '12px',
-                        padding: '2px 8px',
                         display: 'flex',
-                        alignItems: 'center',
+                        flexWrap: 'wrap',
                         gap: '4px',
-                        fontSize: '12px',
-                        cursor: 'pointer'
+                        marginTop: '4px'
                       }}
-                      onClick={() => handleReaction(message, emoji)}
-                      title={users.join(', ')}
                     >
-                      <span style={{ fontSize: '14px' }}>{emoji}</span>
-                      <span style={{ fontSize: '11px', color: '#667781', fontWeight: '500' }}>
-                        {users.length}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Botón de Hilo visible debajo del mensaje (para archivos adjuntos) */}
-              {onOpenThread && !message.isDeleted && (
-                <div
-                  onClick={() => onOpenThread(message)}
-                  style={{
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    color: '#00a884',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    padding: '4px 0',
-                    marginTop: '4px',
-                    fontWeight: '500',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '2px',
-                    transition: 'opacity 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.opacity = '0.7'}
-                  onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                >
-                  <FaComments style={{ marginRight: '6px' }} />
-                  {message.threadCount > 0
-                    ? `${message.threadCount} ${message.threadCount === 1 ? 'respuesta' : 'respuestas'}`
-                    : 'Responder en hilo'}
-                  {message.lastReplyFrom && message.threadCount > 0 && (
-                    <div style={{
-                      fontSize: '11px',
-                      color: '#8696a0',
-                      marginLeft: '20px',
-                      fontWeight: '400'
-                    }}>
-                      Última respuesta de {message.lastReplyFrom}
+                      {/* Agrupar reacciones por emoji */}
+                      {Object.entries(
+                        message.reactions.reduce((acc, reaction) => {
+                          if (reaction && reaction.emoji) {
+                            if (!acc[reaction.emoji]) {
+                              acc[reaction.emoji] = [];
+                            }
+                            acc[reaction.emoji].push(reaction.username);
+                          }
+                          return acc;
+                        }, {})
+                      ).map(([emoji, users]) => (
+                        <div
+                          key={emoji}
+                          style={{
+                            backgroundColor: users.includes(currentUsername) ? '#e1f4d6' : '#f5f6f6',
+                            border: users.includes(currentUsername) ? '1px solid #00a884' : '1px solid #ddd',
+                            borderRadius: '12px',
+                            padding: '2px 8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '12px',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => handleReaction(message, emoji)}
+                          title={users.join(', ')}
+                        >
+                          <span style={{ fontSize: '14px' }}>{emoji}</span>
+                          <span style={{ fontSize: '11px', color: '#667781', fontWeight: '500' }}>
+                            {users.length}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   )}
-                </div>
-              )}
+
+                  {/* Botón de Hilo visible debajo del mensaje (para archivos adjuntos) */}
+                  {onOpenThread && !message.isDeleted && (
+                    <div
+                      onClick={() => onOpenThread(message)}
+                      style={{
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        color: '#00a884',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        padding: '4px 0',
+                        marginTop: '4px',
+                        fontWeight: '500',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '2px',
+                        transition: 'opacity 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.7'}
+                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                    >
+                      <FaComments style={{ marginRight: '6px' }} />
+                      {message.threadCount > 0
+                        ? `${message.threadCount} ${message.threadCount === 1 ? 'respuesta' : 'respuestas'}`
+                        : 'Responder en hilo'}
+                      {message.lastReplyFrom && message.threadCount > 0 && (
+                        <div style={{
+                          fontSize: '11px',
+                          color: '#8696a0',
+                          marginLeft: '20px',
+                          fontWeight: '400'
+                        }}>
+                          Última respuesta de {message.lastReplyFrom}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -1988,150 +2030,150 @@ const ChatContent = ({
                         >
                           {renderTextWithMentions(displayText)}
                           {shouldTruncate && !isExpanded && '...'}
-                      {/* Hora y checks inline */}
-                      {(!shouldTruncate || isExpanded) && (
-                        <span
-                          className="message-time-inline"
-                          style={{
-                            fontSize: '12.83px',
-                            color: '#00000073',
-                            marginLeft: '6px',
-                            whiteSpace: 'nowrap',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '3px',
-                            verticalAlign: 'bottom',
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                            fontWeight: '300',
-                            lineHeight: '17.11px',
-                            letterSpacing: '0px'
-                          }}
-                        >
-                          <span>{formatTime(message.time)}</span>
-                          {message.isEdited && (
-                            <span style={{ fontSize: '10px', color: '#8696a0', marginLeft: '4px' }}>
-                              (editado)
+                          {/* Hora y checks inline */}
+                          {(!shouldTruncate || isExpanded) && (
+                            <span
+                              className="message-time-inline"
+                              style={{
+                                fontSize: '12.83px',
+                                color: '#00000073',
+                                marginLeft: '6px',
+                                whiteSpace: 'nowrap',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                verticalAlign: 'bottom',
+                                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                                fontWeight: '300',
+                                lineHeight: '17.11px',
+                                letterSpacing: '0px'
+                              }}
+                            >
+                              <span>{formatTime(message.time)}</span>
+                              {message.isEdited && (
+                                <span style={{ fontSize: '10px', color: '#8696a0', marginLeft: '4px' }}>
+                                  (editado)
+                                </span>
+                              )}
+                              {isOwnMessage && (
+                                <>
+                                  <span
+                                    className="message-status"
+                                    style={{
+                                      color: (message.readBy && message.readBy.length > 0) ? '#27AE60' : '#8696a0',
+                                      fontSize: '11px',
+                                      cursor: isGroup ? 'pointer' : 'default',
+                                      display: 'inline-flex',
+                                      alignItems: 'center'
+                                    }}
+                                    onClick={() => {
+                                      if (isGroup && message.id) {
+                                        setShowMessageInfo(message);
+                                      }
+                                    }}
+                                    title={isGroup ? 'Ver información de lectura' : ''}
+                                  >
+                                    {message.isSent ? (
+                                      <svg viewBox="0 0 18 18" height="18" width="18" preserveAspectRatio="xMidYMid meet" version="1.1" x="0px" y="0px" enableBackground="new 0 0 18 18">
+                                        <path fill="currentColor" d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"></path>
+                                      </svg>
+                                    ) : '⏳'}
+                                  </span>
+                                </>
+                              )}
                             </span>
                           )}
-                          {isOwnMessage && (
-                            <>
-                              <span
-                                className="message-status"
-                                style={{
-                                  color: (message.readBy && message.readBy.length > 0) ? '#27AE60' : '#8696a0',
-                                  fontSize: '11px',
-                                  cursor: isGroup ? 'pointer' : 'default',
-                                  display: 'inline-flex',
-                                  alignItems: 'center'
-                                }}
-                                onClick={() => {
-                                  if (isGroup && message.id) {
-                                    setShowMessageInfo(message);
-                                  }
-                                }}
-                                title={isGroup ? 'Ver información de lectura' : ''}
-                              >
-                                {message.isSent ? (
-                                  <svg viewBox="0 0 18 18" height="18" width="18" preserveAspectRatio="xMidYMid meet" version="1.1" x="0px" y="0px" enableBackground="new 0 0 18 18">
-                                    <path fill="currentColor" d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"></path>
-                                  </svg>
-                                ) : '⏳'}
-                              </span>
-                            </>
-                          )}
-                        </span>
-                      )}
-                    </div>
+                        </div>
 
-                    {/* Botón "Ver más" / "Ver menos" */}
-                    {shouldTruncate && (
-                      <div style={{ marginTop: '4px' }}>
-                        <button
-                          onClick={() => {
-                            setExpandedMessages(prev => {
-                              const newSet = new Set(prev);
-                              if (isExpanded) {
-                                newSet.delete(message.id);
-                              } else {
-                                newSet.add(message.id);
-                              }
-                              return newSet;
-                            });
-                          }}
-                          style={{
-                            backgroundColor: 'transparent',
-                            border: 'none',
-                            color: '#00a884',
-                            cursor: 'pointer',
-                            fontSize: '13px',
-                            padding: '0',
-                            fontWeight: '500',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '2px'
-                          }}
-                        >
-                          {isExpanded ? 'Ver menos' : 'Ver más'}
-                        </button>
-                        {/* Hora y checks cuando el mensaje está truncado */}
-                        {!isExpanded && (
-                          <span
-                            className="message-time-inline"
-                            style={{
-                              fontSize: '12.83px',
-                              color: '#00000073',
-                              marginLeft: '0',
-                              marginTop: '4px',
-                              whiteSpace: 'nowrap',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '3px',
-                              verticalAlign: 'bottom',
-                              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                              fontWeight: '300',
-                              lineHeight: '17.11px',
-                              letterSpacing: '0px'
-                            }}
-                          >
-                            <span>{formatTime(message.time)}</span>
-                            {message.isEdited && (
-                              <span style={{ fontSize: '10px', color: '#8696a0', marginLeft: '4px' }}>
-                                (editado)
+                        {/* Botón "Ver más" / "Ver menos" */}
+                        {shouldTruncate && (
+                          <div style={{ marginTop: '4px' }}>
+                            <button
+                              onClick={() => {
+                                setExpandedMessages(prev => {
+                                  const newSet = new Set(prev);
+                                  if (isExpanded) {
+                                    newSet.delete(message.id);
+                                  } else {
+                                    newSet.add(message.id);
+                                  }
+                                  return newSet;
+                                });
+                              }}
+                              style={{
+                                backgroundColor: 'transparent',
+                                border: 'none',
+                                color: '#00a884',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                padding: '0',
+                                fontWeight: '500',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '2px'
+                              }}
+                            >
+                              {isExpanded ? 'Ver menos' : 'Ver más'}
+                            </button>
+                            {/* Hora y checks cuando el mensaje está truncado */}
+                            {!isExpanded && (
+                              <span
+                                className="message-time-inline"
+                                style={{
+                                  fontSize: '12.83px',
+                                  color: '#00000073',
+                                  marginLeft: '0',
+                                  marginTop: '4px',
+                                  whiteSpace: 'nowrap',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  verticalAlign: 'bottom',
+                                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                                  fontWeight: '300',
+                                  lineHeight: '17.11px',
+                                  letterSpacing: '0px'
+                                }}
+                              >
+                                <span>{formatTime(message.time)}</span>
+                                {message.isEdited && (
+                                  <span style={{ fontSize: '10px', color: '#8696a0', marginLeft: '4px' }}>
+                                    (editado)
+                                  </span>
+                                )}
+                                {isOwnMessage && (
+                                  <>
+                                    <span
+                                      className="message-status"
+                                      style={{
+                                        color: (message.readBy && message.readBy.length > 0) ? '#27AE60' : '#8696a0',
+                                        fontSize: '11px',
+                                        cursor: isGroup ? 'pointer' : 'default',
+                                        display: 'inline-flex',
+                                        alignItems: 'center'
+                                      }}
+                                      onClick={() => {
+                                        if (isGroup && message.id) {
+                                          setShowMessageInfo(message);
+                                        }
+                                      }}
+                                      title={isGroup ? 'Ver información de lectura' : ''}
+                                    >
+                                      {message.isSent ? (
+                                        <svg viewBox="0 0 18 18" height="18" width="18" preserveAspectRatio="xMidYMid meet" version="1.1" x="0px" y="0px" enableBackground="new 0 0 18 18">
+                                          <path fill="currentColor" d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"></path>
+                                        </svg>
+                                      ) : '⏳'}
+                                    </span>
+                                  </>
+                                )}
                               </span>
                             )}
-                            {isOwnMessage && (
-                              <>
-                                <span
-                                  className="message-status"
-                                  style={{
-                                    color: (message.readBy && message.readBy.length > 0) ? '#27AE60' : '#8696a0',
-                                    fontSize: '11px',
-                                    cursor: isGroup ? 'pointer' : 'default',
-                                    display: 'inline-flex',
-                                    alignItems: 'center'
-                                  }}
-                                  onClick={() => {
-                                    if (isGroup && message.id) {
-                                      setShowMessageInfo(message);
-                                    }
-                                  }}
-                                  title={isGroup ? 'Ver información de lectura' : ''}
-                                >
-                                  {message.isSent ? (
-                                    <svg viewBox="0 0 18 18" height="18" width="18" preserveAspectRatio="xMidYMid meet" version="1.1" x="0px" y="0px" enableBackground="new 0 0 18 18">
-                                      <path fill="currentColor" d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"></path>
-                                    </svg>
-                                  ) : '⏳'}
-                                </span>
-                              </>
-                            )}
-                          </span>
+                          </div>
                         )}
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
+                      </>
+                    );
+                  })()}
                 </>
               )}
 
@@ -2361,247 +2403,247 @@ const ChatContent = ({
         {/* === 🔥 INDICADOR DE "ESTÁ ESCRIBIENDO" 🔥 === */}
         {(((!isGroup && isOtherUserTyping && typingUser) ||
           (isGroup && currentRoomCode && roomTypingUsers && roomTypingUsers[currentRoomCode] && roomTypingUsers[currentRoomCode].length > 0))) && (
-          <div className="typing-indicator-container">
-            {/* Para chats individuales */}
-            {!isGroup && isOtherUserTyping && typingUser && (
-          <div
-            className="message other-message"
-            style={{
-              display: 'flex',
-              justifyContent: 'flex-start',
-              alignItems: 'flex-end',
-              margin: '2px 0',
-              padding: '0 8px',
-              gap: '6px',
-            }}
-          >
-            {/* Avatar - Mostrar imagen si existe, sino iniciales o emoji */}
-            <div
-              className="message-avatar"
-              style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '50%',
-                background: typingUser?.picture
-                  ? `url(${typingUser.picture}) center/cover no-repeat`
-                  : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '12px',
-                flexShrink: 0,
-                marginBottom: '2px',
-                color: 'white',
-                fontWeight: '600'
-              }}
-            >
-              {!typingUser?.picture && (
-                typingUser?.nombre
-                  ? typingUser.nombre.charAt(0).toUpperCase()
-                  : (to?.charAt(0).toUpperCase() || '👤')
-              )}
-            </div>
-
-            {/* Contenedor del SVG */}
-            <div
-              className="message-content"
-              style={{
-                backgroundColor: '#E8E6F0', // Mismo color que "other-message"
-                padding: '6px 12px',
-                borderTopRightRadius: '17.11px',
-                borderBottomRightRadius: '17.11px',
-                borderBottomLeftRadius: '17.11px',
-                borderTopLeftRadius: '4px',
-                boxShadow: '0 1px 0.5px rgba(0,0,0,.13)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '2px',
-                width: 'auto',
-                height: 'auto'
-              }}
-            >
-              {/* Nombre del usuario que está escribiendo */}
-              <div
-                style={{
-                  color: '#00a884',
-                  fontSize: '11px',
-                  fontWeight: '600',
-                  marginBottom: '2px'
-                }}
-              >
-                {typingUser.nombre && typingUser.apellido
-                  ? `${typingUser.nombre} ${typingUser.apellido}`
-                  : (typingUser.nombre || typingUser.username || to)}
-              </div>
-
-              <div className="typing-svg-container">
-                {/* SVG Convertido a JSX */}
-                <svg xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" viewBox="0 0 72 72" preserveAspectRatio="xMidYMid meet" style={{ width: '100%', height: '100%', transform: 'translate3d(0px, 0px, 0px)', contentVisibility: 'visible' }}>
-                  <defs>
-                    <clipPath id="_lottie_element_352">
-                      <rect width="72" height="72" x="0" y="0"></rect>
-                    </clipPath>
-                  </defs>
-                  <g clipPath="url(#_lottie_element_352)">
-                    <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,37.752864837646484)" opacity="1">
-                      <g opacity="1" transform="matrix(1,0,0,1,-23,0)">
-                        <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7.397884368896484 C4.082892417907715,-7.397884368896484 7.397884368896484,-4.082892417907715 7.397884368896484,0 C7.397884368896484,4.082892417907715 4.082892417907715,7.397884368896484 0,7.397884368896484 C-4.082892417907715,7.397884368896484 -7.397884368896484,4.082892417907715 -7.397884368896484,0 C-7.397884368896484,-4.082892417907715 -4.082892417907715,-7.397884368896484 0,-7.397884368896484z"></path>
-                      </g>
-                    </g>
-                    <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,34.76784896850586)" opacity="1">
-                      <g opacity="1" transform="matrix(1,0,0,1,0,0)">
-                        <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
-                      </g>
-                    </g>
-                    <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,30.869281768798828)" opacity="1">
-                      <g opacity="1" transform="matrix(1,0,0,1,23,0)">
-                        <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
-                      </g>
-                    </g>
-                    <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,37.752864837646484)" opacity="1">
-                      <g opacity="1" transform="matrix(1,0,0,1,-23,0)">
-                        <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7.397884368896484 C4.082892417907715,-7.397884368896484 7.397884368896484,-4.082892417907715 7.397884368896484,0 C7.397884368896484,4.082892417907715 4.082892417907715,7.397884368896484 0,7.397884368896484 C-4.082892417907715,7.397884368896484 -7.397884368896484,4.082892417907715 -7.397884368896484,0 C-7.397884368896484,-4.082892417907715 -4.082892417907715,-7.397884368896484 0,-7.397884368896484z"></path>
-                      </g>
-                    </g>
-                    <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,34.76784896850586)" opacity="1">
-                      <g opacity="1" transform="matrix(1,0,0,1,0,0)">
-                        <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
-                      </g>
-                    </g>
-                    <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,30.869281768798828)" opacity="1">
-                      <g opacity="1" transform="matrix(1,0,0,1,23,0)">
-                        <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
-                      </g>
-                    </g>
-                  </g>
-                </svg>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Para grupos/salas - Mostrar todos los usuarios que están escribiendo */}
-        {isGroup && currentRoomCode && roomTypingUsers && roomTypingUsers[currentRoomCode] && roomTypingUsers[currentRoomCode].length > 0 && (
-          roomTypingUsers[currentRoomCode].map((typingUserInRoom, index) => (
-            <div
-              key={`typing-${typingUserInRoom.username}-${index}`}
-              className="message other-message"
-              style={{
-                display: 'flex',
-                justifyContent: 'flex-start',
-                alignItems: 'flex-end',
-                margin: '2px 0',
-                padding: '0 8px',
-                gap: '6px',
-              }}
-            >
-              {/* Avatar - Mostrar imagen si existe, sino iniciales o emoji */}
-              <div
-                className="message-avatar"
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '50%',
-                  background: typingUserInRoom?.picture
-                    ? `url(${typingUserInRoom.picture}) center/cover no-repeat`
-                    : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '12px',
-                  flexShrink: 0,
-                  marginBottom: '2px',
-                  color: 'white',
-                  fontWeight: '600'
-                }}
-              >
-                {!typingUserInRoom?.picture && (
-                  typingUserInRoom?.nombre
-                    ? typingUserInRoom.nombre.charAt(0).toUpperCase()
-                    : (typingUserInRoom.username?.charAt(0).toUpperCase() || '👤')
-                )}
-              </div>
-
-              {/* Contenedor del SVG */}
-              <div
-                className="message-content"
-                style={{
-                  backgroundColor: '#E8E6F0',
-                  padding: '6px 12px',
-                  borderTopRightRadius: '17.11px',
-                  borderBottomRightRadius: '17.11px',
-                  borderBottomLeftRadius: '17.11px',
-                  borderTopLeftRadius: '4px',
-                  boxShadow: '0 1px 0.5px rgba(0,0,0,.13)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '2px',
-                  width: 'auto',
-                  height: 'auto'
-                }}
-              >
-                {/* Nombre del usuario que está escribiendo */}
+            <div className="typing-indicator-container">
+              {/* Para chats individuales */}
+              {!isGroup && isOtherUserTyping && typingUser && (
                 <div
+                  className="message other-message"
                   style={{
-                    color: '#00a884',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    marginBottom: '2px'
+                    display: 'flex',
+                    justifyContent: 'flex-start',
+                    alignItems: 'flex-end',
+                    margin: '2px 0',
+                    padding: '0 8px',
+                    gap: '6px',
                   }}
                 >
-                  {typingUserInRoom.nombre && typingUserInRoom.apellido
-                    ? `${typingUserInRoom.nombre} ${typingUserInRoom.apellido}`
-                    : (typingUserInRoom.nombre || typingUserInRoom.username)}
-                </div>
+                  {/* Avatar - Mostrar imagen si existe, sino iniciales o emoji */}
+                  <div
+                    className="message-avatar"
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      background: typingUser?.picture
+                        ? `url(${typingUser.picture}) center/cover no-repeat`
+                        : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '12px',
+                      flexShrink: 0,
+                      marginBottom: '2px',
+                      color: 'white',
+                      fontWeight: '600'
+                    }}
+                  >
+                    {!typingUser?.picture && (
+                      typingUser?.nombre
+                        ? typingUser.nombre.charAt(0).toUpperCase()
+                        : (to?.charAt(0).toUpperCase() || '👤')
+                    )}
+                  </div>
 
-                <div className="typing-svg-container">
-                  {/* SVG Convertido a JSX */}
-                  <svg xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" viewBox="0 0 72 72" preserveAspectRatio="xMidYMid meet" style={{ width: '100%', height: '100%', transform: 'translate3d(0px, 0px, 0px)', contentVisibility: 'visible' }}>
-                    <defs>
-                      <clipPath id={`_lottie_element_${index}`}>
-                        <rect width="72" height="72" x="0" y="0"></rect>
-                      </clipPath>
-                    </defs>
-                    <g clipPath={`url(#_lottie_element_${index})`}>
-                      <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,37.752864837646484)" opacity="1">
-                        <g opacity="1" transform="matrix(1,0,0,1,-23,0)">
-                          <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7.397884368896484 C4.082892417907715,-7.397884368896484 7.397884368896484,-4.082892417907715 7.397884368896484,0 C7.397884368896484,4.082892417907715 4.082892417907715,7.397884368896484 0,7.397884368896484 C-4.082892417907715,7.397884368896484 -7.397884368896484,4.082892417907715 -7.397884368896484,0 C-7.397884368896484,-4.082892417907715 -4.082892417907715,-7.397884368896484 0,-7.397884368896484z"></path>
+                  {/* Contenedor del SVG */}
+                  <div
+                    className="message-content"
+                    style={{
+                      backgroundColor: '#E8E6F0', // Mismo color que "other-message"
+                      padding: '6px 12px',
+                      borderTopRightRadius: '17.11px',
+                      borderBottomRightRadius: '17.11px',
+                      borderBottomLeftRadius: '17.11px',
+                      borderTopLeftRadius: '4px',
+                      boxShadow: '0 1px 0.5px rgba(0,0,0,.13)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '2px',
+                      width: 'auto',
+                      height: 'auto'
+                    }}
+                  >
+                    {/* Nombre del usuario que está escribiendo */}
+                    <div
+                      style={{
+                        color: '#00a884',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        marginBottom: '2px'
+                      }}
+                    >
+                      {typingUser.nombre && typingUser.apellido
+                        ? `${typingUser.nombre} ${typingUser.apellido}`
+                        : (typingUser.nombre || typingUser.username || to)}
+                    </div>
+
+                    <div className="typing-svg-container">
+                      {/* SVG Convertido a JSX */}
+                      <svg xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" viewBox="0 0 72 72" preserveAspectRatio="xMidYMid meet" style={{ width: '100%', height: '100%', transform: 'translate3d(0px, 0px, 0px)', contentVisibility: 'visible' }}>
+                        <defs>
+                          <clipPath id="_lottie_element_352">
+                            <rect width="72" height="72" x="0" y="0"></rect>
+                          </clipPath>
+                        </defs>
+                        <g clipPath="url(#_lottie_element_352)">
+                          <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,37.752864837646484)" opacity="1">
+                            <g opacity="1" transform="matrix(1,0,0,1,-23,0)">
+                              <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7.397884368896484 C4.082892417907715,-7.397884368896484 7.397884368896484,-4.082892417907715 7.397884368896484,0 C7.397884368896484,4.082892417907715 4.082892417907715,7.397884368896484 0,7.397884368896484 C-4.082892417907715,7.397884368896484 -7.397884368896484,4.082892417907715 -7.397884368896484,0 C-7.397884368896484,-4.082892417907715 -4.082892417907715,-7.397884368896484 0,-7.397884368896484z"></path>
+                            </g>
+                          </g>
+                          <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,34.76784896850586)" opacity="1">
+                            <g opacity="1" transform="matrix(1,0,0,1,0,0)">
+                              <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
+                            </g>
+                          </g>
+                          <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,30.869281768798828)" opacity="1">
+                            <g opacity="1" transform="matrix(1,0,0,1,23,0)">
+                              <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
+                            </g>
+                          </g>
+                          <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,37.752864837646484)" opacity="1">
+                            <g opacity="1" transform="matrix(1,0,0,1,-23,0)">
+                              <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7.397884368896484 C4.082892417907715,-7.397884368896484 7.397884368896484,-4.082892417907715 7.397884368896484,0 C7.397884368896484,4.082892417907715 4.082892417907715,7.397884368896484 0,7.397884368896484 C-4.082892417907715,7.397884368896484 -7.397884368896484,4.082892417907715 -7.397884368896484,0 C-7.397884368896484,-4.082892417907715 -4.082892417907715,-7.397884368896484 0,-7.397884368896484z"></path>
+                            </g>
+                          </g>
+                          <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,34.76784896850586)" opacity="1">
+                            <g opacity="1" transform="matrix(1,0,0,1,0,0)">
+                              <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
+                            </g>
+                          </g>
+                          <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,30.869281768798828)" opacity="1">
+                            <g opacity="1" transform="matrix(1,0,0,1,23,0)">
+                              <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
+                            </g>
+                          </g>
                         </g>
-                      </g>
-                      <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,34.76784896850586)" opacity="1">
-                        <g opacity="1" transform="matrix(1,0,0,1,0,0)">
-                          <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
-                        </g>
-                      </g>
-                      <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,30.869281768798828)" opacity="1">
-                        <g opacity="1" transform="matrix(1,0,0,1,23,0)">
-                          <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
-                        </g>
-                      </g>
-                      <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,37.752864837646484)" opacity="1">
-                        <g opacity="1" transform="matrix(1,0,0,1,-23,0)">
-                          <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7.397884368896484 C4.082892417907715,-7.397884368896484 7.397884368896484,-4.082892417907715 7.397884368896484,0 C7.397884368896484,4.082892417907715 4.082892417907715,7.397884368896484 0,7.397884368896484 C-4.082892417907715,7.397884368896484 -7.397884368896484,4.082892417907715 -7.397884368896484,0 C-7.397884368896484,-4.082892417907715 -4.082892417907715,-7.397884368896484 0,-7.397884368896484z"></path>
-                        </g>
-                      </g>
-                      <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,34.76784896850586)" opacity="1">
-                        <g opacity="1" transform="matrix(1,0,0,1,0,0)">
-                          <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
-                        </g>
-                      </g>
-                      <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,30.869281768798828)" opacity="1">
-                        <g opacity="1" transform="matrix(1,0,0,1,23,0)">
-                          <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
-                        </g>
-                      </g>
-                    </g>
-                  </svg>
+                      </svg>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Para grupos/salas - Mostrar todos los usuarios que están escribiendo */}
+              {isGroup && currentRoomCode && roomTypingUsers && roomTypingUsers[currentRoomCode] && roomTypingUsers[currentRoomCode].length > 0 && (
+                roomTypingUsers[currentRoomCode].map((typingUserInRoom, index) => (
+                  <div
+                    key={`typing-${typingUserInRoom.username}-${index}`}
+                    className="message other-message"
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'flex-start',
+                      alignItems: 'flex-end',
+                      margin: '2px 0',
+                      padding: '0 8px',
+                      gap: '6px',
+                    }}
+                  >
+                    {/* Avatar - Mostrar imagen si existe, sino iniciales o emoji */}
+                    <div
+                      className="message-avatar"
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        background: typingUserInRoom?.picture
+                          ? `url(${typingUserInRoom.picture}) center/cover no-repeat`
+                          : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '12px',
+                        flexShrink: 0,
+                        marginBottom: '2px',
+                        color: 'white',
+                        fontWeight: '600'
+                      }}
+                    >
+                      {!typingUserInRoom?.picture && (
+                        typingUserInRoom?.nombre
+                          ? typingUserInRoom.nombre.charAt(0).toUpperCase()
+                          : (typingUserInRoom.username?.charAt(0).toUpperCase() || '👤')
+                      )}
+                    </div>
+
+                    {/* Contenedor del SVG */}
+                    <div
+                      className="message-content"
+                      style={{
+                        backgroundColor: '#E8E6F0',
+                        padding: '6px 12px',
+                        borderTopRightRadius: '17.11px',
+                        borderBottomRightRadius: '17.11px',
+                        borderBottomLeftRadius: '17.11px',
+                        borderTopLeftRadius: '4px',
+                        boxShadow: '0 1px 0.5px rgba(0,0,0,.13)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '2px',
+                        width: 'auto',
+                        height: 'auto'
+                      }}
+                    >
+                      {/* Nombre del usuario que está escribiendo */}
+                      <div
+                        style={{
+                          color: '#00a884',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          marginBottom: '2px'
+                        }}
+                      >
+                        {typingUserInRoom.nombre && typingUserInRoom.apellido
+                          ? `${typingUserInRoom.nombre} ${typingUserInRoom.apellido}`
+                          : (typingUserInRoom.nombre || typingUserInRoom.username)}
+                      </div>
+
+                      <div className="typing-svg-container">
+                        {/* SVG Convertido a JSX */}
+                        <svg xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" viewBox="0 0 72 72" preserveAspectRatio="xMidYMid meet" style={{ width: '100%', height: '100%', transform: 'translate3d(0px, 0px, 0px)', contentVisibility: 'visible' }}>
+                          <defs>
+                            <clipPath id={`_lottie_element_${index}`}>
+                              <rect width="72" height="72" x="0" y="0"></rect>
+                            </clipPath>
+                          </defs>
+                          <g clipPath={`url(#_lottie_element_${index})`}>
+                            <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,37.752864837646484)" opacity="1">
+                              <g opacity="1" transform="matrix(1,0,0,1,-23,0)">
+                                <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7.397884368896484 C4.082892417907715,-7.397884368896484 7.397884368896484,-4.082892417907715 7.397884368896484,0 C7.397884368896484,4.082892417907715 4.082892417907715,7.397884368896484 0,7.397884368896484 C-4.082892417907715,7.397884368896484 -7.397884368896484,4.082892417907715 -7.397884368896484,0 C-7.397884368896484,-4.082892417907715 -4.082892417907715,-7.397884368896484 0,-7.397884368896484z"></path>
+                              </g>
+                            </g>
+                            <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,34.76784896850586)" opacity="1">
+                              <g opacity="1" transform="matrix(1,0,0,1,0,0)">
+                                <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
+                              </g>
+                            </g>
+                            <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,30.869281768798828)" opacity="1">
+                              <g opacity="1" transform="matrix(1,0,0,1,23,0)">
+                                <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
+                              </g>
+                            </g>
+                            <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,37.752864837646484)" opacity="1">
+                              <g opacity="1" transform="matrix(1,0,0,1,-23,0)">
+                                <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7.397884368896484 C4.082892417907715,-7.397884368896484 7.397884368896484,-4.082892417907715 7.397884368896484,0 C7.397884368896484,4.082892417907715 4.082892417907715,7.397884368896484 0,7.397884368896484 C-4.082892417907715,7.397884368896484 -7.397884368896484,4.082892417907715 -7.397884368896484,0 C-7.397884368896484,-4.082892417907715 -4.082892417907715,-7.397884368896484 0,-7.397884368896484z"></path>
+                              </g>
+                            </g>
+                            <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,34.76784896850586)" opacity="1">
+                              <g opacity="1" transform="matrix(1,0,0,1,0,0)">
+                                <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
+                              </g>
+                            </g>
+                            <g style={{ display: 'block' }} transform="matrix(1,0,0,1,35.875,30.869281768798828)" opacity="1">
+                              <g opacity="1" transform="matrix(1,0,0,1,23,0)">
+                                <path fill="rgb(196,82,44)" fillOpacity="1" d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"></path>
+                              </g>
+                            </g>
+                          </g>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
-          ))
-        )}
-          </div>
-        )}
+          )}
       </div>
 
       <div className="chat-input-container">
@@ -2610,7 +2652,7 @@ const ChatContent = ({
             {mediaPreviews.map((preview, index) => {
               // Función para obtener el ícono según el tipo de archivo
               const getFileIcon = (type) => {
-                switch(type) {
+                switch (type) {
                   case 'image': return '🖼️';
                   case 'pdf': return '📄';
                   case 'video': return '🎥';
@@ -2712,7 +2754,7 @@ const ChatContent = ({
               disabled={!canSendMessages}
             />
             <svg className="attach-icon" width="24" height="24" viewBox="0 0 15 17" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-              <path d="M0.50407 7.51959C0.370931 7.38644 0.296136 7.20586 0.296136 7.01756C0.296136 6.82927 0.370931 6.64869 0.50407 6.51554L5.52325 1.49956C5.98225 1.02877 6.53016 0.653797 7.1352 0.396398C7.74024 0.138999 8.39037 0.00429558 9.04787 0.000101073C9.70538 -0.00409343 10.3572 0.122304 10.9654 0.371963C11.5737 0.621622 12.1264 0.989572 12.5913 1.45447C13.0563 1.91937 13.4243 2.47196 13.6741 3.0802C13.9238 3.68844 14.0503 4.34021 14.0463 4.99772C14.0422 5.65522 13.9076 6.30537 13.6502 6.91045C13.3929 7.51553 13.018 8.0635 12.5473 8.52257L6.02474 15.0452C5.35651 15.6967 4.45843 16.0588 3.52511 16.0528C2.5918 16.0468 1.69843 15.6733 1.03861 15.0132C0.378784 14.3531 0.00564932 13.4596 6.36217e-05 12.5262C-0.00552208 11.5929 0.356891 10.695 1.00877 10.027L6.5273 4.5085C6.92821 4.11717 7.46721 3.89963 8.02744 3.90306C8.58767 3.90649 9.12397 4.13061 9.52005 4.52683C9.91613 4.92306 10.1401 5.45943 10.1433 6.01966C10.1465 6.5799 9.9288 7.11882 9.53731 7.51959L5.52325 11.5326C5.39025 11.6656 5.20986 11.7403 5.02176 11.7403C4.83367 11.7403 4.65327 11.6656 4.52027 11.5326C4.38727 11.3996 4.31255 11.2192 4.31255 11.0311C4.31255 10.843 4.38727 10.6626 4.52027 10.5296L8.53326 6.51554C8.59912 6.44968 8.65136 6.3715 8.687 6.28545C8.72264 6.1994 8.74099 6.10718 8.74099 6.01405C8.74099 5.92091 8.72264 5.82869 8.687 5.74264C8.65136 5.65659 8.59912 5.57841 8.53326 5.51256C8.46741 5.4467 8.38922 5.39446 8.30318 5.35882C8.21713 5.32318 8.12491 5.30483 8.03177 5.30483C7.93864 5.30483 7.84641 5.32318 7.76037 5.35882C7.67432 5.39446 7.59614 5.4467 7.53028 5.51256L2.01175 11.0311C1.6126 11.4302 1.38836 11.9716 1.38836 12.5361C1.38836 12.8156 1.44341 13.0924 1.55037 13.3506C1.65733 13.6088 1.81411 13.8435 2.01175 14.0411C2.20939 14.2387 2.44402 14.3955 2.70225 14.5025C2.96048 14.6094 3.23725 14.6645 3.51676 14.6645C4.08124 14.6645 4.62261 14.4403 5.02176 14.0411L11.5443 7.51852C11.8868 7.19206 12.1604 6.80042 12.3493 6.36663C12.5381 5.93285 12.6382 5.46567 12.6438 4.99261C12.6494 4.51954 12.5603 4.05013 12.3818 3.612C12.2033 3.17386 11.939 2.77586 11.6044 2.4414C11.2698 2.10693 10.8717 1.84277 10.4335 1.66445C9.99526 1.48613 9.52581 1.39726 9.05274 1.40305C8.57968 1.40885 8.11255 1.5092 7.67884 1.69821C7.24514 1.88721 6.85361 2.16105 6.5273 2.50361L1.51026 7.51959C1.37715 7.6524 1.1968 7.72699 1.00877 7.72699C0.820736 7.72699 0.640383 7.6524 0.507278 7.51959"/>
+              <path d="M0.50407 7.51959C0.370931 7.38644 0.296136 7.20586 0.296136 7.01756C0.296136 6.82927 0.370931 6.64869 0.50407 6.51554L5.52325 1.49956C5.98225 1.02877 6.53016 0.653797 7.1352 0.396398C7.74024 0.138999 8.39037 0.00429558 9.04787 0.000101073C9.70538 -0.00409343 10.3572 0.122304 10.9654 0.371963C11.5737 0.621622 12.1264 0.989572 12.5913 1.45447C13.0563 1.91937 13.4243 2.47196 13.6741 3.0802C13.9238 3.68844 14.0503 4.34021 14.0463 4.99772C14.0422 5.65522 13.9076 6.30537 13.6502 6.91045C13.3929 7.51553 13.018 8.0635 12.5473 8.52257L6.02474 15.0452C5.35651 15.6967 4.45843 16.0588 3.52511 16.0528C2.5918 16.0468 1.69843 15.6733 1.03861 15.0132C0.378784 14.3531 0.00564932 13.4596 6.36217e-05 12.5262C-0.00552208 11.5929 0.356891 10.695 1.00877 10.027L6.5273 4.5085C6.92821 4.11717 7.46721 3.89963 8.02744 3.90306C8.58767 3.90649 9.12397 4.13061 9.52005 4.52683C9.91613 4.92306 10.1401 5.45943 10.1433 6.01966C10.1465 6.5799 9.9288 7.11882 9.53731 7.51959L5.52325 11.5326C5.39025 11.6656 5.20986 11.7403 5.02176 11.7403C4.83367 11.7403 4.65327 11.6656 4.52027 11.5326C4.38727 11.3996 4.31255 11.2192 4.31255 11.0311C4.31255 10.843 4.38727 10.6626 4.52027 10.5296L8.53326 6.51554C8.59912 6.44968 8.65136 6.3715 8.687 6.28545C8.72264 6.1994 8.74099 6.10718 8.74099 6.01405C8.74099 5.92091 8.72264 5.82869 8.687 5.74264C8.65136 5.65659 8.59912 5.57841 8.53326 5.51256C8.46741 5.4467 8.38922 5.39446 8.30318 5.35882C8.21713 5.32318 8.12491 5.30483 8.03177 5.30483C7.93864 5.30483 7.84641 5.32318 7.76037 5.35882C7.67432 5.39446 7.59614 5.4467 7.53028 5.51256L2.01175 11.0311C1.6126 11.4302 1.38836 11.9716 1.38836 12.5361C1.38836 12.8156 1.44341 13.0924 1.55037 13.3506C1.65733 13.6088 1.81411 13.8435 2.01175 14.0411C2.20939 14.2387 2.44402 14.3955 2.70225 14.5025C2.96048 14.6094 3.23725 14.6645 3.51676 14.6645C4.08124 14.6645 4.62261 14.4403 5.02176 14.0411L11.5443 7.51852C11.8868 7.19206 12.1604 6.80042 12.3493 6.36663C12.5381 5.93285 12.6382 5.46567 12.6438 4.99261C12.6494 4.51954 12.5603 4.05013 12.3818 3.612C12.2033 3.17386 11.939 2.77586 11.6044 2.4414C11.2698 2.10693 10.8717 1.84277 10.4335 1.66445C9.99526 1.48613 9.52581 1.39726 9.05274 1.40305C8.57968 1.40885 8.11255 1.5092 7.67884 1.69821C7.24514 1.88721 6.85361 2.16105 6.5273 2.50361L1.51026 7.51959C1.37715 7.6524 1.1968 7.72699 1.00877 7.72699C0.820736 7.72699 0.640383 7.6524 0.507278 7.51959" />
             </svg>
           </label>
 
@@ -2846,10 +2888,10 @@ const ChatContent = ({
                   const username = typeof user === 'string' ? user : (user.username || user.nombre || user);
                   return username.toLowerCase().includes(mentionSearch) && username !== currentUsername;
                 }).length === 0 && (
-                  <div style={{ padding: '16px', textAlign: 'center', color: '#6b7280', fontSize: '14px' }}>
-                    No se encontraron usuarios
-                  </div>
-                )}
+                    <div style={{ padding: '16px', textAlign: 'center', color: '#6b7280', fontSize: '14px' }}>
+                      No se encontraron usuarios
+                    </div>
+                  )}
               </div>
             )}
           </div>

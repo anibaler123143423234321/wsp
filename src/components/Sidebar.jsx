@@ -51,6 +51,7 @@ const Sidebar = ({
   sidebarCollapsed,
   onToggleCollapse,
   roomTypingUsers = {},
+  showSidebar = false, // 🔥 NUEVO: Para controlar el overlay del LeftSidebar en mobile
   // 🔥 NUEVOS PROPS para paginación real
   assignedPage = 1,
   assignedTotal = 0,
@@ -124,11 +125,12 @@ const Sidebar = ({
         />
       </div>
 
-      {/* Mobile: Solo ConversationList (LeftSidebar se muestra como overlay desde ChatLayout) */}
+      {/* Mobile: Solo ConversationList */}
       {/* Se oculta cuando hay un chat seleccionado (to existe) */}
       {!to && (
-        <div className="hidden max-[768px]:block w-full h-screen bg-white">
-          <ConversationList
+        <div className="hidden max-[768px]:block fixed inset-0 overflow-hidden">
+          <div className="w-full h-screen bg-white">
+            <ConversationList
             user={user}
             userList={userList}
             assignedConversations={assignedConversations}
@@ -160,8 +162,27 @@ const Sidebar = ({
             roomsLoading={roomsLoading}
             onLoadUserRooms={onLoadUserRooms}
           />
+          </div>
         </div>
       )}
+
+      {/* LeftSidebar overlay para mobile */}
+      <div className={`hidden max-[768px]:block fixed left-0 top-0 h-full z-[101] transition-transform duration-300 ease-in-out ${showSidebar ? 'translate-x-0' : '-translate-x-full'}`}>
+        <LeftSidebar
+          user={user}
+          onShowCreateRoom={onShowCreateRoom}
+          onShowJoinRoom={onShowJoinRoom}
+          onShowAdminRooms={onShowAdminRooms}
+          onShowCreateConversation={onShowCreateConversation}
+          onShowManageConversations={onShowManageConversations}
+          showAdminMenu={showAdminMenu}
+          setShowAdminMenu={setShowAdminMenu}
+          onLogout={onLogout}
+          onToggleSidebar={onToggleSidebar}
+          isCollapsed={false}
+          onToggleCollapse={null}
+        />
+      </div>
     </>
   );
 };

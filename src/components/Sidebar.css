@@ -1,50 +1,48 @@
 /* Sidebar responsive container */
 .sidebar-responsive-container {
-  width: 669.85px;
+  display: flex;
+  flex-direction: row;
+  width: 580px;
   min-width: 240px;
-  max-width: 669.85px;
-  flex-shrink: 0;
+  max-width: 580px;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Estado colapsado: LeftSidebar 70px + ConversationList 436.63px = 506.63px */
+/* Estado colapsado: LeftSidebar 90px + ConversationList 360px = 450px */
 .sidebar-responsive-container.collapsed {
-  width: 506.63px;
-  max-width: 506.63px;
+  width: 450px;
+  max-width: 450px;
 }
 
 /* En 1400px: ancho completo (ambos sidebars) */
 @media (max-width: 1400px) {
   .sidebar-responsive-container {
-    width: 669.85px;
-    max-width: 669.85px;
+    width: 580px;
+    max-width: 580px;
   }
 }
 
-/* En 1280px: LeftSidebar 70px + ConversationList 230px = 300px (más compacto) */
+/* En 1280px: LeftSidebar 90px + ConversationList 250px = 340px (más compacto para tablets) */
 @media (max-width: 1280px) {
   .sidebar-responsive-container {
-    width: 300px;
-    max-width: 300px;
-    min-width: 300px;
+    width: 340px;
+    max-width: 340px;
+    min-width: 340px;
   }
 }
 
-/* En 1024px: LeftSidebar 70px + ConversationList 210px = 280px (aún más compacto) */
+/* En 1024px: LeftSidebar 90px + ConversationList 250px = 340px (mantener para tablets pequeñas) */
 @media (max-width: 1024px) {
   .sidebar-responsive-container {
-    width: 280px;
-    max-width: 280px;
-    min-width: 280px;
+    width: 340px;
+    max-width: 340px;
+    min-width: 340px;
   }
 }
 
-/* En 768px y menos: full width */
+/* En 768px y menos: ocultar el contenedor desktop */
 @media (max-width: 768px) {
   .sidebar-responsive-container {
-    width: 100%;
-    max-width: 100%;
-    min-width: 100%;
+    display: none !important;
   }
 }
-

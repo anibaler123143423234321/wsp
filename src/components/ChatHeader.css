@@ -15,16 +15,20 @@
 
 @media (max-width: 900px) {
   .chat-header {
-    height: 60px; /* Aumentado para permitir 2 líneas */
+    height: 60px;
+    /* Aumentado para permitir 2 líneas */
     padding: 0 8px;
   }
+
   .chat-header-content {
     padding: 0 8px;
   }
+
   .chat-title {
     font-size: 14px;
     line-height: 1.2;
   }
+
   .chat-subtitle {
     font-size: 12px;
   }
@@ -36,23 +40,27 @@
     min-height: 64px;
     padding: 10px 12px;
   }
+
   .chat-header-content {
     padding: 0;
     gap: 10px;
     flex-wrap: nowrap;
     align-items: center;
   }
+
   .chat-header-info {
     min-width: 0;
     flex: 1;
     overflow: hidden;
     gap: 8px;
   }
+
   .chat-user-info {
     min-width: 0;
     flex: 1;
     overflow: hidden;
   }
+
   .chat-title {
     font-size: 14px;
     font-weight: 600;
@@ -63,16 +71,19 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
   .chat-subtitle {
     font-size: 11px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
+
   /* Ocultar avatares de miembros */
   .room-members-avatars {
     display: none;
   }
+
   .chat-header-actions {
     flex-shrink: 0;
   }
@@ -136,18 +147,24 @@
 
 /* Avatar del usuario/grupo */
 .chat-avatar {
-  width: 38px; /* O el tamaño que ya tengas definido */
-  height: 38px; /* O el tamaño que ya tengas definido */
-  border-radius: 50%; /* Para que sea circular */
+  width: 38px;
+  /* O el tamaño que ya tengas definido */
+  height: 38px;
+  /* O el tamaño que ya tengas definido */
+  border-radius: 50%;
+  /* Para que sea circular */
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: white; /* ¡CAMBIO AQUÍ! Fondo blanco */
-  border: 1px solid #e0e0e0; /* Opcional: un borde sutil para que se destaque si el fondo principal es blanco */
+  background-color: white;
+  /* ¡CAMBIO AQUÍ! Fondo blanco */
+  border: 1px solid #e0e0e0;
+  /* Opcional: un borde sutil para que se destaque si el fondo principal es blanco */
 }
 
 .chat-avatar svg path {
-  fill: #606263 !important; /* <-- Asegúrate de que esta regla exista */
+  fill: #606263 !important;
+  /* <-- Asegúrate de que esta regla exista */
 }
 
 .chat-avatar-img {
@@ -209,6 +226,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -238,7 +256,8 @@
 
 .group-icon,
 .user-icon {
-  display: none; /* Ocultamos los iconos ya que usamos avatar */
+  display: none;
+  /* Ocultamos los iconos ya que usamos avatar */
 }
 
 .chat-title .room-code,
@@ -255,6 +274,8 @@
   font-family: "Courier New", monospace;
   letter-spacing: 0.3px;
   display: inline-block;
+  -webkit-text-fill-color: #00a884 !important;
+  /* 🔥 FIX: Asegurar que el texto sea visible */
 }
 
 .chat-subtitle {
@@ -926,10 +947,13 @@
 }
 
 @keyframes typingPulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.6;
     transform: scale(1);
   }
+
   50% {
     opacity: 1;
     transform: scale(1.1);
@@ -940,6 +964,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
