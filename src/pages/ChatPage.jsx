@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import Swal from 'sweetalert2';
 import ChatLayout from "../layouts/ChatLayout";
 import Login from "../components/Login";
 import LoadingScreen from "../components/LoadingScreen";
@@ -162,6 +163,35 @@ const ChatPage = () => {
   // Referencias
   const currentRoomCodeRef = useRef(null);
   const hasRestoredRoom = useRef(false);
+
+  // 🔥 EFFECT: Actualizar título de la pestaña con contador de no leídos
+  useEffect(() => {
+    // 1. Contar no leídos de conversaciones asignadas
+    // Filtrar conversaciones donde el usuario es participante
+    const myAssignedConversations = assignedConversations.filter(conv => {
+      const displayName = user?.nombre && user?.apellido
+        ? `${user.nombre} ${user.apellido}`
+        : user?.username;
+      return conv.participants?.includes(displayName);
+    });
+    const unreadAssignedCount = myAssignedConversations.filter(conv => conv.unreadCount > 0).length;
+
+    // 2. Contar no leídos de salas activas
+    const unreadRoomsCount = myActiveRooms?.filter(room => {
+      const roomUnread = unreadMessages?.[room.roomCode] || 0;
+      return roomUnread > 0;
+    }).length || 0;
+
+    // 3. Total
+    const totalUnread = unreadAssignedCount + unreadRoomsCount;
+
+    // 4. Actualizar título
+    if (totalUnread > 0) {
+      document.title = `(${totalUnread}) Chat Call Center +34`;
+    } else {
+      document.title = 'Chat Call Center +34';
+    }
+  }, [assignedConversations, myActiveRooms, unreadMessages, user]);
 
   // Efecto para escuchar eventos de conexión del socket
   useEffect(() => {
@@ -905,6 +935,28 @@ const ChatPage = () => {
 
       const dateTimeString = data.sentAt || new Date().toISOString();
 
+      // 🔥 Notificación Toast (SweetAlert2)
+      // Mostrar si el mensaje NO es propio
+      if (data.from !== username && data.from !== currentUserFullName) {
+        const Toast = Swal.mixin({
+          toast: true,
+          position: 'bottom-end',
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true,
+          didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer)
+            toast.addEventListener('mouseleave', Swal.resumeTimer)
+          }
+        });
+
+        Toast.fire({
+          icon: 'info',
+          title: `Nuevo mensaje de ${data.from}`,
+          text: data.message || (data.fileName ? '📎 Archivo adjunto' : 'Mensaje recibido')
+        });
+      }
+
       if (data.isGroup) {
         // 🔥 CRÍTICO: Verificar que el usuario esté viendo el grupo correcto
         // Para salas temporales (con roomCode), verificar por roomCode
@@ -919,20 +971,7 @@ const ChatPage = () => {
           isViewingCorrectGroup = isGroup && to === data.group;
         }
 
-        // console.log('🔍 Verificando grupo:', {
-        //   isGroup,
-        //   currentRoomCode,
-        //   dataRoomCode: data.roomCode,
-        //   messageFrom: data.from,
-        //   isViewingCorrectGroup,
-        //   to,
-        //   dataGroup: data.group,
-        //   verificationType: currentRoomCode && data.roomCode ? 'roomCode' : 'groupName'
-        // });
-
         if (!isViewingCorrectGroup) {
-          // console.log('⚠️ Mensaje de grupo recibido pero el usuario no está viendo ese grupo.');
-
           // 🔥 NUEVO: Actualizar contador de mensajes no leídos para esta sala
           if (data.roomCode && data.from !== currentUserFullName) {
             setUnreadMessages((prev) => ({
@@ -973,30 +1012,9 @@ const ChatPage = () => {
           return; // No procesar el mensaje para el chat actual
         }
 
-        // 🔥 Verificar si ya existe un mensaje para evitar duplicados
-        // Buscar por ID primero (si es un ID numérico del backend)
-        let existingMessage = messages.find((msg) => msg.id === data.id);
-
-        // Si no se encuentra por ID, buscar por combinación de from, to, message y sentAt
-        // Esto evita duplicados cuando el frontend usa IDs temporales
-        if (!existingMessage && data.from && data.message && data.sentAt) {
-          existingMessage = messages.find(
-            (msg) =>
-              msg.realSender === data.from &&
-              msg.text === data.message &&
-              msg.sentAt === data.sentAt
-          );
-        }
-
-        if (existingMessage) {
-          return;
-        }
-
         // Determinar si es mensaje propio o de otro usuario
         const isOwnMessage =
           data.from === username || data.from === currentUserFullName;
-
-        // console.log(`📨 Mensaje de grupo recibido del backend - Propio: ${isOwnMessage}, ID: ${data.id}`);
 
         const newMessage = {
           id: data.id,
@@ -1023,6 +1041,7 @@ const ChatPage = () => {
           reactions: data.reactions || [],
         };
 
+        // 🔥 Usar addNewMessage directamente (ya maneja duplicados)
         addNewMessage(newMessage);
 
         // 🔥 NUEVO: Actualizar el lastMessage en myActiveRooms
@@ -1056,70 +1075,6 @@ const ChatPage = () => {
 
         return;
       } else {
-        // 🔥 DEBUG: Loguear datos del mensaje individual
-        // console.log('📨 Mensaje individual recibido - Datos completos:', {
-        //   id: data.id,
-        //   from: data.from,
-        //   to: data.to,
-        //   message: data.message?.substring(0, 50),
-        //   isGroup: data.isGroup,
-        //   adminViewConversation: adminViewConversation?.name
-        // });
-
-        // 🔥 PRIMERO: Verificar si ya existe un mensaje para evitar duplicados
-        // Buscar por ID primero (si es un ID numérico del backend)
-        let existingMessage = null;
-        if (data.id) {
-          existingMessage = messages.find((msg) => msg.id === data.id);
-        }
-
-        // Si no se encuentra por ID, buscar por combinación de from, to, message y time
-        if (!existingMessage && data.from && data.message) {
-          existingMessage = messages.find(
-            (msg) =>
-              msg.realSender === data.from &&
-              msg.text === data.message &&
-              msg.time === data.time
-          );
-        }
-
-        if (existingMessage) {
-          console.log("✅ Mensaje individual ya existe, ignorando duplicado", {
-            existingId: existingMessage.id,
-            newId: data.id,
-            from: data.from,
-            message: data.message?.substring(0, 30),
-          });
-          return;
-        }
-
-        // Ignorar mensajes individuales que vienen del servidor si son nuestros propios mensajes
-        console.log("🔍 Verificando si es mensaje propio:", {
-          dataFrom: data.from,
-          username,
-          currentUserFullName,
-          isOwnMessage:
-            data.from === username || data.from === currentUserFullName,
-        });
-
-        // 🔥 MODIFICADO: Ya NO ignoramos mensajes propios porque ahora NO se agregan localmente
-        // Esperamos a que vuelvan del servidor para mostrarlos
-        /*
-        if (data.from === username || data.from === currentUserFullName) {
-          console.log("✅ Ignorando mensaje propio que vino del servidor");
-          return;
-        }
-        */
-
-        // console.log('📨 Mensaje individual recibido:', {
-        //   from: data.from,
-        //   to: data.to,
-        //   currentTo: to,
-        //   isGroup: isGroup,
-        //   currentRoomCode: currentRoomCode,
-        //   message: data.message?.substring(0, 50)
-        // });
-
         // 🔥 IMPORTANTE: Solo agregar el mensaje si el usuario está viendo el chat correcto
         let isViewingCorrectChat = false;
 
@@ -1135,13 +1090,6 @@ const ChatPage = () => {
             );
 
           isViewingCorrectChat = isMessageFromParticipants;
-
-          // console.log('🔍 Conversación asignada:', {
-          //   participants,
-          //   messageFrom: data.from,
-          //   messageTo: data.to,
-          //   isMessageFromParticipants
-          // });
         } else {
           // 🔥 Si NO estás viendo una conversación asignada, verificar que sea tu chat directo
           // Puede ser un mensaje recibido (from = to actual) O un mensaje enviado (to = to actual)
@@ -1157,11 +1105,7 @@ const ChatPage = () => {
             );
         }
 
-        // console.log('🔍 ¿Está viendo el chat correcto?', isViewingCorrectChat);
-
         if (!isViewingCorrectChat) {
-          // console.log('⚠️ Usuario no está viendo el chat correcto. No se agrega el mensaje a la vista actual.');
-
           // 🔥 Actualizar el preview del último mensaje en la lista de conversaciones asignadas
           setAssignedConversations((prevConversations) => {
             return prevConversations.map((conv) => {
@@ -1174,8 +1118,6 @@ const ChatPage = () => {
                 data.from.toLowerCase().trim();
 
               if (isThisConversation) {
-                // console.log('🔄 Actualizando preview de conversación:', conv.name);
-
                 // 🔥 IMPORTANTE: Solo incrementar el contador si el usuario es participante
                 // En monitoreo, el contador viene del backend y no debe ser modificado
                 const isUserParticipant =
@@ -1276,7 +1218,7 @@ const ChatPage = () => {
         // Agregar información de reacciones
         newMessage.reactions = data.reactions || [];
 
-        // console.log('✅ Agregando mensaje a la vista actual');
+        // 🔥 Usar addNewMessage directamente (ya maneja duplicados)
         addNewMessage(newMessage);
 
         // 🔥 IMPORTANTE: También actualizar el preview en la lista de conversaciones
@@ -2058,7 +2000,6 @@ const ChatPage = () => {
     setCurrentRoomCode,
     user,
     loadMyActiveRooms,
-    messages,
     threadMessage,
     userList,
   ]);

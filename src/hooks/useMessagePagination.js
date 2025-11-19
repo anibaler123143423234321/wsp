@@ -233,34 +233,13 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     setMessages((prevMessages) => {
       // Verificar si el mensaje ya existe (evitar duplicados)
       const messageExists = prevMessages.some((msg) => {
-        // Comparar por ID si ambos lo tienen
-        if (msg.id && message.id && msg.id === message.id) {
-          return true;
+        // Comparar por ID si ambos lo tienen (convertir a string para asegurar comparación correcta)
+        if (msg.id && message.id) {
+          return String(msg.id) === String(message.id);
         }
 
-        // Para mensajes sin ID, comparar contenido y contexto
-        const sameText = msg.text === message.text;
-        const sameSender = msg.sender === message.sender;
-        const sameReceiver = msg.receiver === message.receiver;
-        const sameGroup = msg.isGroup === message.isGroup;
-
-        // Si es el mismo texto, sender, receiver y tipo (grupo/individual)
-        // considerarlo duplicado solo si el tiempo es muy cercano (dentro de 5 segundos)
-        if (sameText && sameSender && sameReceiver && sameGroup) {
-          // Si no hay tiempo, asumir que es duplicado
-          if (!msg.time || !message.time) {
-            return true;
-          }
-
-          // Comparar tiempos (formato HH:MM)
-          const timeDiff = Math.abs(
-            timeToMinutes(msg.time) - timeToMinutes(message.time)
-          );
-
-          // Si la diferencia es menor a 1 minuto, es duplicado
-          return timeDiff < 1;
-        }
-
+        // Para mensajes sin ID, permitir que pasen (el usuario prefiere ver duplicados a perder mensajes)
+        // Esto soluciona problemas con hilos y mensajes rápidos
         return false;
       });
 
