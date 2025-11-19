@@ -56,7 +56,8 @@ const ChatContent = ({
   isAdmin = false,
   isOtherUserTyping,
   typingUser,
-  roomTypingUsers
+  roomTypingUsers,
+  isUploadingFile // 🔥 Prop para estado de carga de archivos
 }) => {
   const chatHistoryRef = useRef(null);
   const isUserScrollingRef = useRef(false);
@@ -2798,14 +2799,46 @@ const ChatContent = ({
           />
 
           <div style={{ position: 'relative', flex: 1 }}>
+            {/* 🔥 Loading overlay cuando se sube un archivo */}
+            {isUploadingFile && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 10,
+                borderRadius: '12px',
+                color: '#00a884',
+                fontWeight: '500',
+                fontSize: '14px',
+                backdropFilter: 'blur(2px)'
+              }}>
+                <div style={{
+                  width: '16px',
+                  height: '16px',
+                  border: '2px solid #00a884',
+                  borderRightColor: 'transparent',
+                  borderRadius: '50%',
+                  animation: 'spin 0.75s linear infinite',
+                  marginRight: '8px'
+                }}></div>
+                Subiendo archivo...
+              </div>
+            )}
+
             <textarea
               ref={inputRef}
               value={input}
               onChange={handleInputChange}
               onKeyDown={handleKeyPress}
-              placeholder={canSendMessages ? "Escribe un mensaje" : "Solo puedes monitorear esta conversación"}
+              placeholder={isUploadingFile ? "Subiendo archivo..." : (canSendMessages ? "Escribe un mensaje" : "Solo puedes monitorear esta conversación")}
               className="message-input"
-              disabled={isRecording || !canSendMessages}
+              disabled={isRecording || !canSendMessages || isUploadingFile}
             />
 
             {/* Sugerencias de menciones */}
@@ -2899,7 +2932,7 @@ const ChatContent = ({
           <button
             onClick={onSendMessage}
             className="btn-send"
-            disabled={!input && mediaFiles.length === 0 || !canSendMessages}
+            disabled={!input && mediaFiles.length === 0 || !canSendMessages || isUploadingFile}
             title={canSendMessages ? "Enviar mensaje" : "No puedes enviar mensajes en esta conversación"}
           >
             <span className="send-text">Enviar mensaje</span>

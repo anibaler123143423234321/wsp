@@ -62,7 +62,10 @@ const Sidebar = ({
   roomsTotal = 0,
   roomsTotalPages = 0,
   roomsLoading = false,
-  onLoadUserRooms
+  onLoadUserRooms,
+  roomsLimit = 10,
+  onRoomsLimitChange,
+  onGoToRoomsPage
 }) => {
   return (
     <>
@@ -122,6 +125,9 @@ const Sidebar = ({
           roomsTotalPages={roomsTotalPages}
           roomsLoading={roomsLoading}
           onLoadUserRooms={onLoadUserRooms}
+          roomsLimit={roomsLimit}
+          onRoomsLimitChange={onRoomsLimitChange}
+          onGoToRoomsPage={onGoToRoomsPage}
         />
       </div>
 
@@ -161,6 +167,9 @@ const Sidebar = ({
             roomsTotalPages={roomsTotalPages}
             roomsLoading={roomsLoading}
             onLoadUserRooms={onLoadUserRooms}
+            roomsLimit={roomsLimit}
+            onRoomsLimitChange={onRoomsLimitChange}
+            onGoToRoomsPage={onGoToRoomsPage}
           />
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { FaTimes, FaBars, FaSignInAlt, FaStar, FaRegStar, FaChevronDown, FaChevronRight } from 'react-icons/fa';
+import { FaTimes, FaBars, FaSignInAlt, FaStar, FaRegStar, FaChevronDown, FaChevronRight, FaChevronLeft, FaArrowRight } from 'react-icons/fa';
 import { MessageSquare, Home, Users } from 'lucide-react';
 import clsx from 'clsx';
 import apiService from '../apiService';
@@ -128,7 +128,10 @@ const ConversationList = ({
   roomsTotal = 0,
   roomsTotalPages = 0,
   roomsLoading = false,
-  onLoadUserRooms
+  onLoadUserRooms,
+  roomsLimit = 10,
+  onRoomsLimitChange,
+  onGoToRoomsPage
 }) => {
   // 🔥 Módulo activo por defecto: 'chats' (Asignados + Grupos fusionados)
   const [activeModule, setActiveModule] = useState('chats');
@@ -144,8 +147,52 @@ const ConversationList = ({
   const [showGroups, setShowGroups] = useState(true);
   const [showAssigned, setShowAssigned] = useState(true);
   const searchTimeoutRef = useRef(null);
+  const [roomsLimitInput, setRoomsLimitInput] = useState(roomsLimit || 10);
+  const [roomsPageInput, setRoomsPageInput] = useState(roomsPage || 1);
 
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'JEFEPISO';
+
+  useEffect(() => {
+    setRoomsLimitInput(roomsLimit || 10);
+  }, [roomsLimit]);
+
+  useEffect(() => {
+    setRoomsPageInput(roomsPage || 1);
+  }, [roomsPage]);
+
+  const handleRoomsLimitChange = (value) => {
+    if (!value) return;
+    const parsed = Math.max(5, Math.min(50, Number(value) || roomsLimit));
+    setRoomsLimitInput(parsed);
+    if (onRoomsLimitChange) {
+      onRoomsLimitChange(parsed);
+    }
+  };
+
+  const handleRoomsPageSubmit = (e) => {
+    e.preventDefault();
+    if (!onGoToRoomsPage) return;
+    const safeTotalPages = roomsTotalPages > 0 ? roomsTotalPages : Math.max(roomsPage || 1, 1);
+    const parsed = Math.max(1, Math.min(safeTotalPages, Number(roomsPageInput) || roomsPage || 1));
+    onGoToRoomsPage(parsed);
+  };
+
+  const handleRoomsPageChange = (value) => {
+    setRoomsPageInput(value);
+  };
+
+  const handlePrevRoomsPage = () => {
+    if (onGoToRoomsPage && roomsPage > 1) {
+      onGoToRoomsPage(roomsPage - 1);
+    }
+  };
+
+  const handleNextRoomsPage = () => {
+    const safeTotalPages = roomsTotalPages > 0 ? roomsTotalPages : Math.max(roomsPage || 1, 1);
+    if (onGoToRoomsPage && roomsPage < safeTotalPages) {
+      onGoToRoomsPage(roomsPage + 1);
+    }
+  };
 
   // Obtener el displayName del usuario
   const getDisplayName = () => {
@@ -441,7 +488,7 @@ const ConversationList = ({
       </div>
 
       {/* Botón home para desktop - solo visible cuando LeftSidebar está colapsado */}
-  
+
 
       {/* Pestañas de módulos - Diseño más compacto */}
       <div
@@ -711,6 +758,18 @@ const ConversationList = ({
 
                 // 🔥 PAGINACIÓN REAL: Usar datos del backend
                 const hasMoreRooms = roomsPage < roomsTotalPages;
+                const hasPrevRooms = roomsPage > 1;
+                const totalRoomsCount = roomsTotal ?? filteredRooms.length;
+                const numericRoomsLimit = Number(roomsLimit) || roomsLimitInput || 10;
+                const displayPage = roomsTotalPages > 0 ? roomsPage : (filteredRooms.length > 0 ? 1 : 0);
+                const totalPagesDisplay = roomsTotalPages || (filteredRooms.length > 0 ? 1 : 0);
+                const hasRecords = filteredRooms.length > 0 && totalRoomsCount > 0 && displayPage > 0;
+                const rangeStart = hasRecords ? (displayPage - 1) * numericRoomsLimit + 1 : 0;
+                const rangeEnd = hasRecords ? Math.min(totalRoomsCount, rangeStart + filteredRooms.length - 1) : 0;
+                const totalMembersInView = filteredRooms.reduce(
+                  (acc, room) => acc + (room?.currentMembers || 0),
+                  0
+                );
 
                 return (
                   <>
@@ -912,19 +971,55 @@ const ConversationList = ({
                       );
                     })}
 
-                    {/* Botón Ver más grupos */}
-                    {hasMoreRooms && (
-                      <div className="px-4 py-2">
-                        <button
-                          onClick={() => onLoadUserRooms && onLoadUserRooms(roomsPage + 1)}
-                          disabled={roomsLoading}
-                          className="w-full text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 py-2 px-3 rounded-lg transition-colors duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                          style={{ fontFamily: 'Inter, sans-serif' }}
-                        >
-                          {roomsLoading ? 'Cargando...' : `Ver más grupos (${roomsTotal - myActiveRooms.length} restantes)`}
-                        </button>
+                    <div className="px-4 py-3 border-t border-gray-50 mt-2">
+                      <div className="flex items-center justify-between text-xs text-gray-500" style={{ fontFamily: 'Inter, sans-serif' }}>
+                        {/* Info de rango */}
+                        <span className="font-medium">
+                          {hasRecords ? `${rangeStart}-${rangeEnd} de ${totalRoomsCount}` : '0 de 0'}
+                        </span>
+
+                        <div className="flex items-center gap-3">
+                          {/* Selector de límite */}
+                          <div className="flex items-center gap-1 group cursor-pointer relative">
+                            <select
+                              value={roomsLimitInput}
+                              onChange={(e) => handleRoomsLimitChange(e.target.value)}
+                              disabled={roomsLoading}
+                              className="appearance-none bg-transparent font-medium text-gray-600 focus:outline-none cursor-pointer pr-3 py-1"
+                            >
+                              {[10, 20, 30, 50].map((limitValue) => (
+                                <option key={limitValue} value={limitValue}>
+                                  {limitValue} / pág
+                                </option>
+                              ))}
+                            </select>
+                            <FaChevronDown size={8} className="text-gray-400 absolute right-0 pointer-events-none" />
+                          </div>
+
+                          {/* Botones de navegación */}
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={handlePrevRoomsPage}
+                              disabled={!hasPrevRooms || roomsLoading}
+                              className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                              title="Anterior"
+                            >
+                              <FaChevronLeft size={10} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleNextRoomsPage}
+                              disabled={!hasMoreRooms || roomsLoading}
+                              className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                              title="Siguiente"
+                            >
+                              <FaChevronRight size={10} />
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    )}
+                    </div>
                   </>
                 );
               })()}

@@ -94,6 +94,7 @@ const ChatPage = () => {
   const [roomsTotal, setRoomsTotal] = useState(0);
   const [roomsTotalPages, setRoomsTotalPages] = useState(0);
   const [roomsLoading, setRoomsLoading] = useState(false);
+  const [roomsLimit, setRoomsLimit] = useState(10);
 
   // Hook para paginación de mensajes
   const {
@@ -129,6 +130,7 @@ const ChatPage = () => {
   const [adminViewConversation, setAdminViewConversation] = useState(null); // Conversación que el admin está viendo
   const [replyingTo, setReplyingTo] = useState(null); // Mensaje al que se está respondiendo
   const [threadMessage, setThreadMessage] = useState(null); // Mensaje del hilo abierto
+  const [isUploadingFile, setIsUploadingFile] = useState(false); // 🔥 Estado para indicar si se está subiendo un archivo
 
   // Estados de UI
   const [showAdminMenu, setShowAdminMenu] = useState(false);
@@ -195,39 +197,79 @@ const ChatPage = () => {
 
   // 🔥 NUEVO: Función para cargar las salas activas del usuario con paginación real
   const loadMyActiveRooms = useCallback(
-    async (page = 1, append = false) => {
+    async (page = 1, append = false, limitOverride) => {
+      const parsedLimit = Number(limitOverride ?? roomsLimit) || 10;
       try {
         setRoomsLoading(true);
 
-        // Si es ADMIN o JEFEPISO, cargar todas las salas activas
-        if (
+        const isPrivilegedUser =
           user?.role === "ADMIN" ||
           user?.role === "JEFEPISO" ||
-          user?.role === "PROGRAMADOR"
-        ) {
-          // Para admin, usar paginación con límite de 10
-          const response = await apiService.getAdminRooms(1, 10, "");
+          user?.role === "PROGRAMADOR";
+
+        // Si es ADMIN/JEFEPISO/PROGRAMADOR usar endpoint de admin pero respetando paginación
+        if (isPrivilegedUser) {
+          const response = await apiService.getAdminRooms(page, parsedLimit, "");
           const activeRooms = response.data
             ? response.data.filter((room) => room.isActive)
             : [];
 
-          // Usar paginación real para admins también
-          setRoomsPage(response.page || 1);
-          setRoomsTotal(response.total || 0);
-          setRoomsTotalPages(Math.ceil((response.total || 0) / 10));
-          setMyActiveRooms(activeRooms);
+          const nextPage = Number(response.page ?? page) || page;
+          const totalRooms =
+            Number(response.total ?? activeRooms.length) || activeRooms.length;
+          const totalPages =
+            Number(
+              response.totalPages ?? Math.ceil(totalRooms / parsedLimit)
+            ) || 1;
+
+          setRoomsPage(nextPage);
+          setRoomsTotal(totalRooms);
+          setRoomsTotalPages(totalPages);
+
+          if (append && page > 1) {
+            setMyActiveRooms((prev) => {
+              const existingCodes = new Set(
+                prev.map((room) => room.roomCode)
+              );
+              const newRooms = activeRooms.filter(
+                (room) => !existingCodes.has(room.roomCode)
+              );
+              return [...prev, ...newRooms];
+            });
+          } else {
+            setMyActiveRooms(activeRooms);
+          }
         } else {
           // Para usuarios normales, usar paginación real
-          const result = await apiService.getUserRoomsPaginated(page, 10);
+          const result = await apiService.getUserRoomsPaginated(
+            page,
+            parsedLimit
+          );
 
           // Actualizar estados de paginación
-          setRoomsPage(result.page);
-          setRoomsTotal(result.total);
-          setRoomsTotalPages(result.totalPages);
+          const nextPage = Number(result.page ?? page) || page;
+          const totalRooms =
+            Number(result.total ?? result.rooms?.length ?? 0) ||
+            result.rooms?.length ||
+            0;
+          const totalPages =
+            Number(
+              result.totalPages ?? Math.ceil(totalRooms / parsedLimit)
+            ) || 1;
+
+          setRoomsPage(nextPage);
+          setRoomsTotal(totalRooms);
+          setRoomsTotalPages(totalPages);
 
           // Actualizar salas (append o replace)
           if (append && page > 1) {
-            setMyActiveRooms((prev) => [...prev, ...result.rooms]);
+            setMyActiveRooms((prev) => {
+              const existingCodes = new Set(prev.map((room) => room.roomCode));
+              const newRooms = (result.rooms || []).filter(
+                (room) => !existingCodes.has(room.roomCode)
+              );
+              return [...prev, ...newRooms];
+            });
           } else {
             setMyActiveRooms(result.rooms);
           }
@@ -241,7 +283,7 @@ const ChatPage = () => {
         setRoomsLoading(false);
       }
     },
-    [user?.role]
+    [user?.role, roomsLimit]
   );
 
   // 🔥 NUEVO: Función para marcar mensajes de grupo como leídos
@@ -700,6 +742,23 @@ const ChatPage = () => {
     [loadMyActiveRooms]
   );
 
+  const handleRoomsLimitChange = useCallback(
+    async (newLimit) => {
+      const normalized = Math.max(5, Math.min(50, Number(newLimit) || 10));
+      setRoomsLimit(normalized);
+      await loadMyActiveRooms(1, false, normalized);
+    },
+    [loadMyActiveRooms]
+  );
+
+  const handleGoToRoomsPage = useCallback(
+    async (page) => {
+      const safePage = Math.max(1, Number(page) || 1);
+      await loadMyActiveRooms(safePage, false);
+    },
+    [loadMyActiveRooms]
+  );
+
   // 🔥 NUEVO: Cargar conteos de mensajes no leídos al autenticarse
   useEffect(() => {
     if (!isAuthenticated || !username) {
@@ -1043,10 +1102,14 @@ const ChatPage = () => {
             data.from === username || data.from === currentUserFullName,
         });
 
+        // 🔥 MODIFICADO: Ya NO ignoramos mensajes propios porque ahora NO se agregan localmente
+        // Esperamos a que vuelvan del servidor para mostrarlos
+        /*
         if (data.from === username || data.from === currentUserFullName) {
           console.log("✅ Ignorando mensaje propio que vino del servidor");
           return;
         }
+        */
 
         // console.log('📨 Mensaje individual recibido:', {
         //   from: data.from,
@@ -1081,12 +1144,17 @@ const ChatPage = () => {
           // });
         } else {
           // 🔥 Si NO estás viendo una conversación asignada, verificar que sea tu chat directo
+          // Puede ser un mensaje recibido (from = to actual) O un mensaje enviado (to = to actual)
           isViewingCorrectChat =
             !isGroup && // No está en un grupo
             !currentRoomCode && // No está en una sala
             !data.isGroup && // 🔥 CRÍTICO: El mensaje entrante NO debe ser de un grupo
             to && // Hay un destinatario seleccionado
-            to.toLowerCase().trim() === data.from.toLowerCase().trim(); // El destinatario es el remitente
+            (
+              to.toLowerCase().trim() === data.from.toLowerCase().trim() || // Mensaje recibido del otro
+              ((data.from === username || data.from === currentUserFullName) &&
+                to.toLowerCase().trim() === data.to.toLowerCase().trim()) // Mensaje enviado por mí al destinatario actual
+            );
         }
 
         // console.log('🔍 ¿Está viendo el chat correcto?', isViewingCorrectChat);
@@ -2507,6 +2575,7 @@ const ChatPage = () => {
       // 🔥 NUEVO: Subir archivo al servidor primero
       if (mediaFiles.length === 1) {
         try {
+          setIsUploadingFile(true); // 🔥 Activar loading
           const file = mediaFiles[0];
 
           // Subir archivo y obtener URL
@@ -2518,6 +2587,7 @@ const ChatPage = () => {
           messageObj.fileSize = uploadResult.fileSize;
         } catch (error) {
           console.error("❌ Error al subir archivo:", error);
+          setIsUploadingFile(false); // 🔥 Desactivar loading en error
           await showErrorAlert(
             "Error",
             "Error al subir el archivo. Inténtalo de nuevo."
@@ -2586,6 +2656,7 @@ const ChatPage = () => {
         addNewMessage(newMessage);
         clearInput();
         setReplyingTo(null); // Limpiar el estado de respuesta
+        setIsUploadingFile(false); // 🔥 Desactivar loading
         return;
       }
 
@@ -2633,18 +2704,24 @@ const ChatPage = () => {
 
           // 2. 🔥 Actualizar messageObj con los datos reales de la BD
           messageObj.id = savedMessage.id;
-          messageObj.sentAt = savedMessage.sentAt;
-          messageObj.time = savedMessage.time;
+          // 🔥 NO incluir sentAt ni time en el emit, el backend ya lo tiene
+          // messageObj.sentAt = savedMessage.sentAt;
+          // messageObj.time = savedMessage.time;
 
           // Asegurar que senderRole y senderNumeroAgente estén presentes si el backend los devuelve
           if (savedMessage.senderRole) messageObj.senderRole = savedMessage.senderRole;
           if (savedMessage.senderNumeroAgente) messageObj.senderNumeroAgente = savedMessage.senderNumeroAgente;
 
-          // 3. 🔥 Emitir por socket con el ID real
+          // 3. 🔥 Emitir por socket con el ID real (sin sentAt/time - el backend ya los tiene)
           socket.emit("message", messageObj);
           console.log("📤 Mensaje emitido por socket con ID real:", messageObj.id);
 
-          // 4. 🔥 Agregar mensaje localmente (feedback inmediato)
+          // 4. 🔥 NO agregar mensaje localmente - esperar a que vuelva del servidor
+          // Esto evita duplicados porque el servidor enviará el mensaje de vuelta
+          // con el timestamp correcto de Perú
+
+          /*
+          // ELIMINADO: No agregar localmente para evitar duplicados
           const newMessage = {
             sender: "Tú",
             realSender: currentUserFullName,
@@ -2666,18 +2743,6 @@ const ChatPage = () => {
             replyToSenderNumeroAgente: replyingTo?.numeroAgente,
           };
 
-          addNewMessage(newMessage);
-
-          // 5. 🔥 Limpiar input y estado
-          clearInput();
-          setReplyingTo(null);
-
-          // 6. 🔥 Actualizar sidebars (AssignedConversations y MyActiveRooms)
-          if (assignedConv) {
-            setAssignedConversations((prevConversations) => {
-              return prevConversations.map((conv) => {
-                if (conv.id === assignedConv.id) {
-                  return {
                     ...conv,
                     lastMessage: input || (messageObj.fileName ? `📎 ${messageObj.fileName}` : ""),
                     lastMessageTime: new Date().toISOString(),
@@ -2719,6 +2784,7 @@ const ChatPage = () => {
             "No se pudo enviar el mensaje. Por favor, verifica tu conexión e inténtalo de nuevo."
           );
           // NO limpiamos el input para que el usuario pueda reintentar
+          setIsUploadingFile(false); // 🔥 Desactivar loading en error
         }
 
         return;
@@ -2750,8 +2816,9 @@ const ChatPage = () => {
             id: savedMessage.id, // 🔥 Usar el ID de la BD
           });
 
-          // Agregar localmente con el ID real de la BD
-          // 🔥 Usar el time calculado por el backend (ya está en formato HH:MM de Perú)
+          // 🔥 ELIMINADO: No agregar localmente para evitar duplicados
+          // Esperar a que el mensaje vuelva del servidor con el timestamp correcto de Perú
+          /*
           const displayTime =
             savedMessage.time ||
             new Date(savedMessage.sentAt).toLocaleTimeString("es-ES", {
@@ -2791,7 +2858,9 @@ const ChatPage = () => {
           newMessage.lastReplyFrom = null;
 
           addNewMessage(newMessage);
-          playMessageSound(soundsEnabled);
+          */
+
+          // playMessageSound(soundsEnabled); // El sonido se reproducirá cuando llegue del socket
 
           // 🔥 NUEVO: Actualizar la lista de conversaciones asignadas después de enviar
           setAssignedConversations((prevConversations) => {
@@ -2830,6 +2899,7 @@ const ChatPage = () => {
       // 🔥 Para mensajes individuales, limpiar input después de guardar
       clearInput();
       setReplyingTo(null); // Limpiar el estado de respuesta
+      setIsUploadingFile(false); // 🔥 Desactivar loading después de enviar
     }
   };
 
@@ -3773,6 +3843,9 @@ const ChatPage = () => {
         roomsTotalPages={roomsTotalPages}
         roomsLoading={roomsLoading}
         onLoadUserRooms={handleLoadUserRooms}
+        roomsLimit={roomsLimit}
+        onRoomsLimitChange={handleRoomsLimitChange}
+        onGoToRoomsPage={handleGoToRoomsPage}
         isAdmin={isAdmin}
         showAdminMenu={showAdminMenu}
         setShowAdminMenu={setShowAdminMenu}
@@ -3839,6 +3912,7 @@ const ChatPage = () => {
         onRemoveUsersFromRoom={handleRemoveUsersFromRoom}
         onOpenThread={handleOpenThread}
         onSendVoiceMessage={handleSendVoiceMessage}
+        isUploadingFile={isUploadingFile} // 🔥 Pasar estado de upload
         // Props de modales
         showCreateRoomModal={showCreateRoomModal}
         setShowCreateRoomModal={setShowCreateRoomModal}

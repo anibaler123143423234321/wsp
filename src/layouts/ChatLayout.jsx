@@ -18,10 +18,10 @@ const ChatLayout = ({
   userListHasMore, userListLoading, onLoadMoreUsers, roomTypingUsers,
   // 🔥 NUEVOS PROPS para paginación real
   assignedPage, assignedTotal, assignedTotalPages, assignedLoading, onLoadAssignedConversations,
-  roomsPage, roomsTotal, roomsTotalPages, roomsLoading, onLoadUserRooms,
+  roomsPage, roomsTotal, roomsTotalPages, roomsLoading, onLoadUserRooms, roomsLimit, onRoomsLimitChange, onGoToRoomsPage,
 
-      // Props del chat
-      to, isGroup, currentRoomCode, roomUsers, messages, input, setInput,
+  // Props del chat
+  to, isGroup, currentRoomCode, roomUsers, messages, input, setInput,
   onSendMessage, onFileSelect, onRecordAudio, onStopRecording, isRecording,
   mediaFiles, mediaPreviews, onCancelMediaUpload, onRemoveMediaFile, onLeaveRoom, onToggleMenu,
   onEditMessage, onDeleteMessage, hasMoreMessages, isLoadingMore, onLoadMoreMessages,
@@ -55,7 +55,11 @@ const ChatLayout = ({
   onOpenThread,
 
   // Props para mensajes de voz
-  onSendVoiceMessage
+  // Props para mensajes de voz
+  onSendVoiceMessage,
+
+  // 🔥 Props de estado de carga
+  isUploadingFile
 }) => {
   // Función para obtener el usuario completo con el que se está chateando
   const getTargetUser = () => {
@@ -181,35 +185,38 @@ const ChatLayout = ({
         roomsTotalPages={roomsTotalPages}
         roomsLoading={roomsLoading}
         onLoadUserRooms={onLoadUserRooms}
+        roomsLimit={roomsLimit}
+        onRoomsLimitChange={onRoomsLimitChange}
+        onGoToRoomsPage={onGoToRoomsPage}
       />
 
 
 
       {/* ChatContent - Desktop: siempre visible | Mobile: solo cuando hay chat seleccionado */}
       <div className={`flex-1 flex flex-col bg-white relative transition-all duration-300 ease-in-out max-[768px]:h-[calc(100vh-60px)] max-[600px]:h-screen overflow-x-hidden max-w-full ${!to ? 'max-[768px]:hidden' : ''}`}>
-            <ChatHeader
-              to={to}
-              isGroup={isGroup}
-              currentRoomCode={currentRoomCode}
-              roomUsers={roomUsers}
-              onLeaveRoom={onLeaveRoom}
-              onToggleMenu={onToggleMenu}
-              showSidebar={showSidebar}
-              soundsEnabled={soundsEnabled}
-              onEnableSounds={onEnableSounds}
-              userPicture={getUserPicture()}
-              targetUser={getTargetUser()}
-              onStartCall={onStartCall}
-              onStartVideoCall={onStartVideoCall}
-              hasCamera={hasCamera}
-              onBack={onToggleMenu}
-              isTyping={isTyping}
-              adminViewConversation={adminViewConversation}
-              onAddUsersToRoom={onAddUsersToRoom}
-              onRemoveUsersFromRoom={onRemoveUsersFromRoom}
-              user={user}
-            />
-        
+        <ChatHeader
+          to={to}
+          isGroup={isGroup}
+          currentRoomCode={currentRoomCode}
+          roomUsers={roomUsers}
+          onLeaveRoom={onLeaveRoom}
+          onToggleMenu={onToggleMenu}
+          showSidebar={showSidebar}
+          soundsEnabled={soundsEnabled}
+          onEnableSounds={onEnableSounds}
+          userPicture={getUserPicture()}
+          targetUser={getTargetUser()}
+          onStartCall={onStartCall}
+          onStartVideoCall={onStartVideoCall}
+          hasCamera={hasCamera}
+          onBack={onToggleMenu}
+          isTyping={isTyping}
+          adminViewConversation={adminViewConversation}
+          onAddUsersToRoom={onAddUsersToRoom}
+          onRemoveUsersFromRoom={onRemoveUsersFromRoom}
+          user={user}
+        />
+
         <ChatContent
           messages={messages}
           input={input}
@@ -245,9 +252,10 @@ const ChatLayout = ({
           isOtherUserTyping={isTyping}
           typingUser={typingUser}
           roomTypingUsers={roomTypingUsers}
+          isUploadingFile={isUploadingFile} // 🔥 Pasar prop de loading
         />
       </div>
-      
+
       {/* Modales */}
       {showCreateRoomModal && (
         <CreateRoomModal
@@ -258,7 +266,7 @@ const ChatLayout = ({
           onCreateRoom={onCreateRoom}
         />
       )}
-      
+
       {showJoinRoomModal && (
         <JoinRoomModal
           isOpen={showJoinRoomModal}
@@ -268,7 +276,7 @@ const ChatLayout = ({
           onJoinRoom={onJoinRoom}
         />
       )}
-      
+
       {showAdminRoomsModal && (
         <AdminRoomsModal
           isOpen={showAdminRoomsModal}
@@ -281,7 +289,7 @@ const ChatLayout = ({
           currentUser={user}
         />
       )}
-      
+
       {/* Otros modales... */}
     </div>
   );
