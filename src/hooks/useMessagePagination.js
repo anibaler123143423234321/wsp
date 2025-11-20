@@ -98,6 +98,11 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         deletedAt: msg.deletedAt || null,
         // 🔥 Campos de reacciones
         reactions: msg.reactions || [],
+        // 🔥 NUEVO: Campos de videollamada
+        type: msg.type || null,
+        videoCallUrl: msg.videoCallUrl || null,
+        videoRoomID: msg.videoRoomID || null,
+        metadata: msg.metadata || null,
       }));
 
       // Los mensajes ya vienen en orden cronológico correcto del backend
@@ -205,6 +210,11 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         deletedAt: msg.deletedAt || null,
         // 🔥 Campos de reacciones
         reactions: msg.reactions || [],
+        // 🔥 NUEVO: Campos de videollamada
+        type: msg.type || null,
+        videoCallUrl: msg.videoCallUrl || null,
+        videoRoomID: msg.videoRoomID || null,
+        metadata: msg.metadata || null,
       }));
 
       // Agregar mensajes más antiguos al inicio (estilo WhatsApp)
@@ -260,17 +270,63 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
 
   // Actualizar un mensaje específico
   // Si updates es una función, se llama con el mensaje actual para calcular las actualizaciones
+  // 🔥 NUEVO: Si messageId es null, buscar por videoRoomID en updates
   const updateMessage = useCallback((messageId, updates) => {
-    setMessages(prevMessages =>
-      prevMessages.map(msg => {
-        if (msg.id === messageId) {
+    console.log('🔄 updateMessage llamado:', { messageId, updates });
+
+    let messageFound = false;
+
+    setMessages(prevMessages => {
+      console.log('📋 Total mensajes en estado:', prevMessages.length);
+
+      const updatedMessages = prevMessages.map(msg => {
+        let shouldUpdate = false;
+
+        if (messageId !== null && messageId !== undefined) {
+          // Buscar por ID
+          shouldUpdate = msg.id === messageId;
+        } else if (updates.videoRoomID) {
+          // 🔥 NUEVO: Buscar por videoRoomID
+          shouldUpdate = msg.videoRoomID === updates.videoRoomID;
+
+          if (msg.videoRoomID) {
+            console.log('🔍 Comparando videoRoomID:', {
+              msgVideoRoomID: msg.videoRoomID,
+              searchVideoRoomID: updates.videoRoomID,
+              match: shouldUpdate
+            });
+          }
+        }
+
+        if (shouldUpdate) {
+          messageFound = true;
+
           // Si updates es una función, llamarla con el mensaje actual
           const newUpdates = typeof updates === 'function' ? updates(msg) : updates;
+
+          // 🔥 NUEVO: Si se está actualizando metadata, fusionarlo con el existente
+          if (newUpdates.metadata && msg.metadata) {
+            newUpdates.metadata = { ...msg.metadata, ...newUpdates.metadata };
+          }
+
+          console.log('✅ Mensaje encontrado y actualizado:', {
+            id: msg.id,
+            videoRoomID: msg.videoRoomID,
+            oldMetadata: msg.metadata,
+            newMetadata: newUpdates.metadata
+          });
+
           return { ...msg, ...newUpdates };
         }
         return msg;
-      })
-    );
+      });
+
+      if (!messageFound) {
+        console.log('❌ No se encontró ningún mensaje para actualizar');
+      }
+
+      return updatedMessages;
+    });
   }, []);
 
   // Limpiar mensajes

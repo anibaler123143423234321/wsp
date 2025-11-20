@@ -11,6 +11,7 @@ import AddUsersToRoomModal from "../components/modals/AddUsersToRoomModal";
 import RemoveUsersFromRoomModal from "../components/modals/RemoveUsersFromRoomModal";
 import ThreadPanel from "../components/ThreadPanel";
 import SettingsPanel from "../components/SettingsPanel";
+import ActiveVideoCallBanner from "../components/ActiveVideoCallBanner";
 import { useAuth } from "../hooks/useAuth";
 import { useSocket } from "../hooks/useSocket";
 import { useMessages } from "../hooks/useMessages";
@@ -1116,6 +1117,11 @@ const ChatPage = () => {
           threadCount: data.threadCount || 0,
           lastReplyFrom: data.lastReplyFrom || null,
           reactions: data.reactions || [],
+          // 🔥 NUEVO: Campos de videollamada
+          type: data.type || null,
+          videoCallUrl: data.videoCallUrl || null,
+          videoRoomID: data.videoRoomID || null,
+          metadata: data.metadata || null,
         };
 
         // 🔥 Usar addNewMessage directamente (ya maneja duplicados)
@@ -1342,6 +1348,12 @@ const ChatPage = () => {
         // Agregar información de reacciones
         newMessage.reactions = data.reactions || [];
 
+        // 🔥 NUEVO: Campos de videollamada
+        newMessage.type = data.type || null;
+        newMessage.videoCallUrl = data.videoCallUrl || null;
+        newMessage.videoRoomID = data.videoRoomID || null;
+        newMessage.metadata = data.metadata || null;
+
         // 🔥 Usar addNewMessage directamente (ya maneja duplicados)
         addNewMessage(newMessage);
 
@@ -1531,6 +1543,41 @@ const ChatPage = () => {
           ? `Mensaje eliminado por ${deletedBy}`
           : "Mensaje eliminado",
       });
+    });
+
+    // 🔥 NUEVO: Evento para cerrar videollamada
+    s.on("videoCallEnded", (data) => {
+      console.log('🔴 Videollamada cerrada - Evento recibido:', data);
+
+      // Mostrar notificación
+      const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+      });
+
+      Toast.fire({
+        icon: 'info',
+        title: 'Videollamada finalizada',
+        text: `${data.closedBy || 'Un usuario'} cerró la videollamada`
+      });
+
+      // 🔥 NUEVO: Actualizar el mensaje de videollamada en el estado local
+      // Buscar el mensaje con videoRoomID y marcar metadata.isActive = false
+      console.log('🔄 Actualizando mensaje con videoRoomID:', data.roomID);
+
+      updateMessage(null, {
+        videoRoomID: data.roomID,
+        metadata: {
+          isActive: false,
+          closedBy: data.closedBy,
+          closedAt: new Date().toISOString()
+        }
+      });
+
+      console.log('✅ Mensaje actualizado, el banner debería ocultarse');
     });
 
     s.on("connect", () => {
@@ -3717,9 +3764,13 @@ const ChatPage = () => {
         : `call_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
       const baseUrl = window.location.origin;
-      const videoCallUrl = `${baseUrl}/video-call?roomID=${videoRoomID}`;
+      const videoCallUrl = `${baseUrl}/video-call?roomID=${videoRoomID}&creator=true`;
 
       console.log("📹 Iniciando llamada en:", videoCallUrl);
+
+      // 🔥 Guardar participantes en localStorage para poder cerrar la sala
+      const participants = isGroup ? roomUsers.map(u => typeof u === 'string' ? u : u.username || u.nombre) : [to];
+      localStorage.setItem(`videoCall_${videoRoomID}_participants`, JSON.stringify(participants));
 
       // 3️⃣ PREPARAR DATOS DEL MENSAJE (Estructura para la Tarjeta UI)
       // Nota: 'text' se usa para notificaciones push o vistas previas
@@ -3736,11 +3787,13 @@ const ChatPage = () => {
 
         // 🔥 CLAVE: Esto activa el componente visual VideoCallNotification
         type: 'video_call',
-        text: fallbackText,
+        message: fallbackText, // 🔥 CORRECCIÓN: El backend espera 'message', no 'text'
+        text: fallbackText,    // Mantener 'text' para compatibilidad con frontend
 
         // Datos técnicos para la llamada
         videoCallRoomID: videoRoomID,
         videoCallUrl: videoCallUrl,
+        videoRoomID: videoRoomID, // 🔥 Agregar también este campo que espera el backend
 
         // Metadatos adicionales
         sender: currentUserFullName, // Para compatibilidad
@@ -3783,6 +3836,18 @@ const ChatPage = () => {
 
       // 5️⃣ EMITIR EVENTOS SOCKET
       if (socket && socket.connected) {
+        console.log('📤 Emitiendo eventos de videollamada:', {
+          startVideoCall: {
+            roomID: videoRoomID,
+            callType: isGroup ? 'group' : 'individual',
+            chatId: isGroup ? currentRoomCode : to,
+            initiator: currentUserFullName,
+            callUrl: videoCallUrl,
+            participants: isGroup ? roomUsers : [to]
+          },
+          message: finalSocketPayload
+        });
+
         // Evento A: Notificación específica de llamada (para timbres/modales)
         socket.emit('startVideoCall', {
           roomID: videoRoomID,
@@ -3794,9 +3859,10 @@ const ChatPage = () => {
         });
 
         // Evento B: El mensaje para el chat (La tarjeta)
-        // Usamos 'message' o 'sendMessage' según tu backend. 
-        // Aquí uso 'sendMessage' que suele ser el estándar para propagar a otros.
-        socket.emit('sendMessage', finalSocketPayload);
+        // 🔥 CORRECCIÓN: El backend escucha 'message', no 'sendMessage'
+        socket.emit('message', finalSocketPayload);
+      } else {
+        console.error('❌ Socket no conectado, no se puede emitir videollamada');
       }
 
       // 6️⃣ ACTUALIZAR UI LOCAL (Agregar mensaje "mío" inmediatamente)

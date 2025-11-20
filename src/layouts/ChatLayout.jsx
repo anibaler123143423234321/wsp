@@ -4,6 +4,7 @@ import Sidebar from '../components/Sidebar';
 import LeftSidebar from '../components/LeftSidebar';
 import ChatHeader from '../components/ChatHeader';
 import ChatContent from '../components/ChatContent';
+import ActiveVideoCallBanner from '../components/ActiveVideoCallBanner';
 import CreateRoomModal from '../components/modals/CreateRoomModal';
 import JoinRoomModal from '../components/modals/JoinRoomModal';
 import AdminRoomsModal from '../components/modals/AdminRoomsModal';
@@ -216,6 +217,19 @@ const ChatLayout = ({
           onRemoveUsersFromRoom={onRemoveUsersFromRoom}
           user={user}
         />
+
+        {/* 🔥 NUEVO: Banner de videollamada activa */}
+        {to && (
+          <ActiveVideoCallBanner
+            messages={messages}
+            currentUsername={currentUsername}
+            isGroup={isGroup}
+            currentRoomCode={currentRoomCode}
+            to={to}
+            socket={socket}
+            user={user}
+          />
+        )}
 
         <ChatContent
           messages={messages}
