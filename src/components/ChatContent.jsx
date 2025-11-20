@@ -875,6 +875,134 @@ const ChatContent = ({
       );
     }
 
+    // ---------------------------------------------------------
+    // 🔥 SOLUCIÓN DEFINITIVA: DETECCIÓN DE VIDEOLLAMADA
+    // ---------------------------------------------------------
+    // 1. Detectamos si es tipo video_call O si el texto contiene "📹 Videollamada"
+    const isVideoCall = message.type === 'video_call' ||
+                        (typeof message.text === 'string' && message.text.includes('📹 Videollamada'));
+
+    if (isVideoCall) {
+      // 2. Intentamos obtener la URL: o viene en la propiedad, o la sacamos del texto
+      let videoUrl = message.videoCallUrl;
+
+      // Si no hay URL directa, la buscamos en el texto (backup)
+      if (!videoUrl && message.text) {
+        const urlMatch = message.text.match(/http[s]?:\/\/[^\s]+/);
+        if (urlMatch) videoUrl = urlMatch[0];
+      }
+
+      // Si después de todo no hay URL, no mostramos la tarjeta (fallback a texto normal)
+      if (videoUrl) {
+        const isOwn = message.sender === currentUsername || message.sender === 'Tú' || message.isSelf;
+
+        return (
+          <div
+            key={index}
+            className={`message ${isOwn ? 'own-message' : 'other-message'}`}
+            style={{
+              display: 'flex',
+              justifyContent: isOwn ? 'flex-end' : 'flex-start',
+              marginTop: '8px',
+              marginBottom: '2px',
+              padding: '0 8px'
+            }}
+          >
+            {/* Avatar (lógica original) */}
+            {!isOwn && (
+              <div className="message-avatar" style={{
+                width: '28px', height: '28px', borderRadius: '50%',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', fontSize: '12px', marginRight: '6px', flexShrink: 0
+              }}>
+                {message.sender?.charAt(0).toUpperCase() || '👤'}
+              </div>
+            )}
+
+            <div className="message-content" style={{
+              padding: '0',
+              overflow: 'hidden',
+              backgroundColor: isOwn ? '#E1F4D6' : '#ffffff',
+              borderRadius: '12px',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+              minWidth: '260px',
+              maxWidth: '300px'
+            }}>
+              {/* 🎨 CABECERA VERDE */}
+              <div style={{
+                padding: '16px',
+                background: 'linear-gradient(135deg, #00a884 0%, #008f6f 100%)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                color: 'white'
+              }}>
+                <div style={{
+                  width: '48px', height: '48px', borderRadius: '50%',
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  marginBottom: '8px', backdropFilter: 'blur(4px)'
+                }}>
+                   <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                      <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+                   </svg>
+                </div>
+                <span style={{ fontWeight: '600', fontSize: '16px' }}>Videollamada</span>
+                <span style={{ fontSize: '12px', opacity: 0.9, marginTop: '2px' }}>
+                   {isOwn ? 'Iniciaste una llamada' : 'Te invitan a unirte'}
+                </span>
+              </div>
+
+              {/* 🔘 BOTÓN DE ACCIÓN */}
+              <div style={{ padding: '12px' }}>
+                <button
+                  onClick={() => window.open(videoUrl, '_blank', 'width=1280,height=720')}
+                  style={{
+                    backgroundColor: '#fff',
+                    color: '#00a884',
+                    border: '1px solid #00a884',
+                    borderRadius: '8px',
+                    padding: '10px 24px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    width: '100%',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = '#00a884';
+                    e.target.style.color = '#fff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = '#fff';
+                    e.target.style.color = '#00a884';
+                  }}
+                >
+                  UNIRSE AHORA
+                </button>
+              </div>
+
+              {/* Hora */}
+              <div style={{
+                padding: '0 12px 8px 0', textAlign: 'right',
+                fontSize: '11px', color: '#667781'
+              }}>
+                {formatTime(message.time)}
+              </div>
+            </div>
+          </div>
+        );
+      }
+    }
+    // ---------------------------------------------------------
+    // FIN DEL CÓDIGO NUEVO
+    // ---------------------------------------------------------
+
     const isHighlighted = highlightedMessageId === message.id;
 
     return (

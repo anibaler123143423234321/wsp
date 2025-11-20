@@ -3690,148 +3690,137 @@ const ChatPage = () => {
     setSoundsEnabled(newValue);
     localStorage.setItem("soundsEnabled", newValue.toString());
   };
-
-  // 🔥 NUEVO: Función para iniciar videollamada
+  // 🔥 FUNCIÓN MEJORADA: Iniciar videollamada con Tarjeta UI
   const handleStartVideoCall = async () => {
     try {
-      // Validar que hay un destinatario
+      // 1️⃣ VALIDACIONES
       if (!to) {
-        await showErrorAlert("Error", "Selecciona un chat para iniciar una videollamada");
+        await showErrorAlert("Atención", "Selecciona un chat para iniciar la llamada.");
         return;
       }
 
-      // Validar permisos para grupos
-      if (isGroup && user?.role !== 'COORDINADOR') {
+      // Validar permisos estrictos para grupos (Coordinador/Admin/etc)
+      const userRole = (user?.role || '').toUpperCase();
+      const allowedRoles = ['COORDINADOR', 'ADMIN', 'JEFEPISO', 'PROGRAMADOR'];
+
+      if (isGroup && !allowedRoles.includes(userRole)) {
         await showErrorAlert(
           "Sin permisos",
-          "Solo los coordinadores pueden iniciar videollamadas grupales"
+          "Solo los coordinadores y administradores pueden iniciar videollamadas grupales."
         );
         return;
       }
 
-      // Generar roomID único para la videollamada
+      // 2️⃣ GENERACIÓN DE SALA Y URL
       const videoRoomID = isGroup
         ? `group_${currentRoomCode || Date.now()}`
         : `call_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
-      // Construir URL de la videollamada
       const baseUrl = window.location.origin;
       const videoCallUrl = `${baseUrl}/video-call?roomID=${videoRoomID}`;
 
-      console.log("📹 Inici ando videollamada:", {
-        roomID: videoRoomID,
-        isGroup,
-        to,
-        url: videoCallUrl
-      });
+      console.log("📹 Iniciando llamada en:", videoCallUrl);
 
-      // Enviar notificación mediante socket
-      if (socket && socket.connected) {
-        const callData = {
-          roomID: videoRoomID,
-          callType: isGroup ? 'group' : 'individual',
-          chatId: isGroup ? currentRoomCode : to,
-          initiator: currentUserFullName,
-          initiatorUsername: username,
-          participants: isGroup ? roomUsers : [to],
-          callUrl: videoCallUrl,
-          isGroup,
-          roomCode: currentRoomCode
-        };
+      // 3️⃣ PREPARAR DATOS DEL MENSAJE (Estructura para la Tarjeta UI)
+      // Nota: 'text' se usa para notificaciones push o vistas previas
+      const fallbackText = isGroup
+        ? `📹 Videollamada grupal iniciada por ${currentUserFullName}`
+        : `📹 Videollamada iniciada`;
 
-        // Emitir evento de inicio de videollamada
-        socket.emit('startVideoCall', callData);
-
-        console.log("📡 Evento de videollamada emitido:", callData);
-      }
-
-      // Enviar mensaje automático en el chat con el enlace
-      const callMessage = isGroup
-        ? `📹 Videollamada iniciada por ${currentUserFullName}\n\n🔗 Únete aquí: ${videoCallUrl}`
-        : `📹 Iniciando videollamada...\n\n🔗 Enlace: ${videoCallUrl}`;
-
-      // Crear objeto de mensaje
-      const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-      const messageObj = {
-        id: messageId,
+      const messagePayload = {
         to,
         isGroup,
         from: currentUserFullName,
         fromId: user?.id,
         roomCode: currentRoomCode,
-        message: callMessage,
-        isVideoCallNotification: true,
+
+        // 🔥 CLAVE: Esto activa el componente visual VideoCallNotification
+        type: 'video_call',
+        text: fallbackText,
+
+        // Datos técnicos para la llamada
         videoCallRoomID: videoRoomID,
-        videoCallUrl
+        videoCallUrl: videoCallUrl,
+
+        // Metadatos adicionales
+        sender: currentUserFullName, // Para compatibilidad
+        senderRole: userRole,
+        time: new Date().toISOString()
       };
 
-      // 🔥 NUEVO: Guardar en BD para persistencia
+      // 4️⃣ GUARDAR EN BASE DE DATOS (Persistencia)
+      let savedMessageId = `temp_${Date.now()}`;
+
       try {
         const savedMessage = await apiService.createMessage({
           from: currentUserFullName,
           fromId: user?.id,
           to: to,
           roomCode: isGroup ? currentRoomCode : undefined,
-          message: callMessage,
+          message: fallbackText, // Guardamos texto legible en BD
+          type: 'video_call',    // Guardamos el tipo
           isGroup: isGroup,
-          isVideoCallNotification: true,
-          videoCallRoomID: videoRoomID,
+
+          // Campos extra para que el backend sepa la URL
+          metadata: {
+            videoCallUrl: videoCallUrl,
+            videoRoomID: videoRoomID
+          },
+          // O si tu backend espera campos planos:
           videoCallUrl: videoCallUrl
         });
 
         if (savedMessage && savedMessage.id) {
-          messageObj.id = savedMessage.id;
-          console.log("✅ Notificación de videollamada guardada en BD:", savedMessage.id);
+          savedMessageId = savedMessage.id;
+          console.log("✅ Videollamada registrada en BD ID:", savedMessageId);
         }
-      } catch (error) {
-        console.error("❌ Error al guardar notificación de videollamada:", error);
+      } catch (dbError) {
+        console.error("⚠️ Advertencia: No se pudo guardar en BD (pero seguimos)", dbError);
       }
 
-      // Enviar mensaje a través del socket
+      // Asignar el ID real (o temporal) al payload final
+      const finalSocketPayload = { ...messagePayload, id: savedMessageId };
+
+      // 5️⃣ EMITIR EVENTOS SOCKET
       if (socket && socket.connected) {
-        socket.emit('message', messageObj); // 🔥 CORREGIDO: Usar 'message', no 'sendMessage'
+        // Evento A: Notificación específica de llamada (para timbres/modales)
+        socket.emit('startVideoCall', {
+          roomID: videoRoomID,
+          callType: isGroup ? 'group' : 'individual',
+          chatId: isGroup ? currentRoomCode : to,
+          initiator: currentUserFullName,
+          callUrl: videoCallUrl,
+          participants: isGroup ? roomUsers : [to]
+        });
+
+        // Evento B: El mensaje para el chat (La tarjeta)
+        // Usamos 'message' o 'sendMessage' según tu backend. 
+        // Aquí uso 'sendMessage' que suele ser el estándar para propagar a otros.
+        socket.emit('sendMessage', finalSocketPayload);
       }
 
-      // Agregar mensaje localmente
+      // 6️⃣ ACTUALIZAR UI LOCAL (Agregar mensaje "mío" inmediatamente)
       addNewMessage({
-        sender: 'Tú',
-        realSender: currentUserFullName,
-        receiver: to,
-        text: callMessage,
-        isGroup,
-        time: new Date().toLocaleTimeString('es-ES', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        }),
-        isSent: true,
+        ...finalSocketPayload,
         isSelf: true,
-        id: messageObj.id, // 🔥 Usar el ID real de la BD
-        sentAt: new Date().toISOString(),
-        isVideoCallNotification: true,
-        videoCallRoomID: videoRoomID
+        isSent: true,
+        isRead: false
       });
 
-      // Abrir videollamada en nueva ventana
-      const videoCallWindow = window.open(
-        videoCallUrl,
-        '_blank',
-        'width=1280,height=720,menubar=no,toolbar=no,location=no,status=no'
-      );
+      // 7️⃣ ABRIR VENTANA DE LLAMADA
+      const windowFeatures = 'width=1280,height=720,menubar=no,toolbar=no,location=no,status=no';
+      const videoWindow = window.open(videoCallUrl, '_blank', windowFeatures);
 
-      if (!videoCallWindow) {
+      if (!videoWindow) {
         await showErrorAlert(
-          "Bloqueado",
-          "El navegador bloqueó la ventana emergente. Por favor, permite las ventanas emergentes y vuelve a intentarlo."
+          "Pop-up Bloqueado",
+          "Por favor permite las ventanas emergentes para entrar a la llamada."
         );
       }
 
     } catch (error) {
-      console.error("❌ Error al iniciar videollamada:", error);
-      await showErrorAlert(
-        "Error",
-        "No se pudo iniciar la videollamada. Inténtalo de nuevo."
-      );
+      console.error("❌ Error crítico iniciando llamada:", error);
+      await showErrorAlert("Error", "No se pudo conectar la llamada.");
     }
   };
 
