@@ -53,27 +53,27 @@ export default function VideoCallRoom() {
     let mounted = true;
 
     const initMeeting = async () => {
-      // Si ya hay instancia o no hay contenedor, no hacer nada
       if (zegoInstanceRef.current || !meetingContainerRef.current) return;
 
       try {
-        // 1️⃣ VERIFICACIÓN PREVIA DE MICROFONO (Tu lógica intacta)
-        // Nota: Esto ayuda a mostrar el error antes de que Zego intente cargar
-        try {
-          const permissionStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          permissionStream.getTracks().forEach((t) => t.stop());
-        } catch (err) {
-          throw err; // Lanzamos el error para que lo capture el catch de abajo
+        // 1️⃣ DETECTAR HARDWARE
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const audioInput = devices.filter((d) => d.kind === "audioinput");
+        const videoInput = devices.filter((d) => d.kind === "videoinput");
+
+        const hasMicrophone = audioInput.length > 0;
+        const hasCamera = videoInput.length > 0; // En tu caso, esto es false (0)
+
+        console.log(`🎤 Micros: ${audioInput.length}, 📷 Cámaras: ${videoInput.length}`);
+
+        if (!hasMicrophone) {
+          setPermissionError("❌ No se detectó ningún micrófono.");
+          return;
         }
 
         // 2️⃣ GENERAR TOKEN
         const appID = Number(import.meta.env.VITE_ZEGOCLOUD_APP_ID);
         const serverSecret = import.meta.env.VITE_ZEGOCLOUD_SERVER_SECRET;
-
-        if (!appID || !serverSecret) {
-          setPermissionError("❌ Faltan credenciales en .env");
-          return;
-        }
 
         const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
           appID,
@@ -85,22 +85,31 @@ export default function VideoCallRoom() {
 
         // 3️⃣ CREAR INSTANCIA
         const zp = ZegoUIKitPrebuilt.create(kitToken);
-        zegoInstanceRef.current = zp; // Guardamos referencia
+        zegoInstanceRef.current = zp;
 
         if (!mounted) return;
 
         // 4️⃣ UNIRSE A LA SALA
         zp.joinRoom({
           container: meetingContainerRef.current,
-          scenario: { mode: ZegoUIKitPrebuilt.GroupCall },
-          showScreenSharingButton: true,
+
+          // 🔥 SI NO HAY CÁMARA, SALTATE LA VISTA PREVIA
+          // Esto evita que Zego intente cargar el video antes de entrar
+          showPreJoinView: hasCamera,
+
+          scenario: {
+            mode: ZegoUIKitPrebuilt.GroupCall,
+          },
+
+          // Configuración de medios
           turnOnMicrophoneWhenJoining: true,
-          turnOnCameraWhenJoining: false,
+          turnOnCameraWhenJoining: false, // Siempre apagado al iniciar
           showMyMicrophoneToggleButton: true,
-          showMyCameraToggleButton: true,
+          showMyCameraToggleButton: hasCamera, // Ocultar botón si no hay cámara
           showAudioVideoSettingsButton: true,
+
           showUserList: true,
-          showTextChat: true, // A veces es útil activarlo
+          showTextChat: true,
 
           sharedLinks: [
             {
@@ -110,39 +119,22 @@ export default function VideoCallRoom() {
           ],
 
           onJoinRoom: () => console.log("✅ Entraste a la sala."),
-          onLeaveRoom: () => console.log("👋 Saliste de la sala."),
+          onError: (error) => console.warn("⚠️ Error Zego:", error)
         });
 
       } catch (error) {
-        console.error("❌ Error:", error);
-        if (!mounted) return;
-
-        if (error.name === "NotAllowedError") {
-          setPermissionError("🔒 Permiso denegado. Activa el micrófono en el navegador.");
-        } else if (error.name === "NotReadableError") {
-          setPermissionError("⚠️ Micrófono ocupado por otra app (Zoom/Meet).");
-        } else if (error.name === "NotFoundError") {
-          setPermissionError("❌ No se encontró micrófono.");
-        } else {
-          setPermissionError(`❌ Error: ${error.message}`);
-        }
+        console.error("❌ Error fatal:", error);
       }
     };
 
     initMeeting();
 
-    // Cleanup (opcional, Zego maneja su propia limpieza al salir, 
-    // pero reseteamos la ref por si el componente se desmonta)
     return () => {
       mounted = false;
       if (zegoInstanceRef.current) {
-        try {
-          // ZegoUIKitPrebuilt tiene un método destroy en versiones recientes, 
-          // si no, basta con nullificar la ref y dejar que el DOM se limpie.
-          if (typeof zegoInstanceRef.current.destroy === 'function') {
-            zegoInstanceRef.current.destroy();
-          }
-        } catch (e) { console.log("Cleanup error", e) }
+        if (typeof zegoInstanceRef.current.destroy === 'function') {
+          zegoInstanceRef.current.destroy();
+        }
         zegoInstanceRef.current = null;
       }
     };
