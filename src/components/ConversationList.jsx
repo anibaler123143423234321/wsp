@@ -230,12 +230,9 @@ const ConversationList = ({
     setUserCache(prevCache => {
       const newCache = { ...prevCache };
 
-      // Primero, marcar todos los usuarios del cache como offline
-      Object.keys(newCache).forEach(key => {
-        newCache[key].isOnline = false;
-      });
-
-      // Luego, actualizar con los usuarios de la lista (pueden estar online u offline)
+      // 🔥 CORREGIDO: Solo actualizar usuarios que vienen en la lista
+      // NO marcar todos como offline primero - esto causaba que usuarios perdieran
+      // su estado online cuando otros navegaban a chats grupales/asignados
       if (userList && userList.length > 0) {
         userList.forEach(u => {
           const fullName = u.nombre && u.apellido
@@ -248,7 +245,7 @@ const ConversationList = ({
               username: u.username,
               nombre: u.nombre,
               apellido: u.apellido,
-              isOnline: u.isOnline !== undefined ? u.isOnline : false // 🔥 Por defecto offline, no online
+              isOnline: u.isOnline !== undefined ? u.isOnline : false
             };
           }
         });

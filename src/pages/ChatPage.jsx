@@ -469,216 +469,216 @@ const ChatPage = () => {
     adminViewConversation,
   ]);
 
-  // Cargar mensajes cuando el admin ve una conversación de otros usuarios
-  useEffect(() => {
-    const loadAdminViewMessages = async () => {
-      if (
-        !adminViewConversation ||
-        !adminViewConversation.participants ||
-        adminViewConversation.participants.length < 2
-      ) {
-        return;
-      }
-
-      // console.log('🔄 Cargando mensajes para conversación asignada:', adminViewConversation);
-      // console.log('   - currentUserFullName:', currentUserFullName);
-
-      try {
-        const [participant1, participant2] = adminViewConversation.participants;
-
-        // console.log('   - participant1:', participant1);
-        // console.log('   - participant2:', participant2);
-
-        // 🔥 CORREGIDO: Usar los participantes reales de la conversación, no el admin
-        // Los mensajes se guardan entre los dos participantes, no entre el admin y uno de ellos
-        // console.log('   - participant1:', participant1);
-        // console.log('   - participant2:', participant2);
-
-        // 🔥 PRIMERO: Cargar mensajes para ver cuáles NO están leídos
-        // Usar los participantes reales de la conversación para que coincida con cómo se guardan en la BD
-        // 🔥 USAR ORDENAMIENTO POR ID para evitar problemas con sentAt corrupto
-        const historicalMessages = await apiService.getUserMessagesOrderedById(
-          participant1,
-          participant2,
-          20,
-          0
-        );
-
-        // console.log('   - Mensajes cargados:', historicalMessages.length);
-
-        // console.log('✅ Mensajes cargados:', historicalMessages.length);
-
-        // 🔥 SEGUNDO: Marcar como leídos SOLO si el usuario es ADMIN, PROGRAMADOR o JEFEPISO
-        // Los ASESORES NO deben marcar mensajes como leídos automáticamente
-        const canMarkAsRead =
-          user?.role === "ADMIN" ||
-          user?.role === "PROGRAMADOR" ||
-          user?.role === "JEFEPISO";
-
-        if (canMarkAsRead) {
-          const unreadMessages = historicalMessages.filter(
-            (msg) => !msg.isRead
-          );
-
-          if (unreadMessages.length > 0) {
-            try {
-              // Marcar mensajes de participant1 a participant2 como leídos por participant2
-              const unreadFromP1 = unreadMessages.filter(
-                (msg) => msg.from === participant1
-              );
-              if (unreadFromP1.length > 0) {
-                await apiService.markConversationAsRead(
-                  participant1,
-                  participant2
-                );
-
-                if (socket && socket.connected) {
-                  socket.emit("markConversationAsRead", {
-                    from: participant1,
-                    to: participant2,
-                  });
-                }
-              }
-
-              // Marcar mensajes de participant2 a participant1 como leídos por participant1
-              const unreadFromP2 = unreadMessages.filter(
-                (msg) => msg.from === participant2
-              );
-              if (unreadFromP2.length > 0) {
-                await apiService.markConversationAsRead(
-                  participant2,
-                  participant1
-                );
-
-                if (socket && socket.connected) {
-                  socket.emit("markConversationAsRead", {
-                    from: participant2,
-                    to: participant1,
-                  });
-                }
-              }
-
-              // 🔥 Resetear el contador de mensajes no leídos en la lista de conversaciones
-              setAssignedConversations((prevConversations) => {
-                return prevConversations.map((conv) => {
-                  if (conv.id === adminViewConversation.id) {
-                    return {
-                      ...conv,
-                      unreadCount: 0,
-                    };
-                  }
-                  return conv;
-                });
-              });
-            } catch (error) {
-              console.error("Error al marcar conversación como leída:", error);
-            }
-          }
-        }
-
-        // 🔥 TERCERO: Convertir mensajes al formato del frontend
-        const formattedMessages = historicalMessages.map((msg) => {
-          // 🔥 El mensaje es propio si fue enviado por el usuario actual logueado
-          const isOwnMessage = msg.from === currentUserFullName;
-
-          return {
-            sender: msg.from,
-            realSender: msg.from, // 🔥 Nombre real del remitente
-            receiver: msg.to,
-            text: msg.message || "",
-            isGroup: false,
-            time:
-              msg.time ||
-              new Date(msg.sentAt).toLocaleTimeString("es-ES", {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false,
-              }),
-            isSent: true, // 🔥 Marcar como enviado para que muestre los checks
-            isSelf: isOwnMessage, // 🔥 Mensajes del usuario actual a la derecha, otros a la izquierda
-            mediaType: msg.mediaType,
-            mediaData: msg.mediaData,
-            fileName: msg.fileName,
-            fileSize: msg.fileSize,
-            id: msg.id,
-            sentAt: msg.sentAt,
-            isRead: msg.isRead, // 🔥 Estado de lectura desde la BD (ya actualizado)
-            readAt: msg.readAt,
-            readBy: msg.readBy,
-            // Campos de respuesta
-            replyToMessageId: msg.replyToMessageId,
-            replyToSender: msg.replyToSender, // 🔥 Mantener el valor original de la BD
-            replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null,
-            replyToText: msg.replyToText,
-            // Campos de hilos
-            threadCount: msg.threadCount || 0,
-            lastReplyFrom: msg.lastReplyFrom || null,
-            // Campos de edición
-            isEdited: msg.isEdited || false,
-            editedAt: msg.editedAt,
-            // 🔥 Campos de eliminación
-            isDeleted: msg.isDeleted || false,
-            deletedBy: msg.deletedBy || null,
-            deletedAt: msg.deletedAt || null,
-            // 🔥 Campos de reacciones
-            reactions: msg.reactions || [],
-          };
-        });
-
-        // 🔥 CORREGIDO: Establecer todos los mensajes de una vez (no uno por uno)
-        setInitialMessages(formattedMessages);
-
-        // 🔥 NUEVO: Cargar threads automáticamente para mensajes que tengan threadCount > 0
-        const messagesWithThreads = formattedMessages.filter(
-          (msg) => msg.threadCount > 0
-        );
-        if (messagesWithThreads.length > 0) {
-          // console.log(`🧵 Cargando threads para ${messagesWithThreads.length} mensajes...`);
-
-          // Cargar threads en paralelo
-          const threadPromises = messagesWithThreads.map((msg) =>
-            apiService
-              .getThreadMessages(msg.id)
-              .then((threadMsgs) => ({
-                messageId: msg.id,
-                threads: threadMsgs,
-              }))
-              .catch((err) => {
-                console.error(
-                  `Error cargando threads para mensaje ${msg.id}:`,
-                  err
-                );
-                return { messageId: msg.id, threads: [] };
-              })
-          );
-
-          try {
-            await Promise.all(threadPromises);
-            // console.log('✅ Threads cargados');
-            // Los threads se cargarán bajo demanda cuando se abra el ThreadPanel
-            // Aquí solo los precargamos para que estén disponibles
-          } catch (error) {
-            console.error("Error cargando threads en paralelo:", error);
-          }
-        }
-
-        // console.log('✅ Mensajes actualizados en el estado');
-      } catch (error) {
-        console.error("❌ Error al cargar mensajes de admin view:", error);
-      }
-    };
-
-    if (adminViewConversation) {
-      loadAdminViewMessages();
+  // 🔥 Función para cargar mensajes cuando el admin ve una conversación de otros usuarios
+  const loadAdminViewMessages = useCallback(async () => {
+    if (
+      !adminViewConversation ||
+      !adminViewConversation.participants ||
+      adminViewConversation.participants.length < 2
+    ) {
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    // console.log('🔄 Cargando mensajes para conversación asignada:', adminViewConversation);
+    // console.log('   - currentUserFullName:', currentUserFullName);
+
+    try {
+      const [participant1, participant2] = adminViewConversation.participants;
+
+      // console.log('   - participant1:', participant1);
+      // console.log('   - participant2:', participant2);
+
+      // 🔥 CORREGIDO: Usar los participantes reales de la conversación, no el admin
+      // Los mensajes se guardan entre los dos participantes, no entre el admin y uno de ellos
+      // console.log('   - participant1:', participant1);
+      // console.log('   - participant2:', participant2);
+
+      // 🔥 PRIMERO: Cargar mensajes para ver cuáles NO están leídos
+      // Usar los participantes reales de la conversación para que coincida con cómo se guardan en la BD
+      // 🔥 USAR ORDENAMIENTO POR ID para evitar problemas con sentAt corrupto
+      const historicalMessages = await apiService.getUserMessagesOrderedById(
+        participant1,
+        participant2,
+        20,
+        0
+      );
+
+      // console.log('   - Mensajes cargados:', historicalMessages.length);
+
+      // console.log('✅ Mensajes cargados:', historicalMessages.length);
+
+      // 🔥 SEGUNDO: Marcar como leídos SOLO si el usuario es ADMIN, PROGRAMADOR o JEFEPISO
+      // Los ASESORES NO deben marcar mensajes como leídos automáticamente
+      const canMarkAsRead =
+        user?.role === "ADMIN" ||
+        user?.role === "PROGRAMADOR" ||
+        user?.role === "JEFEPISO";
+
+      if (canMarkAsRead) {
+        const unreadMessages = historicalMessages.filter(
+          (msg) => !msg.isRead
+        );
+
+        if (unreadMessages.length > 0) {
+          try {
+            // Marcar mensajes de participant1 a participant2 como leídos por participant2
+            const unreadFromP1 = unreadMessages.filter(
+              (msg) => msg.from === participant1
+            );
+            if (unreadFromP1.length > 0) {
+              await apiService.markConversationAsRead(
+                participant1,
+                participant2
+              );
+
+              if (socket && socket.connected) {
+                socket.emit("markConversationAsRead", {
+                  from: participant1,
+                  to: participant2,
+                });
+              }
+            }
+
+            // Marcar mensajes de participant2 a participant1 como leídos por participant1
+            const unreadFromP2 = unreadMessages.filter(
+              (msg) => msg.from === participant2
+            );
+            if (unreadFromP2.length > 0) {
+              await apiService.markConversationAsRead(
+                participant2,
+                participant1
+              );
+
+              if (socket && socket.connected) {
+                socket.emit("markConversationAsRead", {
+                  from: participant2,
+                  to: participant1,
+                });
+              }
+            }
+
+            // 🔥 Resetear el contador de mensajes no leídos en la lista de conversaciones
+            setAssignedConversations((prevConversations) => {
+              return prevConversations.map((conv) => {
+                if (conv.id === adminViewConversation.id) {
+                  return {
+                    ...conv,
+                    unreadCount: 0,
+                  };
+                }
+                return conv;
+              });
+            });
+          } catch (error) {
+            console.error("Error al marcar conversación como leída:", error);
+          }
+        }
+      }
+
+      // 🔥 TERCERO: Convertir mensajes al formato del frontend
+      const formattedMessages = historicalMessages.map((msg) => {
+        // 🔥 El mensaje es propio si fue enviado por el usuario actual logueado
+        const isOwnMessage = msg.from === currentUserFullName;
+
+        return {
+          sender: msg.from,
+          realSender: msg.from, // 🔥 Nombre real del remitente
+          receiver: msg.to,
+          text: msg.message || "",
+          isGroup: false,
+          time:
+            msg.time ||
+            new Date(msg.sentAt).toLocaleTimeString("es-ES", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            }),
+          isSent: true, // 🔥 Marcar como enviado para que muestre los checks
+          isSelf: isOwnMessage, // 🔥 Mensajes del usuario actual a la derecha, otros a la izquierda
+          mediaType: msg.mediaType,
+          mediaData: msg.mediaData,
+          fileName: msg.fileName,
+          fileSize: msg.fileSize,
+          id: msg.id,
+          sentAt: msg.sentAt,
+          isRead: msg.isRead, // 🔥 Estado de lectura desde la BD (ya actualizado)
+          readAt: msg.readAt,
+          readBy: msg.readBy,
+          // Campos de respuesta
+          replyToMessageId: msg.replyToMessageId,
+          replyToSender: msg.replyToSender, // 🔥 Mantener el valor original de la BD
+          replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null,
+          replyToText: msg.replyToText,
+          // Campos de hilos
+          threadCount: msg.threadCount || 0,
+          lastReplyFrom: msg.lastReplyFrom || null,
+          // Campos de edición
+          isEdited: msg.isEdited || false,
+          editedAt: msg.editedAt,
+          // 🔥 Campos de eliminación
+          isDeleted: msg.isDeleted || false,
+          deletedBy: msg.deletedBy || null,
+          deletedAt: msg.deletedAt || null,
+          // 🔥 Campos de reacciones
+          reactions: msg.reactions || [],
+        };
+      });
+
+      // 🔥 CORREGIDO: Establecer todos los mensajes de una vez (no uno por uno)
+      setInitialMessages(formattedMessages);
+
+      // 🔥 NUEVO: Cargar threads automáticamente para mensajes que tengan threadCount > 0
+      const messagesWithThreads = formattedMessages.filter(
+        (msg) => msg.threadCount > 0
+      );
+      if (messagesWithThreads.length > 0) {
+        // console.log(`🧵 Cargando threads para ${messagesWithThreads.length} mensajes...`);
+
+        // Cargar threads en paralelo
+        const threadPromises = messagesWithThreads.map((msg) =>
+          apiService
+            .getThreadMessages(msg.id)
+            .then((threadMsgs) => ({
+              messageId: msg.id,
+              threads: threadMsgs,
+            }))
+            .catch((err) => {
+              console.error(
+                `Error cargando threads para mensaje ${msg.id}:`,
+                err
+              );
+              return { messageId: msg.id, threads: [] };
+            })
+        );
+
+        try {
+          await Promise.all(threadPromises);
+          // console.log('✅ Threads cargados');
+          // Los threads se cargarán bajo demanda cuando se abra el ThreadPanel
+          // Aquí solo los precargamos para que estén disponibles
+        } catch (error) {
+          console.error("Error cargando threads en paralelo:", error);
+        }
+      }
+
+      // console.log('✅ Mensajes actualizados en el estado');
+    } catch (error) {
+      console.error("❌ Error al cargar mensajes de admin view:", error);
+    }
   }, [
     adminViewConversation,
     user?.role,
-    username,
-    socket,
     currentUserFullName,
+    socket,
+    setInitialMessages,
   ]);
+
+  // 🔥 NUEVO: useEffect para cargar mensajes cuando se selecciona una conversación asignada
+  useEffect(() => {
+    if (adminViewConversation) {
+      loadAdminViewMessages();
+    }
+  }, [adminViewConversation, loadAdminViewMessages]);
 
   // 🔥 NUEVO: Función para cargar conversaciones asignadas con paginación real
   const loadAssignedConversations = useCallback(
@@ -867,6 +867,14 @@ const ChatPage = () => {
     currentUserFullNameRef.current = currentUserFullName;
   }, [to, isGroup, adminViewConversation, userList, currentUserFullName]);
 
+  // 🔥 NUEVO: Cargar mensajes cuando se selecciona una conversación asignada
+  useEffect(() => {
+    if (adminViewConversation) {
+      loadAdminViewMessages();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adminViewConversation]);
+
   // WebSocket listeners
   useEffect(() => {
     if (!socket) return;
@@ -1009,13 +1017,11 @@ const ChatPage = () => {
             icon: "warning",
             title: "📢 ¡Te mencionaron!",
             html: `
-              <strong>${data.from}</strong> te mencionó en <strong>${
-              data.group || "un grupo"
-            }</strong>
+              <strong>${data.from}</strong> te mencionó en <strong>${data.group || "un grupo"
+              }</strong>
               <br><br>
-              <em>"${data.message?.substring(0, 100)}${
-              data.message?.length > 100 ? "..." : ""
-            }"</em>
+              <em>"${data.message?.substring(0, 100)}${data.message?.length > 100 ? "..." : ""
+              }"</em>
             `,
             showConfirmButton: true,
             confirmButtonText: "Ver mensaje",
@@ -1110,19 +1116,19 @@ const ChatPage = () => {
               prevRooms.map((room) =>
                 room.roomCode === data.roomCode
                   ? {
-                      ...room,
-                      lastMessage: {
-                        text: data.message || "",
-                        from: data.from,
-                        time: timeString,
-                        sentAt: dateTimeString,
-                        mediaType: data.mediaType || null,
-                        fileName: data.fileName || null,
-                      },
-                      lastMessageFrom: data.from,
-                      lastMessageTime: timeString,
-                      lastMessageAt: dateTimeString,
-                    }
+                    ...room,
+                    lastMessage: {
+                      text: data.message || "",
+                      from: data.from,
+                      time: timeString,
+                      sentAt: dateTimeString,
+                      mediaType: data.mediaType || null,
+                      fileName: data.fileName || null,
+                    },
+                    lastMessageFrom: data.from,
+                    lastMessageTime: timeString,
+                    lastMessageAt: dateTimeString,
+                  }
                   : room
               )
             );
@@ -1180,19 +1186,19 @@ const ChatPage = () => {
             prevRooms.map((room) =>
               room.roomCode === data.roomCode
                 ? {
-                    ...room,
-                    lastMessage: {
-                      text: data.message || "",
-                      from: data.from,
-                      time: timeString,
-                      sentAt: dateTimeString,
-                      mediaType: data.mediaType || null,
-                      fileName: data.fileName || null,
-                    },
-                    lastMessageFrom: data.from,
-                    lastMessageTime: timeString,
-                    lastMessageAt: dateTimeString,
-                  }
+                  ...room,
+                  lastMessage: {
+                    text: data.message || "",
+                    from: data.from,
+                    time: timeString,
+                    sentAt: dateTimeString,
+                    mediaType: data.mediaType || null,
+                    fileName: data.fileName || null,
+                  },
+                  lastMessageFrom: data.from,
+                  lastMessageTime: timeString,
+                  lastMessageAt: dateTimeString,
+                }
                 : room
             )
           );
@@ -2175,19 +2181,19 @@ const ChatPage = () => {
           prevRooms.map((room) =>
             room.roomCode === data.roomCode
               ? {
-                  ...room,
-                  lastMessage: {
-                    text: data.lastMessage.text,
-                    from: data.lastMessage.from,
-                    time: data.lastMessage.time,
-                    sentAt: data.lastMessage.sentAt,
-                    mediaType: data.lastMessage.mediaType || null,
-                    fileName: data.lastMessage.fileName || null,
-                  },
-                  lastMessageFrom: data.lastMessage.from,
-                  lastMessageTime: data.lastMessage.time,
-                  lastMessageAt: data.lastMessage.sentAt,
-                }
+                ...room,
+                lastMessage: {
+                  text: data.lastMessage.text,
+                  from: data.lastMessage.from,
+                  time: data.lastMessage.time,
+                  sentAt: data.lastMessage.sentAt,
+                  mediaType: data.lastMessage.mediaType || null,
+                  fileName: data.lastMessage.fileName || null,
+                },
+                lastMessageFrom: data.lastMessage.from,
+                lastMessageTime: data.lastMessage.time,
+                lastMessageAt: data.lastMessage.sentAt,
+              }
               : room
           )
         );
@@ -3753,14 +3759,13 @@ const ChatPage = () => {
       const usersList =
         roomUsersData.users && roomUsersData.users.length > 0
           ? roomUsersData.users
-              .map((user) =>
-                typeof user === "string"
-                  ? `• ${user}`
-                  : `• ${user.displayName || user.username} ${
-                      user.isOnline ? "🟢" : "🔴"
-                    }`
-              )
-              .join("\n")
+            .map((user) =>
+              typeof user === "string"
+                ? `• ${user}`
+                : `• ${user.displayName || user.username} ${user.isOnline ? "🟢" : "🔴"
+                }`
+            )
+            .join("\n")
           : "No hay usuarios conectados";
 
       modalContent.innerHTML = `
@@ -3778,9 +3783,8 @@ const ChatPage = () => {
           </div>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid #374045;">
-          <span style="color: #8696a0;">Total: ${
-            roomUsersData.totalUsers || 0
-          }/${roomUsersData.maxCapacity || 0}</span>
+          <span style="color: #8696a0;">Total: ${roomUsersData.totalUsers || 0
+        }/${roomUsersData.maxCapacity || 0}</span>
           <button onclick="this.closest('.modal-overlay').remove()" style="background: #00a884; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Cerrar</button>
         </div>
       `;
@@ -3858,8 +3862,8 @@ const ChatPage = () => {
       // 🔥 Guardar participantes en localStorage para poder cerrar la sala
       const participants = isGroup
         ? roomUsers.map((u) =>
-            typeof u === "string" ? u : u.username || u.nombre
-          )
+          typeof u === "string" ? u : u.username || u.nombre
+        )
         : [to];
       localStorage.setItem(
         `videoCall_${videoRoomID}_participants`,
@@ -4147,8 +4151,8 @@ const ChatPage = () => {
         onShowAdminRooms={handleShowAdminRooms}
         onShowCreateConversation={() => setShowCreateConversationModal(true)}
         onShowManageConversations={() => setShowManageConversationsModal(true)}
-        onShowManageUsers={() => {}}
-        onShowSystemConfig={() => {}}
+        onShowManageUsers={() => { }}
+        onShowSystemConfig={() => { }}
         unreadMessages={unreadMessages}
         myActiveRooms={myActiveRooms}
         onRoomSelect={handleRoomSelect}

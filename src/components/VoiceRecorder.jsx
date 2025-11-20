@@ -21,7 +21,7 @@ const VoiceRecorder = ({ onSendAudio, canSendMessages }) => {
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState(null);
   const [isPaused, setIsPaused] = useState(false);
-  
+
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const timerRef = useRef(null);
@@ -41,7 +41,7 @@ const VoiceRecorder = ({ onSendAudio, canSendMessages }) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
-      
+
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
@@ -76,7 +76,7 @@ const VoiceRecorder = ({ onSendAudio, canSendMessages }) => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
-    
+
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
     }
@@ -96,11 +96,15 @@ const VoiceRecorder = ({ onSendAudio, canSendMessages }) => {
   };
 
   const sendAudio = () => {
-    if (audioBlob) {
+    if (audioBlob && recordingTime > 0) { // 🔥 Verificar que la duración sea mayor a 0
       // Crear un archivo desde el blob
       const audioFile = new File([audioBlob], `audio-${Date.now()}.webm`, { type: 'audio/webm' });
+
+      // 🔥 CRÍTICO: Agregar la duración como propiedad del archivo
+      audioFile.audioDuration = recordingTime;
+
       onSendAudio(audioFile);
-      
+
       // Limpiar
       setAudioBlob(null);
       setRecordingTime(0);
