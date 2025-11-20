@@ -127,7 +127,7 @@ const ChatLayout = ({
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log('🔴 Overlay clickeado - cerrando sidebar');
+            // console.log('🔴 Overlay clickeado - cerrando sidebar');
             onToggleMenu();
           }}
           style={{ touchAction: 'manipulation' }}

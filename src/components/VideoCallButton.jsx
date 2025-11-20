@@ -7,8 +7,8 @@ const VideoCallButton = ({ onStartVideoCall, isGroup, user }) => {
 
     // 2. LOG DE DEPURACIÓN (Abre la consola con F12 para ver esto)
     // Esto te dirá exactamente qué rol está leyendo el sistema
-    console.log("🔍 Debug VideoCall - Usuario:", user);
-    console.log("🔍 Debug VideoCall - Rol detectado:", user?.role || user?.rol);
+    // console.log("🔍 Debug VideoCall - Usuario:", user);
+    // console.log("🔍 Debug VideoCall - Rol detectado:", user?.role || user?.rol);
 
     // 3. Lógica de permisos robusta
     // Aceptamos 'role' o 'rol', y convertimos a mayúsculas para evitar errores

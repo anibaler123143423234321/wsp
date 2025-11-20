@@ -341,14 +341,14 @@ const ConversationList = ({
 
     // Cargar más cuando llegue al 80% del scroll
     if (scrollPercentage > 0.8) {
-      // console.log('📄 Cargando más usuarios...');
+      // // console.log('📄 Cargando más usuarios...');
       onLoadMoreUsers();
     }
   }, [onLoadMoreUsers, userListHasMore, userListLoading]);
 
   // Función para buscar mensajes por contenido
   const handleMessageSearch = useCallback(async (searchValue) => {
-    console.log('🔍 handleMessageSearch llamado con:', searchValue);
+    // console.log('🔍 handleMessageSearch llamado con:', searchValue);
 
     // Limpiar timeout anterior
     if (searchTimeoutRef.current) {
@@ -364,7 +364,7 @@ const ConversationList = ({
 
     // Obtener userId del usuario actual
     const userId = user?.id;
-    console.log('👤 User ID actual:', userId);
+    // console.log('👤 User ID actual:', userId);
 
     if (!userId) {
       console.error('No se pudo obtener el ID del usuario');
@@ -373,11 +373,11 @@ const ConversationList = ({
 
     // Esperar 500ms antes de buscar (debounce)
     searchTimeoutRef.current = setTimeout(async () => {
-      console.log('⏱️ Ejecutando búsqueda después del debounce...');
+      // console.log('⏱️ Ejecutando búsqueda después del debounce...');
       setIsSearching(true);
       try {
         const results = await apiService.searchMessagesByUserId(userId, searchValue);
-        console.log('📝 Resultados de búsqueda:', results);
+        // console.log('📝 Resultados de búsqueda:', results);
         setMessageSearchResults(results || []);
       } catch (error) {
         console.error('Error al buscar mensajes:', error);
@@ -1178,8 +1178,8 @@ const ConversationList = ({
                         position: 'relative'
                       }}
                       onClick={() => {
-                        // console.log('Usuario viendo conversación asignada:', conv);
-                        // console.log('  - displayName:', displayName);
+                        // // console.log('Usuario viendo conversación asignada:', conv);
+                        // // console.log('  - displayName:', displayName);
                         // Llamar a onUserSelect con el displayName correcto
                         if (onUserSelect) {
                           onUserSelect(displayName, null, conv);
@@ -1553,7 +1553,7 @@ const ConversationList = ({
                             position: 'relative'
                           }}
                           onClick={() => {
-                            // console.log('Admin monitoreando conversación:', conv);
+                            // // console.log('Admin monitoreando conversación:', conv);
                             // 🔥 IMPORTANTE: Pasar el nombre del otro participante, no el nombre de la conversación
                             // Esto es crítico para que la API cargue los mensajes correctamente
                             if (onUserSelect) {

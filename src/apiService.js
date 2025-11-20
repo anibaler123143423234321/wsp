@@ -1511,7 +1511,7 @@ class ApiService {
     try {
       const token = localStorage.getItem("token");
       const user = this.getCurrentUser();
-      
+
       if (!token || !user) {
         throw new Error("No hay token de autenticación o usuario");
       }

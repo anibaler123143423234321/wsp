@@ -272,12 +272,12 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
   // Si updates es una función, se llama con el mensaje actual para calcular las actualizaciones
   // 🔥 NUEVO: Si messageId es null, buscar por videoRoomID en updates
   const updateMessage = useCallback((messageId, updates) => {
-    console.log('🔄 updateMessage llamado:', { messageId, updates });
+    // console.log('🔄 updateMessage llamado:', { messageId, updates });
 
     let messageFound = false;
 
     setMessages(prevMessages => {
-      console.log('📋 Total mensajes en estado:', prevMessages.length);
+      // console.log('📋 Total mensajes en estado:', prevMessages.length);
 
       const updatedMessages = prevMessages.map(msg => {
         let shouldUpdate = false;
@@ -322,7 +322,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       });
 
       if (!messageFound) {
-        console.log('❌ No se encontró ningún mensaje para actualizar');
+        // console.log('❌ No se encontró ningún mensaje para actualizar');
       }
 
       return updatedMessages;

@@ -49,7 +49,7 @@ const CallWindow = ({
   // Asignar stream remoto al elemento de audio (para llamadas de audio)
   useEffect(() => {
     if (remoteAudioRef.current && remoteStream) {
-      console.log('🔊 Asignando stream remoto al elemento de audio');
+      // console.log('🔊 Asignando stream remoto al elemento de audio');
       remoteAudioRef.current.srcObject = remoteStream;
       // Asegurarse de que se reproduzca
       remoteAudioRef.current.play().catch(err => {

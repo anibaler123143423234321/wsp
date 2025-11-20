@@ -112,7 +112,7 @@ const LeftSidebar = ({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('🔴 Botón X clickeado - cerrando sidebar');
+                // console.log('🔴 Botón X clickeado - cerrando sidebar');
                 onToggleSidebar();
               }}
               className="hidden max-[768px]:flex items-center justify-center w-12 h-12 bg-red-600/80 hover:bg-red-700/90 rounded-full transition-all duration-200 active:scale-95 z-50 shadow-lg"

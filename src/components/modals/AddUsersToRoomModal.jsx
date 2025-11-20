@@ -41,7 +41,7 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
     }
 
     try {
-      console.log(`🔄 Cargando usuarios de la sede ${sedeToUse}, página ${pageNumber}`);
+      // console.log(`🔄 Cargando usuarios de la sede ${sedeToUse}, página ${pageNumber}`);
 
       // Cargar usuarios de 10 en 10 según la sede
       const newUsers = await apiService.getUsersFromBackend(pageNumber, 10, sedeToUse);
@@ -69,7 +69,7 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
       // Si recibimos menos de 10 usuarios, no hay más páginas
       setHasMore(newUsers.length === 10);
       setPage(pageNumber);
-      console.log(`✅ Usuarios cargados exitosamente: ${availableUsers.length}`);
+      // console.log(`✅ Usuarios cargados exitosamente: ${availableUsers.length}`);
     } catch (error) {
       console.error('❌ Error al cargar usuarios:', error);
       if (reset) {
@@ -96,7 +96,7 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
     setIsSearching(true);
 
     try {
-      console.log(`🔍 Buscando usuarios: "${query}" en sede ${sedeToUse}, página ${pageNumber}`);
+      // console.log(`🔍 Buscando usuarios: "${query}" en sede ${sedeToUse}, página ${pageNumber}`);
 
       // Buscar usuarios según la sede
       const newUsers = await apiService.searchUsersFromBackend(query, pageNumber, 10, sedeToUse);
@@ -127,7 +127,7 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
 
       setHasMore(newUsers.length === 10);
       setPage(pageNumber);
-      console.log(`✅ Búsqueda completada: ${availableUsers.length} usuarios encontrados`);
+      // console.log(`✅ Búsqueda completada: ${availableUsers.length} usuarios encontrados`);
     } catch (error) {
       console.error('❌ Error al buscar usuarios:', error);
       // No mostrar alerta aquí, dejar que el usuario intente de nuevo
@@ -225,7 +225,7 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
     }
 
     try {
-      console.log(`🔄 Agregando ${selectedUsers.length} usuarios a la sala ${roomCode}...`);
+      // console.log(`🔄 Agregando ${selectedUsers.length} usuarios a la sala ${roomCode}...`);
 
       // 🔥 IMPORTANTE: Agregar usuarios SECUENCIALMENTE para evitar condiciones de carrera
       // Si se agregan en paralelo con Promise.all(), pueden fallar por límite de capacidad
@@ -234,13 +234,13 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
 
       for (const username of selectedUsers) {
         try {
-          console.log(`➕ Agregando usuario: ${username}`);
+          // console.log(`➕ Agregando usuario: ${username}`);
           const result = await apiService.joinRoom({
             roomCode: roomCode,
             username: username
           });
           results.push({ username, success: true, result });
-          console.log(`✅ Usuario ${username} agregado exitosamente`);
+          // console.log(`✅ Usuario ${username} agregado exitosamente`);
         } catch (error) {
           console.error(`❌ Error al agregar usuario ${username}:`, error);
           errors.push({ username, error: error.message || 'Error desconocido' });

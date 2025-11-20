@@ -69,7 +69,7 @@ export const useSocket = (isAuthenticated, username, user) => {
           try {
             const result = await apiService.getAssignedConversationsPaginated(1, 100); // Obtener todas las conversaciones
             assignedConversations = result.conversations || [];
-            console.log(`✅ Conversaciones asignadas obtenidas: ${assignedConversations.length}`);
+            // console.log(`✅ Conversaciones asignadas obtenidas: ${assignedConversations.length}`);
           } catch (error) {
             console.error("❌ Error al obtener conversaciones asignadas:", error);
           }
@@ -117,7 +117,7 @@ export const useSocket = (isAuthenticated, username, user) => {
         });
 
         socket.current.on("reconnect", async (attemptNumber) => {
-          console.log(`✅ Socket reconectado después de ${attemptNumber} intentos`);
+          // console.log(`✅ Socket reconectado después de ${attemptNumber} intentos`);
           isConnecting.current = false;
 
           // Re-registrar usuario después de reconectar
@@ -131,7 +131,7 @@ export const useSocket = (isAuthenticated, username, user) => {
           try {
             const result = await apiService.getAssignedConversationsPaginated(1, 100); // Obtener todas las conversaciones
             assignedConversations = result.conversations || [];
-            console.log(`✅ Conversaciones asignadas obtenidas en reconexión: ${assignedConversations.length}`);
+            // console.log(`✅ Conversaciones asignadas obtenidas en reconexión: ${assignedConversations.length}`);
           } catch (error) {
             console.error("❌ Error al obtener conversaciones asignadas en reconexión:", error);
           }
@@ -155,7 +155,7 @@ export const useSocket = (isAuthenticated, username, user) => {
         });
 
         socket.current.on("reconnect_attempt", (attemptNumber) => {
-          console.log(`🔄 Intento de reconexión #${attemptNumber}`);
+          // console.log(`🔄 Intento de reconexión #${attemptNumber}`);
         });
 
         socket.current.on("reconnect_error", (error) => {

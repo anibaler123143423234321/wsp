@@ -95,7 +95,7 @@ export const useWebRTC = (socket, username) => {
         video: video ? { width: 1280, height: 720, facingMode: 'user' } : false
       };
 
-      console.log('🎥 Solicitando permisos:', constraints);
+      // console.log('🎥 Solicitando permisos:', constraints);
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       setLocalStream(stream);
       return stream;
@@ -104,7 +104,7 @@ export const useWebRTC = (socket, username) => {
 
       // Si se solicitó video pero falló, intentar solo con audio
       if (video && error.name === 'NotFoundError') {
-        console.log('⚠️ No se encontró cámara, intentando solo con audio...');
+        // console.log('⚠️ No se encontró cámara, intentando solo con audio...');
         try {
           const audioOnlyStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
           setLocalStream(audioOnlyStream);
@@ -125,7 +125,7 @@ export const useWebRTC = (socket, username) => {
   // Iniciar llamada (caller - quien inicia)
   const startCall = useCallback(async (targetUser, type = 'audio') => {
     try {
-      console.log(`📞 Iniciando llamada ${type} a:`, targetUser);
+      // console.log(`📞 Iniciando llamada ${type} a:`, targetUser);
       setCallType(type);
       setCallerName(targetUser);
       callerNameRef.current = targetUser;
@@ -148,13 +148,13 @@ export const useWebRTC = (socket, username) => {
 
       // Cuando se genera la señal (offer)
       peer.on('signal', (signalData) => {
-        console.log('📤 Enviando señal de llamada a:', targetUser);
-        console.log('📤 Datos de la llamada:', {
-          userToCall: targetUser,
-          from: username,
-          callType: type,
-          socketConnected: socket?.connected
-        });
+        // console.log('📤 Enviando señal de llamada a:', targetUser);
+        // console.log('📤 Datos de la llamada:', {
+        //   userToCall: targetUser,
+        //   from: username,
+        //   callType: type,
+        //   socketConnected: socket?.connected
+        // });
 
         if (!socket || !socket.connected) {
           console.error('❌ Socket no conectado!');
@@ -169,12 +169,12 @@ export const useWebRTC = (socket, username) => {
           from: username,
           callType: type
         });
-        console.log('✅ Evento callUser emitido');
+        // console.log('✅ Evento callUser emitido');
       });
 
       // Cuando se recibe el stream remoto
       peer.on('stream', (remoteStream) => {
-        console.log('📹 Stream remoto recibido');
+        // console.log('📹 Stream remoto recibido');
         setRemoteStream(remoteStream);
         setCallStatus('connected');
         startCallTimer();
@@ -182,12 +182,12 @@ export const useWebRTC = (socket, username) => {
 
       // Cuando se conecta
       peer.on('connect', () => {
-        console.log('✅ Peer conectado');
+        // console.log('✅ Peer conectado');
       });
 
       // Cuando se cierra
       peer.on('close', () => {
-        console.log('📴 Peer cerrado');
+        // console.log('📴 Peer cerrado');
         endCall();
       });
 
@@ -214,7 +214,7 @@ export const useWebRTC = (socket, username) => {
 
       // 🔥 NUEVO: Monitorear estado de ICE para debugging
       peer._pc.oniceconnectionstatechange = () => {
-        console.log('🧊 ICE Connection State:', peer._pc.iceConnectionState);
+        // console.log('🧊 ICE Connection State:', peer._pc.iceConnectionState);
         if (peer._pc.iceConnectionState === 'failed') {
           console.error('❌ ICE connection failed - intentando reconectar...');
           // Intentar reiniciar ICE
@@ -223,14 +223,14 @@ export const useWebRTC = (socket, username) => {
       };
 
       peer._pc.onicegatheringstatechange = () => {
-        console.log('🧊 ICE Gathering State:', peer._pc.iceGatheringState);
+        // console.log('🧊 ICE Gathering State:', peer._pc.iceGatheringState);
       };
 
       peer._pc.onicecandidate = (event) => {
         if (event.candidate) {
-          console.log('🧊 ICE Candidate:', event.candidate.type, event.candidate.protocol);
+          // console.log('🧊 ICE Candidate:', event.candidate.type, event.candidate.protocol);
         } else {
-          console.log('🧊 ICE Gathering completado');
+          // console.log('🧊 ICE Gathering completado');
         }
       };
 
@@ -245,7 +245,7 @@ export const useWebRTC = (socket, username) => {
   // Aceptar llamada (receiver - quien recibe)
   const acceptCall = useCallback(async (signalData) => {
     try {
-      console.log('✅ Aceptando llamada...');
+      // console.log('✅ Aceptando llamada...');
       setCallStatus('connecting');
 
       const stream = await getLocalStream(callType === 'video');
@@ -264,7 +264,7 @@ export const useWebRTC = (socket, username) => {
 
       // Cuando se genera la señal (answer)
       peer.on('signal', (answerSignal) => {
-        console.log('📤 Enviando respuesta de llamada a:', callerName);
+        // console.log('📤 Enviando respuesta de llamada a:', callerName);
         socket.emit('answerCall', {
           signal: answerSignal,
           to: callerName
@@ -273,7 +273,7 @@ export const useWebRTC = (socket, username) => {
 
       // Cuando se recibe el stream remoto
       peer.on('stream', (remoteStream) => {
-        console.log('📹 Stream remoto recibido');
+        // console.log('📹 Stream remoto recibido');
         setRemoteStream(remoteStream);
         setCallStatus('connected');
         startCallTimer();
@@ -281,12 +281,12 @@ export const useWebRTC = (socket, username) => {
 
       // Cuando se conecta
       peer.on('connect', () => {
-        console.log('✅ Peer conectado');
+        // console.log('✅ Peer conectado');
       });
 
       // Cuando se cierra
       peer.on('close', () => {
-        console.log('📴 Peer cerrado');
+        // console.log('📴 Peer cerrado');
         endCall();
       });
 
@@ -313,7 +313,7 @@ export const useWebRTC = (socket, username) => {
 
       // 🔥 NUEVO: Monitorear estado de ICE para debugging
       peer._pc.oniceconnectionstatechange = () => {
-        console.log('🧊 ICE Connection State:', peer._pc.iceConnectionState);
+        // console.log('🧊 ICE Connection State:', peer._pc.iceConnectionState);
         if (peer._pc.iceConnectionState === 'failed') {
           console.error('❌ ICE connection failed - intentando reconectar...');
           // Intentar reiniciar ICE
@@ -322,14 +322,14 @@ export const useWebRTC = (socket, username) => {
       };
 
       peer._pc.onicegatheringstatechange = () => {
-        console.log('🧊 ICE Gathering State:', peer._pc.iceGatheringState);
+        // console.log('🧊 ICE Gathering State:', peer._pc.iceGatheringState);
       };
 
       peer._pc.onicecandidate = (event) => {
         if (event.candidate) {
-          console.log('🧊 ICE Candidate:', event.candidate.type, event.candidate.protocol);
+          // console.log('🧊 ICE Candidate:', event.candidate.type, event.candidate.protocol);
         } else {
-          console.log('🧊 ICE Gathering completado');
+          // console.log('🧊 ICE Gathering completado');
         }
       };
 
@@ -346,7 +346,7 @@ export const useWebRTC = (socket, username) => {
 
   // Rechazar llamada
   const rejectCall = useCallback(() => {
-    console.log('❌ Rechazando llamada...');
+    // console.log('❌ Rechazando llamada...');
     socket.emit('callRejected', {
       to: callerName,
       from: username
@@ -356,7 +356,7 @@ export const useWebRTC = (socket, username) => {
 
   // Finalizar llamada
   const endCall = useCallback(() => {
-    console.log('📴 Finalizando llamada...');
+    // console.log('📴 Finalizando llamada...');
 
     // Notificar al otro usuario
     if (socket && socket.connected && callerName && callStatus !== 'idle') {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import Swal from 'sweetalert2';
+import Swal from "sweetalert2";
 import ChatLayout from "../layouts/ChatLayout";
 import Login from "../components/Login";
 import LoadingScreen from "../components/LoadingScreen";
@@ -168,23 +168,43 @@ const ChatPage = () => {
   const currentRoomCodeRef = useRef(null);
   const hasRestoredRoom = useRef(false);
 
+  // 🔥 NUEVO: Referencias para estabilizar el useEffect del socket
+  const toRef = useRef(to);
+  const isGroupRef = useRef(isGroup);
+  const adminViewConversationRef = useRef(adminViewConversation);
+  const currentUserFullNameRef = useRef(currentUserFullName);
+  const userListRef = useRef(userList);
+
+  // 🔥 Actualizar refs cuando cambien los valores
+  useEffect(() => {
+    toRef.current = to;
+    isGroupRef.current = isGroup;
+    adminViewConversationRef.current = adminViewConversation;
+    currentUserFullNameRef.current = currentUserFullName;
+    userListRef.current = userList;
+  }, [to, isGroup, adminViewConversation, currentUserFullName, userList]);
+
   // 🔥 EFFECT: Actualizar título de la pestaña con contador de no leídos
   useEffect(() => {
     // 1. Contar no leídos de conversaciones asignadas
     // Filtrar conversaciones donde el usuario es participante
-    const myAssignedConversations = assignedConversations.filter(conv => {
-      const displayName = user?.nombre && user?.apellido
-        ? `${user.nombre} ${user.apellido}`
-        : user?.username;
+    const myAssignedConversations = assignedConversations.filter((conv) => {
+      const displayName =
+        user?.nombre && user?.apellido
+          ? `${user.nombre} ${user.apellido}`
+          : user?.username;
       return conv.participants?.includes(displayName);
     });
-    const unreadAssignedCount = myAssignedConversations.filter(conv => conv.unreadCount > 0).length;
+    const unreadAssignedCount = myAssignedConversations.filter(
+      (conv) => conv.unreadCount > 0
+    ).length;
 
     // 2. Contar no leídos de salas activas
-    const unreadRoomsCount = myActiveRooms?.filter(room => {
-      const roomUnread = unreadMessages?.[room.roomCode] || 0;
-      return roomUnread > 0;
-    }).length || 0;
+    const unreadRoomsCount =
+      myActiveRooms?.filter((room) => {
+        const roomUnread = unreadMessages?.[room.roomCode] || 0;
+        return roomUnread > 0;
+      }).length || 0;
 
     // 3. Total
     const totalUnread = unreadAssignedCount + unreadRoomsCount;
@@ -193,7 +213,7 @@ const ChatPage = () => {
     if (totalUnread > 0) {
       document.title = `(${totalUnread}) Chat Call Center +34`;
     } else {
-      document.title = 'Chat Call Center +34';
+      document.title = "Chat Call Center +34";
     }
   }, [assignedConversations, myActiveRooms, unreadMessages, user]);
 
@@ -241,27 +261,31 @@ const ChatPage = () => {
           user?.role === "JEFEPISO" ||
           user?.role === "PROGRAMADOR";
 
-        console.log("🏠 loadMyActiveRooms - Iniciando carga de salas:", {
-          username,
-          role: user?.role,
-          isPrivilegedUser,
-          page,
-          parsedLimit,
-        });
+        // console.log("🏠 loadMyActiveRooms - Iniciando carga de salas:", {
+        //   username,
+        //   role: user?.role,
+        //   isPrivilegedUser,
+        //   page,
+        //   parsedLimit,
+        // });
 
         // Si es ADMIN/JEFEPISO/PROGRAMADOR usar endpoint de admin pero respetando paginación
         if (isPrivilegedUser) {
-          console.log("👑 Usuario privilegiado - Usando endpoint de admin");
-          const response = await apiService.getAdminRooms(page, parsedLimit, "");
+          // console.log("👑 Usuario privilegiado - Usando endpoint de admin");
+          const response = await apiService.getAdminRooms(
+            page,
+            parsedLimit,
+            ""
+          );
           const activeRooms = response.data
             ? response.data.filter((room) => room.isActive)
             : [];
 
-          console.log("✅ Salas de admin cargadas:", {
-            total: response.total,
-            activeRooms: activeRooms.length,
-            rooms: activeRooms.map(r => ({ name: r.name, roomCode: r.roomCode })),
-          });
+          // console.log("✅ Salas de admin cargadas:", {
+          //   total: response.total,
+          //   activeRooms: activeRooms.length,
+          //   rooms: activeRooms.map(r => ({ name: r.name, roomCode: r.roomCode })),
+          // });
 
           const nextPage = Number(response.page ?? page) || page;
           const totalRooms =
@@ -277,9 +301,7 @@ const ChatPage = () => {
 
           if (append && page > 1) {
             setMyActiveRooms((prev) => {
-              const existingCodes = new Set(
-                prev.map((room) => room.roomCode)
-              );
+              const existingCodes = new Set(prev.map((room) => room.roomCode));
               const newRooms = activeRooms.filter(
                 (room) => !existingCodes.has(room.roomCode)
               );
@@ -290,17 +312,17 @@ const ChatPage = () => {
           }
         } else {
           // Para usuarios normales, usar paginación real
-          console.log("👤 Usuario normal - Usando endpoint de usuario");
+          // console.log("👤 Usuario normal - Usando endpoint de usuario");
           const result = await apiService.getUserRoomsPaginated(
             page,
             parsedLimit
           );
 
-          console.log("✅ Salas de usuario cargadas:", {
-            total: result.total,
-            rooms: result.rooms?.length || 0,
-            roomsList: result.rooms?.map(r => ({ name: r.name, roomCode: r.roomCode, members: r.members })) || [],
-          });
+          // console.log("✅ Salas de usuario cargadas:", {
+          //   total: result.total,
+          //   rooms: result.rooms?.length || 0,
+          //   roomsList: result.rooms?.map(r => ({ name: r.name, roomCode: r.roomCode, members: r.members })) || [],
+          // });
 
           // Actualizar estados de paginación
           const nextPage = Number(result.page ?? page) || page;
@@ -309,9 +331,8 @@ const ChatPage = () => {
             result.rooms?.length ||
             0;
           const totalPages =
-            Number(
-              result.totalPages ?? Math.ceil(totalRooms / parsedLimit)
-            ) || 1;
+            Number(result.totalPages ?? Math.ceil(totalRooms / parsedLimit)) ||
+            1;
 
           setRoomsPage(nextPage);
           setRoomsTotal(totalRooms);
@@ -327,7 +348,7 @@ const ChatPage = () => {
               return [...prev, ...newRooms];
             });
           } else {
-            console.log("📝 Actualizando myActiveRooms con:", result.rooms?.length || 0, "salas");
+            // console.log("📝 Actualizando myActiveRooms con:", result.rooms?.length || 0, "salas");
             setMyActiveRooms(result.rooms || []);
           }
         }
@@ -340,19 +361,19 @@ const ChatPage = () => {
         setRoomsLoading(false);
       }
     },
-    [user?.role, roomsLimit, username]
+    [user?.role, roomsLimit]
   );
 
   // 🔥 NUEVO: Función para marcar mensajes de grupo como leídos
   const markRoomMessagesAsRead = useCallback(
     async (roomCode) => {
       if (!socket || !socket.connected || !roomCode) {
-        console.log("⚠️ No se puede marcar mensajes: socket no conectado o sin roomCode");
+        // console.log("⚠️ No se puede marcar mensajes: socket no conectado o sin roomCode");
         return;
       }
 
       // Emitir evento para marcar como leídos
-      socket.emit('markRoomMessagesAsRead', {
+      socket.emit("markRoomMessagesAsRead", {
         roomCode,
         username,
       });
@@ -670,7 +691,10 @@ const ChatPage = () => {
         setAssignedLoading(true);
 
         // Usar paginación para todos los usuarios (admin y normales)
-        const result = await apiService.getAssignedConversationsPaginated(page, 10);
+        const result = await apiService.getAssignedConversationsPaginated(
+          page,
+          10
+        );
 
         // Actualizar estados de paginación
         setAssignedPage(result.page);
@@ -738,16 +762,16 @@ const ChatPage = () => {
   // 🔥 NUEVO: Función para cargar conteos de mensajes no leídos
   const loadUnreadCounts = useCallback(async () => {
     if (!isAuthenticated || !username) {
-      console.log(
-        "⚠️ No se puede cargar conteos: no autenticado o sin username"
-      );
+      // console.log(
+      //   "⚠️ No se puede cargar conteos: no autenticado o sin username"
+      // );
       return;
     }
 
-    console.log("📊 Cargando conteos de mensajes no leídos para:", username);
+    // console.log("📊 Cargando conteos de mensajes no leídos para:", username);
     try {
       const counts = await apiService.getUnreadCounts();
-      console.log("📊 Conteos recibidos:", counts);
+      // console.log("📊 Conteos recibidos:", counts);
       setUnreadMessages(counts || {});
     } catch (error) {
       console.error("❌ Error al cargar conteos de mensajes no leídos:", error);
@@ -834,6 +858,14 @@ const ChatPage = () => {
   useEffect(() => {
     console.log("📊 DEBUG: unreadMessages cambió:", unreadMessages);
   }, [unreadMessages]);
+
+  useEffect(() => {
+    toRef.current = to;
+    isGroupRef.current = isGroup;
+    adminViewConversationRef.current = adminViewConversation;
+    userListRef.current = userList;
+    currentUserFullNameRef.current = currentUserFullName;
+  }, [to, isGroup, adminViewConversation, userList, currentUserFullName]);
 
   // WebSocket listeners
   useEffect(() => {
@@ -964,37 +996,46 @@ const ChatPage = () => {
 
       // 🔥 Notificación Toast (SweetAlert2)
       // Mostrar si el mensaje NO es propio
-      if (data.from !== username && data.from !== currentUserFullName) {
+      if (
+        data.from !== username &&
+        data.from !== currentUserFullNameRef.current
+      ) {
         // 🔥 NUEVO: Verificar si el usuario fue mencionado en un mensaje de grupo
         const isMentioned = data.isGroup && data.hasMention;
 
         if (isMentioned) {
           // 🔥 Alerta especial para menciones (persiste hasta que el usuario entre al chat)
           const mentionAlert = Swal.fire({
-            icon: 'warning',
-            title: '📢 ¡Te mencionaron!',
+            icon: "warning",
+            title: "📢 ¡Te mencionaron!",
             html: `
-              <strong>${data.from}</strong> te mencionó en <strong>${data.group || 'un grupo'}</strong>
+              <strong>${data.from}</strong> te mencionó en <strong>${
+              data.group || "un grupo"
+            }</strong>
               <br><br>
-              <em>"${data.message?.substring(0, 100)}${data.message?.length > 100 ? '...' : ''}"</em>
+              <em>"${data.message?.substring(0, 100)}${
+              data.message?.length > 100 ? "..." : ""
+            }"</em>
             `,
             showConfirmButton: true,
-            confirmButtonText: 'Ver mensaje',
+            confirmButtonText: "Ver mensaje",
             showCancelButton: true,
-            cancelButtonText: 'Cerrar',
+            cancelButtonText: "Cerrar",
             allowOutsideClick: false,
             allowEscapeKey: false,
           }).then((result) => {
             if (result.isConfirmed) {
               // 🔥 Navegar al chat del grupo donde fue mencionado
               // Esto se manejará en el componente padre
-              window.dispatchEvent(new CustomEvent('navigateToMention', {
-                detail: {
-                  roomCode: data.roomCode,
-                  groupName: data.group,
-                  messageId: data.id
-                }
-              }));
+              window.dispatchEvent(
+                new CustomEvent("navigateToMention", {
+                  detail: {
+                    roomCode: data.roomCode,
+                    groupName: data.group,
+                    messageId: data.id,
+                  },
+                })
+              );
             }
           });
 
@@ -1010,27 +1051,29 @@ const ChatPage = () => {
                 messageId: data.id,
                 timestamp: dateTimeString,
                 alertInstance: mentionAlert,
-              }
+              },
             }));
           }
         } else {
           // Toast normal para mensajes sin mención
           const Toast = Swal.mixin({
             toast: true,
-            position: 'bottom-end',
+            position: "bottom-end",
             showConfirmButton: false,
             timer: 3000,
             timerProgressBar: true,
             didOpen: (toast) => {
-              toast.addEventListener('mouseenter', Swal.stopTimer)
-              toast.addEventListener('mouseleave', Swal.resumeTimer)
-            }
+              toast.addEventListener("mouseenter", Swal.stopTimer);
+              toast.addEventListener("mouseleave", Swal.resumeTimer);
+            },
           });
 
           Toast.fire({
-            icon: 'info',
+            icon: "info",
             title: `Nuevo mensaje de ${data.from}`,
-            text: data.message || (data.fileName ? '📎 Archivo adjunto' : 'Mensaje recibido')
+            text:
+              data.message ||
+              (data.fileName ? "📎 Archivo adjunto" : "Mensaje recibido"),
           });
         }
       }
@@ -1040,18 +1083,21 @@ const ChatPage = () => {
         // Para salas temporales (con roomCode), verificar por roomCode
         // Para grupos normales (sin roomCode), verificar por nombre del grupo
         let isViewingCorrectGroup = false;
+        const currentTo = toRef.current;
+        const currentIsGroup = isGroupRef.current;
 
-        if (currentRoomCode && data.roomCode) {
+        if (currentRoomCodeRef.current && data.roomCode) {
           // Sala temporal: verificar por roomCode
-          isViewingCorrectGroup = isGroup && currentRoomCode === data.roomCode;
+          isViewingCorrectGroup =
+            currentIsGroup && currentRoomCodeRef.current === data.roomCode;
         } else {
           // Grupo normal: verificar por nombre del grupo
-          isViewingCorrectGroup = isGroup && to === data.group;
+          isViewingCorrectGroup = currentIsGroup && currentTo === data.group;
         }
 
         if (!isViewingCorrectGroup) {
           // 🔥 NUEVO: Actualizar contador de mensajes no leídos para esta sala
-          if (data.roomCode && data.from !== currentUserFullName) {
+          if (data.roomCode && data.from !== currentUserFullNameRef.current) {
             setUnreadMessages((prev) => ({
               ...prev,
               [data.roomCode]: (prev[data.roomCode] || 0) + 1,
@@ -1064,26 +1110,26 @@ const ChatPage = () => {
               prevRooms.map((room) =>
                 room.roomCode === data.roomCode
                   ? {
-                    ...room,
-                    lastMessage: {
-                      text: data.message || "",
-                      from: data.from,
-                      time: timeString,
-                      sentAt: dateTimeString,
-                      mediaType: data.mediaType || null,
-                      fileName: data.fileName || null,
-                    },
-                    lastMessageFrom: data.from,
-                    lastMessageTime: timeString,
-                    lastMessageAt: dateTimeString,
-                  }
+                      ...room,
+                      lastMessage: {
+                        text: data.message || "",
+                        from: data.from,
+                        time: timeString,
+                        sentAt: dateTimeString,
+                        mediaType: data.mediaType || null,
+                        fileName: data.fileName || null,
+                      },
+                      lastMessageFrom: data.from,
+                      lastMessageTime: timeString,
+                      lastMessageAt: dateTimeString,
+                    }
                   : room
               )
             );
           }
 
           // 🔥 NUEVO: Reproducir sonido de notificación si está habilitado
-          if (soundsEnabled && data.from !== currentUserFullName) {
+          if (soundsEnabled && data.from !== currentUserFullNameRef.current) {
             playMessageSound();
           }
 
@@ -1092,7 +1138,8 @@ const ChatPage = () => {
 
         // Determinar si es mensaje propio o de otro usuario
         const isOwnMessage =
-          data.from === username || data.from === currentUserFullName;
+          data.from === username ||
+          data.from === currentUserFullNameRef.current;
 
         const newMessage = {
           id: data.id,
@@ -1133,19 +1180,19 @@ const ChatPage = () => {
             prevRooms.map((room) =>
               room.roomCode === data.roomCode
                 ? {
-                  ...room,
-                  lastMessage: {
-                    text: data.message || "",
-                    from: data.from,
-                    time: timeString,
-                    sentAt: dateTimeString,
-                    mediaType: data.mediaType || null,
-                    fileName: data.fileName || null,
-                  },
-                  lastMessageFrom: data.from,
-                  lastMessageTime: timeString,
-                  lastMessageAt: dateTimeString,
-                }
+                    ...room,
+                    lastMessage: {
+                      text: data.message || "",
+                      from: data.from,
+                      time: timeString,
+                      sentAt: dateTimeString,
+                      mediaType: data.mediaType || null,
+                      fileName: data.fileName || null,
+                    },
+                    lastMessageFrom: data.from,
+                    lastMessageTime: timeString,
+                    lastMessageAt: dateTimeString,
+                  }
                 : room
             )
           );
@@ -1159,24 +1206,28 @@ const ChatPage = () => {
         return;
       } else {
         // 🔥 IMPORTANTE: Solo agregar el mensaje si el usuario está viendo el chat correcto
-        console.log("📨 Mensaje 1-a-1 recibido:", {
-          from: data.from,
-          to: data.to,
-          message: data.message?.substring(0, 50),
-          isGroup: data.isGroup,
-          currentTo: to,
-          currentIsGroup: isGroup,
-          currentRoomCode,
-          username,
-          currentUserFullName,
-          adminViewConversation: !!adminViewConversation,
-        });
+        // console.log("📨 Mensaje 1-a-1 recibido:", {
+        //   from: data.from,
+        //   to: data.to,
+        //   message: data.message?.substring(0, 50),
+        //   isGroup: data.isGroup,
+        //   currentTo: to,
+        //   currentIsGroup: isGroup,
+        //   currentRoomCode,
+        //   username,
+        //   currentUserFullName,
+        //   adminViewConversation: !!adminViewConversation,
+        // });
 
         let isViewingCorrectChat = false;
+        const currentAdminView = adminViewConversationRef.current;
+        const currentTo = toRef.current;
+        const currentIsGroup = isGroupRef.current;
+        const currentFullName = currentUserFullNameRef.current;
 
-        if (adminViewConversation) {
+        if (currentAdminView) {
           // 🔥 Si estás viendo una conversación asignada, verificar que el mensaje pertenezca a esa conversación
-          const participants = adminViewConversation.participants || [];
+          const participants = currentAdminView.participants || [];
           const isMessageFromParticipants =
             participants.some(
               (p) => p.toLowerCase().trim() === data.from.toLowerCase().trim()
@@ -1188,59 +1239,82 @@ const ChatPage = () => {
           isViewingCorrectChat = isMessageFromParticipants;
         } else {
           // 🔥 Si NO estás viendo una conversación asignada, verificar que sea tu chat directo
-          // Puede ser un mensaje recibido (from = to actual) O un mensaje enviado (to = to actual)
-          const condition1 = !isGroup; // No está en un grupo
-          const condition2 = !currentRoomCode; // No está en una sala
+          const condition1 = !currentIsGroup; // No está en un grupo
+          const condition2 = !currentRoomCodeRef.current; // No está en una sala
           const condition3 = !data.isGroup; // 🔥 CRÍTICO: El mensaje entrante NO debe ser de un grupo
-          const condition4 = !!to; // Hay un destinatario seleccionado
-          const condition5a = to?.toLowerCase().trim() === data.from?.toLowerCase().trim(); // Mensaje recibido del otro
-          const condition5b = (data.from === username || data.from === currentUserFullName) &&
-            to?.toLowerCase().trim() === data.to?.toLowerCase().trim(); // Mensaje enviado por mí al destinatario actual
+          const condition4 = !!currentTo; // Hay un destinatario seleccionado
 
-          console.log("🔍 Condiciones para isViewingCorrectChat:", {
-            condition1_notInGroup: condition1,
-            condition2_noRoomCode: condition2,
-            condition3_messageNotGroup: condition3,
-            condition4_hasRecipient: condition4,
-            condition5a_receivedFromOther: condition5a,
-            condition5b_sentByMe: condition5b,
-            "to?.toLowerCase()": to?.toLowerCase().trim(),
-            "data.from?.toLowerCase()": data.from?.toLowerCase().trim(),
-            "data.to?.toLowerCase()": data.to?.toLowerCase().trim(),
-          });
+          // 🔥 CORREGIDO: Verificar si el mensaje es parte de la conversación actual
+          // Caso 1: Mensaje recibido del usuario con quien estoy chateando
+          const condition5a =
+            currentTo?.toLowerCase().trim() === data.from?.toLowerCase().trim();
+
+          // Caso 2: Mensaje enviado por mí al usuario con quien estoy chateando
+          const condition5b =
+            (data.from === username || data.from === currentFullName) &&
+            currentTo?.toLowerCase().trim() === data.to?.toLowerCase().trim();
+
+          // 🔥 NUEVO: Caso 3: Mensaje donde yo soy el destinatario y el remitente es con quien estoy chateando
+          const condition5c =
+            (data.to === username || data.to === currentFullName) &&
+            currentTo?.toLowerCase().trim() === data.from?.toLowerCase().trim();
 
           isViewingCorrectChat =
             condition1 &&
             condition2 &&
             condition3 &&
             condition4 &&
-            (condition5a || condition5b);
+            (condition5a || condition5b || condition5c);
         }
 
-        console.log("🔍 isViewingCorrectChat:", isViewingCorrectChat);
+        console.log("� DEBUGV - Verificando chat correcto:", {
+          isViewingCorrectChat,
+          currentAdminView: !!currentAdminView,
+          currentTo,
+          currentIsGroup,
+          currentFullName,
+          messageFrom: data.from,
+          messageTo: data.to,
+          messageIsGroup: data.isGroup,
+          condition1: !currentIsGroup,
+          condition2: !currentRoomCodeRef.current,
+          condition3: !data.isGroup,
+          condition4: !!currentTo,
+          condition5a:
+            currentTo?.toLowerCase().trim() === data.from?.toLowerCase().trim(),
+          condition5b:
+            (data.from === username || data.from === currentFullName) &&
+            currentTo?.toLowerCase().trim() === data.to?.toLowerCase().trim(),
+          condition5c:
+            (data.to === username || data.to === currentFullName) &&
+            currentTo?.toLowerCase().trim() === data.from?.toLowerCase().trim(),
+          username,
+        });
 
         if (!isViewingCorrectChat) {
-          console.log("⚠️ No estás viendo el chat correcto, actualizando preview...");
+          // console.log("⚠️ No estás viendo el chat correcto, actualizando preview...");
           // 🔥 Actualizar el preview del último mensaje en la lista de conversaciones asignadas
           setAssignedConversations((prevConversations) => {
             return prevConversations.map((conv) => {
-              // Buscar la conversación que corresponde a este mensaje
-              const otherUser = conv.participants?.find(
-                (p) => p !== currentUserFullName
+              const participants = conv.participants || [];
+              const participantsNormalized = participants.map((p) =>
+                p?.toLowerCase().trim()
               );
-              const isThisConversation =
-                otherUser?.toLowerCase().trim() ===
-                data.from.toLowerCase().trim();
+              const fromNormalized = data.from?.toLowerCase().trim();
+              const currentUserNormalized = currentUserFullNameRef.current
+                ?.toLowerCase()
+                .trim();
 
-              if (isThisConversation) {
-                // 🔥 IMPORTANTE: Solo incrementar el contador si el usuario es participante
-                // En monitoreo, el contador viene del backend y no debe ser modificado
-                const isUserParticipant =
-                  conv.participants?.includes(currentUserFullName);
-                const newUnreadCount = isUserParticipant
-                  ? (conv.unreadCount || 0) + 1
-                  : conv.unreadCount;
+              // Verificar si el remitente es participante de esta conversación
+              const isSenderParticipant =
+                participantsNormalized.includes(fromNormalized);
 
+              // Verificar si el mensaje es mío
+              const isFromMe = fromNormalized === currentUserNormalized;
+
+              // Si el remitente es participante y NO soy yo, es un mensaje entrante para esta conversación
+              if (isSenderParticipant && !isFromMe) {
+                // console.log(`🔔 Actualizando contador para conversación ${conv.name || conv.id}: ${(conv.unreadCount || 0) + 1}`);
                 return {
                   ...conv,
                   lastMessage: data.message || "",
@@ -1249,7 +1323,22 @@ const ChatPage = () => {
                   lastMessageMediaType: data.mediaType || null,
                   lastMessageThreadCount: data.threadCount || 0,
                   lastMessageLastReplyFrom: data.lastReplyFrom || null,
-                  unreadCount: newUnreadCount,
+                  // 🔥 Asegurar que sea número para sumar correctamente
+                  unreadCount: (parseInt(conv.unreadCount, 10) || 0) + 1,
+                };
+              }
+
+              // Si el mensaje es mío (enviado desde otro dispositivo o pestaña), solo actualizar el último mensaje
+              if (isSenderParticipant && isFromMe) {
+                return {
+                  ...conv,
+                  lastMessage: data.message || "",
+                  lastMessageTime: data.sentAt || dateTimeString,
+                  lastMessageFrom: data.from,
+                  lastMessageMediaType: data.mediaType || null,
+                  lastMessageThreadCount: data.threadCount || 0,
+                  lastMessageLastReplyFrom: data.lastReplyFrom || null,
+                  // NO incrementar unreadCount
                 };
               }
 
@@ -1296,13 +1385,13 @@ const ChatPage = () => {
 
         // 🔥 Determinar si el mensaje es nuestro (enviado por nosotros)
         const isMyMessage =
-          data.from === currentUserFullName ||
+          data.from === currentUserFullNameRef.current ||
           data.from === username ||
           data.fromId === user?.id;
 
         console.log("🔍 Verificando si el mensaje es mío:", {
           "data.from": data.from,
-          currentUserFullName,
+          currentUserFullName: currentUserFullNameRef.current,
           username,
           "data.fromId": data.fromId,
           "user?.id": user?.id,
@@ -1547,37 +1636,37 @@ const ChatPage = () => {
 
     // 🔥 NUEVO: Evento para cerrar videollamada
     s.on("videoCallEnded", (data) => {
-      console.log('🔴 Videollamada cerrada - Evento recibido:', data);
+      console.log("🔴 Videollamada cerrada - Evento recibido:", data);
 
       // Mostrar notificación
       const Toast = Swal.mixin({
         toast: true,
-        position: 'top-end',
+        position: "top-end",
         showConfirmButton: false,
         timer: 3000,
         timerProgressBar: true,
       });
 
       Toast.fire({
-        icon: 'info',
-        title: 'Videollamada finalizada',
-        text: `${data.closedBy || 'Un usuario'} cerró la videollamada`
+        icon: "info",
+        title: "Videollamada finalizada",
+        text: `${data.closedBy || "Un usuario"} cerró la videollamada`,
       });
 
       // 🔥 NUEVO: Actualizar el mensaje de videollamada en el estado local
       // Buscar el mensaje con videoRoomID y marcar metadata.isActive = false
-      console.log('🔄 Actualizando mensaje con videoRoomID:', data.roomID);
+      console.log("🔄 Actualizando mensaje con videoRoomID:", data.roomID);
 
       updateMessage(null, {
         videoRoomID: data.roomID,
         metadata: {
           isActive: false,
           closedBy: data.closedBy,
-          closedAt: new Date().toISOString()
-        }
+          closedAt: new Date().toISOString(),
+        },
       });
 
-      console.log('✅ Mensaje actualizado, el banner debería ocultarse');
+      console.log("✅ Mensaje actualizado, el banner debería ocultarse");
     });
 
     s.on("connect", () => {
@@ -1597,7 +1686,10 @@ const ChatPage = () => {
       // Recargar conversaciones asignadas
       try {
         // Usar paginación para todos los usuarios (admin y normales)
-        const result = await apiService.getAssignedConversationsPaginated(1, 10);
+        const result = await apiService.getAssignedConversationsPaginated(
+          1,
+          10
+        );
         const conversations = result.conversations;
 
         setAssignedConversations(conversations);
@@ -1944,79 +2036,79 @@ const ChatPage = () => {
       const { messageId, lastReplyFrom, from, to, isGroup } = data;
       // console.log('🔢 Evento threadCountUpdated recibido:', data);
 
-      // 🔥 IMPORTANTE: Solo actualizar si NO soy yo quien envió el mensaje
-      // Si soy el remitente, ya actualicé localmente en handleSendThreadMessage
-      // Comparar con currentUserFullName (displayName) en lugar de username
-      if (lastReplyFrom !== currentUserFullName && lastReplyFrom !== username) {
-        // console.log('✅ Actualizando porque el mensaje es de otro usuario');
+      // 🔥 CORREGIDO: Actualizar el contador SIEMPRE, sin importar quién envió el mensaje
+      // El contador debe reflejar el número real de mensajes en el hilo
+      console.log(
+        "🔢 Actualizando contador de hilo - messageId:",
+        messageId,
+        "lastReplyFrom:",
+        lastReplyFrom
+      );
 
-        // Actualizar el contador del mensaje
-        updateMessage(messageId, (prevMessage) => ({
-          threadCount: (prevMessage.threadCount || 0) + 1,
-          lastReplyFrom: lastReplyFrom,
-        }));
+      // Actualizar el contador del mensaje
+      updateMessage(messageId, (prevMessage) => ({
+        threadCount: (prevMessage.threadCount || 0) + 1,
+        lastReplyFrom: lastReplyFrom,
+      }));
 
-        // Actualizar el preview en ConversationList
-        if (!isGroup && from && to) {
-          // console.log('📝 Actualizando preview en ConversationList para conversación:', from, '•', to);
+      // Actualizar el preview en ConversationList
+      if (!isGroup && from && to) {
+        // console.log('📝 Actualizando preview en ConversationList para conversación:', from, '•', to);
 
-          // Actualizar conversaciones asignadas
-          setAssignedConversations((prevConversations) => {
-            return prevConversations.map((conv) => {
-              const participants = conv.participants || [];
-              const isThisConversation =
-                participants.some(
-                  (p) => p.toLowerCase().trim() === from.toLowerCase().trim()
-                ) &&
-                participants.some(
-                  (p) => p.toLowerCase().trim() === to.toLowerCase().trim()
-                );
+        // Actualizar conversaciones asignadas
+        setAssignedConversations((prevConversations) => {
+          return prevConversations.map((conv) => {
+            const participants = conv.participants || [];
+            const isThisConversation =
+              participants.some(
+                (p) => p.toLowerCase().trim() === from.toLowerCase().trim()
+              ) &&
+              participants.some(
+                (p) => p.toLowerCase().trim() === to.toLowerCase().trim()
+              );
 
-              if (isThisConversation) {
-                const newCount = (conv.lastMessageThreadCount || 0) + 1;
-                return {
-                  ...conv,
-                  lastMessageThreadCount: newCount,
-                  lastMessageLastReplyFrom: lastReplyFrom,
-                };
-              }
+            if (isThisConversation) {
+              const newCount = (conv.lastMessageThreadCount || 0) + 1;
+              return {
+                ...conv,
+                lastMessageThreadCount: newCount,
+                lastMessageLastReplyFrom: lastReplyFrom,
+              };
+            }
 
-              return conv;
-            });
+            return conv;
           });
+        });
 
-          // Actualizar conversaciones de monitoreo
-          setMonitoringConversations((prevConversations) => {
-            // console.log('🔍 Conversaciones de monitoreo actuales:', prevConversations.length);
-            const updated = prevConversations.map((conv) => {
-              const participants = conv.participants || [];
-              const isThisConversation =
-                participants.some(
-                  (p) => p.toLowerCase().trim() === from.toLowerCase().trim()
-                ) &&
-                participants.some(
-                  (p) => p.toLowerCase().trim() === to.toLowerCase().trim()
-                );
+        // Actualizar conversaciones de monitoreo
+        setMonitoringConversations((prevConversations) => {
+          // console.log('🔍 Conversaciones de monitoreo actuales:', prevConversations.length);
+          const updated = prevConversations.map((conv) => {
+            const participants = conv.participants || [];
+            const isThisConversation =
+              participants.some(
+                (p) => p.toLowerCase().trim() === from.toLowerCase().trim()
+              ) &&
+              participants.some(
+                (p) => p.toLowerCase().trim() === to.toLowerCase().trim()
+              );
 
-              if (isThisConversation) {
-                const newCount = (conv.lastMessageThreadCount || 0) + 1;
-                // console.log(`✅ Actualizando conversación de monitoreo "${conv.name}": ${conv.lastMessageThreadCount || 0} → ${newCount}`);
-                return {
-                  ...conv,
-                  lastMessageThreadCount: newCount,
-                  lastMessageLastReplyFrom: lastReplyFrom,
-                  // 🔥 NO actualizar lastMessage aquí - el contador se muestra automáticamente en ConversationList
-                  // cuando lastMessageThreadCount > 0
-                };
-              }
+            if (isThisConversation) {
+              const newCount = (conv.lastMessageThreadCount || 0) + 1;
+              // console.log(`✅ Actualizando conversación de monitoreo "${conv.name}": ${conv.lastMessageThreadCount || 0} → ${newCount}`);
+              return {
+                ...conv,
+                lastMessageThreadCount: newCount,
+                lastMessageLastReplyFrom: lastReplyFrom,
+                // 🔥 NO actualizar lastMessage aquí - el contador se muestra automáticamente en ConversationList
+                // cuando lastMessageThreadCount > 0
+              };
+            }
 
-              return conv;
-            });
-            return updated;
+            return conv;
           });
-        }
-      } else {
-        // console.log('⏭️ No actualizando porque soy el remitente (ya actualicé localmente)');
+          return updated;
+        });
       }
     });
 
@@ -2083,19 +2175,19 @@ const ChatPage = () => {
           prevRooms.map((room) =>
             room.roomCode === data.roomCode
               ? {
-                ...room,
-                lastMessage: {
-                  text: data.lastMessage.text,
-                  from: data.lastMessage.from,
-                  time: data.lastMessage.time,
-                  sentAt: data.lastMessage.sentAt,
-                  mediaType: data.lastMessage.mediaType || null,
-                  fileName: data.lastMessage.fileName || null,
-                },
-                lastMessageFrom: data.lastMessage.from,
-                lastMessageTime: data.lastMessage.time,
-                lastMessageAt: data.lastMessage.sentAt,
-              }
+                  ...room,
+                  lastMessage: {
+                    text: data.lastMessage.text,
+                    from: data.lastMessage.from,
+                    time: data.lastMessage.time,
+                    sentAt: data.lastMessage.sentAt,
+                    mediaType: data.lastMessage.mediaType || null,
+                    fileName: data.lastMessage.fileName || null,
+                  },
+                  lastMessageFrom: data.lastMessage.from,
+                  lastMessageTime: data.lastMessage.time,
+                  lastMessageAt: data.lastMessage.sentAt,
+                }
               : room
           )
         );
@@ -2154,29 +2246,7 @@ const ChatPage = () => {
       s.off("unreadCountUpdate");
       s.off("unreadCountReset");
     };
-  }, [
-    socket,
-    currentRoomCode,
-    to,
-    isGroup,
-    username,
-    isAdmin,
-    soundsEnabled,
-    typingTimeout,
-    adminViewConversation,
-    addNewMessage,
-    updateMessage,
-    currentUserFullName,
-    playMessageSound,
-    setAssignedConversations,
-    clearMessages,
-    loadAssignedConversations,
-    setCurrentRoomCode,
-    user,
-    loadMyActiveRooms,
-    threadMessage,
-    userList,
-  ]);
+  }, [socket, username, isAdmin, soundsEnabled, addNewMessage, updateMessage, playMessageSound, setAssignedConversations, clearMessages, loadAssignedConversations, setCurrentRoomCode, user?.role, loadMyActiveRooms, user, currentUserFullName, currentRoomCode, to, userList, typingTimeout, threadMessage]);
 
   // Estado para el mensaje a resaltar
   const [highlightMessageId, setHighlightMessageId] = useState(null);
@@ -2297,7 +2367,7 @@ const ChatPage = () => {
     if (window.innerWidth <= 768) {
       setShowSidebar(true);
     }
-  });
+  }, [clearMessages, setCurrentRoomCode]);
 
   // Función para toggle del menú (ocultar/mostrar sidebar)
   const handleToggleMenu = () => {
@@ -2448,7 +2518,7 @@ const ChatPage = () => {
   };
 
   // Función para seleccionar una sala del sidebar
-  const handleRoomSelect = async (room, messageId = null) => {
+  const handleRoomSelect = useCallback(async (room, messageId = null) => {
     try {
       console.log("🏠 Seleccionando sala:", {
         name: room.name,
@@ -2590,7 +2660,7 @@ const ChatPage = () => {
         "Error al unirse a la sala: " + error.message
       );
     }
-  };
+  }, [currentRoomCode, myActiveRooms, username, user?.role, socket, setCurrentRoomCode, clearMessages, loadInitialMessages, markRoomMessagesAsRead]);
 
   // 🔥 NUEVO: Listener para navegar a una mención desde la alerta
   useEffect(() => {
@@ -2598,30 +2668,30 @@ const ChatPage = () => {
       const { roomCode, messageId } = event.detail;
 
       // Buscar la sala en myActiveRooms
-      const room = myActiveRooms.find(r => r.roomCode === roomCode);
+      const room = myActiveRooms.find((r) => r.roomCode === roomCode);
       if (room) {
         await handleRoomSelect(room, messageId);
       } else {
-        console.error('Sala no encontrada:', roomCode);
+        console.error("Sala no encontrada:", roomCode);
       }
     };
 
-    window.addEventListener('navigateToMention', handleNavigateToMention);
+    window.addEventListener("navigateToMention", handleNavigateToMention);
     return () => {
-      window.removeEventListener('navigateToMention', handleNavigateToMention);
+      window.removeEventListener("navigateToMention", handleNavigateToMention);
     };
-  }, [myActiveRooms]);
+  }, [handleRoomSelect, myActiveRooms]);
 
   const handleSendMessage = async () => {
     if ((!input && mediaFiles.length === 0) || !to) return;
 
-    console.log('📤 handleSendMessage - Estado actual:', {
+    console.log("📤 handleSendMessage - Estado actual:", {
       to,
       isGroup,
       currentRoomCode,
       username,
       currentUserFullName,
-      input: input?.substring(0, 50)
+      input: input?.substring(0, 50),
     });
 
     // Buscar si esta conversación es asignada (normalizado)
@@ -2641,7 +2711,7 @@ const ChatPage = () => {
       );
     });
 
-    console.log('📧 Conversación asignada encontrada:', assignedConv);
+    console.log("📧 Conversación asignada encontrada:", assignedConv);
 
     // Si es una conversación asignada y el usuario NO está en ella, no permitir enviar
     // 🔥 MODIFICADO: Comparación normalizada para nombres
@@ -2822,7 +2892,12 @@ const ChatPage = () => {
       }
 
       console.log("✅ Socket conectado, continuando...");
-      console.log("🔍 effectiveIsGroup:", effectiveIsGroup, "isGroup:", isGroup);
+      console.log(
+        "🔍 effectiveIsGroup:",
+        effectiveIsGroup,
+        "isGroup:",
+        isGroup
+      );
       console.log("🔍 Punto A - Antes del if");
 
       // 🔥 IMPORTANTE: Para grupos, NO agregar el mensaje localmente
@@ -2861,17 +2936,21 @@ const ChatPage = () => {
           // messageObj.time = savedMessage.time;
 
           // Asegurar que senderRole y senderNumeroAgente estén presentes si el backend los devuelve
-          if (savedMessage.senderRole) messageObj.senderRole = savedMessage.senderRole;
-          if (savedMessage.senderNumeroAgente) messageObj.senderNumeroAgente = savedMessage.senderNumeroAgente;
+          if (savedMessage.senderRole)
+            messageObj.senderRole = savedMessage.senderRole;
+          if (savedMessage.senderNumeroAgente)
+            messageObj.senderNumeroAgente = savedMessage.senderNumeroAgente;
 
           // 3. 🔥 Emitir por socket con el ID real (sin sentAt/time - el backend ya los tiene)
           socket.emit("message", messageObj);
-          console.log("📤 Mensaje emitido por socket con ID real:", messageObj.id);
+          console.log(
+            "📤 Mensaje emitido por socket con ID real:",
+            messageObj.id
+          );
 
           // 4. 🔥 NO agregar mensaje localmente - esperar a que vuelva del servidor
           // Esto evita duplicados porque el servidor enviará el mensaje de vuelta
           // con el timestamp correcto de Perú
-
         } catch (error) {
           console.error("❌ Error al enviar mensaje de grupo:", error);
           await showErrorAlert(
@@ -2882,11 +2961,17 @@ const ChatPage = () => {
           setIsUploadingFile(false); // 🔥 Desactivar loading en error
         }
 
+        // 🔥 Limpiar input y estado de respuesta después de enviar mensaje de grupo exitosamente
+        clearInput();
+        setReplyingTo(null);
+        setIsUploadingFile(false); // 🔥 Desactivar loading después de enviar
         console.log("🔚 Finalizando bloque de grupos con return");
         return;
       } else {
         console.log("🔍 Punto D - Dentro del else (1-a-1)");
-        console.log("✅ effectiveIsGroup es FALSE - Entrando al bloque de mensajes 1-a-1");
+        console.log(
+          "✅ effectiveIsGroup es FALSE - Entrando al bloque de mensajes 1-a-1"
+        );
         console.log("📤 Procesando mensaje 1-a-1 (NO es grupo)");
         // 🔥 Para mensajes individuales, guardar en BD primero para obtener el ID real
         try {
@@ -3314,19 +3399,13 @@ const ChatPage = () => {
           roomCode: messageData.roomCode,
           isGroup: messageData.isGroup,
         };
-        console.log('📤 Emitiendo threadCountUpdated:', threadCountData);
+        // console.log('📤 Emitiendo threadCountUpdated:', threadCountData);
         socket.emit("threadCountUpdated", threadCountData);
       }
 
       // 🔥 CONFIAR EN EL BACKEND - NO agregar nada localmente
       // El socket devolverá todo con los eventos threadMessage y threadCountUpdated
-
-      // Actualizar el contador en la lista de mensajes del chat principal
-      // Usar callback para acceder al estado más reciente del mensaje
-      updateMessage(messageData.threadId, (prevMessage) => ({
-        threadCount: (prevMessage.threadCount || 0) + 1,
-        lastReplyFrom: messageData.from,
-      }));
+      // NO actualizar el contador localmente - el backend lo hará via threadCountUpdated
 
       // 🔥 NUEVO: Actualizar el preview en ConversationList cuando el remitente envía el mensaje
       if (!messageData.isGroup && messageData.from && messageData.to) {
@@ -3674,13 +3753,14 @@ const ChatPage = () => {
       const usersList =
         roomUsersData.users && roomUsersData.users.length > 0
           ? roomUsersData.users
-            .map((user) =>
-              typeof user === "string"
-                ? `• ${user}`
-                : `• ${user.displayName || user.username} ${user.isOnline ? "🟢" : "🔴"
-                }`
-            )
-            .join("\n")
+              .map((user) =>
+                typeof user === "string"
+                  ? `• ${user}`
+                  : `• ${user.displayName || user.username} ${
+                      user.isOnline ? "🟢" : "🔴"
+                    }`
+              )
+              .join("\n")
           : "No hay usuarios conectados";
 
       modalContent.innerHTML = `
@@ -3698,8 +3778,9 @@ const ChatPage = () => {
           </div>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid #374045;">
-          <span style="color: #8696a0;">Total: ${roomUsersData.totalUsers || 0
-        }/${roomUsersData.maxCapacity || 0}</span>
+          <span style="color: #8696a0;">Total: ${
+            roomUsersData.totalUsers || 0
+          }/${roomUsersData.maxCapacity || 0}</span>
           <button onclick="this.closest('.modal-overlay').remove()" style="background: #00a884; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Cerrar</button>
         </div>
       `;
@@ -3745,13 +3826,16 @@ const ChatPage = () => {
     try {
       // 1️⃣ VALIDACIONES
       if (!to) {
-        await showErrorAlert("Atención", "Selecciona un chat para iniciar la llamada.");
+        await showErrorAlert(
+          "Atención",
+          "Selecciona un chat para iniciar la llamada."
+        );
         return;
       }
 
       // Validar permisos estrictos para grupos (Coordinador/Admin/etc)
-      const userRole = (user?.role || '').toUpperCase();
-      const allowedRoles = ['COORDINADOR', 'ADMIN', 'JEFEPISO', 'PROGRAMADOR'];
+      const userRole = (user?.role || "").toUpperCase();
+      const allowedRoles = ["COORDINADOR", "ADMIN", "JEFEPISO", "PROGRAMADOR"];
 
       if (isGroup && !allowedRoles.includes(userRole)) {
         await showErrorAlert(
@@ -3772,8 +3856,15 @@ const ChatPage = () => {
       console.log("📹 Iniciando llamada en:", videoCallUrl);
 
       // 🔥 Guardar participantes en localStorage para poder cerrar la sala
-      const participants = isGroup ? roomUsers.map(u => typeof u === 'string' ? u : u.username || u.nombre) : [to];
-      localStorage.setItem(`videoCall_${videoRoomID}_participants`, JSON.stringify(participants));
+      const participants = isGroup
+        ? roomUsers.map((u) =>
+            typeof u === "string" ? u : u.username || u.nombre
+          )
+        : [to];
+      localStorage.setItem(
+        `videoCall_${videoRoomID}_participants`,
+        JSON.stringify(participants)
+      );
 
       // 3️⃣ PREPARAR DATOS DEL MENSAJE (Estructura para la Tarjeta UI)
       // Nota: 'text' se usa para notificaciones push o vistas previas
@@ -3789,9 +3880,9 @@ const ChatPage = () => {
         roomCode: currentRoomCode,
 
         // 🔥 CLAVE: Esto activa el componente visual VideoCallNotification
-        type: 'video_call',
+        type: "video_call",
         message: fallbackText, // 🔥 CORRECCIÓN: El backend espera 'message', no 'text'
-        text: fallbackText,    // Mantener 'text' para compatibilidad con frontend
+        text: fallbackText, // Mantener 'text' para compatibilidad con frontend
 
         // Datos técnicos para la llamada
         videoCallRoomID: videoRoomID,
@@ -3801,7 +3892,7 @@ const ChatPage = () => {
         // Metadatos adicionales
         sender: currentUserFullName, // Para compatibilidad
         senderRole: userRole,
-        time: new Date().toISOString()
+        time: new Date().toISOString(),
       };
 
       // 4️⃣ GUARDAR EN BASE DE DATOS (Persistencia)
@@ -3814,16 +3905,16 @@ const ChatPage = () => {
           to: to,
           roomCode: isGroup ? currentRoomCode : undefined,
           message: fallbackText, // Guardamos texto legible en BD
-          type: 'video_call',    // Guardamos el tipo
+          type: "video_call", // Guardamos el tipo
           isGroup: isGroup,
 
           // Campos extra para que el backend sepa la URL
           metadata: {
             videoCallUrl: videoCallUrl,
-            videoRoomID: videoRoomID
+            videoRoomID: videoRoomID,
           },
           // O si tu backend espera campos planos:
-          videoCallUrl: videoCallUrl
+          videoCallUrl: videoCallUrl,
         });
 
         if (savedMessage && savedMessage.id) {
@@ -3831,7 +3922,10 @@ const ChatPage = () => {
           console.log("✅ Videollamada registrada en BD ID:", savedMessageId);
         }
       } catch (dbError) {
-        console.error("⚠️ Advertencia: No se pudo guardar en BD (pero seguimos)", dbError);
+        console.error(
+          "⚠️ Advertencia: No se pudo guardar en BD (pero seguimos)",
+          dbError
+        );
       }
 
       // Asignar el ID real (o temporal) al payload final
@@ -3839,33 +3933,35 @@ const ChatPage = () => {
 
       // 5️⃣ EMITIR EVENTOS SOCKET
       if (socket && socket.connected) {
-        console.log('📤 Emitiendo eventos de videollamada:', {
+        console.log("📤 Emitiendo eventos de videollamada:", {
           startVideoCall: {
             roomID: videoRoomID,
-            callType: isGroup ? 'group' : 'individual',
+            callType: isGroup ? "group" : "individual",
             chatId: isGroup ? currentRoomCode : to,
             initiator: currentUserFullName,
             callUrl: videoCallUrl,
-            participants: isGroup ? roomUsers : [to]
+            participants: isGroup ? roomUsers : [to],
           },
-          message: finalSocketPayload
+          message: finalSocketPayload,
         });
 
         // Evento A: Notificación específica de llamada (para timbres/modales)
-        socket.emit('startVideoCall', {
+        socket.emit("startVideoCall", {
           roomID: videoRoomID,
-          callType: isGroup ? 'group' : 'individual',
+          callType: isGroup ? "group" : "individual",
           chatId: isGroup ? currentRoomCode : to,
           initiator: currentUserFullName,
           callUrl: videoCallUrl,
-          participants: isGroup ? roomUsers : [to]
+          participants: isGroup ? roomUsers : [to],
         });
 
         // Evento B: El mensaje para el chat (La tarjeta)
         // 🔥 CORRECCIÓN: El backend escucha 'message', no 'sendMessage'
-        socket.emit('message', finalSocketPayload);
+        socket.emit("message", finalSocketPayload);
       } else {
-        console.error('❌ Socket no conectado, no se puede emitir videollamada');
+        console.error(
+          "❌ Socket no conectado, no se puede emitir videollamada"
+        );
       }
 
       // 6️⃣ ACTUALIZAR UI LOCAL (Agregar mensaje "mío" inmediatamente)
@@ -3873,12 +3969,13 @@ const ChatPage = () => {
         ...finalSocketPayload,
         isSelf: true,
         isSent: true,
-        isRead: false
+        isRead: false,
       });
 
       // 7️⃣ ABRIR VENTANA DE LLAMADA
-      const windowFeatures = 'width=1280,height=720,menubar=no,toolbar=no,location=no,status=no';
-      const videoWindow = window.open(videoCallUrl, '_blank', windowFeatures);
+      const windowFeatures =
+        "width=1280,height=720,menubar=no,toolbar=no,location=no,status=no";
+      const videoWindow = window.open(videoCallUrl, "_blank", windowFeatures);
 
       if (!videoWindow) {
         await showErrorAlert(
@@ -3886,7 +3983,6 @@ const ChatPage = () => {
           "Por favor permite las ventanas emergentes para entrar a la llamada."
         );
       }
-
     } catch (error) {
       console.error("❌ Error crítico iniciando llamada:", error);
       await showErrorAlert("Error", "No se pudo conectar la llamada.");
@@ -4051,8 +4147,8 @@ const ChatPage = () => {
         onShowAdminRooms={handleShowAdminRooms}
         onShowCreateConversation={() => setShowCreateConversationModal(true)}
         onShowManageConversations={() => setShowManageConversationsModal(true)}
-        onShowManageUsers={() => { }}
-        onShowSystemConfig={() => { }}
+        onShowManageUsers={() => {}}
+        onShowSystemConfig={() => {}}
         unreadMessages={unreadMessages}
         myActiveRooms={myActiveRooms}
         onRoomSelect={handleRoomSelect}

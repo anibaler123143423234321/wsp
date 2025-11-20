@@ -41,7 +41,7 @@ export class AudioRecorder {
         }
       }, 1000);
       
-      console.log('Grabación iniciada');
+      // console.log('Grabación iniciada');
       return true;
     } catch (error) {
       console.error('Error al iniciar la grabación:', error);
@@ -72,7 +72,7 @@ export class AudioRecorder {
         }
         
         this.isRecording = false;
-        console.log('Grabación detenida');
+        // console.log('Grabación detenida');
         
         // Devolver el audio en formato base64
         resolve({
@@ -100,7 +100,7 @@ export class AudioRecorder {
       }
       
       this.isRecording = false;
-      console.log('Grabación cancelada');
+      // console.log('Grabación cancelada');
     }
   }
 

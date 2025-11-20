@@ -63,11 +63,11 @@ export default function VideoCallRoom() {
       setIsGroup(true);
       const extractedRoomCode = roomID.replace('group_', '');
       setRoomCode(extractedRoomCode);
-      console.log('🏠 Videollamada grupal detectada - roomCode:', extractedRoomCode);
+      // console.log('🏠 Videollamada grupal detectada - roomCode:', extractedRoomCode);
     } else {
       setIsGroup(false);
       setRoomCode(null);
-      console.log('👤 Videollamada individual detectada');
+      // console.log('👤 Videollamada individual detectada');
     }
   }, [roomID]);
 
@@ -75,9 +75,9 @@ export default function VideoCallRoom() {
   // 🔥 CONECTAR SOCKET PARA ESCUCHAR EVENTOS
   // --------------------------------------------------------
   React.useEffect(() => {
-    console.log("🔌 Iniciando conexión de socket en VideoCallRoom...");
-    console.log("   - roomID:", roomID);
-    console.log("   - displayName:", displayName);
+    // console.log("🔌 Iniciando conexión de socket en VideoCallRoom...");
+    // console.log("   - roomID:", roomID);
+    // console.log("   - displayName:", displayName);
 
     const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "https://apisozarusac.com";;
 
@@ -99,11 +99,11 @@ export default function VideoCallRoom() {
     socketRef.current = socket;
 
     socket.on("connect", () => {
-      console.log("✅ Socket conectado en VideoCallRoom - Socket ID:", socket.id);
+      // console.log("✅ Socket conectado en VideoCallRoom - Socket ID:", socket.id);
 
       // 🔥 CRÍTICO: Unirse a la sala de video usando socket.join() del lado del servidor
       // Esto permite que el servidor emita eventos a todos los que estén en esta sala
-      console.log(`🏠 Uniéndose a sala de video: ${roomID}`);
+      // console.log(`🏠 Uniéndose a sala de video: ${roomID}`);
 
       // Emitir evento personalizado para unirse a la sala de video
       socket.emit("joinVideoRoom", {
@@ -111,13 +111,13 @@ export default function VideoCallRoom() {
         username: displayName,
       });
 
-      console.log(`✅ Evento joinVideoRoom emitido para ${displayName} en sala ${roomID}`);
+      // console.log(`✅ Evento joinVideoRoom emitido para ${displayName} en sala ${roomID}`);
     });
 
     // Escuchar cuando el creador cierra la sala
     socket.on("videoCallEnded", (data) => {
-      console.log("📴 ¡EVENTO RECIBIDO! Videollamada cerrada:", data);
-      console.log("🔴 Cerrando ventana de videollamada...");
+      // console.log("📴 ¡EVENTO RECIBIDO! Videollamada cerrada:", data);
+      // console.log("🔴 Cerrando ventana de videollamada...");
 
       // Mostrar alerta antes de cerrar
       alert(data.message || "La videollamada ha finalizado");
@@ -154,13 +154,13 @@ export default function VideoCallRoom() {
       "¿Estás seguro de que quieres cerrar la videollamada para todos?"
     );
     if (confirmEnd && socketRef.current) {
-      console.log('🔴 Cerrando videollamada desde VideoCallRoom:', {
-        roomID,
-        roomCode,
-        closedBy: displayName,
-        isGroup,
-        userRole
-      });
+      // console.log('🔴 Cerrando videollamada desde VideoCallRoom:', {
+      //    roomID,
+      //    roomCode,
+      //      closedBy: displayName,
+      //     isGroup,
+      //     userRole
+      //     });
       // 🔥 NUEVO: Usar los mismos parámetros que el banner
       socketRef.current.emit("endVideoCall", {
         roomID: roomID,
@@ -168,7 +168,7 @@ export default function VideoCallRoom() {
         closedBy: displayName,
         isGroup: isGroup
       });
-      console.log('✅ Evento endVideoCall emitido');
+      // console.log('✅ Evento endVideoCall emitido');
       // Cerrar la ventana después de notificar
       setTimeout(() => {
         window.close();
@@ -194,7 +194,7 @@ export default function VideoCallRoom() {
         const hasMicrophone = audioInput.length > 0;
         const hasCamera = videoInput.length > 0;
 
-        console.log(`🎤 Micros: ${audioInput.length}, 📷 Cámaras: ${videoInput.length}`);
+        // console.log(`🎤 Micros: ${audioInput.length}, 📷 Cámaras: ${videoInput.length}`);
 
         if (!hasMicrophone) {
           setPermissionError("❌ No se detectó ningún micrófono.");
@@ -247,17 +247,17 @@ export default function VideoCallRoom() {
           ],
 
           onJoinRoom: () => {
-            console.log("✅ Entraste a la sala.");
+            // console.log("✅ Entraste a la sala.");
             // 🔥 Mostrar botón de cerrar sala si tiene rol privilegiado
             const privilegedRoles = ['ADMIN', 'PROGRAMADOR', 'COORDINADOR', 'JEFEPISO'];
             const hasPrivilegedRole = userRole && privilegedRoles.includes(userRole.toUpperCase());
             if (hasPrivilegedRole) {
               setShowEndCallButton(true);
-              console.log('✅ Botón de cerrar sala habilitado para rol:', userRole);
+              // console.log('✅ Botón de cerrar sala habilitado para rol:', userRole);
             }
           },
           onLeaveRoom: () => {
-            console.log("👋 Saliste de la sala.");
+            // console.log("👋 Saliste de la sala.");
             window.close();
           },
           onError: (error) => console.warn("⚠️ Error Zego:", error)

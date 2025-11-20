@@ -240,22 +240,22 @@ const CreateConversationModal = ({
         ? `${currentUser.nombre} ${currentUser.apellido}`
         : currentUser?.username;
 
-      console.log('🔍 DEBUG CreateConversationModal:');
-      console.log('  - currentUserFullName:', currentUserFullName);
-      console.log('  - name1:', name1);
-      console.log('  - name2:', name2);
+      // console.log('🔍 DEBUG CreateConversationModal:');
+      // console.log('  - currentUserFullName:', currentUserFullName);
+      // console.log('  - name1:', name1);
+      // console.log('  - name2:', name2);
 
       if (currentUserFullName === name1) {
         // El usuario actual es user1, mostrar solo user2
-        console.log('  ✅ Usuario actual es user1, mostrando solo:', name2);
+        // console.log('  ✅ Usuario actual es user1, mostrando solo:', name2);
         setConversationName(name2);
       } else if (currentUserFullName === name2) {
         // El usuario actual es user2, mostrar solo user1
-        console.log('  ✅ Usuario actual es user2, mostrando solo:', name1);
+        // console.log('  ✅ Usuario actual es user2, mostrando solo:', name1);
         setConversationName(name1);
       } else {
         // Ninguno es el usuario actual (admin creando conversación entre otros)
-        console.log('  ✅ Admin creando entre otros, mostrando:', `${name1} ↔ ${name2}`);
+        // console.log('  ✅ Admin creando entre otros, mostrando:', `${name1} ↔ ${name2}`);
         setConversationName(`${name1} ↔ ${name2}`);
       }
     } else {

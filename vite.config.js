@@ -1,7 +1,7 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { nodePolyfills } from 'vite-plugin-node-polyfills'
-import path from 'path'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { nodePolyfills } from "vite-plugin-node-polyfills";
+import { fileURLToPath, URL } from "node:url";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -14,11 +14,11 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
   define: {
-    global: 'globalThis',
+    global: "globalThis",
   },
   build: {
     // 🔥 OPTIMIZACIÓN: Reducir tamaño del bundle
@@ -27,21 +27,21 @@ export default defineConfig({
         // 🔥 Dividir el código en chunks más pequeños
         manualChunks: {
           // Librerías de terceros grandes
-          'vendor-react': ['react', 'react-dom'],
-          'vendor-socket': ['socket.io-client'],
-          'vendor-ui': ['react-icons', 'sweetalert2'],
-          'vendor-utils': ['clsx', 'emoji-picker-react'],
+          "vendor-react": ["react", "react-dom"],
+          "vendor-socket": ["socket.io-client"],
+          "vendor-ui": ["react-icons", "sweetalert2"],
+          "vendor-utils": ["clsx", "emoji-picker-react"],
         },
       },
     },
     // 🔥 Aumentar el límite de advertencia de tamaño de chunk
     chunkSizeWarningLimit: 1000,
     // 🔥 Minificación más agresiva
-    minify: 'terser',
+    minify: "terser",
     terserOptions: {
       compress: {
         drop_console: true, // Eliminar console.log en producción
       },
     },
   },
-})
+});
