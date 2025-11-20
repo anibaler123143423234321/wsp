@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { FaTimes, FaPaperPlane, FaPaperclip, FaSmile } from 'react-icons/fa';
+import { FaTimes, FaPaperPlane, FaPaperclip, FaSmile, FaSpinner } from 'react-icons/fa';
 import EmojiPicker from 'emoji-picker-react';
 import apiService from '../apiService';
 import AudioPlayer from './AudioPlayer';
@@ -24,6 +24,7 @@ const ThreadPanel = ({
   const [mediaPreviews, setMediaPreviews] = useState([]);
   const [panelWidth, setPanelWidth] = useState(450); // Ancho inicial del panel
   const [isResizing, setIsResizing] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef(null);
   const emojiPickerRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -83,36 +84,33 @@ const ThreadPanel = ({
     if (!socket) return;
 
     const handleThreadMessage = (newMessage) => {
-      // console.log('🧵 ThreadPanel recibió threadMessage:', newMessage);
-      // console.log('  - sentAt:', newMessage.sentAt);
-      // console.log('  - time:', newMessage.time);
+      console.log('🧵 ThreadPanel recibió threadMessage:', newMessage);
+      console.log('  - threadId del mensaje:', newMessage.threadId);
+      console.log('  - threadId esperado:', message?.id);
+      console.log('  - ¿Coinciden?:', newMessage.threadId === message?.id);
 
       if (newMessage.threadId === message?.id) {
-        // 🔥 IMPORTANTE: Verificar si el mensaje ya existe (para evitar duplicados)
+        console.log('✅ ThreadId coincide, procesando mensaje...');
+        // 🔥 CONFIAR EN EL BACKEND - Agregar el mensaje sin verificar duplicados
         setThreadMessages(prev => {
-          // Si el mensaje ya existe (por ID o por timestamp + from), no agregarlo
-          const messageExists = prev.some(msg =>
-            msg.id === newMessage.id ||
-            (msg.sentAt === newMessage.sentAt && msg.from === newMessage.from && msg.text === newMessage.text)
-          );
+          console.log('📋 Mensajes actuales en el hilo:', prev.length);
+
+          // Verificar duplicados solo por ID real
+          const messageExists = prev.some(msg => msg.id === newMessage.id);
 
           if (messageExists) {
-            // console.log('⏭️ Mensaje ya existe en threadMessages, no agregando duplicado');
+            console.log('⏭️ Mensaje ya existe (mismo ID), ignorando');
             return prev;
           }
 
-          // console.log('✅ Agregando nuevo mensaje al hilo:', newMessage);
+          console.log('✅ Agregando nuevo mensaje al hilo:', newMessage);
           return [...prev, newMessage];
         });
 
-        // 🔥 IMPORTANTE: Solo incrementar el contador si NO soy yo quien envió el mensaje
-        // Si soy el remitente, el contador ya se actualizó en handleSendThreadMessage
-        if (newMessage.from !== currentUsername) {
-          // console.log('✅ Incrementando contador en ThreadPanel porque el mensaje es de otro usuario');
-          setCurrentThreadCount(prev => prev + 1);
-        } else {
-          // console.log('⏭️ No incrementando contador en ThreadPanel porque soy el remitente');
-        }
+        // 🔥 CONFIAR EN EL BACKEND - Incrementar el contador siempre
+        setCurrentThreadCount(prev => prev + 1);
+      } else {
+        console.log('❌ ThreadId NO coincide, ignorando mensaje');
       }
     };
 
@@ -261,7 +259,9 @@ const ThreadPanel = ({
 
   const handleSend = async () => {
     if (!input.trim() && mediaFiles.length === 0) return;
+    if (isSending) return;
 
+    setIsSending(true);
     try {
       const messageData = {
         text: input,
@@ -283,39 +283,26 @@ const ThreadPanel = ({
         messageData.fileSize = uploadResult.fileSize;
       }
 
-      // 🔥 NO agregar el mensaje localmente - se agregará cuando se reciba del socket
-      // Esto evita duplicados porque el socket devuelve el mensaje con threadMessage
-      // const newMessage = {
-      //   id: Date.now(), // ID temporal
-      //   from: currentUsername,
-      //   to: messageData.to,
-      //   message: messageData.text,
-      //   sentAt: new Date().toISOString(),
-      //   threadId: message.id,
-      //   mediaType: messageData.mediaType,
-      //   mediaData: messageData.mediaData,
-      //   fileName: messageData.fileName,
-      //   fileSize: messageData.fileSize
-      // };
+      // 🔥 CONFIAR EN EL BACKEND - NO agregar nada localmente
+      // El socket devolverá el mensaje con threadMessage
 
-      // setThreadMessages(prev => [...prev, newMessage]);
-
-      // 🔥 Incrementar el contador localmente (para actualizar el preview inmediatamente)
-      setCurrentThreadCount(prev => prev + 1);
-
-      onSendMessage(messageData);
+      await onSendMessage(messageData);
       setInput('');
       cancelMediaUpload();
     } catch (error) {
       console.error('Error al enviar mensaje en hilo:', error);
       alert('Error al enviar el mensaje. Inténtalo de nuevo.');
+    } finally {
+      setIsSending(false);
     }
   };
 
   // Manejar envío de mensaje de voz
   const handleSendVoiceMessage = async (audioFile) => {
     if (!audioFile) return;
+    if (isSending) return;
 
+    setIsSending(true);
     try {
       const uploadResult = await apiService.uploadFile(audioFile, 'chat');
 
@@ -332,30 +319,15 @@ const ThreadPanel = ({
         fileSize: uploadResult.fileSize
       };
 
-      // 🔥 NO agregar el mensaje localmente - se agregará cuando se reciba del socket
-      // Esto evita duplicados porque el socket devuelve el mensaje con threadMessage
-      // const newMessage = {
-      //   id: Date.now(), // ID temporal
-      //   from: currentUsername,
-      //   to: messageData.to,
-      //   message: '',
-      //   sentAt: new Date().toISOString(),
-      //   threadId: message.id,
-      //   mediaType: 'audio',
-      //   mediaData: uploadResult.fileUrl,
-      //   fileName: uploadResult.fileName,
-      //   fileSize: uploadResult.fileSize
-      // };
+      // 🔥 CONFIAR EN EL BACKEND - NO agregar nada localmente
+      // El socket devolverá el mensaje con threadMessage
 
-      // setThreadMessages(prev => [...prev, newMessage]);
-
-      // 🔥 Incrementar el contador localmente (para actualizar el preview inmediatamente)
-      setCurrentThreadCount(prev => prev + 1);
-
-      onSendMessage(messageData);
+      await onSendMessage(messageData);
     } catch (error) {
       console.error('Error al enviar audio en hilo:', error);
       alert('Error al enviar el audio. Inténtalo de nuevo.');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -548,7 +520,7 @@ const ThreadPanel = ({
                     gap: '8px',
                     cursor: 'pointer'
                   }}
-                  onClick={() => window.open(msg.mediaData, '_blank')}
+                    onClick={() => window.open(msg.mediaData, '_blank')}
                   >
                     <span>📎</span>
                     <span style={{ fontSize: '13px' }}>{msg.fileName || 'Archivo'}</span>
@@ -570,7 +542,7 @@ const ThreadPanel = ({
           <div className="thread-media-preview">
             {mediaPreviews.map((preview, index) => {
               const getFileIcon = (type) => {
-                switch(type) {
+                switch (type) {
                   case 'image': return '🖼️';
                   case 'pdf': return '📄';
                   case 'video': return '🎥';
@@ -628,7 +600,7 @@ const ThreadPanel = ({
 
         <div className="thread-input-wrapper">
           {/* Botón de adjuntar archivos */}
-          <label className="thread-attach-btn" title="Adjuntar archivos">
+          <label className={`thread-attach-btn ${isSending ? 'disabled' : ''}`} title="Adjuntar archivos">
             <input
               ref={fileInputRef}
               type="file"
@@ -636,6 +608,7 @@ const ThreadPanel = ({
               accept="*/*"
               onChange={handleFileSelect}
               style={{ display: 'none' }}
+              disabled={isSending}
             />
             <FaPaperclip />
           </label>
@@ -643,8 +616,9 @@ const ThreadPanel = ({
           {/* Botón de emoji */}
           <button
             className="thread-emoji-btn"
-            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            onClick={() => !isSending && setShowEmojiPicker(!showEmojiPicker)}
             title="Emojis"
+            disabled={isSending}
           >
             <FaSmile />
           </button>
@@ -656,6 +630,7 @@ const ThreadPanel = ({
             onKeyDown={handleKeyDown}
             placeholder="Responder en hilo..."
             rows={1}
+            disabled={isSending}
           />
 
           {/* Botón de grabación de voz */}
@@ -667,10 +642,10 @@ const ThreadPanel = ({
           <button
             className="thread-send-btn"
             onClick={handleSend}
-            disabled={!input.trim() && mediaFiles.length === 0}
+            disabled={(!input.trim() && mediaFiles.length === 0) || isSending}
             title="Enviar"
           >
-            <FaPaperPlane />
+            {isSending ? <FaSpinner className="thread-spinner" /> : <FaPaperPlane />}
           </button>
         </div>
       </div>

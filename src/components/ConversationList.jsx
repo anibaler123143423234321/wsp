@@ -1802,21 +1802,31 @@ const ConversationList = ({
                     })}
                   {/* Paginación */}
                   {monitoringTotalPages > 1 && (
-                    <div className="flex items-center justify-center gap-2 py-4 border-t border-gray-200">
+                    <div className="flex items-center justify-between gap-3 py-4 px-4 border-t border-gray-200" style={{ fontFamily: 'Inter, sans-serif' }}>
                       <button
                         onClick={() => onLoadMonitoringConversations(monitoringPage - 1)}
                         disabled={monitoringPage === 1 || monitoringLoading}
-                        className="px-3 py-1 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="flex-1 px-4 py-2 text-xs font-semibold rounded-lg bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+                        style={{
+                          color: monitoringPage === 1 || monitoringLoading ? '#9ca3af' : '#111',
+                          fontFamily: 'Inter, sans-serif',
+                          fontWeight: 600
+                        }}
                       >
                         ← Anterior
                       </button>
-                      <span className="text-sm text-gray-600">
-                        Página {monitoringPage} de {monitoringTotalPages}
+                      <span className="text-xs text-gray-600 font-medium whitespace-nowrap" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
+                        {monitoringPage} / {monitoringTotalPages}
                       </span>
                       <button
                         onClick={() => onLoadMonitoringConversations(monitoringPage + 1)}
                         disabled={monitoringPage === monitoringTotalPages || monitoringLoading}
-                        className="px-3 py-1 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="flex-1 px-4 py-2 text-xs font-semibold rounded-lg bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+                        style={{
+                          color: monitoringPage === monitoringTotalPages || monitoringLoading ? '#9ca3af' : '#111',
+                          fontFamily: 'Inter, sans-serif',
+                          fontWeight: 600
+                        }}
                       >
                         Siguiente →
                       </button>

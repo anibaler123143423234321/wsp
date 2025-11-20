@@ -1946,7 +1946,8 @@ const ChatPage = () => {
 
       // 🔥 IMPORTANTE: Solo actualizar si NO soy yo quien envió el mensaje
       // Si soy el remitente, ya actualicé localmente en handleSendThreadMessage
-      if (lastReplyFrom !== username) {
+      // Comparar con currentUserFullName (displayName) en lugar de username
+      if (lastReplyFrom !== currentUserFullName && lastReplyFrom !== username) {
         // console.log('✅ Actualizando porque el mensaje es de otro usuario');
 
         // Actualizar el contador del mensaje
@@ -2022,6 +2023,7 @@ const ChatPage = () => {
     // 🔥 NUEVO: Evento para recibir mensajes de hilo en tiempo real
     s.on("threadMessage", (data) => {
       // console.log('🧵 Evento threadMessage recibido:', data);
+      // console.log('🧵 Comparando - data.from:', data.from, 'username:', username, 'currentUserFullName:', currentUserFullName);
 
       // El mensaje ya fue guardado en BD por el frontend que lo envió
       // Solo necesitamos notificar al usuario que hay un nuevo mensaje en el hilo
@@ -2035,6 +2037,7 @@ const ChatPage = () => {
       }
 
       // 🔥 Reproducir sonido si el mensaje es de otro usuario
+      // Comparar con currentUserFullName (displayName) en lugar de solo username
       if (data.from !== username && data.from !== currentUserFullName) {
         // console.log('🔔 Reproduciendo sonido de notificación para mensaje de hilo');
         playMessageSound(soundsEnabled);
@@ -3293,6 +3296,10 @@ const ChatPage = () => {
         }
 
         // Emitir evento específico de hilo
+        console.log("📤 Emitiendo threadMessage:", {
+          ...savedMessage,
+          threadId: messageData.threadId,
+        });
         socket.emit("threadMessage", {
           ...savedMessage,
           threadId: messageData.threadId,
@@ -3307,16 +3314,12 @@ const ChatPage = () => {
           roomCode: messageData.roomCode,
           isGroup: messageData.isGroup,
         };
-        // console.log('🔢 Emitiendo threadCountUpdated:', threadCountData);
+        console.log('📤 Emitiendo threadCountUpdated:', threadCountData);
         socket.emit("threadCountUpdated", threadCountData);
       }
 
-      // Actualizar el contador en el mensaje principal del ThreadPanel
-      setThreadMessage((prev) => ({
-        ...prev,
-        threadCount: (prev.threadCount || 0) + 1,
-        lastReplyFrom: messageData.from,
-      }));
+      // 🔥 CONFIAR EN EL BACKEND - NO agregar nada localmente
+      // El socket devolverá todo con los eventos threadMessage y threadCountUpdated
 
       // Actualizar el contador en la lista de mensajes del chat principal
       // Usar callback para acceder al estado más reciente del mensaje
