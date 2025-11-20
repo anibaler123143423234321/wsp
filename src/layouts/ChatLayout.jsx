@@ -254,6 +254,13 @@ const ChatLayout = ({
           typingUser={typingUser}
           roomTypingUsers={roomTypingUsers}
           isUploadingFile={isUploadingFile} // 🔥 Pasar prop de loading
+          onStartVideoCall={onStartVideoCall} // 🔥 NUEVO: Handler de videollamada
+          userRole={user?.role} // 🔥 NUEVO: Rol del usuario
+          chatInfo={{ // 🔥 NUEVO: Información del chat
+            name: to,
+            picture: isGroup ? null : getUserPicture(),
+            isOnline: isGroup ? false : getTargetUser()?.isOnline
+          }}
         />
       </div>
 

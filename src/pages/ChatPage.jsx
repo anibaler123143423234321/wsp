@@ -1189,7 +1189,7 @@ const ChatPage = () => {
           const condition4 = !!to; // Hay un destinatario seleccionado
           const condition5a = to?.toLowerCase().trim() === data.from?.toLowerCase().trim(); // Mensaje recibido del otro
           const condition5b = (data.from === username || data.from === currentUserFullName) &&
-                to?.toLowerCase().trim() === data.to?.toLowerCase().trim(); // Mensaje enviado por mí al destinatario actual
+            to?.toLowerCase().trim() === data.to?.toLowerCase().trim(); // Mensaje enviado por mí al destinatario actual
 
           console.log("🔍 Condiciones para isViewingCorrectChat:", {
             condition1_notInGroup: condition1,
@@ -3691,6 +3691,150 @@ const ChatPage = () => {
     localStorage.setItem("soundsEnabled", newValue.toString());
   };
 
+  // 🔥 NUEVO: Función para iniciar videollamada
+  const handleStartVideoCall = async () => {
+    try {
+      // Validar que hay un destinatario
+      if (!to) {
+        await showErrorAlert("Error", "Selecciona un chat para iniciar una videollamada");
+        return;
+      }
+
+      // Validar permisos para grupos
+      if (isGroup && user?.role !== 'COORDINADOR') {
+        await showErrorAlert(
+          "Sin permisos",
+          "Solo los coordinadores pueden iniciar videollamadas grupales"
+        );
+        return;
+      }
+
+      // Generar roomID único para la videollamada
+      const videoRoomID = isGroup
+        ? `group_${currentRoomCode || Date.now()}`
+        : `call_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
+      // Construir URL de la videollamada
+      const baseUrl = window.location.origin;
+      const videoCallUrl = `${baseUrl}/video-call?roomID=${videoRoomID}`;
+
+      console.log("📹 Inici ando videollamada:", {
+        roomID: videoRoomID,
+        isGroup,
+        to,
+        url: videoCallUrl
+      });
+
+      // Enviar notificación mediante socket
+      if (socket && socket.connected) {
+        const callData = {
+          roomID: videoRoomID,
+          callType: isGroup ? 'group' : 'individual',
+          chatId: isGroup ? currentRoomCode : to,
+          initiator: currentUserFullName,
+          initiatorUsername: username,
+          participants: isGroup ? roomUsers : [to],
+          callUrl: videoCallUrl,
+          isGroup,
+          roomCode: currentRoomCode
+        };
+
+        // Emitir evento de inicio de videollamada
+        socket.emit('startVideoCall', callData);
+
+        console.log("📡 Evento de videollamada emitido:", callData);
+      }
+
+      // Enviar mensaje automático en el chat con el enlace
+      const callMessage = isGroup
+        ? `📹 Videollamada iniciada por ${currentUserFullName}\n\n🔗 Únete aquí: ${videoCallUrl}`
+        : `📹 Iniciando videollamada...\n\n🔗 Enlace: ${videoCallUrl}`;
+
+      // Crear objeto de mensaje
+      const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+      const messageObj = {
+        id: messageId,
+        to,
+        isGroup,
+        from: currentUserFullName,
+        fromId: user?.id,
+        roomCode: currentRoomCode,
+        message: callMessage,
+        isVideoCallNotification: true,
+        videoCallRoomID: videoRoomID,
+        videoCallUrl
+      };
+
+      // 🔥 NUEVO: Guardar en BD para persistencia
+      try {
+        const savedMessage = await apiService.createMessage({
+          from: currentUserFullName,
+          fromId: user?.id,
+          to: to,
+          roomCode: isGroup ? currentRoomCode : undefined,
+          message: callMessage,
+          isGroup: isGroup,
+          isVideoCallNotification: true,
+          videoCallRoomID: videoRoomID,
+          videoCallUrl: videoCallUrl
+        });
+
+        if (savedMessage && savedMessage.id) {
+          messageObj.id = savedMessage.id;
+          console.log("✅ Notificación de videollamada guardada en BD:", savedMessage.id);
+        }
+      } catch (error) {
+        console.error("❌ Error al guardar notificación de videollamada:", error);
+      }
+
+      // Enviar mensaje a través del socket
+      if (socket && socket.connected) {
+        socket.emit('message', messageObj); // 🔥 CORREGIDO: Usar 'message', no 'sendMessage'
+      }
+
+      // Agregar mensaje localmente
+      addNewMessage({
+        sender: 'Tú',
+        realSender: currentUserFullName,
+        receiver: to,
+        text: callMessage,
+        isGroup,
+        time: new Date().toLocaleTimeString('es-ES', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        }),
+        isSent: true,
+        isSelf: true,
+        id: messageObj.id, // 🔥 Usar el ID real de la BD
+        sentAt: new Date().toISOString(),
+        isVideoCallNotification: true,
+        videoCallRoomID: videoRoomID
+      });
+
+      // Abrir videollamada en nueva ventana
+      const videoCallWindow = window.open(
+        videoCallUrl,
+        '_blank',
+        'width=1280,height=720,menubar=no,toolbar=no,location=no,status=no'
+      );
+
+      if (!videoCallWindow) {
+        await showErrorAlert(
+          "Bloqueado",
+          "El navegador bloqueó la ventana emergente. Por favor, permite las ventanas emergentes y vuelve a intentarlo."
+        );
+      }
+
+    } catch (error) {
+      console.error("❌ Error al iniciar videollamada:", error);
+      await showErrorAlert(
+        "Error",
+        "No se pudo iniciar la videollamada. Inténtalo de nuevo."
+      );
+    }
+  };
+
   const handleLoginSuccess = (userData) => {
     // Guardar datos del usuario en localStorage
     localStorage.setItem("user", JSON.stringify(userData));
@@ -3901,6 +4045,7 @@ const ChatPage = () => {
         onRemoveUsersFromRoom={handleRemoveUsersFromRoom}
         onOpenThread={handleOpenThread}
         onSendVoiceMessage={handleSendVoiceMessage}
+        onStartVideoCall={handleStartVideoCall} // 🔥 NUEVO: Handler de videollamada
         isUploadingFile={isUploadingFile} // 🔥 Pasar estado de upload
         // Props de modales
         showCreateRoomModal={showCreateRoomModal}
