@@ -133,6 +133,7 @@ const ChatPage = () => {
   const [typingTimeout, setTypingTimeout] = useState(null); // Timeout para detectar cuando deja de escribir
   const [roomTypingUsers, setRoomTypingUsers] = useState({}); // Usuarios escribiendo en cada sala { roomCode: [username1, username2] }
   const [adminViewConversation, setAdminViewConversation] = useState(null); // Conversación que el admin está viendo
+  const [isAdminViewLoading, setIsAdminViewLoading] = useState(false); // Estado de carga para conversaciones asignadas (vista admin)
   const [replyingTo, setReplyingTo] = useState(null); // Mensaje al que se está respondiendo
   const [threadMessage, setThreadMessage] = useState(null); // Mensaje del hilo abierto
   const [isUploadingFile, setIsUploadingFile] = useState(false); // 🔥 Estado para indicar si se está subiendo un archivo
@@ -479,6 +480,9 @@ const ChatPage = () => {
       return;
     }
 
+    // Mostrar loader de "Cargando mensajes..." igual que en chat grupal
+    setIsAdminViewLoading(true);
+
     // console.log('🔄 Cargando mensajes para conversación asignada:', adminViewConversation);
     // console.log('   - currentUserFullName:', currentUserFullName);
 
@@ -664,6 +668,8 @@ const ChatPage = () => {
       // console.log('✅ Mensajes actualizados en el estado');
     } catch (error) {
       console.error("❌ Error al cargar mensajes de admin view:", error);
+    } finally {
+      setIsAdminViewLoading(false);
     }
   }, [
     adminViewConversation,
@@ -1642,7 +1648,15 @@ const ChatPage = () => {
 
     // 🔥 NUEVO: Evento para cerrar videollamada
     s.on("videoCallEnded", (data) => {
-      console.log("🔴 Videollamada cerrada - Evento recibido:", data);
+      // console.log("🔴 Videollamada cerrada - Evento recibido:", data);
+
+      // 🔥 DEBUG: Verificar todos los mensajes actuales
+      // console.log("📋 DEBUG - Mensajes actuales antes de actualizar:", messages.map(m => ({
+      //   id: m.id,
+      //   type: m.type,
+      //   videoRoomID: m.videoRoomID,
+      //   metadata: m.metadata
+      // })));
 
       // Mostrar notificación
       const Toast = Swal.mixin({
@@ -1661,7 +1675,7 @@ const ChatPage = () => {
 
       // 🔥 NUEVO: Actualizar el mensaje de videollamada en el estado local
       // Buscar el mensaje con videoRoomID y marcar metadata.isActive = false
-      console.log("🔄 Actualizando mensaje con videoRoomID:", data.roomID);
+      // console.log("🔄 Actualizando mensaje con videoRoomID:", data.roomID);
 
       updateMessage(null, {
         videoRoomID: data.roomID,
@@ -1672,7 +1686,7 @@ const ChatPage = () => {
         },
       });
 
-      console.log("✅ Mensaje actualizado, el banner debería ocultarse");
+      // console.log("✅ Mensaje actualizado, el banner debería ocultarse");
     });
 
     s.on("connect", () => {
@@ -3893,6 +3907,13 @@ const ChatPage = () => {
         videoCallUrl: videoCallUrl,
         videoRoomID: videoRoomID, // 🔥 Agregar también este campo que espera el backend
 
+        // 🔥 CRÍTICO: Metadata con estado activo
+        metadata: {
+          videoCallUrl: videoCallUrl,
+          videoRoomID: videoRoomID,
+          isActive: true, // 🔥 Marcar como activa al crear
+        },
+
         // Metadatos adicionales
         sender: currentUserFullName, // Para compatibilidad
         senderRole: userRole,
@@ -3912,13 +3933,16 @@ const ChatPage = () => {
           type: "video_call", // Guardamos el tipo
           isGroup: isGroup,
 
-          // Campos extra para que el backend sepa la URL
+          // 🔥 CRÍTICO: Campos de videollamada (planos para que el backend los guarde)
+          videoCallUrl: videoCallUrl,
+          videoRoomID: videoRoomID, // 🔥 IMPORTANTE: Este campo es clave para identificar la llamada
+
+          // Metadata adicional
           metadata: {
             videoCallUrl: videoCallUrl,
             videoRoomID: videoRoomID,
+            isActive: true, // 🔥 Marcar como activa al crear
           },
-          // O si tu backend espera campos planos:
-          videoCallUrl: videoCallUrl,
         });
 
         if (savedMessage && savedMessage.id) {
@@ -4101,6 +4125,9 @@ const ChatPage = () => {
     );
   }
 
+  // Loader efectivo para mensajes: combina carga normal y vista admin (chats asignados)
+  const effectiveIsLoadingMessages = isLoadingMessages || isAdminViewLoading;
+
   return (
     <>
       {/* Elemento de audio para notificaciones */}
@@ -4183,7 +4210,7 @@ const ChatPage = () => {
         onLeaveRoom={handleLeaveRoom}
         hasMoreMessages={hasMoreMessages}
         isLoadingMore={isLoadingMore}
-        isLoadingMessages={isLoadingMessages} // 🔥 Estado de carga inicial
+        isLoadingMessages={effectiveIsLoadingMessages} // 🔥 Estado de carga inicial (incluye vista admin)
         onLoadMoreMessages={loadMoreMessages}
         onToggleMenu={handleToggleMenu}
         socket={socket}

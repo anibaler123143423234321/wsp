@@ -287,14 +287,46 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
           shouldUpdate = msg.id === messageId;
         } else if (updates.videoRoomID) {
           // 🔥 NUEVO: Buscar por videoRoomID
-          shouldUpdate = msg.videoRoomID === updates.videoRoomID;
+          // Caso normal: usar campo videoRoomID
+          const searchRoomID = updates.videoRoomID;
+          let msgRoomID = msg.videoRoomID;
 
-          if (msg.videoRoomID) {
-            console.log('🔍 Comparando videoRoomID:', {
-              msgVideoRoomID: msg.videoRoomID,
-              searchVideoRoomID: updates.videoRoomID,
-              match: shouldUpdate
-            });
+          // 🔥 IMPORTANTE: Soportar mensajes antiguos sin videoRoomID
+          // Intentar extraer el roomID desde la URL de la videollamada
+          if (!msgRoomID) {
+            let url = msg.videoCallUrl;
+            const textToSearch = msg.text || msg.message;
+
+            // Si no hay videoCallUrl, intentar buscar URL en el texto
+            if (!url && typeof textToSearch === 'string') {
+              const match = textToSearch.match(/http[s]?:\/\/[^\s]+/);
+              if (match) url = match[0];
+            }
+
+            if (typeof url === 'string' && url.includes('roomID=')) {
+              try {
+                const query = url.split('?')[1];
+                if (query) {
+                  const params = new URLSearchParams(query);
+                  const extractedRoomID = params.get('roomID');
+                  if (extractedRoomID) {
+                    msgRoomID = extractedRoomID;
+                  }
+                }
+              } catch (e) {
+                // console.warn('⚠️ No se pudo extraer roomID desde la URL del mensaje:', e);
+              }
+            }
+          }
+
+          shouldUpdate = msgRoomID === searchRoomID;
+
+          if (msgRoomID) {
+            // console.log('🔍 Comparando videoRoomID / URL:', {
+            //   msgRoomID,
+            //   searchRoomID,
+            //   match: shouldUpdate
+            // });
           }
         }
 

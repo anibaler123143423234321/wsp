@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './ActiveVideoCallBanner.css';
 
 const ActiveVideoCallBanner = ({ messages, currentUsername, isGroup, currentRoomCode, to, socket, user }) => {
   const [activeCall, setActiveCall] = useState(null);
+  const activeCallRef = useRef(null); // 🔥 NUEVO: Ref para mantener referencia actualizada
 
   // Función para calcular tiempo relativo
   const getRelativeTime = (timeStr) => {
@@ -26,13 +27,52 @@ const ActiveVideoCallBanner = ({ messages, currentUsername, isGroup, currentRoom
     }
   };
 
+  // 🔥 NUEVO: Actualizar ref cada vez que activeCall cambia
   useEffect(() => {
-    console.log('🔍 ActiveVideoCallBanner - Buscando videollamadas en:', {
-      totalMessages: messages.length,
-      isGroup,
-      currentRoomCode,
-      to
-    });
+    activeCallRef.current = activeCall;
+  }, [activeCall]);
+
+  // 🔥 NUEVO: Escuchar evento videoCallEnded para ocultar el banner inmediatamente
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleVideoCallEnded = (data) => {
+      // console.log('🔴 ActiveVideoCallBanner - Evento videoCallEnded recibido:', data);
+      // console.log('🔍 activeCallRef.current en el momento del evento:', activeCallRef.current);
+      // console.log('🔍 currentRoomCode:', currentRoomCode);
+
+      // 🔥 SOLUCIÓN: Ocultar el banner si el roomCode coincide, sin importar si activeCall está establecido
+      // Esto soluciona el problema de timing donde el evento llega antes de que activeCall se establezca
+      if (data.roomCode === currentRoomCode) {
+        // console.log('✅ Ocultando banner de videollamada (roomCode match)');
+        setActiveCall(null);
+        return;
+      }
+
+      // Fallback: Verificar por roomID si activeCall está disponible
+      const currentActiveCall = activeCallRef.current;
+      if (currentActiveCall && currentActiveCall.roomID === data.roomID) {
+        // console.log('✅ Ocultando banner de videollamada (roomID match)');
+        setActiveCall(null);
+      } else {
+        // console.log('❌ No coincide con la sala actual');
+      }
+    };
+
+    socket.on('videoCallEnded', handleVideoCallEnded);
+
+    return () => {
+      socket.off('videoCallEnded', handleVideoCallEnded);
+    };
+  }, [socket, currentRoomCode]); // 🔥 Agregar currentRoomCode a las dependencias
+
+  useEffect(() => {
+    // console.log('🔍 ActiveVideoCallBanner - Buscando videollamadas en:', {
+    //   totalMessages: messages.length,
+    //   isGroup,
+    //   currentRoomCode,
+    //   to
+    // });
 
     // 🔥 NUEVO: Buscar el mensaje de videollamada más reciente (por ID, no por fecha)
     // Filtrar solo mensajes de videollamada de esta sala/chat
@@ -42,30 +82,31 @@ const ActiveVideoCallBanner = ({ messages, currentUsername, isGroup, currentRoom
       const isVideoCall = msg.type === 'video_call' ||
         (typeof messageText === 'string' && messageText.includes('📹 Videollamada'));
 
-      console.log('🔍 Revisando mensaje:', {
-        id: msg.id,
-        type: msg.type,
-        text: messageText?.substring(0, 50),
-        isVideoCall,
-        videoCallUrl: msg.videoCallUrl,
-        videoRoomID: msg.videoRoomID,
-        receiver: msg.receiver,
-        metadata: msg.metadata
-      });
+      // console.log('🔍 Revisando mensaje:', {
+      //   id: msg.id,
+      //   type: msg.type,
+      //   text: messageText?.substring(0, 50),
+      //   isVideoCall,
+      //   videoCallUrl: msg.videoCallUrl,
+      //   videoRoomID: msg.videoRoomID,
+      //   receiver: msg.receiver,
+      //   metadata: msg.metadata
+      // });
 
       if (!isVideoCall) return false;
 
-      // 🔥 NUEVO: Verificar que la videollamada esté activa
+      // 🔥 CRÍTICO: Verificar que la videollamada esté activa
+      // Si metadata.isActive es false, NO mostrar el banner
       const isActive = !msg.metadata || msg.metadata.isActive !== false;
-      console.log('🔍 Verificando si videollamada está activa:', {
-        id: msg.id,
-        hasMetadata: !!msg.metadata,
-        metadataIsActive: msg.metadata?.isActive,
-        isActive
-      });
+      // console.log('🔍 Verificando si videollamada está activa:', {
+      //   id: msg.id,
+      //   hasMetadata: !!msg.metadata,
+      //   metadataIsActive: msg.metadata?.isActive,
+      //   isActive
+      // });
 
       if (!isActive) {
-        console.log('❌ Videollamada inactiva, no mostrar banner:', msg.id);
+        // console.log('❌ Videollamada inactiva (cerrada), no mostrar banner:', msg.id);
         return false;
       }
 
@@ -80,13 +121,13 @@ const ActiveVideoCallBanner = ({ messages, currentUsername, isGroup, currentRoom
       }
     });
 
-    console.log('📹 Mensajes de videollamada encontrados:', videoCallMessages.length);
+    // console.log('📹 Mensajes de videollamada ACTIVOS encontrados:', videoCallMessages.length);
 
     // Obtener la más reciente
     if (videoCallMessages.length > 0) {
       const mostRecent = videoCallMessages[videoCallMessages.length - 1];
 
-      console.log('📹 Mensaje más reciente:', mostRecent);
+      // console.log('📹 Mensaje más reciente:', mostRecent);
 
       // Extraer URL
       let videoUrl = mostRecent.videoCallUrl;
@@ -96,24 +137,32 @@ const ActiveVideoCallBanner = ({ messages, currentUsername, isGroup, currentRoom
         if (urlMatch) videoUrl = urlMatch[0];
       }
 
-      console.log('🔗 URL extraída:', videoUrl);
+      // console.log('🔗 URL extraída:', videoUrl);
 
       if (videoUrl) {
+        // 🔥 NUEVO: Extraer roomID de la URL si no está en el campo videoRoomID
+        let roomID = mostRecent.videoRoomID;
+        if (!roomID && videoUrl) {
+          const urlParams = new URLSearchParams(videoUrl.split('?')[1]);
+          roomID = urlParams.get('roomID');
+          // console.log('🔍 roomID extraído de URL:', roomID);
+        }
+
         const callData = {
           url: videoUrl,
-          roomID: mostRecent.videoRoomID,
+          roomID: roomID,
           initiator: mostRecent.sender || mostRecent.from,
           time: getRelativeTime(mostRecent.sentAt || mostRecent.time),
           isOwn: mostRecent.sender === currentUsername || mostRecent.sender === 'Tú' || mostRecent.isSelf
         };
-        console.log('✅ Activando banner con:', callData);
+        // console.log('✅ Activando banner con:', callData);
         setActiveCall(callData);
       } else {
-        console.log('❌ No se encontró URL, no se muestra banner');
+        // console.log('❌ No se encontró URL, no se muestra banner');
         setActiveCall(null);
       }
     } else {
-      console.log('❌ No hay mensajes de videollamada recientes');
+      // console.log('❌ No hay mensajes de videollamada activos, ocultando banner');
       setActiveCall(null);
     }
   }, [messages, currentUsername, isGroup, currentRoomCode, to]);
@@ -172,7 +221,8 @@ const ActiveVideoCallBanner = ({ messages, currentUsername, isGroup, currentRoom
           Unirse
         </button>
 
-        {activeCall.isOwn && (
+        {/* 🔥 NUEVO: Permitir cerrar si es el creador O si es admin */}
+        {(activeCall.isOwn || user?.role === 'ADMIN' || user?.role === 'PROGRAMADOR' || user?.role === 'JEFEPISO' || user?.role === 'COORDINADOR') && (
           <button className="banner-close-btn" onClick={handleCloseCall} title="Cerrar sala para todos">
             ✕ Cerrar
           </button>
