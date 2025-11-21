@@ -262,19 +262,16 @@
 
 .chat-title .room-code,
 .room-code {
-  color: #00a884 !important;
-  font-size: 10px;
+  color: #ffffff !important;
+  font-size: 13px;
   font-weight: 500;
-  background: #d1f4dd !important;
-  background-color: #d1f4dd !important;
   padding: 1px 4px;
   border-radius: 3px;
-  border: 1px solid rgba(0, 168, 132, 0.3);
   margin-left: 4px;
   font-family: "Courier New", monospace;
   letter-spacing: 0.3px;
   display: inline-block;
-  -webkit-text-fill-color: #00a884 !important;
+  -webkit-text-fill-color: #ffffff !important;
   /* 🔥 FIX: Asegurar que el texto sea visible */
 }
 
@@ -864,12 +861,6 @@
     flex-shrink: 0;
   }
 
-  /* Ocultar botones menos importantes en móviles muy pequeños */
-  .add-users-btn,
-  .remove-users-btn {
-    display: none;
-  }
-
   .room-members-wrapper {
     display: none;
   }
@@ -908,7 +899,9 @@
   }
 
   .header-icon-btn {
-    display: none;
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
   }
 
   .leave-room-btn {
@@ -1085,36 +1078,6 @@
   background-color: #9bf6ff;
   color: #004a5c;
 }
-
-.chat-avatar-img {
-  width: 32px;
-  height: 32px;
-  font-size: 14px;
-}
-
-.chat-title {
-  font-size: 12px;
-  line-height: 1.2;
-  max-height: 2.4em;
-}
-
-.chat-subtitle {
-  font-size: 9px;
-}
-
-.header-icon-btn {
-  display: none;
-}
-
-.leave-room-btn {
-  padding: 4px 6px;
-  font-size: 10px;
-}
-
-.chat-header-actions {
-  gap: 4px;
-}
-
 
 /* Indicador de "está escribiendo..." en el header */
 .typing-status {

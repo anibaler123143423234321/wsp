@@ -146,7 +146,7 @@ const ChatPage = () => {
   // Sidebar cerrado por defecto en mobile, abierto en desktop
   const [showSidebar, setShowSidebar] = useState(window.innerWidth > 768);
   // Estado para colapsar/expandir el sidebar en desktop
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [showCreateRoomModal, setShowCreateRoomModal] = useState(false);
   const [showJoinRoomModal, setShowJoinRoomModal] = useState(false);
   const [showAdminRoomsModal, setShowAdminRoomsModal] = useState(false);
@@ -506,7 +506,7 @@ const ChatPage = () => {
       const historicalMessages = await apiService.getUserMessagesOrderedById(
         participant1,
         participant2,
-        20,
+        10,
         0
       );
 
@@ -863,10 +863,10 @@ const ChatPage = () => {
     return () => clearTimeout(timeoutId);
   }, [isAuthenticated, username, loadUnreadCounts]);
 
-  // 🔥 DEBUG: Monitorear cambios en unreadMessages
-  useEffect(() => {
-    console.log("📊 DEBUG: unreadMessages cambió:", unreadMessages);
-  }, [unreadMessages]);
+  // Monitorear cambios en unreadMessages
+  // useEffect(() => {
+  //   console.log("📊 DEBUG: unreadMessages cambió:", unreadMessages);
+  // }, [unreadMessages]);
 
   useEffect(() => {
     toRef.current = to;
@@ -875,14 +875,6 @@ const ChatPage = () => {
     userListRef.current = userList;
     currentUserFullNameRef.current = currentUserFullName;
   }, [to, isGroup, adminViewConversation, userList, currentUserFullName]);
-
-  // 🔥 NUEVO: Cargar mensajes cuando se selecciona una conversación asignada
-  useEffect(() => {
-    if (adminViewConversation) {
-      loadAdminViewMessages();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [adminViewConversation]);
 
   // WebSocket listeners
   useEffect(() => {
@@ -1021,19 +1013,31 @@ const ChatPage = () => {
         const isMentioned = data.isGroup && data.hasMention;
 
         if (isMentioned) {
+          // 🔥 Reproducir sonido de notificación para menciones
+          try {
+            const audio = new Audio(
+              "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
+            );
+            audio.volume = 0.7; // Volumen más alto para menciones
+            audio.play().catch((err) => console.log("No se pudo reproducir el sonido:", err));
+          } catch (err) {
+            console.log("Error al reproducir sonido:", err);
+          }
+
           // 🔥 Alerta especial para menciones (persiste hasta que el usuario entre al chat)
           const mentionAlert = Swal.fire({
             icon: "warning",
             title: "📢 ¡Te mencionaron!",
             html: `
-              <strong>${data.from}</strong> te mencionó en <strong>${data.group || "un grupo"
+              <strong>${data.from}</strong> te mencionó en <strong>${data.groupName || data.group || "un grupo"
               }</strong>
               <br><br>
               <em>"${data.message?.substring(0, 100)}${data.message?.length > 100 ? "..." : ""
               }"</em>
             `,
             showConfirmButton: true,
-            confirmButtonText: "Ver mensaje",
+            confirmButtonText: "Ir al grupo",
+            confirmButtonColor: "#dc2626",
             showCancelButton: true,
             cancelButtonText: "Cerrar",
             allowOutsideClick: false,
@@ -1041,12 +1045,11 @@ const ChatPage = () => {
           }).then((result) => {
             if (result.isConfirmed) {
               // 🔥 Navegar al chat del grupo donde fue mencionado
-              // Esto se manejará en el componente padre
               window.dispatchEvent(
                 new CustomEvent("navigateToMention", {
                   detail: {
                     roomCode: data.roomCode,
-                    groupName: data.group,
+                    groupName: data.groupName || data.group,
                     messageId: data.id,
                   },
                 })
@@ -1070,25 +1073,92 @@ const ChatPage = () => {
             }));
           }
         } else {
-          // Toast normal para mensajes sin mención
-          const Toast = Swal.mixin({
+          // 🔥 Reproducir sonido de notificación
+          try {
+            const audio = new Audio(
+              "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
+            );
+            audio.volume = 0.5;
+            audio.play().catch((err) => console.log("No se pudo reproducir el sonido:", err));
+          } catch (err) {
+            console.log("Error al reproducir sonido:", err);
+          }
+
+          // 🔥 MEJORADO: Mostrar origen del mensaje (grupo o chat individual)
+          let messageOrigin = "";
+          let messageTitle = "";
+          let buttonText = "";
+          
+          if (data.isGroup) {
+            const groupName = data.groupName || data.group || "Grupo";
+            messageOrigin = `📁 ${groupName}`;
+            messageTitle = `${data.from} en ${groupName}`;
+            buttonText = "Ir al grupo";
+          } else {
+            messageOrigin = "💬 Chat individual";
+            messageTitle = `Nuevo mensaje de ${data.from}`;
+            buttonText = "Ir al chat";
+          }
+
+          // Toast con botón visible
+          Swal.fire({
             toast: true,
             position: "bottom-end",
-            showConfirmButton: false,
-            timer: 3000,
+            icon: "info",
+            title: messageTitle,
+            html: `
+              <div style="text-align: left; font-size: 13px; margin-bottom: 10px;">
+                <div style="color: #666; margin-bottom: 4px;">${messageOrigin}</div>
+                <div style="color: #333;">${
+                  data.message?.substring(0, 60) || 
+                  (data.fileName ? "📎 " + data.fileName : "Mensaje recibido")
+                }${data.message?.length > 60 ? "..." : ""}</div>
+              </div>
+            `,
+            showConfirmButton: true,
+            confirmButtonText: buttonText,
+            confirmButtonColor: "#dc2626",
+            showCancelButton: true,
+            cancelButtonText: "Cerrar",
+            timer: 8000,
             timerProgressBar: true,
             didOpen: (toast) => {
               toast.addEventListener("mouseenter", Swal.stopTimer);
               toast.addEventListener("mouseleave", Swal.resumeTimer);
             },
-          });
-
-          Toast.fire({
-            icon: "info",
-            title: `Nuevo mensaje de ${data.from}`,
-            text:
-              data.message ||
-              (data.fileName ? "📎 Archivo adjunto" : "Mensaje recibido"),
+          }).then((result) => {
+            if (result.isConfirmed) {
+              if (data.isGroup) {
+                // Navegar al grupo
+                if (data.roomCode) {
+                  window.dispatchEvent(
+                    new CustomEvent("navigateToGroup", {
+                      detail: {
+                        roomCode: data.roomCode,
+                        groupName: data.groupName || data.group,
+                      },
+                    })
+                  );
+                } else if (data.groupName || data.group) {
+                  window.dispatchEvent(
+                    new CustomEvent("navigateToGroup", {
+                      detail: {
+                        groupName: data.groupName || data.group,
+                      },
+                    })
+                  );
+                }
+              } else {
+                // Navegar al chat individual
+                window.dispatchEvent(
+                  new CustomEvent("navigateToChat", {
+                    detail: {
+                      username: data.from,
+                    },
+                  })
+                );
+              }
+            }
           });
         }
       }
@@ -1282,29 +1352,11 @@ const ChatPage = () => {
             (condition5a || condition5b || condition5c);
         }
 
-        console.log("� DEBUGV - Verificando chat correcto:", {
-          isViewingCorrectChat,
-          currentAdminView: !!currentAdminView,
-          currentTo,
-          currentIsGroup,
-          currentFullName,
-          messageFrom: data.from,
-          messageTo: data.to,
-          messageIsGroup: data.isGroup,
-          condition1: !currentIsGroup,
-          condition2: !currentRoomCodeRef.current,
-          condition3: !data.isGroup,
-          condition4: !!currentTo,
-          condition5a:
-            currentTo?.toLowerCase().trim() === data.from?.toLowerCase().trim(),
-          condition5b:
-            (data.from === username || data.from === currentFullName) &&
-            currentTo?.toLowerCase().trim() === data.to?.toLowerCase().trim(),
-          condition5c:
-            (data.to === username || data.to === currentFullName) &&
-            currentTo?.toLowerCase().trim() === data.from?.toLowerCase().trim(),
-          username,
-        });
+        // Debug: Verificando chat correcto
+        // console.log("DEBUGV - Verificando chat correcto:", {
+        //   isViewingCorrectChat,
+        //   currentAdminView: !!currentAdminView,
+        // });
 
         if (!isViewingCorrectChat) {
           // console.log("⚠️ No estás viendo el chat correcto, actualizando preview...");
@@ -1404,14 +1456,10 @@ const ChatPage = () => {
           data.from === username ||
           data.fromId === user?.id;
 
-        console.log("🔍 Verificando si el mensaje es mío:", {
-          "data.from": data.from,
-          currentUserFullName: currentUserFullNameRef.current,
-          username,
-          "data.fromId": data.fromId,
-          "user?.id": user?.id,
-          isMyMessage,
-        });
+        // console.log("🔍 Verificando si el mensaje es mío:", {
+        //   "data.from": data.from,
+        //   currentUserFullName: currentUserFullNameRef.current,
+        // });
 
         const newMessage = {
           id: data.id,
@@ -2061,12 +2109,12 @@ const ChatPage = () => {
 
       // 🔥 CORREGIDO: Actualizar el contador SIEMPRE, sin importar quién envió el mensaje
       // El contador debe reflejar el número real de mensajes en el hilo
-      console.log(
-        "🔢 Actualizando contador de hilo - messageId:",
-        messageId,
-        "lastReplyFrom:",
-        lastReplyFrom
-      );
+      // console.log(
+      //   "🔢 Actualizando contador de hilo - messageId:",
+      //   messageId,
+      //   "lastReplyFrom:",
+      //   lastReplyFrom
+      // );
 
       // Actualizar el contador del mensaje
       updateMessage(messageId, (prevMessage) => ({
@@ -2543,16 +2591,16 @@ const ChatPage = () => {
   // Función para seleccionar una sala del sidebar
   const handleRoomSelect = useCallback(async (room, messageId = null) => {
     try {
-      console.log("🏠 Seleccionando sala:", {
-        name: room.name,
-        roomCode: room.roomCode,
-        currentRoomCode,
-        messageId,
-        allRooms: myActiveRooms.map((r) => ({
-          name: r.name,
-          roomCode: r.roomCode,
-        })),
-      });
+      // console.log("🏠 Seleccionando sala:", {
+      //   name: room.name,
+      //   roomCode: room.roomCode,
+      //   currentRoomCode,
+      //   messageId,
+      //   allRooms: myActiveRooms.map((r) => ({
+      //     name: r.name,
+      //     roomCode: r.roomCode,
+      //   })),
+      // });
 
       // Si ya estamos en esta sala, no hacer nada (a menos que haya un messageId para resaltar)
       if (currentRoomCode === room.roomCode && !messageId) {
@@ -2633,23 +2681,23 @@ const ChatPage = () => {
         roomUsersData.some((user) => user.username === username);
       const isAdminOrJefe = user?.role === "ADMIN" || user?.role === "JEFEPISO";
 
-      console.log("🔍 Verificando si emitir joinRoom:", {
-        roomCode: room.roomCode,
-        roomName: room.name,
-        username,
-        isUserInRoom,
-        isAdminOrJefe,
-        userRole: user?.role,
-        roomUsersData: roomUsersData.map((u) => u.username),
-      });
+      // console.log("🔍 Verificando si emitir joinRoom:", {
+      //   roomCode: room.roomCode,
+      //   roomName: room.name,
+      //   username,
+      //   isUserInRoom,
+      //   isAdminOrJefe,
+      //   userRole: user?.role,
+      //   roomUsersData: roomUsersData.map((u) => u.username),
+      // });
 
       // ADMIN y JEFEPISO pueden unirse a cualquier sala para monitoreo
       if ((isUserInRoom || isAdminOrJefe) && socket && socket.connected) {
-        console.log(
-          "✅ Emitiendo joinRoom para sala:",
-          room.roomCode,
-          isAdminOrJefe ? "(como ADMIN/JEFEPISO)" : "(como miembro)"
-        );
+        // console.log(
+        //   "✅ Emitiendo joinRoom para sala:",
+        //   room.roomCode,
+        //   isAdminOrJefe ? "(como ADMIN/JEFEPISO)" : "(como miembro)"
+        // );
         socket.emit("joinRoom", {
           roomCode: room.roomCode,
           roomName: room.name,
@@ -2683,7 +2731,7 @@ const ChatPage = () => {
         "Error al unirse a la sala: " + error.message
       );
     }
-  }, [currentRoomCode, myActiveRooms, username, user?.role, socket, setCurrentRoomCode, clearMessages, loadInitialMessages, markRoomMessagesAsRead]);
+  }, [currentRoomCode, socket, clearMessages, setCurrentRoomCode, pendingMentions, user?.role, roomUsers, username]);
 
   // 🔥 NUEVO: Listener para navegar a una mención desde la alerta
   useEffect(() => {
@@ -2704,6 +2752,66 @@ const ChatPage = () => {
       window.removeEventListener("navigateToMention", handleNavigateToMention);
     };
   }, [handleRoomSelect, myActiveRooms]);
+
+  // 🔥 NUEVO: Listener para navegar a un grupo desde el toast
+  useEffect(() => {
+    const handleNavigateToGroup = async (event) => {
+      const { roomCode, groupName } = event.detail;
+
+      // Buscar la sala en myActiveRooms
+      let room = null;
+      
+      if (roomCode) {
+        room = myActiveRooms.find((r) => r.roomCode === roomCode);
+      } else if (groupName) {
+        room = myActiveRooms.find((r) => r.name === groupName || r.roomCode === groupName);
+      }
+
+      if (room) {
+        await handleRoomSelect(room);
+      } else {
+        console.warn("Sala no encontrada en myActiveRooms:", { roomCode, groupName });
+        // Intentar cargar las salas de nuevo
+        await loadMyActiveRooms(1, false);
+      }
+    };
+
+    window.addEventListener("navigateToGroup", handleNavigateToGroup);
+    return () => {
+      window.removeEventListener("navigateToGroup", handleNavigateToGroup);
+    };
+  }, [handleRoomSelect, myActiveRooms, loadMyActiveRooms]);
+
+  // 🔥 NUEVO: Listener para navegar a un chat individual desde el toast
+  useEffect(() => {
+    const handleNavigateToChat = async (event) => {
+      const { username: targetUsername } = event.detail;
+
+      // Buscar en conversaciones asignadas
+      const conversation = assignedConversations.find((conv) => {
+        return conv.participants && conv.participants.includes(targetUsername);
+      });
+
+      if (conversation) {
+        // Navegar a la conversación asignada
+        setAdminViewConversation(conversation);
+        setTo(null);
+        setIsGroup(false);
+        setCurrentRoomCode(null);
+      } else {
+        // Si no está en asignadas, abrir chat directo
+        setTo(targetUsername);
+        setIsGroup(false);
+        setCurrentRoomCode(null);
+        setAdminViewConversation(null);
+      }
+    };
+
+    window.addEventListener("navigateToChat", handleNavigateToChat);
+    return () => {
+      window.removeEventListener("navigateToChat", handleNavigateToChat);
+    };
+  }, [assignedConversations, setCurrentRoomCode]);
 
   const handleSendMessage = async () => {
     // 🔥 CRÍTICO: Prevenir envíos duplicados cuando hay latencia
@@ -2736,14 +2844,14 @@ const ChatPage = () => {
     lastSendTimestamp.current = now;
 
     try {
-      console.log("📤 handleSendMessage - Estado actual:", {
-        to,
-        isGroup,
-        currentRoomCode,
-        username,
-        currentUserFullName,
-        input: input?.substring(0, 50),
-      });
+      // console.log("📤 handleSendMessage - Estado actual:", {
+      //   to,
+      //   isGroup,
+      //   currentRoomCode,
+      //   username,
+      //   currentUserFullName,
+      //   input: input?.substring(0, 50),
+      // });
 
       // Buscar si esta conversación es asignada (normalizado)
       const currentUserNormalized = normalizeUsername(currentUserFullName);
@@ -2762,7 +2870,7 @@ const ChatPage = () => {
         );
       });
 
-      console.log("📧 Conversación asignada encontrada:", assignedConv);
+      // console.log("📧 Conversación asignada encontrada:", assignedConv);
 
       // Si es una conversación asignada y el usuario NO está en ella, no permitir enviar
       // 🔥 MODIFICADO: Comparación normalizada para nombres
@@ -2801,12 +2909,12 @@ const ChatPage = () => {
           roomCode: currentRoomCode, // 🔥 Incluir roomCode para salas temporales
         };
 
-        console.log("📤 Creando messageObj:", {
-          to,
-          isGroup: effectiveIsGroup,
-          isAssignedConv: !!assignedConv,
-          originalIsGroup: isGroup,
-        });
+        // console.log("📤 Creando messageObj:", {
+        //   to,
+        //   isGroup: effectiveIsGroup,
+        //   isAssignedConv: !!assignedConv,
+        //   originalIsGroup: isGroup,
+        // });
 
         // Si es una conversación asignada, agregar información adicional
         if (assignedConv) {
@@ -2927,11 +3035,6 @@ const ChatPage = () => {
           return;
         }
 
-        console.log("🔌 Verificando conexión del socket...", {
-          hasSocket: !!socket,
-          isConnected: socket?.connected,
-        });
-
         // Verificar que el socket esté conectado antes de enviar
         if (!socket || !socket.connected) {
           console.error("❌ Socket no conectado, no se puede enviar mensaje");
@@ -2942,22 +3045,10 @@ const ChatPage = () => {
           return;
         }
 
-        console.log("✅ Socket conectado, continuando...");
-        console.log(
-          "🔍 effectiveIsGroup:",
-          effectiveIsGroup,
-          "isGroup:",
-          isGroup
-        );
-        console.log("🔍 Punto A - Antes del if");
-
         // 🔥 IMPORTANTE: Para grupos, NO agregar el mensaje localmente
         // Esperar a que el backend lo confirme y lo envíe de vuelta
         // Esto evita duplicados y problemas de sincronización
-        console.log("🔍 Punto B - Justo antes del if");
         if (effectiveIsGroup) {
-          console.log("🔍 Punto C - Dentro del if (grupo)");
-          console.log("📤 Enviando mensaje de grupo");
           try {
             // 1. 🔥 Guardar primero en la BD para asegurar persistencia
             const savedMessage = await apiService.createMessage({
@@ -2978,7 +3069,7 @@ const ChatPage = () => {
               replyToSenderNumeroAgente: replyingTo?.numeroAgente,
             });
 
-            console.log("✅ Mensaje de grupo guardado en BD:", savedMessage);
+            // console.log("✅ Mensaje de grupo guardado en BD:", savedMessage);
 
             // 2. 🔥 Actualizar messageObj con los datos reales de la BD
             messageObj.id = savedMessage.id;
@@ -2994,10 +3085,10 @@ const ChatPage = () => {
 
             // 3. 🔥 Emitir por socket con el ID real (sin sentAt/time - el backend ya los tiene)
             socket.emit("message", messageObj);
-            console.log(
-              "📤 Mensaje emitido por socket con ID real:",
-              messageObj.id
-            );
+            // console.log(
+            //   "📤 Mensaje emitido por socket con ID real:",
+            //   messageObj.id
+            // );
 
             // 4. 🔥 NO agregar mensaje localmente - esperar a que vuelva del servidor
             // Esto evita duplicados porque el servidor enviará el mensaje de vuelta
@@ -3016,7 +3107,7 @@ const ChatPage = () => {
           clearInput();
           setReplyingTo(null);
           setIsUploadingFile(false); // 🔥 Desactivar loading después de enviar
-          console.log("🔚 Finalizando bloque de grupos con return");
+          // console.log("🔚 Finalizando bloque de grupos con return");
           return;
         } else {
           console.log("🔍 Punto D - Dentro del else (1-a-1)");

@@ -808,7 +808,7 @@ class ApiService {
   }
 
   // Obtener mensajes entre usuarios
-  async getUserMessages(from, to, limit = 50, offset = 0) {
+  async getUserMessages(from, to, limit = 10, offset = 0) {
     try {
       // ✅ Usar fetchWithAuth para renovación automática de token
       const response = await this.fetchWithAuth(
@@ -836,7 +836,7 @@ class ApiService {
   }
 
   // 🔥 NUEVO: Obtener mensajes entre usuarios ordenados por ID (para evitar problemas con sentAt corrupto)
-  async getUserMessagesOrderedById(from, to, limit = 50, offset = 0) {
+  async getUserMessagesOrderedById(from, to, limit = 10, offset = 0) {
     try {
       const response = await this.fetchWithAuth(
         `${this.baseChatUrl}api/messages/user/${from}/${to}/by-id?limit=${limit}&offset=${offset}`,
@@ -864,7 +864,7 @@ class ApiService {
 
 
   // Obtener mensajes de una sala
-  async getRoomMessages(roomCode, limit = 50, offset = 0) {
+  async getRoomMessages(roomCode, limit = 10, offset = 0) {
     try {
 
       const response = await fetch(
@@ -896,7 +896,7 @@ class ApiService {
   }
 
   // 🔥 NUEVO: Obtener mensajes de una sala ordenados por ID (para evitar problemas con sentAt corrupto)
-  async getRoomMessagesOrderedById(roomCode, limit = 50, offset = 0) {
+  async getRoomMessagesOrderedById(roomCode, limit = 10, offset = 0) {
     try {
       const response = await fetch(
         `${this.baseChatUrl}api/messages/room/${roomCode}/by-id?limit=${limit}&offset=${offset}`,
@@ -927,7 +927,7 @@ class ApiService {
   }
 
   // Obtener mensajes de un hilo
-  async getThreadMessages(threadId, limit = 100, offset = 0) {
+  async getThreadMessages(threadId, limit = 20, offset = 0) {
     try {
       const response = await fetch(
         `${this.baseChatUrl}api/messages/thread/${threadId}?limit=${limit}&offset=${offset}`,
@@ -1203,12 +1203,12 @@ class ApiService {
         throw new Error('Usuario no encontrado');
       }
 
-      console.log('🔍 getUserRoomsPaginated - Enviando request:', {
-        displayName,
-        userObject: user,
-        page,
-        limit,
-      });
+      // console.log('🔍 getUserRoomsPaginated - Enviando request:', {
+      //   displayName,
+      //   userObject: user,
+      //   page,
+      //   limit,
+      // });
 
       const response = await this.fetchWithAuth(
         `${this.baseChatUrl}api/temporary-rooms/user/list?username=${encodeURIComponent(displayName)}&page=${page}&limit=${limit}`,
@@ -1225,7 +1225,7 @@ class ApiService {
       }
 
       const result = await response.json();
-      console.log('✅ getUserRoomsPaginated - Respuesta recibida:', result);
+      // console.log('✅ getUserRoomsPaginated - Respuesta recibida:', result);
       return result;
     } catch (error) {
       console.error("❌ Error al obtener salas del usuario paginadas:", error);

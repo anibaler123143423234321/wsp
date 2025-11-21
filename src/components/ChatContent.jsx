@@ -10,6 +10,7 @@ import {
   FaTrash,
   FaChevronDown,
   FaCopy,
+  FaThumbtack,
 } from "react-icons/fa";
 import EmojiPicker from "emoji-picker-react";
 import LoadMoreMessages from "./LoadMoreMessages";
@@ -105,6 +106,8 @@ const ChatContent = ({
   roomTypingUsers,
   isUploadingFile, // 🔥 Prop para estado de carga de archivos
   isSending, // 🔥 NUEVO: Estado de envío para prevenir duplicados
+  onPinMessage, // 🔥 NUEVO: Función para fijar mensajes
+  pinnedMessageId, // 🔥 NUEVO: ID del mensaje fijado actual
 }) => {
   const chatHistoryRef = useRef(null);
   const isUserScrollingRef = useRef(false);
@@ -137,7 +140,6 @@ const ChatContent = ({
   const formatDateFromBackend = (messageOrDate) => {
     // Si es un objeto mensaje con displayDate, usarlo directamente
     if (typeof messageOrDate === 'object' && messageOrDate.displayDate) {
-      console.log("✅ Usando displayDate del backend:", messageOrDate.displayDate);
       return messageOrDate.displayDate;
     }
 
@@ -145,8 +147,6 @@ const ChatContent = ({
     const sentAt = typeof messageOrDate === 'string' ? messageOrDate : messageOrDate?.sentAt;
 
     if (!sentAt) return "Hoy";
-
-    console.log("⚠️ Fallback: calculando fecha desde sentAt:", sentAt);
 
     // El backend envía sentAt, extraer solo la fecha
     const messageDate = sentAt.split("T")[0]; // "2025-11-20"
@@ -158,15 +158,6 @@ const ChatContent = ({
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayInPeru = yesterday.toLocaleDateString('en-CA', { timeZone: 'America/Lima' }); // YYYY-MM-DD
-
-    console.log("🔍 DEBUG formatDateFromBackend (fallback):", {
-      sentAt,
-      messageDate,
-      todayInPeru,
-      yesterdayInPeru,
-      isToday: messageDate === todayInPeru,
-      isYesterday: messageDate === yesterdayInPeru,
-    });
 
     if (messageDate === todayInPeru) {
       return "Hoy";
@@ -1655,6 +1646,40 @@ const ChatContent = ({
                     <FaCopy style={{ color: "#8696a0" }} /> Copiar
                   </button>
 
+                  {/* Fijar mensaje - Solo en grupos y para roles permitidos */}
+                  {isGroup && onPinMessage && (isAdmin || window.userRole === 'JEFEPISO' || window.userRole === 'PROGRAMADOR' || window.userRole === 'SUPERVISOR') && (
+                    <button
+                      onClick={() => {
+                        onPinMessage(message);
+                        setShowMessageMenu(null);
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "10px 16px",
+                        backgroundColor: "transparent",
+                        border: "none",
+                        textAlign: "left",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        color: pinnedMessageId === message.id ? "#d97706" : "#111",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        transition: "background-color 0.2s",
+                        fontWeight: pinnedMessageId === message.id ? "600" : "normal",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor = "#f0f2f5")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.backgroundColor = "transparent")
+                      }
+                    >
+                      <FaThumbtack style={{ color: pinnedMessageId === message.id ? "#d97706" : "#8696a0" }} />
+                      {pinnedMessageId === message.id ? "Dejar de fijar" : "Fijar mensaje"}
+                    </button>
+                  )}
+
                   {/* Info - para todos los mensajes */}
                   {message.id && (
                     <button
@@ -1797,41 +1822,40 @@ const ChatContent = ({
             </div>
           )}
 
-          {!isOwnMessage && !isGroupedWithPrevious && (
+
+          {!isOwnMessage && (
             <div
-              className="message-sender"
               style={{
+                fontSize: "12px",
+                fontWeight: "500",
                 color: "#00a884",
-                fontSize: "11px",
-                fontWeight: "600",
-                marginBottom: "1px",
+                marginBottom: "2px",
+                display: "flex",
+                alignItems: "center",
+                // Se puede eliminar 'gap: "4px"' si el sufijo ya maneja el espaciado
+                gap: "4px",
               }}
             >
+              {/* Nombre del Remitente */}
               {message.sender}
-              {message.senderNumeroAgente && (
+
+              {/* Renderizar el sufijo calculado (Nº de Agente o Rol) */}
+              {getSenderSuffix(message) && (
                 <span
                   style={{
+                    // Usar un color que contraste pero sea secundario
                     color: "#666",
                     fontWeight: "400",
+                    // Si el texto de getSenderSuffix empieza con " • ", este margen asegura la separación
                     marginLeft: "4px",
                   }}
                 >
-                  • N° {message.senderNumeroAgente}
-                </span>
-              )}
-              {!message.senderNumeroAgente && message.senderRole && (
-                <span
-                  style={{
-                    color: "#666",
-                    fontWeight: "400",
-                    marginLeft: "4px",
-                  }}
-                >
-                  • {message.senderRole}
+                  {getSenderSuffix(message)}
                 </span>
               )}
             </div>
           )}
+
 
           {/* Preview del mensaje al que se responde */}
           {message.replyToMessageId && (
@@ -4531,5 +4555,34 @@ const ChatContent = ({
     </div>
   );
 };
+
+
+// Función para determinar el sufijo (Número de Agente o Rol)
+// Se asume que el objeto 'message' tiene las propiedades 'senderNumeroAgente' y 'senderRole'.
+const getSenderSuffix = (message) => {
+  // Buscar el número de agente en diferentes propiedades posibles
+  const agentNumber = message.senderNumeroAgente || message.agentNumber;
+  const role = message.senderRole;
+
+  // Construir el sufijo con role y número de agente
+  const parts = [];
+  
+  if (role && String(role).trim()) {
+    parts.push(String(role).trim());
+  }
+  
+  if (agentNumber && String(agentNumber).trim()) {
+    parts.push(`N.º ${String(agentNumber).trim()}`);
+  }
+
+  // Si hay partes, unirlas con " • "
+  if (parts.length > 0) {
+    return ` • ${parts.join(" • ")}`;
+  }
+
+  // Predeterminado: Ninguno
+  return "";
+};
+
 
 export default ChatContent;

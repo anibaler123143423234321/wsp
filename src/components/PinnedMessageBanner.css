@@ -1,0 +1,199 @@
+/* Banner de mensaje fijado */
+.pinned-message-banner {
+  background: linear-gradient(135deg, #fff9e6 0%, #fff4d6 100%);
+  border-bottom: 1px solid #f0e5c0;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.pinned-message-banner:hover {
+  background: linear-gradient(135deg, #fff4d6 0%, #ffefc0 100%);
+}
+
+.pinned-message-banner::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+}
+
+.pinned-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(245, 158, 11, 0.15);
+  border-radius: 50%;
+  color: #d97706;
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+.pinned-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pinned-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #92400e;
+  font-weight: 600;
+}
+
+.pinned-label {
+  color: #d97706;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 11px;
+}
+
+.pinned-sender {
+  color: #92400e;
+  font-weight: 600;
+}
+
+.pinned-time {
+  color: #b45309;
+  font-weight: 500;
+}
+
+.pinned-text {
+  color: #1f2937;
+  font-size: 14px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.pinned-file {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+.pinned-unpin-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(239, 68, 68, 0.1);
+  border: none;
+  border-radius: 50%;
+  color: #dc2626;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.pinned-unpin-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  transform: scale(1.1);
+}
+
+.pinned-unpin-btn:active {
+  transform: scale(0.95);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .pinned-message-banner {
+    padding: 8px 12px;
+    gap: 10px;
+  }
+
+  .pinned-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .pinned-header {
+    font-size: 11px;
+    gap: 4px;
+  }
+
+  .pinned-label {
+    font-size: 10px;
+  }
+
+  .pinned-text {
+    font-size: 13px;
+  }
+
+  .pinned-unpin-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .pinned-message-banner {
+    padding: 6px 10px;
+    gap: 8px;
+  }
+
+  .pinned-icon {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+  }
+
+  .pinned-header {
+    font-size: 10px;
+    flex-wrap: wrap;
+  }
+
+  .pinned-sender,
+  .pinned-time {
+    display: none;
+  }
+
+  .pinned-text {
+    font-size: 12px;
+  }
+
+  .pinned-unpin-btn {
+    width: 22px;
+    height: 22px;
+    font-size: 10px;
+  }
+}
+
+/* Animación de entrada */
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.pinned-message-banner {
+  animation: slideDown 0.3s ease-out;
+}

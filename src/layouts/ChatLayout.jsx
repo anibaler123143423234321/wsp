@@ -6,6 +6,7 @@ import ChatHeader from '../components/ChatHeader';
 import ChatContent from '../components/ChatContent';
 import MembersPanel from '../components/MembersPanel';
 import ActiveVideoCallBanner from '../components/ActiveVideoCallBanner';
+import PinnedMessageBanner from '../components/PinnedMessageBanner';
 import CreateRoomModal from '../components/modals/CreateRoomModal';
 import JoinRoomModal from '../components/modals/JoinRoomModal';
 import AdminRoomsModal from '../components/modals/AdminRoomsModal';
@@ -63,7 +64,13 @@ const ChatLayout = ({
 
   // 🔥 Props de estado de carga
   isUploadingFile,
-  isSending // 🔥 NUEVO: Estado de envío para prevenir duplicados
+  isSending, // 🔥 NUEVO: Estado de envío para prevenir duplicados
+
+  // Props de mensajes fijados
+  pinnedMessage,
+  onPinMessage,
+  onUnpinMessage,
+  onClickPinnedMessage
 }) => {
   // State para el panel de miembros (lifted from ChatHeader)
   const [showMembersPanel, setShowMembersPanel] = React.useState(false);
@@ -250,6 +257,16 @@ const ChatLayout = ({
             />
           )}
 
+          {/* 🔥 NUEVO: Banner de mensaje fijado */}
+          {isGroup && pinnedMessage && (
+            <PinnedMessageBanner
+              pinnedMessage={pinnedMessage}
+              onUnpin={onUnpinMessage}
+              onClickMessage={onClickPinnedMessage}
+              canUnpin={user?.role === 'ADMIN' || user?.role === 'JEFEPISO' || user?.role === 'PROGRAMADOR' || user?.role === 'SUPERVISOR'}
+            />
+          )}
+
           <ChatContent
             messages={messages}
             input={input}
@@ -291,6 +308,8 @@ const ChatLayout = ({
             isUploadingFile={isUploadingFile} // 🔥 Pasar prop de loading
             isSending={isSending} // 🔥 NUEVO: Estado de envío
             onStartVideoCall={onStartVideoCall} // 🔥 NUEVO: Handler de videollamada
+            onPinMessage={onPinMessage} // 🔥 NUEVO: Fijar mensajes
+            pinnedMessageId={pinnedMessage?.id} // 🔥 NUEVO: ID del mensaje fijado
             userRole={user?.role} // 🔥 NUEVO: Rol del usuario
             chatInfo={{ // 🔥 NUEVO: Información del chat
               name: to,

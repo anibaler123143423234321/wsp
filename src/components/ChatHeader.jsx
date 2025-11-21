@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { FaArrowLeft, FaKeyboard, FaUserPlus, FaUserMinus, FaTimes } from 'react-icons/fa';
+import { FaArrowLeft, FaUserPlus, FaUserMinus } from 'react-icons/fa';
 // Importamos el nuevo componente
 import VideoCallButton from './VideoCallButton';
 import './ChatHeader.css';
@@ -9,11 +8,8 @@ const ChatHeader = ({
   isGroup,
   currentRoomCode,
   roomUsers,
-  onLeaveRoom,
   userPicture,
-  targetUser,
   onBack,
-  isTyping,
   adminViewConversation,
   onAddUsersToRoom,
   onRemoveUsersFromRoom,
@@ -26,35 +22,12 @@ const ChatHeader = ({
     return null;
   }
 
-  // Verificar si el usuario actual es participante de la conversación
-  const isUserParticipant = () => {
-    if (!adminViewConversation || !adminViewConversation.participants) {
-      return false;
-    }
+  // 🔥 Verificar permisos para agregar/eliminar usuarios
+  const userRole = (user?.role || user?.rol || '').toUpperCase();
+  const allowedRoles = ['ADMIN', 'JEFEPISO', 'PROGRAMADOR', 'SUPERVISOR'];
+  const canManageUsers = allowedRoles.includes(userRole);
 
-    const currentUserFullName = user?.nombre && user?.apellido
-      ? `${user.nombre} ${user.apellido}`
-      : user?.username;
 
-    return adminViewConversation.participants.includes(currentUserFullName);
-  };
-
-  // Obtener el nombre del otro participante
-  const getOtherParticipantName = () => {
-    if (!adminViewConversation || !adminViewConversation.participants) {
-      return null;
-    }
-
-    const currentUserFullName = user?.nombre && user?.apellido
-      ? `${user.nombre} ${user.apellido}`
-      : user?.username;
-
-    const otherParticipant = adminViewConversation.participants.find(
-      p => p !== currentUserFullName
-    );
-
-    return otherParticipant;
-  };
 
   return (
     <div className="chat-header">
@@ -99,40 +72,6 @@ const ChatHeader = ({
                   {to}
                   {isGroup && currentRoomCode && (user?.role === 'ADMIN' || user?.role === 'JEFEPISO') && (
                     <span className="room-code">• {currentRoomCode}</span>
-                  )}
-                </>
-              )}
-            </div>
-            <div className="chat-subtitle">
-              {isGroup ? (
-                currentRoomCode ? (
-                  <>Sala temporal • {roomUsers.length} miembro{roomUsers.length !== 1 ? 's' : ''}</>
-                ) : (
-                  `Grupo • ${roomUsers.length} miembro${roomUsers.length !== 1 ? 's' : ''}`
-                )
-              ) : isTyping ? (
-                <span className="typing-status">
-                  <FaKeyboard className="typing-icon" /> está escribiendo...
-                </span>
-              ) : adminViewConversation && !isUserParticipant() && (user?.role === 'ADMIN' || user?.role === 'PROGRAMADOR' || user?.role === 'JEFEPISO') ? (
-                <>
-                  <span style={{ color: '#3b82f6', fontWeight: 500 }}>👁️ Monitoreando conversación</span>
-                  {targetUser && (targetUser.role || targetUser.numeroAgente) && (
-                    <span style={{ color: '#666', marginLeft: '8px' }}>
-                      • {targetUser.numeroAgente ? (targetUser.role ? `Rol: ${targetUser.role} • N° Agente: ${targetUser.numeroAgente}` : `N° Agente: ${targetUser.numeroAgente}`) : `Rol: ${targetUser.role}`}
-                    </span>
-                  )}
-                </>
-              ) : (
-                <>
-                  {targetUser?.numeroAgente ? (
-                    targetUser?.role ? `Rol: ${targetUser.role} • N° Agente: ${targetUser.numeroAgente}` : `N° Agente: ${targetUser.numeroAgente}`
-                  ) : targetUser?.role ? (
-                    `Rol: ${targetUser.role}`
-                  ) : isUserParticipant() && getOtherParticipantName() ? (
-                    `Conversación con ${getOtherParticipantName()}`
-                  ) : (
-                    'Sin información'
                   )}
                 </>
               )}
@@ -194,8 +133,8 @@ const ChatHeader = ({
             user={user}
           />
 
-          {/* Botón para agregar usuarios a la sala */}
-          {isGroup && currentRoomCode && onAddUsersToRoom && (
+          {/* Botón para agregar usuarios a la sala - Solo ADMIN, JEFEPISO, PROGRAMADOR, SUPERVISOR */}
+          {isGroup && currentRoomCode && onAddUsersToRoom && canManageUsers && (
             <button
               className="header-icon-btn add-users-btn"
               onClick={onAddUsersToRoom}
@@ -205,8 +144,8 @@ const ChatHeader = ({
             </button>
           )}
 
-          {/* Botón para eliminar usuarios de la sala */}
-          {isGroup && currentRoomCode && onRemoveUsersFromRoom && (
+          {/* Botón para eliminar usuarios de la sala - Solo ADMIN, JEFEPISO, PROGRAMADOR, SUPERVISOR */}
+          {isGroup && currentRoomCode && onRemoveUsersFromRoom && canManageUsers && (
             <button
               className="header-icon-btn remove-users-btn"
               onClick={onRemoveUsersFromRoom}

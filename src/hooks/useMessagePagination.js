@@ -142,7 +142,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
 
       if (isGroup) {
         // 🔥 Cargar más mensajes de sala/grupo ordenados por ID
-        console.log(`📥 Cargando más mensajes (Grupo) - Offset: ${currentOffset.current}, Room: ${roomCode}`);
+        // console.log(`📥 Cargando más mensajes (Grupo) - Offset: ${currentOffset.current}, Room: ${roomCode}`);
         historicalMessages = await apiService.getRoomMessagesOrderedById(
           roomCode,
           MESSAGES_PER_PAGE,

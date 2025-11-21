@@ -37,9 +37,10 @@ const MembersPanel = ({
                         const picture = typeof member === 'object' ? member.picture : null;
                         const nombre = typeof member === 'object' ? member.nombre : null;
                         const apellido = typeof member === 'object' ? member.apellido : null;
-                        const displayName = nombre && apellido ? `${nombre} ${apellido}` : username;
+                        const displayName = typeof member === 'object' && member.displayName ? member.displayName : (nombre && apellido ? `${nombre} ${apellido}` : username);
                         const role = typeof member === 'object' ? member.role : null;
                         const numeroAgente = typeof member === 'object' ? member.numeroAgente : null;
+                        const isOnline = typeof member === 'object' ? member.isOnline : false;
                         const colorIndex = (index % 5) + 1;
 
                         // Determinar qué mostrar en la segunda línea (Rol y/o Número de Agente)
@@ -67,6 +68,7 @@ const MembersPanel = ({
                                                 {displayName?.[0]?.toUpperCase() || '?'}
                                             </span>
                                         )}
+                                        {isOnline && <div className="mx_BaseAvatar_online_indicator" />}
                                     </span>
                                 </div>
                                 <div className="mx_EntityTile_details">
