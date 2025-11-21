@@ -4,6 +4,7 @@ import Sidebar from '../components/Sidebar';
 import LeftSidebar from '../components/LeftSidebar';
 import ChatHeader from '../components/ChatHeader';
 import ChatContent from '../components/ChatContent';
+import MembersPanel from '../components/MembersPanel';
 import ActiveVideoCallBanner from '../components/ActiveVideoCallBanner';
 import CreateRoomModal from '../components/modals/CreateRoomModal';
 import JoinRoomModal from '../components/modals/JoinRoomModal';
@@ -64,6 +65,18 @@ const ChatLayout = ({
   isUploadingFile,
   isSending // 🔥 NUEVO: Estado de envío para prevenir duplicados
 }) => {
+  // State para el panel de miembros (lifted from ChatHeader)
+  const [showMembersPanel, setShowMembersPanel] = React.useState(false);
+
+  const toggleMembersPanel = () => {
+    setShowMembersPanel(!showMembersPanel);
+  };
+
+  // Cerrar panel si cambia el chat
+  React.useEffect(() => {
+    setShowMembersPanel(false);
+  }, [to]);
+
   // Función para obtener el usuario completo con el que se está chateando
   const getTargetUser = () => {
     if (!to || isGroup) return null;
@@ -196,91 +209,107 @@ const ChatLayout = ({
 
 
       {/* ChatContent - Desktop: siempre visible | Mobile: solo cuando hay chat seleccionado */}
-      <div className={`flex-1 flex flex-col bg-white relative transition-all duration-300 ease-in-out max-[768px]:h-[calc(100vh-60px)] max-[600px]:h-screen overflow-x-hidden max-w-full ${!to ? 'max-[768px]:hidden' : ''}`}>
-        <ChatHeader
-          to={to}
-          isGroup={isGroup}
-          currentRoomCode={currentRoomCode}
+      <div className={`flex-1 flex flex-row bg-white relative transition-all duration-300 ease-in-out max-[768px]:h-[calc(100vh-60px)] max-[600px]:h-screen overflow-hidden max-w-full ${!to ? 'max-[768px]:hidden' : ''}`}>
+
+        {/* Main Chat Area (Header + Content) */}
+        <div className="flex-1 flex flex-col h-full min-w-0 relative">
+          <ChatHeader
+            to={to}
+            isGroup={isGroup}
+            currentRoomCode={currentRoomCode}
+            roomUsers={roomUsers}
+            onLeaveRoom={onLeaveRoom}
+            onToggleMenu={onToggleMenu}
+            showSidebar={showSidebar}
+            soundsEnabled={soundsEnabled}
+            onEnableSounds={onEnableSounds}
+            userPicture={getUserPicture()}
+            targetUser={getTargetUser()}
+            onStartCall={onStartCall}
+            onStartVideoCall={onStartVideoCall}
+            hasCamera={hasCamera}
+            onBack={onToggleMenu}
+            isTyping={isTyping}
+            adminViewConversation={adminViewConversation}
+            onAddUsersToRoom={onAddUsersToRoom}
+            onRemoveUsersFromRoom={onRemoveUsersFromRoom}
+            user={user}
+            onToggleMembersPanel={toggleMembersPanel}
+          />
+
+          {/* 🔥 NUEVO: Banner de videollamada activa */}
+          {to && (
+            <ActiveVideoCallBanner
+              messages={messages}
+              currentUsername={currentUsername}
+              isGroup={isGroup}
+              currentRoomCode={currentRoomCode}
+              to={to}
+              socket={socket}
+              user={user}
+            />
+          )}
+
+          <ChatContent
+            messages={messages}
+            input={input}
+            setInput={setInput}
+            onSendMessage={onSendMessage}
+            onFileSelect={onFileSelect}
+            onRecordAudio={onRecordAudio}
+            onStopRecording={onStopRecording}
+            isRecording={isRecording}
+            mediaFiles={mediaFiles}
+            mediaPreviews={mediaPreviews}
+            onCancelMediaUpload={onCancelMediaUpload}
+            onRemoveMediaFile={onRemoveMediaFile}
+            to={to}
+            isGroup={isGroup}
+            currentRoomCode={currentRoomCode}
+            roomUsers={roomUsers}
+            currentUsername={currentUsername}
+            onEditMessage={onEditMessage}
+            onDeleteMessage={onDeleteMessage}
+            hasMoreMessages={hasMoreMessages}
+            isLoadingMore={isLoadingMore}
+            isLoadingMessages={isLoadingMessages} // 🔥 Estado de carga inicial
+            onLoadMoreMessages={onLoadMoreMessages}
+            messagesError={messagesError} // 🔥 Error de carga
+            onRetryMessages={onRetryMessages} // 🔥 Función para reintentar
+            socket={socket}
+            highlightMessageId={highlightMessageId}
+            onMessageHighlighted={onMessageHighlighted}
+            canSendMessages={canSendMessages}
+            replyingTo={replyingTo}
+            onCancelReply={onCancelReply}
+            onOpenThread={onOpenThread}
+            onSendVoiceMessage={onSendVoiceMessage}
+            isAdmin={isAdmin}
+            isOtherUserTyping={isTyping}
+            typingUser={typingUser}
+            roomTypingUsers={roomTypingUsers}
+            isUploadingFile={isUploadingFile} // 🔥 Pasar prop de loading
+            isSending={isSending} // 🔥 NUEVO: Estado de envío
+            onStartVideoCall={onStartVideoCall} // 🔥 NUEVO: Handler de videollamada
+            userRole={user?.role} // 🔥 NUEVO: Rol del usuario
+            chatInfo={{ // 🔥 NUEVO: Información del chat
+              name: to,
+              picture: isGroup ? null : getUserPicture(),
+              isOnline: isGroup ? false : getTargetUser()?.isOnline
+            }}
+          />
+        </div>
+
+        {/* Members Panel (Displacement Layout) */}
+        <MembersPanel
+          isOpen={showMembersPanel}
+          onClose={() => setShowMembersPanel(false)}
           roomUsers={roomUsers}
-          onLeaveRoom={onLeaveRoom}
-          onToggleMenu={onToggleMenu}
-          showSidebar={showSidebar}
-          soundsEnabled={soundsEnabled}
-          onEnableSounds={onEnableSounds}
-          userPicture={getUserPicture()}
-          targetUser={getTargetUser()}
-          onStartCall={onStartCall}
-          onStartVideoCall={onStartVideoCall}
-          hasCamera={hasCamera}
-          onBack={onToggleMenu}
-          isTyping={isTyping}
-          adminViewConversation={adminViewConversation}
           onAddUsersToRoom={onAddUsersToRoom}
-          onRemoveUsersFromRoom={onRemoveUsersFromRoom}
+          currentRoomCode={currentRoomCode}
           user={user}
         />
 
-        {/* 🔥 NUEVO: Banner de videollamada activa */}
-        {to && (
-          <ActiveVideoCallBanner
-            messages={messages}
-            currentUsername={currentUsername}
-            isGroup={isGroup}
-            currentRoomCode={currentRoomCode}
-            to={to}
-            socket={socket}
-            user={user}
-          />
-        )}
-
-        <ChatContent
-          messages={messages}
-          input={input}
-          setInput={setInput}
-          onSendMessage={onSendMessage}
-          onFileSelect={onFileSelect}
-          onRecordAudio={onRecordAudio}
-          onStopRecording={onStopRecording}
-          isRecording={isRecording}
-          mediaFiles={mediaFiles}
-          mediaPreviews={mediaPreviews}
-          onCancelMediaUpload={onCancelMediaUpload}
-          onRemoveMediaFile={onRemoveMediaFile}
-          to={to}
-          isGroup={isGroup}
-          currentRoomCode={currentRoomCode}
-          roomUsers={roomUsers}
-          currentUsername={currentUsername}
-          onEditMessage={onEditMessage}
-          onDeleteMessage={onDeleteMessage}
-          hasMoreMessages={hasMoreMessages}
-          isLoadingMore={isLoadingMore}
-          isLoadingMessages={isLoadingMessages} // 🔥 Estado de carga inicial
-          onLoadMoreMessages={onLoadMoreMessages}
-          messagesError={messagesError} // 🔥 Error de carga
-          onRetryMessages={onRetryMessages} // 🔥 Función para reintentar
-          socket={socket}
-          highlightMessageId={highlightMessageId}
-          onMessageHighlighted={onMessageHighlighted}
-          canSendMessages={canSendMessages}
-          replyingTo={replyingTo}
-          onCancelReply={onCancelReply}
-          onOpenThread={onOpenThread}
-          onSendVoiceMessage={onSendVoiceMessage}
-          isAdmin={isAdmin}
-          isOtherUserTyping={isTyping}
-          typingUser={typingUser}
-          roomTypingUsers={roomTypingUsers}
-          isUploadingFile={isUploadingFile} // 🔥 Pasar prop de loading
-          isSending={isSending} // 🔥 NUEVO: Estado de envío
-          onStartVideoCall={onStartVideoCall} // 🔥 NUEVO: Handler de videollamada
-          userRole={user?.role} // 🔥 NUEVO: Rol del usuario
-          chatInfo={{ // 🔥 NUEVO: Información del chat
-            name: to,
-            picture: isGroup ? null : getUserPicture(),
-            isOnline: isGroup ? false : getTargetUser()?.isOnline
-          }}
-        />
       </div>
 
       {/* Modales */}

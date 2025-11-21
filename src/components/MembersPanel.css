@@ -1,0 +1,250 @@
+.members-panel-container {
+    width: 320px;
+    height: 100%;
+    background-color: #ffffff;
+    border-left: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.members-panel-header {
+    padding: 16px 20px;
+    background-color: #ffffff;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.members-panel-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #111b21;
+}
+
+.members-panel-close-btn {
+    background: transparent;
+    border: none;
+    color: #54656f;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.members-panel-close-btn:hover {
+    background-color: #f0f2f5;
+    color: #1f2937;
+}
+
+.members-panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+    background-color: #ffffff;
+}
+
+/* Invite Button */
+.members-panel-invite-btn {
+    width: 100%;
+    padding: 12px 20px;
+    background-color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.members-panel-invite-btn:hover {
+    background-color: #f5f6f6;
+}
+
+.invite-icon-wrapper {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #00a884;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+}
+
+.invite-text {
+    font-size: 15px;
+    color: #111b21;
+    font-weight: 400;
+}
+
+/* EntityTile Styles (User Request) */
+.members-list {
+    padding-top: 8px;
+}
+
+.mx_EntityTile {
+    display: flex;
+    align-items: center;
+    padding: 8px 20px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    height: 56px;
+    /* Compact height */
+}
+
+.mx_EntityTile:hover {
+    background-color: #f5f6f6;
+}
+
+.mx_EntityTile_avatar {
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.mx_BaseAvatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.mx_BaseAvatar_image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.mx_BaseAvatar_initial {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Colors for avatars */
+.mx_BaseAvatar[data-color="1"] {
+    background-color: #ffadad;
+    color: #5c3a3a;
+}
+
+.mx_BaseAvatar[data-color="2"] {
+    background-color: #ffd6a5;
+    color: #5c4d3a;
+}
+
+.mx_BaseAvatar[data-color="3"] {
+    background-color: #fdffb6;
+    color: #5c5c3a;
+}
+
+.mx_BaseAvatar[data-color="4"] {
+    background-color: #caffbf;
+    color: #3a5c3a;
+}
+
+.mx_BaseAvatar[data-color="5"] {
+    background-color: #9bf6ff;
+    color: #3a5c5c;
+}
+
+.mx_EntityTile_details {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.mx_EntityTile_name {
+    font-size: 14px;
+    /* var(--cpd-font-size-body-md) */
+    color: #111b21;
+    /* var(--cpd-color-text-primary) */
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+}
+
+.mx_EntityTile_subtext {
+    font-size: 12px;
+    color: #54656f;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+}
+
+.mx_EntityTile_role {
+    color: #00a884;
+    /* "Rojito" or distinct color for admin/role */
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+/* Footer */
+.members-panel-footer {
+    padding: 12px 16px;
+    background-color: #f0f2f5;
+    border-top: 1px solid #e0e0e0;
+}
+
+.members-filter-input {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    font-size: 14px;
+    outline: none;
+    background-color: white;
+}
+
+.members-filter-input:focus {
+    border-color: #00a884;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .members-panel-container {
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 100%;
+        z-index: 1000;
+        box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+    }
+}
+
+@media (max-width: 480px) {
+    .members-panel-container {
+        width: 100%;
+    }
+}

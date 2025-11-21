@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FaArrowLeft, FaKeyboard, FaUserPlus, FaUserMinus } from 'react-icons/fa';
+import { FaArrowLeft, FaKeyboard, FaUserPlus, FaUserMinus, FaTimes } from 'react-icons/fa';
 // Importamos el nuevo componente
 import VideoCallButton from './VideoCallButton';
 import './ChatHeader.css';
@@ -18,9 +18,9 @@ const ChatHeader = ({
   onAddUsersToRoom,
   onRemoveUsersFromRoom,
   user,
-  onStartVideoCall
+  onStartVideoCall,
+  onToggleMembersPanel
 }) => {
-
   // No mostrar el header si no hay chat seleccionado
   if (!to) {
     return null;
@@ -141,42 +141,48 @@ const ChatHeader = ({
 
           {/* Avatares de miembros de la sala (solo para grupos) */}
           {isGroup && roomUsers && roomUsers.length > 0 && (
-            <div className="room-members-avatars">
-              {roomUsers.slice(0, 5).map((user, index) => {
-                const username = typeof user === 'string' ? user : user.username;
-                const picture = typeof user === 'object' ? user.picture : null;
-                const nombre = typeof user === 'object' ? user.nombre : null;
-                const apellido = typeof user === 'object' ? user.apellido : null;
-                const displayName = nombre && apellido ? `${nombre} ${apellido}` : username;
+            <div className="room-members-wrapper">
+              <div className="room-members-pile" onClick={onToggleMembersPanel}>
+                <div className="stacked-avatars">
+                  {roomUsers.slice(0, 3).map((user, index) => {
+                    const username = typeof user === 'string' ? user : user.username;
+                    const picture = typeof user === 'object' ? user.picture : null;
+                    const nombre = typeof user === 'object' ? user.nombre : null;
+                    const apellido = typeof user === 'object' ? user.apellido : null;
+                    const displayName = nombre && apellido ? `${nombre} ${apellido}` : username;
 
-                return (
-                  <div key={index} className="member-avatar" title={displayName}>
-                    {picture ? (
-                      <img src={picture} alt={displayName} />
-                    ) : (
-                      <div className="member-avatar-placeholder">
-                        {displayName?.[0]?.toUpperCase() || '?'}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-              {roomUsers.length > 5 && (
-                <div className="member-avatar member-avatar-more" title={`+${roomUsers.length - 5} más`}>
-                  +{roomUsers.length - 5}
+                    // Determinamos el color para el avatar sin imagen (basado en índice o nombre)
+                    const colorIndex = (index % 3) + 1;
+
+                    return (
+                      <span
+                        key={index}
+                        className="stacked-avatar-item"
+                        title={displayName}
+                        data-color={colorIndex}
+                      >
+                        {picture ? (
+                          <img
+                            src={picture}
+                            alt={displayName}
+                            className="stacked-avatar-img"
+                          />
+                        ) : (
+                          <span className="stacked-avatar-placeholder">
+                            {displayName?.[0]?.toUpperCase() || '?'}
+                          </span>
+                        )}
+                      </span>
+                    );
+                  })}
                 </div>
-              )}
+                <div className="members-count">
+                  {roomUsers.length}
+                </div>
+              </div>
             </div>
           )}
         </div>
-
-        {/* Botón de salir del grupo */}
-        {isGroup && currentRoomCode && (
-          <button className="leave-room-btn" onClick={onLeaveRoom} title="Regresar">
-            <span className="leave-icon"><FaArrowLeft /></span>
-            <span className="leave-text">Regresar</span>
-          </button>
-        )}
 
         {/* Botones de acción */}
         <div className="chat-header-actions">
@@ -219,6 +225,8 @@ const ChatHeader = ({
           )}
         </div>
       </div>
+
+
     </div >
   );
 };
