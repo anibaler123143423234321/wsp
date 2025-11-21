@@ -26,6 +26,7 @@ const ChatLayout = ({
   onSendMessage, onFileSelect, onRecordAudio, onStopRecording, isRecording,
   mediaFiles, mediaPreviews, onCancelMediaUpload, onRemoveMediaFile, onLeaveRoom, onToggleMenu,
   onEditMessage, onDeleteMessage, hasMoreMessages, isLoadingMore, isLoadingMessages, onLoadMoreMessages,
+  messagesError, onRetryMessages, // 🔥 Props de error y reintento
   onStartCall, onStartVideoCall, hasCamera, canSendMessages, adminViewConversation,
 
   // Props de modales
@@ -60,7 +61,8 @@ const ChatLayout = ({
   onSendVoiceMessage,
 
   // 🔥 Props de estado de carga
-  isUploadingFile
+  isUploadingFile,
+  isSending // 🔥 NUEVO: Estado de envío para prevenir duplicados
 }) => {
   // Función para obtener el usuario completo con el que se está chateando
   const getTargetUser = () => {
@@ -255,6 +257,8 @@ const ChatLayout = ({
           isLoadingMore={isLoadingMore}
           isLoadingMessages={isLoadingMessages} // 🔥 Estado de carga inicial
           onLoadMoreMessages={onLoadMoreMessages}
+          messagesError={messagesError} // 🔥 Error de carga
+          onRetryMessages={onRetryMessages} // 🔥 Función para reintentar
           socket={socket}
           highlightMessageId={highlightMessageId}
           onMessageHighlighted={onMessageHighlighted}
@@ -268,6 +272,7 @@ const ChatLayout = ({
           typingUser={typingUser}
           roomTypingUsers={roomTypingUsers}
           isUploadingFile={isUploadingFile} // 🔥 Pasar prop de loading
+          isSending={isSending} // 🔥 NUEVO: Estado de envío
           onStartVideoCall={onStartVideoCall} // 🔥 NUEVO: Handler de videollamada
           userRole={user?.role} // 🔥 NUEVO: Rol del usuario
           chatInfo={{ // 🔥 NUEVO: Información del chat

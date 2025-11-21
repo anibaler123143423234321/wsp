@@ -7,8 +7,10 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
+  const [error, setError] = useState(null); // 🔥 Estado de error
+
   const currentOffset = useRef(0);
-  const MESSAGES_PER_PAGE = 20; // Cargar 20 mensajes por página
+  const MESSAGES_PER_PAGE = 10; // 🔥 Revertir a 10 como pidió el usuario
 
   // Cargar mensajes iniciales (más recientes)
   const loadInitialMessages = useCallback(async () => {
@@ -18,6 +20,8 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     if (!isGroup && !to) return;
 
     setIsLoading(true);
+    setError(null); // 🔥 Resetear error
+    setHasMoreMessages(true); // 🔥 IMPORTANTE: Resetear estado de "más mensajes"
     currentOffset.current = 0;
 
     try {
@@ -52,6 +56,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       ) {
         setMessages([]);
         setHasMoreMessages(false);
+        setError("Error al cargar mensajes. Por favor intenta de nuevo."); // 🔥 Setear error
         return;
       }
 
@@ -117,6 +122,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       console.error("❌ Error al cargar mensajes históricos:", error);
       setMessages([]);
       setHasMoreMessages(false);
+      setError("No se pudieron cargar los mensajes. Verifica tu conexión."); // 🔥 Setear error
     } finally {
       setIsLoading(false);
     }
@@ -136,6 +142,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
 
       if (isGroup) {
         // 🔥 Cargar más mensajes de sala/grupo ordenados por ID
+        console.log(`📥 Cargando más mensajes (Grupo) - Offset: ${currentOffset.current}, Room: ${roomCode}`);
         historicalMessages = await apiService.getRoomMessagesOrderedById(
           roomCode,
           MESSAGES_PER_PAGE,
@@ -232,7 +239,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       }
     } catch (error) {
       console.error("❌ Error al cargar más mensajes:", error);
-      setHasMoreMessages(false);
+      // setHasMoreMessages(false); // 🔥 No deshabilitar paginación por error, permitir reintentar
     } finally {
       setIsLoadingMore(false);
     }
@@ -402,5 +409,6 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     updateMessage,
     clearMessages,
     setInitialMessages,
+    error, // 🔥 Retornar estado de error
   };
 };

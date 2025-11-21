@@ -97,6 +97,9 @@ const ChatPage = () => {
   const [roomsTotalPages, setRoomsTotalPages] = useState(0);
   const [roomsLoading, setRoomsLoading] = useState(false);
   const [roomsLimit, setRoomsLimit] = useState(10);
+  const [isSending, setIsSending] = useState(false); // 🔥 Estado para prevenir envíos duplicados
+  const lastSendTimestamp = useRef(0); // 🔥 NUEVO: Timestamp del último envío para debouncing
+  const duplicateClickCount = useRef(0); // 🔥 NUEVO: Contador de clics duplicados para analytics
 
   // Hook para paginación de mensajes
   const {
@@ -2703,346 +2706,381 @@ const ChatPage = () => {
   }, [handleRoomSelect, myActiveRooms]);
 
   const handleSendMessage = async () => {
-    if ((!input && mediaFiles.length === 0) || !to) return;
-
-    console.log("📤 handleSendMessage - Estado actual:", {
-      to,
-      isGroup,
-      currentRoomCode,
-      username,
-      currentUserFullName,
-      input: input?.substring(0, 50),
-    });
-
-    // Buscar si esta conversación es asignada (normalizado)
-    const currentUserNormalized = normalizeUsername(currentUserFullName);
-    const assignedConv = assignedConversations?.find((conv) => {
-      const otherUser = conv.participants?.find(
-        (p) => normalizeUsername(p) !== currentUserNormalized
-      );
-      // 🔥 Comparación normalizada para nombres
-      const toNormalized = normalizeUsername(to);
-      const otherUserNormalized = normalizeUsername(otherUser);
-      const convNameNormalized = normalizeUsername(conv.name);
-
-      return (
-        otherUserNormalized === toNormalized ||
-        convNameNormalized === toNormalized
-      );
-    });
-
-    console.log("📧 Conversación asignada encontrada:", assignedConv);
-
-    // Si es una conversación asignada y el usuario NO está en ella, no permitir enviar
-    // 🔥 MODIFICADO: Comparación normalizada para nombres
-    if (assignedConv && assignedConv.participants) {
-      const isUserParticipant = assignedConv.participants.some(
-        (p) => normalizeUsername(p) === currentUserNormalized
-      );
-      if (!isUserParticipant) {
-        await showErrorAlert(
-          "No permitido",
-          "No puedes enviar mensajes en conversaciones de otros usuarios. Solo puedes monitorearlas."
-        );
-        return;
-      }
+    // 🔥 CRÍTICO: Prevenir envíos duplicados cuando hay latencia
+    if (isSending) {
+      duplicateClickCount.current++;
+      console.log('⚠️ Ya hay un envío en proceso, ignorando clic duplicado', {
+        totalDuplicateClicks: duplicateClickCount.current,
+        timeSinceLastSend: Date.now() - lastSendTimestamp.current,
+      });
+      return;
     }
 
-    // 🔥 CRÍTICO: NO calcular fecha en frontend. Dejar que el backend lo haga con getPeruDate()
-    // El backend calculará automáticamente sentAt y time usando getPeruDate() y formatPeruTime()
+    // 🔥 NUEVO: Debouncing - prevenir envíos muy rápidos (mínimo 500ms entre mensajes)
+    const now = Date.now();
+    const timeSinceLastSend = now - lastSendTimestamp.current;
+    const DEBOUNCE_DELAY = 500; // milisegundos
 
-    // Generar ID único para el mensaje
-    const messageId = `msg_${Date.now()}_${Math.random()
-      .toString(36)
-      .substring(2, 11)}`;
+    if (timeSinceLastSend < DEBOUNCE_DELAY && lastSendTimestamp.current > 0) {
+      console.log('⏱️ Debouncing: Enviando demasiado rápido, espera', {
+        timeSinceLastSend,
+        minimumRequired: DEBOUNCE_DELAY,
+      });
+      return;
+    }
 
-    // 🔥 Si es una conversación asignada, FORZAR isGroup a false
-    const effectiveIsGroup = assignedConv ? false : isGroup;
+    if ((!input && mediaFiles.length === 0) || !to) return;
 
-    if (input || mediaFiles.length === 1) {
-      const messageObj = {
-        id: messageId,
+    // 🔥 Marcar que estamos enviando y registrar timestamp
+    setIsSending(true);
+    lastSendTimestamp.current = now;
+
+    try {
+      console.log("📤 handleSendMessage - Estado actual:", {
         to,
-        isGroup: effectiveIsGroup, // 🔥 Usar el valor efectivo
-        // 🔥 ELIMINADO: time - el backend lo calculará automáticamente
-        from: currentUserFullName, // 🔥 Usar currentUserFullName en lugar de username para conversaciones asignadas
-        fromId: user.id,
-        roomCode: currentRoomCode, // 🔥 Incluir roomCode para salas temporales
-      };
-
-      console.log("📤 Creando messageObj:", {
-        to,
-        isGroup: effectiveIsGroup,
-        isAssignedConv: !!assignedConv,
-        originalIsGroup: isGroup,
+        isGroup,
+        currentRoomCode,
+        username,
+        currentUserFullName,
+        input: input?.substring(0, 50),
       });
 
-      // Si es una conversación asignada, agregar información adicional
-      if (assignedConv) {
-        messageObj.isAssignedConversation = true;
-        messageObj.conversationId = assignedConv.id;
-        messageObj.participants = assignedConv.participants;
-        // El destinatario real es el otro participante (comparación case-insensitive)
-        const currentUserNormalized = currentUserFullName?.toLowerCase().trim();
-        const otherParticipant = assignedConv.participants?.find(
-          (p) => p?.toLowerCase().trim() !== currentUserNormalized
+      // Buscar si esta conversación es asignada (normalizado)
+      const currentUserNormalized = normalizeUsername(currentUserFullName);
+      const assignedConv = assignedConversations?.find((conv) => {
+        const otherUser = conv.participants?.find(
+          (p) => normalizeUsername(p) !== currentUserNormalized
         );
-        if (otherParticipant) {
-          messageObj.actualRecipient = otherParticipant;
-          console.log(
-            "📧 Mensaje a conversación asignada. Destinatario real:",
-            otherParticipant
-          );
-        }
-      }
+        // 🔥 Comparación normalizada para nombres
+        const toNormalized = normalizeUsername(to);
+        const otherUserNormalized = normalizeUsername(otherUser);
+        const convNameNormalized = normalizeUsername(conv.name);
 
-      if (input) {
-        messageObj.message = input;
-      }
+        return (
+          otherUserNormalized === toNormalized ||
+          convNameNormalized === toNormalized
+        );
+      });
 
-      // Agregar información de respuesta si existe
-      if (replyingTo) {
-        messageObj.replyToMessageId = replyingTo.id;
-        messageObj.replyToSender = replyingTo.sender;
-        messageObj.replyToText = replyingTo.text;
-        messageObj.replyToSenderNumeroAgente = replyingTo.numeroAgente; // 🔥 Incluir número de agente del remitente original
-      }
+      console.log("📧 Conversación asignada encontrada:", assignedConv);
 
-      // 🔥 NUEVO: Subir archivo al servidor primero
-      if (mediaFiles.length === 1) {
-        try {
-          setIsUploadingFile(true); // 🔥 Activar loading
-          const file = mediaFiles[0];
-
-          // Subir archivo y obtener URL
-          const uploadResult = await apiService.uploadFile(file, "chat");
-
-          messageObj.mediaType = file.type.split("/")[0];
-          messageObj.mediaData = uploadResult.fileUrl; // ✅ Ahora es URL, no base64
-          messageObj.fileName = uploadResult.fileName;
-          messageObj.fileSize = uploadResult.fileSize;
-        } catch (error) {
-          console.error("❌ Error al subir archivo:", error);
-          setIsUploadingFile(false); // 🔥 Desactivar loading en error
+      // Si es una conversación asignada y el usuario NO está en ella, no permitir enviar
+      // 🔥 MODIFICADO: Comparación normalizada para nombres
+      if (assignedConv && assignedConv.participants) {
+        const isUserParticipant = assignedConv.participants.some(
+          (p) => normalizeUsername(p) === currentUserNormalized
+        );
+        if (!isUserParticipant) {
           await showErrorAlert(
-            "Error",
-            "Error al subir el archivo. Inténtalo de nuevo."
+            "No permitido",
+            "No puedes enviar mensajes en conversaciones de otros usuarios. Solo puedes monitorearlas."
           );
           return;
         }
       }
 
-      if (to === username) {
-        // Mensaje a ti mismo - guardar en BD y mostrar localmente
-        const newMessage = {
-          sender: "Tú",
-          realSender: currentUserFullName, // 🔥 Nombre real del remitente
-          receiver: username,
-          text:
-            input || (messageObj.fileName ? `📎 ${messageObj.fileName}` : ""),
-          // 🔥 ELIMINADO: time - se obtendrá del backend después de guardar
-          isSent: true,
-          isSelf: true,
-          mediaType: messageObj.mediaType || null,
-          mediaData: messageObj.mediaData || null, // Ahora es URL
-          fileName: messageObj.fileName || null,
-          fileSize: messageObj.fileSize || null,
+      // 🔥 CRÍTICO: NO calcular fecha en frontend. Dejar que el backend lo haga con getPeruDate()
+      // El backend calculará automáticamente sentAt y time usando getPeruDate() y formatPeruTime()
+
+      // Generar ID único para el mensaje
+      const messageId = `msg_${Date.now()}_${Math.random()
+        .toString(36)
+        .substring(2, 11)}`;
+
+      // 🔥 Si es una conversación asignada, FORZAR isGroup a false
+      const effectiveIsGroup = assignedConv ? false : isGroup;
+
+      if (input || mediaFiles.length === 1) {
+        const messageObj = {
+          id: messageId,
+          to,
+          isGroup: effectiveIsGroup, // 🔥 Usar el valor efectivo
+          // 🔥 ELIMINADO: time - el backend lo calculará automáticamente
+          from: currentUserFullName, // 🔥 Usar currentUserFullName en lugar de username para conversaciones asignadas
+          fromId: user.id,
+          roomCode: currentRoomCode, // 🔥 Incluir roomCode para salas temporales
         };
+
+        console.log("📤 Creando messageObj:", {
+          to,
+          isGroup: effectiveIsGroup,
+          isAssignedConv: !!assignedConv,
+          originalIsGroup: isGroup,
+        });
+
+        // Si es una conversación asignada, agregar información adicional
+        if (assignedConv) {
+          messageObj.isAssignedConversation = true;
+          messageObj.conversationId = assignedConv.id;
+          messageObj.participants = assignedConv.participants;
+          // El destinatario real es el otro participante (comparación case-insensitive)
+          const currentUserNormalized = currentUserFullName?.toLowerCase().trim();
+          const otherParticipant = assignedConv.participants?.find(
+            (p) => p?.toLowerCase().trim() !== currentUserNormalized
+          );
+          if (otherParticipant) {
+            messageObj.actualRecipient = otherParticipant;
+            console.log(
+              "📧 Mensaje a conversación asignada. Destinatario real:",
+              otherParticipant
+            );
+          }
+        }
+
+        if (input) {
+          messageObj.message = input;
+        }
 
         // Agregar información de respuesta si existe
         if (replyingTo) {
-          newMessage.replyToMessageId = replyingTo.id;
-          newMessage.replyToSender = replyingTo.sender;
-          newMessage.replyToText = replyingTo.text;
-          newMessage.replyToSenderNumeroAgente = replyingTo.numeroAgente; // 🔥 Incluir número de agente del remitente original
+          messageObj.replyToMessageId = replyingTo.id;
+          messageObj.replyToSender = replyingTo.sender;
+          messageObj.replyToText = replyingTo.text;
+          messageObj.replyToSenderNumeroAgente = replyingTo.numeroAgente; // 🔥 Incluir número de agente del remitente original
         }
 
-        // Agregar información de hilos
-        newMessage.threadCount = 0;
-        newMessage.lastReplyFrom = null;
+        // 🔥 NUEVO: Subir archivo al servidor primero
+        if (mediaFiles.length === 1) {
+          try {
+            setIsUploadingFile(true); // 🔥 Activar loading
+            const file = mediaFiles[0];
 
-        // Guardar en la base de datos
-        try {
-          const savedMessage = await apiService.createMessage({
-            from: username,
-            fromId: user.id,
-            to: username,
-            message: input,
-            isGroup: false,
-            mediaType: newMessage.mediaType,
-            mediaData: newMessage.mediaData, // URL del archivo
-            fileName: newMessage.fileName,
-            fileSize: newMessage.fileSize,
-            // 🔥 ELIMINADO: time - el backend lo calculará automáticamente
-            // 🔥 NO enviar sentAt - dejar que el backend lo calcule con getPeruDate()
-            replyToMessageId: replyingTo?.id,
-            replyToSender: replyingTo?.sender,
-            replyToText: replyingTo?.text,
-            replyToSenderNumeroAgente: replyingTo?.numeroAgente,
-          });
+            // Subir archivo y obtener URL
+            const uploadResult = await apiService.uploadFile(file, "chat");
 
-          // 🔥 Usar el time calculado por el backend
-          if (savedMessage && savedMessage.time) {
-            newMessage.time = savedMessage.time;
+            messageObj.mediaType = file.type.split("/")[0];
+            messageObj.mediaData = uploadResult.fileUrl; // ✅ Ahora es URL, no base64
+            messageObj.fileName = uploadResult.fileName;
+            messageObj.fileSize = uploadResult.fileSize;
+          } catch (error) {
+            console.error("❌ Error al subir archivo:", error);
+            setIsUploadingFile(false); // 🔥 Desactivar loading en error
+            await showErrorAlert(
+              "Error",
+              "Error al subir el archivo. Inténtalo de nuevo."
+            );
+            return;
           }
-        } catch (error) {
-          console.error("❌ Error al guardar mensaje personal en BD:", error);
         }
 
-        addNewMessage(newMessage);
-        clearInput();
-        setReplyingTo(null); // Limpiar el estado de respuesta
-        setIsUploadingFile(false); // 🔥 Desactivar loading
-        return;
-      }
+        if (to === username) {
+          // Mensaje a ti mismo - guardar en BD y mostrar localmente
+          const newMessage = {
+            sender: "Tú",
+            realSender: currentUserFullName, // 🔥 Nombre real del remitente
+            receiver: username,
+            text:
+              input || (messageObj.fileName ? `📎 ${messageObj.fileName}` : ""),
+            // 🔥 ELIMINADO: time - se obtendrá del backend después de guardar
+            isSent: true,
+            isSelf: true,
+            mediaType: messageObj.mediaType || null,
+            mediaData: messageObj.mediaData || null, // Ahora es URL
+            fileName: messageObj.fileName || null,
+            fileSize: messageObj.fileSize || null,
+          };
 
-      console.log("🔌 Verificando conexión del socket...", {
-        hasSocket: !!socket,
-        isConnected: socket?.connected,
-      });
+          // Agregar información de respuesta si existe
+          if (replyingTo) {
+            newMessage.replyToMessageId = replyingTo.id;
+            newMessage.replyToSender = replyingTo.sender;
+            newMessage.replyToText = replyingTo.text;
+            newMessage.replyToSenderNumeroAgente = replyingTo.numeroAgente; // 🔥 Incluir número de agente del remitente original
+          }
 
-      // Verificar que el socket esté conectado antes de enviar
-      if (!socket || !socket.connected) {
-        console.error("❌ Socket no conectado, no se puede enviar mensaje");
-        await showErrorAlert(
-          "Error de conexión",
-          "No hay conexión con el servidor. Inténtalo de nuevo."
-        );
-        return;
-      }
+          // Agregar información de hilos
+          newMessage.threadCount = 0;
+          newMessage.lastReplyFrom = null;
 
-      console.log("✅ Socket conectado, continuando...");
-      console.log(
-        "🔍 effectiveIsGroup:",
-        effectiveIsGroup,
-        "isGroup:",
-        isGroup
-      );
-      console.log("🔍 Punto A - Antes del if");
+          // Guardar en la base de datos
+          try {
+            const savedMessage = await apiService.createMessage({
+              from: username,
+              fromId: user.id,
+              to: username,
+              message: input,
+              isGroup: false,
+              mediaType: newMessage.mediaType,
+              mediaData: newMessage.mediaData, // URL del archivo
+              fileName: newMessage.fileName,
+              fileSize: newMessage.fileSize,
+              // 🔥 ELIMINADO: time - el backend lo calculará automáticamente
+              // 🔥 NO enviar sentAt - dejar que el backend lo calcule con getPeruDate()
+              replyToMessageId: replyingTo?.id,
+              replyToSender: replyingTo?.sender,
+              replyToText: replyingTo?.text,
+              replyToSenderNumeroAgente: replyingTo?.numeroAgente,
+            });
 
-      // 🔥 IMPORTANTE: Para grupos, NO agregar el mensaje localmente
-      // Esperar a que el backend lo confirme y lo envíe de vuelta
-      // Esto evita duplicados y problemas de sincronización
-      console.log("🔍 Punto B - Justo antes del if");
-      if (effectiveIsGroup) {
-        console.log("🔍 Punto C - Dentro del if (grupo)");
-        console.log("📤 Enviando mensaje de grupo");
-        try {
-          // 1. 🔥 Guardar primero en la BD para asegurar persistencia
-          const savedMessage = await apiService.createMessage({
-            from: currentUserFullName,
-            fromId: user.id,
-            to: to, // En grupos, 'to' suele ser el nombre del grupo
-            roomCode: currentRoomCode,
-            message: input,
-            isGroup: true,
-            mediaType: messageObj.mediaType,
-            mediaData: messageObj.mediaData,
-            fileName: messageObj.fileName,
-            fileSize: messageObj.fileSize,
-            // No enviamos time/sentAt, el backend lo genera
-            replyToMessageId: replyingTo?.id,
-            replyToSender: replyingTo?.sender,
-            replyToText: replyingTo?.text,
-            replyToSenderNumeroAgente: replyingTo?.numeroAgente,
-          });
+            // 🔥 Usar el time calculado por el backend
+            if (savedMessage && savedMessage.time) {
+              newMessage.time = savedMessage.time;
+            }
+          } catch (error) {
+            console.error("❌ Error al guardar mensaje personal en BD:", error);
+          }
 
-          console.log("✅ Mensaje de grupo guardado en BD:", savedMessage);
-
-          // 2. 🔥 Actualizar messageObj con los datos reales de la BD
-          messageObj.id = savedMessage.id;
-          // 🔥 NO incluir sentAt ni time en el emit, el backend ya lo tiene
-          // messageObj.sentAt = savedMessage.sentAt;
-          // messageObj.time = savedMessage.time;
-
-          // Asegurar que senderRole y senderNumeroAgente estén presentes si el backend los devuelve
-          if (savedMessage.senderRole)
-            messageObj.senderRole = savedMessage.senderRole;
-          if (savedMessage.senderNumeroAgente)
-            messageObj.senderNumeroAgente = savedMessage.senderNumeroAgente;
-
-          // 3. 🔥 Emitir por socket con el ID real (sin sentAt/time - el backend ya los tiene)
-          socket.emit("message", messageObj);
-          console.log(
-            "📤 Mensaje emitido por socket con ID real:",
-            messageObj.id
-          );
-
-          // 4. 🔥 NO agregar mensaje localmente - esperar a que vuelva del servidor
-          // Esto evita duplicados porque el servidor enviará el mensaje de vuelta
-          // con el timestamp correcto de Perú
-        } catch (error) {
-          console.error("❌ Error al enviar mensaje de grupo:", error);
-          await showErrorAlert(
-            "Error al enviar",
-            "No se pudo enviar el mensaje. Por favor, verifica tu conexión e inténtalo de nuevo."
-          );
-          // NO limpiamos el input para que el usuario pueda reintentar
-          setIsUploadingFile(false); // 🔥 Desactivar loading en error
+          addNewMessage(newMessage);
+          clearInput();
+          setReplyingTo(null); // Limpiar el estado de respuesta
+          setIsUploadingFile(false); // 🔥 Desactivar loading
+          return;
         }
 
-        // 🔥 Limpiar input y estado de respuesta después de enviar mensaje de grupo exitosamente
-        clearInput();
-        setReplyingTo(null);
-        setIsUploadingFile(false); // 🔥 Desactivar loading después de enviar
-        console.log("🔚 Finalizando bloque de grupos con return");
-        return;
-      } else {
-        console.log("🔍 Punto D - Dentro del else (1-a-1)");
-        console.log(
-          "✅ effectiveIsGroup es FALSE - Entrando al bloque de mensajes 1-a-1"
-        );
-        console.log("📤 Procesando mensaje 1-a-1 (NO es grupo)");
-        // 🔥 Para mensajes individuales, guardar en BD primero para obtener el ID real
-        try {
-          console.log("💾 Guardando mensaje 1-a-1 en BD...");
-          // Guardar en BD y obtener el mensaje con ID
-          const savedMessage = await apiService.createMessage({
-            from: currentUserFullName,
-            fromId: user.id,
-            to: messageObj.actualRecipient || to,
-            message: input,
-            isGroup: false,
-            mediaType: messageObj.mediaType,
-            mediaData: messageObj.mediaData,
-            fileName: messageObj.fileName,
-            fileSize: messageObj.fileSize,
-            // 🔥 ELIMINADO: time - el backend lo calculará automáticamente
-            // 🔥 NO enviar sentAt - dejar que el backend lo calcule con getPeruDate()
-            replyToMessageId: replyingTo?.id,
-            replyToSender: replyingTo?.sender,
-            replyToText: replyingTo?.text,
-            replyToSenderNumeroAgente: replyingTo?.numeroAgente,
-          });
-          console.log("✅ Mensaje 1-a-1 guardado en BD:", savedMessage);
+        console.log("🔌 Verificando conexión del socket...", {
+          hasSocket: !!socket,
+          isConnected: socket?.connected,
+        });
 
-          // Emitir por socket con el ID real de la BD
-          console.log("📤 Emitiendo mensaje 1-a-1 por socket:", {
-            ...messageObj,
-            id: savedMessage.id,
-          });
-          socket.emit("message", {
-            ...messageObj,
-            id: savedMessage.id, // 🔥 Usar el ID de la BD
-          });
-          console.log("✅ Mensaje 1-a-1 emitido exitosamente");
-
-          // 🔥 ELIMINADO: No agregar localmente para evitar duplicados
-          // Esperar a que el mensaje vuelva del servidor con el timestamp correcto de Perú
-        } catch (error) {
-          console.error("❌ Error al guardar mensaje en BD:", error);
+        // Verificar que el socket esté conectado antes de enviar
+        if (!socket || !socket.connected) {
+          console.error("❌ Socket no conectado, no se puede enviar mensaje");
           await showErrorAlert(
-            "Error",
-            "Error al enviar el mensaje. Inténtalo de nuevo."
+            "Error de conexión",
+            "No hay conexión con el servidor. Inténtalo de nuevo."
           );
           return;
         }
-      }
 
-      // 🔥 Para mensajes individuales, limpiar input después de guardar
-      clearInput();
-      setReplyingTo(null); // Limpiar el estado de respuesta
-      setIsUploadingFile(false); // 🔥 Desactivar loading después de enviar
+        console.log("✅ Socket conectado, continuando...");
+        console.log(
+          "🔍 effectiveIsGroup:",
+          effectiveIsGroup,
+          "isGroup:",
+          isGroup
+        );
+        console.log("🔍 Punto A - Antes del if");
+
+        // 🔥 IMPORTANTE: Para grupos, NO agregar el mensaje localmente
+        // Esperar a que el backend lo confirme y lo envíe de vuelta
+        // Esto evita duplicados y problemas de sincronización
+        console.log("🔍 Punto B - Justo antes del if");
+        if (effectiveIsGroup) {
+          console.log("🔍 Punto C - Dentro del if (grupo)");
+          console.log("📤 Enviando mensaje de grupo");
+          try {
+            // 1. 🔥 Guardar primero en la BD para asegurar persistencia
+            const savedMessage = await apiService.createMessage({
+              from: currentUserFullName,
+              fromId: user.id,
+              to: to, // En grupos, 'to' suele ser el nombre del grupo
+              roomCode: currentRoomCode,
+              message: input,
+              isGroup: true,
+              mediaType: messageObj.mediaType,
+              mediaData: messageObj.mediaData,
+              fileName: messageObj.fileName,
+              fileSize: messageObj.fileSize,
+              // No enviamos time/sentAt, el backend lo genera
+              replyToMessageId: replyingTo?.id,
+              replyToSender: replyingTo?.sender,
+              replyToText: replyingTo?.text,
+              replyToSenderNumeroAgente: replyingTo?.numeroAgente,
+            });
+
+            console.log("✅ Mensaje de grupo guardado en BD:", savedMessage);
+
+            // 2. 🔥 Actualizar messageObj con los datos reales de la BD
+            messageObj.id = savedMessage.id;
+            // 🔥 NO incluir sentAt ni time en el emit, el backend ya lo tiene
+            // messageObj.sentAt = savedMessage.sentAt;
+            // messageObj.time = savedMessage.time;
+
+            // Asegurar que senderRole y senderNumeroAgente estén presentes si el backend los devuelve
+            if (savedMessage.senderRole)
+              messageObj.senderRole = savedMessage.senderRole;
+            if (savedMessage.senderNumeroAgente)
+              messageObj.senderNumeroAgente = savedMessage.senderNumeroAgente;
+
+            // 3. 🔥 Emitir por socket con el ID real (sin sentAt/time - el backend ya los tiene)
+            socket.emit("message", messageObj);
+            console.log(
+              "📤 Mensaje emitido por socket con ID real:",
+              messageObj.id
+            );
+
+            // 4. 🔥 NO agregar mensaje localmente - esperar a que vuelva del servidor
+            // Esto evita duplicados porque el servidor enviará el mensaje de vuelta
+            // con el timestamp correcto de Perú
+          } catch (error) {
+            console.error("❌ Error al enviar mensaje de grupo:", error);
+            await showErrorAlert(
+              "Error al enviar",
+              "No se pudo enviar el mensaje. Por favor, verifica tu conexión e inténtalo de nuevo."
+            );
+            // NO limpiamos el input para que el usuario pueda reintentar
+            setIsUploadingFile(false); // 🔥 Desactivar loading en error
+          }
+
+          // 🔥 Limpiar input y estado de respuesta después de enviar mensaje de grupo exitosamente
+          clearInput();
+          setReplyingTo(null);
+          setIsUploadingFile(false); // 🔥 Desactivar loading después de enviar
+          console.log("🔚 Finalizando bloque de grupos con return");
+          return;
+        } else {
+          console.log("🔍 Punto D - Dentro del else (1-a-1)");
+          console.log(
+            "✅ effectiveIsGroup es FALSE - Entrando al bloque de mensajes 1-a-1"
+          );
+          console.log("📤 Procesando mensaje 1-a-1 (NO es grupo)");
+          // 🔥 Para mensajes individuales, guardar en BD primero para obtener el ID real
+          try {
+            console.log("💾 Guardando mensaje 1-a-1 en BD...");
+            // Guardar en BD y obtener el mensaje con ID
+            const savedMessage = await apiService.createMessage({
+              from: currentUserFullName,
+              fromId: user.id,
+              to: messageObj.actualRecipient || to,
+              message: input,
+              isGroup: false,
+              mediaType: messageObj.mediaType,
+              mediaData: messageObj.mediaData,
+              fileName: messageObj.fileName,
+              fileSize: messageObj.fileSize,
+              // 🔥 ELIMINADO: time - el backend lo calculará automáticamente
+              // 🔥 NO enviar sentAt - dejar que el backend lo calcule con getPeruDate()
+              replyToMessageId: replyingTo?.id,
+              replyToSender: replyingTo?.sender,
+              replyToText: replyingTo?.text,
+              replyToSenderNumeroAgente: replyingTo?.numeroAgente,
+            });
+            console.log("✅ Mensaje 1-a-1 guardado en BD:", savedMessage);
+
+            // Emitir por socket con el ID real de la BD
+            console.log("📤 Emitiendo mensaje 1-a-1 por socket:", {
+              ...messageObj,
+              id: savedMessage.id,
+            });
+            socket.emit("message", {
+              ...messageObj,
+              id: savedMessage.id, // 🔥 Usar el ID de la BD
+            });
+            console.log("✅ Mensaje 1-a-1 emitido exitosamente");
+
+            // 🔥 ELIMINADO: No agregar localmente para evitar duplicados
+            // Esperar a que el mensaje vuelva del servidor con el timestamp correcto de Perú
+          } catch (error) {
+            console.error("❌ Error al guardar mensaje en BD:", error);
+            await showErrorAlert(
+              "Error",
+              "Error al enviar el mensaje. Inténtalo de nuevo."
+            );
+            return;
+          }
+        }
+
+        // 🔥 Para mensajes individuales, limpiar input después de guardar
+        clearInput();
+        setReplyingTo(null); // Limpiar el estado de respuesta
+        setIsUploadingFile(false); // 🔥 Desactivar loading después de enviar
+      }
+    } catch (error) {
+      console.error('❌ Error inesperado en handleSendMessage:', error);
+      await showErrorAlert('Error', 'Ocurrió un error al enviar el mensaje.');
+    } finally {
+      // 🔥 IMPORTANTE: Siempre liberar el estado, incluso si hay error
+      setIsSending(false);
     }
   };
 
@@ -4232,6 +4270,7 @@ const ChatPage = () => {
         onSendVoiceMessage={handleSendVoiceMessage}
         onStartVideoCall={handleStartVideoCall} // 🔥 NUEVO: Handler de videollamada
         isUploadingFile={isUploadingFile} // 🔥 Pasar estado de upload
+        isSending={isSending} // 🔥 NUEVO: Estado de envío para prevenir duplicados
         // Props de modales
         showCreateRoomModal={showCreateRoomModal}
         setShowCreateRoomModal={setShowCreateRoomModal}

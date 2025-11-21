@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useLayoutEffect } from "react";
 import {
   FaPaperPlane,
   FaEdit,
@@ -22,12 +22,12 @@ import "./ChatContent.css";
 // Función para formatear tiempo
 const formatTime = (time) => {
   if (!time) return "";
-  
+
   // Si ya es una cadena de tiempo formateada (HH:MM), devolverla tal como está
-  if (typeof time === 'string' && /^\d{2}:\d{2}$/.test(time)) {
+  if (typeof time === "string" && /^\d{2}:\d{2}$/.test(time)) {
     return time;
   }
-  
+
   // Si es un objeto Date o timestamp, formatear
   try {
     const date = new Date(time);
@@ -104,6 +104,7 @@ const ChatContent = ({
   typingUser,
   roomTypingUsers,
   isUploadingFile, // 🔥 Prop para estado de carga de archivos
+  isSending, // 🔥 NUEVO: Estado de envío para prevenir duplicados
 }) => {
   const chatHistoryRef = useRef(null);
   const isUserScrollingRef = useRef(false);
@@ -132,44 +133,50 @@ const ChatContent = ({
   const [mentionCursorPosition, setMentionCursorPosition] = useState(0);
   const inputRef = useRef(null);
 
-  // Función para formatear la fecha del separador (usando zona horaria de Perú)
-  const formatDateSeparator = (date) => {
-    console.log('🔍 DEBUG formatDateSeparator:');
-    console.log('  - Fecha recibida:', date);
-    console.log('  - Tipo:', typeof date);
+  // Función simple que usa directamente el displayDate del backend
+  const formatDateFromBackend = (messageOrDate) => {
+    // Si es un objeto mensaje con displayDate, usarlo directamente
+    if (typeof messageOrDate === 'object' && messageOrDate.displayDate) {
+      console.log("✅ Usando displayDate del backend:", messageOrDate.displayDate);
+      return messageOrDate.displayDate;
+    }
 
-    // Crear fechas en zona horaria de Perú (UTC-5)
-    const peruTimeZone = 'America/Lima';
-    
-    // Fecha del mensaje en zona horaria de Perú
-    const messageDate = new Date(date);
-    const messageDateInPeru = new Date(messageDate.toLocaleString("en-US", { timeZone: peruTimeZone }));
-    const messageDay = messageDateInPeru.toISOString().split('T')[0];
-    
-    // Fecha actual en zona horaria de Perú
-    const nowInPeru = new Date(new Date().toLocaleString("en-US", { timeZone: peruTimeZone }));
-    const todayDay = nowInPeru.toISOString().split('T')[0];
-    
-    // Ayer en zona horaria de Perú
-    const yesterdayInPeru = new Date(nowInPeru);
-    yesterdayInPeru.setDate(yesterdayInPeru.getDate() - 1);
-    const yesterdayDay = yesterdayInPeru.toISOString().split('T')[0];
+    // Si es solo una fecha (string), es para el separador de fechas
+    const sentAt = typeof messageOrDate === 'string' ? messageOrDate : messageOrDate?.sentAt;
 
-    console.log('  - messageDay (Perú):', messageDay);
-    console.log('  - todayDay (Perú):', todayDay);
-    console.log('  - yesterdayDay (Perú):', yesterdayDay);
+    if (!sentAt) return "Hoy";
 
-    if (messageDay === todayDay) {
-      console.log('  - Resultado: HOY ✅');
+    console.log("⚠️ Fallback: calculando fecha desde sentAt:", sentAt);
+
+    // El backend envía sentAt, extraer solo la fecha
+    const messageDate = sentAt.split("T")[0]; // "2025-11-20"
+
+    // Usar EXACTAMENTE la misma zona horaria que el backend: America/Lima
+    const now = new Date();
+    const todayInPeru = now.toLocaleDateString('en-CA', { timeZone: 'America/Lima' }); // YYYY-MM-DD
+
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayInPeru = yesterday.toLocaleDateString('en-CA', { timeZone: 'America/Lima' }); // YYYY-MM-DD
+
+    console.log("🔍 DEBUG formatDateFromBackend (fallback):", {
+      sentAt,
+      messageDate,
+      todayInPeru,
+      yesterdayInPeru,
+      isToday: messageDate === todayInPeru,
+      isYesterday: messageDate === yesterdayInPeru,
+    });
+
+    if (messageDate === todayInPeru) {
       return "Hoy";
-    } else if (messageDay === yesterdayDay) {
-      console.log('  - Resultado: AYER ⚠️');
+    } else if (messageDate === yesterdayInPeru) {
       return "Ayer";
     } else {
-      console.log('  - Resultado: OTRA FECHA 📅');
-      // Formato: "Sábado, 9 de noviembre" usando zona horaria de Perú
-      return messageDate.toLocaleDateString("es-PE", {
-        timeZone: peruTimeZone,
+      // Para otras fechas, formatear usando zona horaria de Perú
+      const date = new Date(sentAt);
+      return date.toLocaleDateString("es-PE", {
+        timeZone: "America/Lima",
         weekday: "long",
         day: "numeric",
         month: "long",
@@ -177,25 +184,27 @@ const ChatContent = ({
     }
   };
 
-  // Función para agrupar mensajes por fecha (usando zona horaria de Perú)
+  // Función simple para agrupar mensajes usando solo datos del backend
   const groupMessagesByDate = (messages) => {
     const groups = [];
     let currentDateString = null;
-    const peruTimeZone = 'America/Lima';
 
     messages.forEach((message, index) => {
-      const messageDate = message.sentAt ? new Date(message.sentAt) : new Date();
-      
-      // Obtener la fecha en zona horaria de Perú como string (YYYY-MM-DD)
-      const messageDateInPeru = new Date(messageDate.toLocaleString("en-US", { timeZone: peruTimeZone }));
-      const messageDateString = messageDateInPeru.toISOString().split('T')[0];
+      // Usar directamente el sentAt del backend
+      const sentAt = message.sentAt;
+
+      // Si no hay sentAt, usar fecha actual
+      const dateToUse = sentAt || new Date().toISOString();
+
+      // Extraer solo la fecha (YYYY-MM-DD) sin zona horaria
+      const messageDateString = dateToUse.split("T")[0];
 
       if (currentDateString !== messageDateString) {
         currentDateString = messageDateString;
         groups.push({
           type: "date-separator",
-          date: messageDate, // Mantener la fecha original para formatDateSeparator
-          label: formatDateSeparator(messageDate),
+          date: dateToUse,
+          label: formatDateFromBackend(dateToUse),
         });
       }
 
@@ -471,8 +480,8 @@ const ChatContent = ({
       to: isGroup
         ? undefined
         : actualSender === currentUsername
-        ? actualReceiver
-        : actualSender,
+          ? actualReceiver
+          : actualSender,
     });
 
     setShowReactionPicker(null);
@@ -642,6 +651,8 @@ const ChatContent = ({
     };
   }, [showMessageMenu]);
 
+  const previousScrollHeightRef = useRef(0);
+
   const handleScroll = () => {
     if (!chatHistoryRef.current) return;
 
@@ -655,7 +666,31 @@ const ChatContent = ({
     } else {
       isUserScrollingRef.current = false;
     }
+
+    // 🔥 Detectar scroll hacia arriba para cargar más mensajes
+    if (chatHistory.scrollTop === 0 && hasMoreMessages && !isLoadingMore) {
+      if (onLoadMoreMessages) {
+        // Guardar altura actual antes de cargar
+        previousScrollHeightRef.current = chatHistory.scrollHeight;
+        onLoadMoreMessages();
+      }
+    }
   };
+
+  // 🔥 Preservar posición del scroll al cargar mensajes antiguos
+  useLayoutEffect(() => {
+    if (chatHistoryRef.current && previousScrollHeightRef.current > 0) {
+      const chatHistory = chatHistoryRef.current;
+      const newScrollHeight = chatHistory.scrollHeight;
+      const scrollDiff = newScrollHeight - previousScrollHeightRef.current;
+
+      // Ajustar el scroll para mantener la posición visual
+      chatHistory.scrollTop = scrollDiff;
+
+      // Resetear ref
+      previousScrollHeightRef.current = 0;
+    }
+  }, [messages]);
 
   // 🔥 NUEVO: Función para obtener el ícono y color según el tipo de archivo
   const getFileIcon = (fileName) => {
@@ -1158,9 +1193,9 @@ const ChatContent = ({
     // Obtener lista de usuarios válidos para menciones
     const validUsers = roomUsers
       ? roomUsers.map((user) => {
-          if (typeof user === "string") return user.toUpperCase();
-          return (user.username || user.nombre || "").toUpperCase();
-        })
+        if (typeof user === "string") return user.toUpperCase();
+        return (user.username || user.nombre || "").toUpperCase();
+      })
       : [];
 
     // Regex mejorado: @ seguido de 1-3 palabras (nombre y apellido)
@@ -1282,7 +1317,7 @@ const ChatContent = ({
       (previousMessage.isSelf !== undefined
         ? previousMessage.isSelf
         : previousMessage.sender === "Tú" ||
-          previousMessage.sender === currentUsername) === isOwnMessage &&
+        previousMessage.sender === currentUsername) === isOwnMessage &&
       (previousMessage.sender === message.sender ||
         (isOwnMessage && previousMessage.isSelf === message.isSelf));
 
@@ -1372,9 +1407,8 @@ const ChatContent = ({
       <div
         key={index}
         id={`message-${message.id}`}
-        className={`message ${isOwnMessage ? "own-message" : "other-message"} ${
-          isHighlighted ? "highlighted-message" : ""
-        }`}
+        className={`message ${isOwnMessage ? "own-message" : "other-message"} ${isHighlighted ? "highlighted-message" : ""
+          }`}
         style={{
           display: "flex",
           alignItems: "flex-end",
@@ -1421,8 +1455,8 @@ const ChatContent = ({
                 ? "#c9e8ba"
                 : "#d4d2e0"
               : isOwnMessage
-              ? "#E1F4D6"
-              : "#E8E6F0",
+                ? "#E1F4D6"
+                : "#E8E6F0",
             color: "#1f2937",
             padding: "6px 19.25px",
             paddingRight: message.isDeleted ? "19.25px" : "32px",
@@ -2355,12 +2389,12 @@ const ChatContent = ({
                               gap: "3px",
                             }}
                             onMouseEnter={(e) =>
-                              (e.target.style.backgroundColor =
-                                "rgba(0,0,0,0.8)")
+                            (e.target.style.backgroundColor =
+                              "rgba(0,0,0,0.8)")
                             }
                             onMouseLeave={(e) =>
-                              (e.target.style.backgroundColor =
-                                "rgba(0,0,0,0.6)")
+                            (e.target.style.backgroundColor =
+                              "rgba(0,0,0,0.6)")
                             }
                           >
                             ⬇️ Descargar
@@ -2750,11 +2784,10 @@ const ChatContent = ({
                     >
                       <FaComments style={{ marginRight: "6px" }} />
                       {message.threadCount > 0
-                        ? `${message.threadCount} ${
-                            message.threadCount === 1
-                              ? "respuesta"
-                              : "respuestas"
-                          }`
+                        ? `${message.threadCount} ${message.threadCount === 1
+                          ? "respuesta"
+                          : "respuestas"
+                        }`
                         : "Responder en hilo"}
                       {message.lastReplyFrom && message.threadCount > 0 && (
                         <div
@@ -2882,7 +2915,7 @@ const ChatContent = ({
                                     style={{
                                       color:
                                         message.readBy &&
-                                        message.readBy.length > 0
+                                          message.readBy.length > 0
                                           ? "#27AE60"
                                           : "#8696a0",
                                       fontSize: "11px",
@@ -2997,7 +3030,7 @@ const ChatContent = ({
                                       style={{
                                         color:
                                           message.readBy &&
-                                          message.readBy.length > 0
+                                            message.readBy.length > 0
                                             ? "#27AE60"
                                             : "#8696a0",
                                         fontSize: "11px",
@@ -3227,11 +3260,10 @@ const ChatContent = ({
                     <FaComments style={{ fontSize: "14px" }} />
                     <span>
                       {message.threadCount > 0
-                        ? `${message.threadCount} ${
-                            message.threadCount === 1
-                              ? "respuesta"
-                              : "respuestas"
-                          }`
+                        ? `${message.threadCount} ${message.threadCount === 1
+                          ? "respuesta"
+                          : "respuestas"
+                        }`
                         : "Responder en hilo"}
                     </span>
                   </div>
@@ -3349,395 +3381,395 @@ const ChatContent = ({
                 roomTypingUsers &&
                 roomTypingUsers[currentRoomCode] &&
                 roomTypingUsers[currentRoomCode].length > 0)) && (
-              <div className="typing-indicator-container">
-                {/* Para chats individuales */}
-                {!isGroup && isOtherUserTyping && typingUser && (
-                  <div
-                    className="message other-message"
-                    style={{
-                      display: "flex",
-                      justifyContent: "flex-start",
-                      alignItems: "flex-end",
-                      margin: "2px 0",
-                      padding: "0 8px",
-                      gap: "6px",
-                    }}
-                  >
-                    {/* Avatar - Mostrar imagen si existe, sino iniciales o emoji */}
+                <div className="typing-indicator-container">
+                  {/* Para chats individuales */}
+                  {!isGroup && isOtherUserTyping && typingUser && (
                     <div
-                      className="message-avatar"
+                      className="message other-message"
                       style={{
-                        width: "28px",
-                        height: "28px",
-                        borderRadius: "50%",
-                        background: typingUser?.picture
-                          ? `url(${typingUser.picture}) center/cover no-repeat`
-                          : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                         display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "12px",
-                        flexShrink: 0,
-                        marginBottom: "2px",
-                        color: "white",
-                        fontWeight: "600",
+                        justifyContent: "flex-start",
+                        alignItems: "flex-end",
+                        margin: "2px 0",
+                        padding: "0 8px",
+                        gap: "6px",
                       }}
                     >
-                      {!typingUser?.picture &&
-                        (typingUser?.nombre
-                          ? typingUser.nombre.charAt(0).toUpperCase()
-                          : to?.charAt(0).toUpperCase() || "👤")}
-                    </div>
-
-                    {/* Contenedor del SVG */}
-                    <div
-                      className="message-content"
-                      style={{
-                        backgroundColor: "#E8E6F0", // Mismo color que "other-message"
-                        padding: "6px 12px",
-                        borderTopRightRadius: "17.11px",
-                        borderBottomRightRadius: "17.11px",
-                        borderBottomLeftRadius: "17.11px",
-                        borderTopLeftRadius: "4px",
-                        boxShadow: "0 1px 0.5px rgba(0,0,0,.13)",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "2px",
-                        width: "auto",
-                        height: "auto",
-                      }}
-                    >
-                      {/* Nombre del usuario que está escribiendo */}
+                      {/* Avatar - Mostrar imagen si existe, sino iniciales o emoji */}
                       <div
+                        className="message-avatar"
                         style={{
-                          color: "#00a884",
-                          fontSize: "11px",
-                          fontWeight: "600",
-                          marginBottom: "2px",
-                        }}
-                      >
-                        {typingUser.nombre && typingUser.apellido
-                          ? `${typingUser.nombre} ${typingUser.apellido}`
-                          : typingUser.nombre || typingUser.username || to}
-                      </div>
-
-                      <div className="typing-svg-container">
-                        {/* SVG Convertido a JSX */}
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          xmlnsXlink="http://www.w3.org/1999/xlink"
-                          viewBox="0 0 72 72"
-                          preserveAspectRatio="xMidYMid meet"
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            transform: "translate3d(0px, 0px, 0px)",
-                            contentVisibility: "visible",
-                          }}
-                        >
-                          <defs>
-                            <clipPath id="_lottie_element_352">
-                              <rect width="72" height="72" x="0" y="0"></rect>
-                            </clipPath>
-                          </defs>
-                          <g clipPath="url(#_lottie_element_352)">
-                            <g
-                              style={{ display: "block" }}
-                              transform="matrix(1,0,0,1,35.875,37.752864837646484)"
-                              opacity="1"
-                            >
-                              <g opacity="1" transform="matrix(1,0,0,1,-23,0)">
-                                <path
-                                  fill="rgb(196,82,44)"
-                                  fillOpacity="1"
-                                  d=" M0,-7.397884368896484 C4.082892417907715,-7.397884368896484 7.397884368896484,-4.082892417907715 7.397884368896484,0 C7.397884368896484,4.082892417907715 4.082892417907715,7.397884368896484 0,7.397884368896484 C-4.082892417907715,7.397884368896484 -7.397884368896484,4.082892417907715 -7.397884368896484,0 C-7.397884368896484,-4.082892417907715 -4.082892417907715,-7.397884368896484 0,-7.397884368896484z"
-                                ></path>
-                              </g>
-                            </g>
-                            <g
-                              style={{ display: "block" }}
-                              transform="matrix(1,0,0,1,35.875,34.76784896850586)"
-                              opacity="1"
-                            >
-                              <g opacity="1" transform="matrix(1,0,0,1,0,0)">
-                                <path
-                                  fill="rgb(196,82,44)"
-                                  fillOpacity="1"
-                                  d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"
-                                ></path>
-                              </g>
-                            </g>
-                            <g
-                              style={{ display: "block" }}
-                              transform="matrix(1,0,0,1,35.875,30.869281768798828)"
-                              opacity="1"
-                            >
-                              <g opacity="1" transform="matrix(1,0,0,1,23,0)">
-                                <path
-                                  fill="rgb(196,82,44)"
-                                  fillOpacity="1"
-                                  d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"
-                                ></path>
-                              </g>
-                            </g>
-                            <g
-                              style={{ display: "block" }}
-                              transform="matrix(1,0,0,1,35.875,37.752864837646484)"
-                              opacity="1"
-                            >
-                              <g opacity="1" transform="matrix(1,0,0,1,-23,0)">
-                                <path
-                                  fill="rgb(196,82,44)"
-                                  fillOpacity="1"
-                                  d=" M0,-7.397884368896484 C4.082892417907715,-7.397884368896484 7.397884368896484,-4.082892417907715 7.397884368896484,0 C7.397884368896484,4.082892417907715 4.082892417907715,7.397884368896484 0,7.397884368896484 C-4.082892417907715,7.397884368896484 -7.397884368896484,4.082892417907715 -7.397884368896484,0 C-7.397884368896484,-4.082892417907715 -4.082892417907715,-7.397884368896484 0,-7.397884368896484z"
-                                ></path>
-                              </g>
-                            </g>
-                            <g
-                              style={{ display: "block" }}
-                              transform="matrix(1,0,0,1,35.875,34.76784896850586)"
-                              opacity="1"
-                            >
-                              <g opacity="1" transform="matrix(1,0,0,1,0,0)">
-                                <path
-                                  fill="rgb(196,82,44)"
-                                  fillOpacity="1"
-                                  d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"
-                                ></path>
-                              </g>
-                            </g>
-                            <g
-                              style={{ display: "block" }}
-                              transform="matrix(1,0,0,1,35.875,30.869281768798828)"
-                              opacity="1"
-                            >
-                              <g opacity="1" transform="matrix(1,0,0,1,23,0)">
-                                <path
-                                  fill="rgb(196,82,44)"
-                                  fillOpacity="1"
-                                  d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"
-                                ></path>
-                              </g>
-                            </g>
-                          </g>
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Para grupos/salas - Mostrar todos los usuarios que están escribiendo */}
-                {isGroup &&
-                  currentRoomCode &&
-                  roomTypingUsers &&
-                  roomTypingUsers[currentRoomCode] &&
-                  roomTypingUsers[currentRoomCode].length > 0 &&
-                  roomTypingUsers[currentRoomCode].map(
-                    (typingUserInRoom, index) => (
-                      <div
-                        key={`typing-${typingUserInRoom.username}-${index}`}
-                        className="message other-message"
-                        style={{
+                          width: "28px",
+                          height: "28px",
+                          borderRadius: "50%",
+                          background: typingUser?.picture
+                            ? `url(${typingUser.picture}) center/cover no-repeat`
+                            : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                           display: "flex",
-                          justifyContent: "flex-start",
-                          alignItems: "flex-end",
-                          margin: "2px 0",
-                          padding: "0 8px",
-                          gap: "6px",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "12px",
+                          flexShrink: 0,
+                          marginBottom: "2px",
+                          color: "white",
+                          fontWeight: "600",
                         }}
                       >
-                        {/* Avatar - Mostrar imagen si existe, sino iniciales o emoji */}
+                        {!typingUser?.picture &&
+                          (typingUser?.nombre
+                            ? typingUser.nombre.charAt(0).toUpperCase()
+                            : to?.charAt(0).toUpperCase() || "👤")}
+                      </div>
+
+                      {/* Contenedor del SVG */}
+                      <div
+                        className="message-content"
+                        style={{
+                          backgroundColor: "#E8E6F0", // Mismo color que "other-message"
+                          padding: "6px 12px",
+                          borderTopRightRadius: "17.11px",
+                          borderBottomRightRadius: "17.11px",
+                          borderBottomLeftRadius: "17.11px",
+                          borderTopLeftRadius: "4px",
+                          boxShadow: "0 1px 0.5px rgba(0,0,0,.13)",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "2px",
+                          width: "auto",
+                          height: "auto",
+                        }}
+                      >
+                        {/* Nombre del usuario que está escribiendo */}
                         <div
-                          className="message-avatar"
                           style={{
-                            width: "28px",
-                            height: "28px",
-                            borderRadius: "50%",
-                            background: typingUserInRoom?.picture
-                              ? `url(${typingUserInRoom.picture}) center/cover no-repeat`
-                              : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: "12px",
-                            flexShrink: 0,
-                            marginBottom: "2px",
-                            color: "white",
+                            color: "#00a884",
+                            fontSize: "11px",
                             fontWeight: "600",
+                            marginBottom: "2px",
                           }}
                         >
-                          {!typingUserInRoom?.picture &&
-                            (typingUserInRoom?.nombre
-                              ? typingUserInRoom.nombre.charAt(0).toUpperCase()
-                              : typingUserInRoom.username
-                                  ?.charAt(0)
-                                  .toUpperCase() || "👤")}
+                          {typingUser.nombre && typingUser.apellido
+                            ? `${typingUser.nombre} ${typingUser.apellido}`
+                            : typingUser.nombre || typingUser.username || to}
                         </div>
 
-                        {/* Contenedor del SVG */}
-                        <div
-                          className="message-content"
-                          style={{
-                            backgroundColor: "#E8E6F0",
-                            padding: "6px 12px",
-                            borderTopRightRadius: "17.11px",
-                            borderBottomRightRadius: "17.11px",
-                            borderBottomLeftRadius: "17.11px",
-                            borderTopLeftRadius: "4px",
-                            boxShadow: "0 1px 0.5px rgba(0,0,0,.13)",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "2px",
-                            width: "auto",
-                            height: "auto",
-                          }}
-                        >
-                          {/* Nombre del usuario que está escribiendo */}
-                          <div
+                        <div className="typing-svg-container">
+                          {/* SVG Convertido a JSX */}
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            xmlnsXlink="http://www.w3.org/1999/xlink"
+                            viewBox="0 0 72 72"
+                            preserveAspectRatio="xMidYMid meet"
                             style={{
-                              color: "#00a884",
-                              fontSize: "11px",
-                              fontWeight: "600",
-                              marginBottom: "2px",
+                              width: "100%",
+                              height: "100%",
+                              transform: "translate3d(0px, 0px, 0px)",
+                              contentVisibility: "visible",
                             }}
                           >
-                            {typingUserInRoom.nombre &&
-                            typingUserInRoom.apellido
-                              ? `${typingUserInRoom.nombre} ${typingUserInRoom.apellido}`
-                              : typingUserInRoom.nombre ||
-                                typingUserInRoom.username}
-                          </div>
-
-                          <div className="typing-svg-container">
-                            {/* SVG Convertido a JSX */}
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              xmlnsXlink="http://www.w3.org/1999/xlink"
-                              viewBox="0 0 72 72"
-                              preserveAspectRatio="xMidYMid meet"
-                              style={{
-                                width: "100%",
-                                height: "100%",
-                                transform: "translate3d(0px, 0px, 0px)",
-                                contentVisibility: "visible",
-                              }}
-                            >
-                              <defs>
-                                <clipPath id={`_lottie_element_${index}`}>
-                                  <rect
-                                    width="72"
-                                    height="72"
-                                    x="0"
-                                    y="0"
-                                  ></rect>
-                                </clipPath>
-                              </defs>
-                              <g clipPath={`url(#_lottie_element_${index})`}>
-                                <g
-                                  style={{ display: "block" }}
-                                  transform="matrix(1,0,0,1,35.875,37.752864837646484)"
-                                  opacity="1"
-                                >
-                                  <g
-                                    opacity="1"
-                                    transform="matrix(1,0,0,1,-23,0)"
-                                  >
-                                    <path
-                                      fill="rgb(196,82,44)"
-                                      fillOpacity="1"
-                                      d=" M0,-7.397884368896484 C4.082892417907715,-7.397884368896484 7.397884368896484,-4.082892417907715 7.397884368896484,0 C7.397884368896484,4.082892417907715 4.082892417907715,7.397884368896484 0,7.397884368896484 C-4.082892417907715,7.397884368896484 -7.397884368896484,4.082892417907715 -7.397884368896484,0 C-7.397884368896484,-4.082892417907715 -4.082892417907715,-7.397884368896484 0,-7.397884368896484z"
-                                    ></path>
-                                  </g>
-                                </g>
-                                <g
-                                  style={{ display: "block" }}
-                                  transform="matrix(1,0,0,1,35.875,34.76784896850586)"
-                                  opacity="1"
-                                >
-                                  <g
-                                    opacity="1"
-                                    transform="matrix(1,0,0,1,0,0)"
-                                  >
-                                    <path
-                                      fill="rgb(196,82,44)"
-                                      fillOpacity="1"
-                                      d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"
-                                    ></path>
-                                  </g>
-                                </g>
-                                <g
-                                  style={{ display: "block" }}
-                                  transform="matrix(1,0,0,1,35.875,30.869281768798828)"
-                                  opacity="1"
-                                >
-                                  <g
-                                    opacity="1"
-                                    transform="matrix(1,0,0,1,23,0)"
-                                  >
-                                    <path
-                                      fill="rgb(196,82,44)"
-                                      fillOpacity="1"
-                                      d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"
-                                    ></path>
-                                  </g>
-                                </g>
-                                <g
-                                  style={{ display: "block" }}
-                                  transform="matrix(1,0,0,1,35.875,37.752864837646484)"
-                                  opacity="1"
-                                >
-                                  <g
-                                    opacity="1"
-                                    transform="matrix(1,0,0,1,-23,0)"
-                                  >
-                                    <path
-                                      fill="rgb(196,82,44)"
-                                      fillOpacity="1"
-                                      d=" M0,-7.397884368896484 C4.082892417907715,-7.397884368896484 7.397884368896484,-4.082892417907715 7.397884368896484,0 C7.397884368896484,4.082892417907715 4.082892417907715,7.397884368896484 0,7.397884368896484 C-4.082892417907715,7.397884368896484 -7.397884368896484,4.082892417907715 -7.397884368896484,0 C-7.397884368896484,-4.082892417907715 -4.082892417907715,-7.397884368896484 0,-7.397884368896484z"
-                                    ></path>
-                                  </g>
-                                </g>
-                                <g
-                                  style={{ display: "block" }}
-                                  transform="matrix(1,0,0,1,35.875,34.76784896850586)"
-                                  opacity="1"
-                                >
-                                  <g
-                                    opacity="1"
-                                    transform="matrix(1,0,0,1,0,0)"
-                                  >
-                                    <path
-                                      fill="rgb(196,82,44)"
-                                      fillOpacity="1"
-                                      d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"
-                                    ></path>
-                                  </g>
-                                </g>
-                                <g
-                                  style={{ display: "block" }}
-                                  transform="matrix(1,0,0,1,35.875,30.869281768798828)"
-                                  opacity="1"
-                                >
-                                  <g
-                                    opacity="1"
-                                    transform="matrix(1,0,0,1,23,0)"
-                                  >
-                                    <path
-                                      fill="rgb(196,82,44)"
-                                      fillOpacity="1"
-                                      d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"
-                                    ></path>
-                                  </g>
+                            <defs>
+                              <clipPath id="_lottie_element_352">
+                                <rect width="72" height="72" x="0" y="0"></rect>
+                              </clipPath>
+                            </defs>
+                            <g clipPath="url(#_lottie_element_352)">
+                              <g
+                                style={{ display: "block" }}
+                                transform="matrix(1,0,0,1,35.875,37.752864837646484)"
+                                opacity="1"
+                              >
+                                <g opacity="1" transform="matrix(1,0,0,1,-23,0)">
+                                  <path
+                                    fill="rgb(196,82,44)"
+                                    fillOpacity="1"
+                                    d=" M0,-7.397884368896484 C4.082892417907715,-7.397884368896484 7.397884368896484,-4.082892417907715 7.397884368896484,0 C7.397884368896484,4.082892417907715 4.082892417907715,7.397884368896484 0,7.397884368896484 C-4.082892417907715,7.397884368896484 -7.397884368896484,4.082892417907715 -7.397884368896484,0 C-7.397884368896484,-4.082892417907715 -4.082892417907715,-7.397884368896484 0,-7.397884368896484z"
+                                  ></path>
                                 </g>
                               </g>
-                            </svg>
-                          </div>
+                              <g
+                                style={{ display: "block" }}
+                                transform="matrix(1,0,0,1,35.875,34.76784896850586)"
+                                opacity="1"
+                              >
+                                <g opacity="1" transform="matrix(1,0,0,1,0,0)">
+                                  <path
+                                    fill="rgb(196,82,44)"
+                                    fillOpacity="1"
+                                    d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"
+                                  ></path>
+                                </g>
+                              </g>
+                              <g
+                                style={{ display: "block" }}
+                                transform="matrix(1,0,0,1,35.875,30.869281768798828)"
+                                opacity="1"
+                              >
+                                <g opacity="1" transform="matrix(1,0,0,1,23,0)">
+                                  <path
+                                    fill="rgb(196,82,44)"
+                                    fillOpacity="1"
+                                    d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"
+                                  ></path>
+                                </g>
+                              </g>
+                              <g
+                                style={{ display: "block" }}
+                                transform="matrix(1,0,0,1,35.875,37.752864837646484)"
+                                opacity="1"
+                              >
+                                <g opacity="1" transform="matrix(1,0,0,1,-23,0)">
+                                  <path
+                                    fill="rgb(196,82,44)"
+                                    fillOpacity="1"
+                                    d=" M0,-7.397884368896484 C4.082892417907715,-7.397884368896484 7.397884368896484,-4.082892417907715 7.397884368896484,0 C7.397884368896484,4.082892417907715 4.082892417907715,7.397884368896484 0,7.397884368896484 C-4.082892417907715,7.397884368896484 -7.397884368896484,4.082892417907715 -7.397884368896484,0 C-7.397884368896484,-4.082892417907715 -4.082892417907715,-7.397884368896484 0,-7.397884368896484z"
+                                  ></path>
+                                </g>
+                              </g>
+                              <g
+                                style={{ display: "block" }}
+                                transform="matrix(1,0,0,1,35.875,34.76784896850586)"
+                                opacity="1"
+                              >
+                                <g opacity="1" transform="matrix(1,0,0,1,0,0)">
+                                  <path
+                                    fill="rgb(196,82,44)"
+                                    fillOpacity="1"
+                                    d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"
+                                  ></path>
+                                </g>
+                              </g>
+                              <g
+                                style={{ display: "block" }}
+                                transform="matrix(1,0,0,1,35.875,30.869281768798828)"
+                                opacity="1"
+                              >
+                                <g opacity="1" transform="matrix(1,0,0,1,23,0)">
+                                  <path
+                                    fill="rgb(196,82,44)"
+                                    fillOpacity="1"
+                                    d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"
+                                  ></path>
+                                </g>
+                              </g>
+                            </g>
+                          </svg>
                         </div>
                       </div>
-                    )
+                    </div>
                   )}
-              </div>
-            )}
+
+                  {/* Para grupos/salas - Mostrar todos los usuarios que están escribiendo */}
+                  {isGroup &&
+                    currentRoomCode &&
+                    roomTypingUsers &&
+                    roomTypingUsers[currentRoomCode] &&
+                    roomTypingUsers[currentRoomCode].length > 0 &&
+                    roomTypingUsers[currentRoomCode].map(
+                      (typingUserInRoom, index) => (
+                        <div
+                          key={`typing-${typingUserInRoom.username}-${index}`}
+                          className="message other-message"
+                          style={{
+                            display: "flex",
+                            justifyContent: "flex-start",
+                            alignItems: "flex-end",
+                            margin: "2px 0",
+                            padding: "0 8px",
+                            gap: "6px",
+                          }}
+                        >
+                          {/* Avatar - Mostrar imagen si existe, sino iniciales o emoji */}
+                          <div
+                            className="message-avatar"
+                            style={{
+                              width: "28px",
+                              height: "28px",
+                              borderRadius: "50%",
+                              background: typingUserInRoom?.picture
+                                ? `url(${typingUserInRoom.picture}) center/cover no-repeat`
+                                : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "12px",
+                              flexShrink: 0,
+                              marginBottom: "2px",
+                              color: "white",
+                              fontWeight: "600",
+                            }}
+                          >
+                            {!typingUserInRoom?.picture &&
+                              (typingUserInRoom?.nombre
+                                ? typingUserInRoom.nombre.charAt(0).toUpperCase()
+                                : typingUserInRoom.username
+                                  ?.charAt(0)
+                                  .toUpperCase() || "👤")}
+                          </div>
+
+                          {/* Contenedor del SVG */}
+                          <div
+                            className="message-content"
+                            style={{
+                              backgroundColor: "#E8E6F0",
+                              padding: "6px 12px",
+                              borderTopRightRadius: "17.11px",
+                              borderBottomRightRadius: "17.11px",
+                              borderBottomLeftRadius: "17.11px",
+                              borderTopLeftRadius: "4px",
+                              boxShadow: "0 1px 0.5px rgba(0,0,0,.13)",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "2px",
+                              width: "auto",
+                              height: "auto",
+                            }}
+                          >
+                            {/* Nombre del usuario que está escribiendo */}
+                            <div
+                              style={{
+                                color: "#00a884",
+                                fontSize: "11px",
+                                fontWeight: "600",
+                                marginBottom: "2px",
+                              }}
+                            >
+                              {typingUserInRoom.nombre &&
+                                typingUserInRoom.apellido
+                                ? `${typingUserInRoom.nombre} ${typingUserInRoom.apellido}`
+                                : typingUserInRoom.nombre ||
+                                typingUserInRoom.username}
+                            </div>
+
+                            <div className="typing-svg-container">
+                              {/* SVG Convertido a JSX */}
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                xmlnsXlink="http://www.w3.org/1999/xlink"
+                                viewBox="0 0 72 72"
+                                preserveAspectRatio="xMidYMid meet"
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  transform: "translate3d(0px, 0px, 0px)",
+                                  contentVisibility: "visible",
+                                }}
+                              >
+                                <defs>
+                                  <clipPath id={`_lottie_element_${index}`}>
+                                    <rect
+                                      width="72"
+                                      height="72"
+                                      x="0"
+                                      y="0"
+                                    ></rect>
+                                  </clipPath>
+                                </defs>
+                                <g clipPath={`url(#_lottie_element_${index})`}>
+                                  <g
+                                    style={{ display: "block" }}
+                                    transform="matrix(1,0,0,1,35.875,37.752864837646484)"
+                                    opacity="1"
+                                  >
+                                    <g
+                                      opacity="1"
+                                      transform="matrix(1,0,0,1,-23,0)"
+                                    >
+                                      <path
+                                        fill="rgb(196,82,44)"
+                                        fillOpacity="1"
+                                        d=" M0,-7.397884368896484 C4.082892417907715,-7.397884368896484 7.397884368896484,-4.082892417907715 7.397884368896484,0 C7.397884368896484,4.082892417907715 4.082892417907715,7.397884368896484 0,7.397884368896484 C-4.082892417907715,7.397884368896484 -7.397884368896484,4.082892417907715 -7.397884368896484,0 C-7.397884368896484,-4.082892417907715 -4.082892417907715,-7.397884368896484 0,-7.397884368896484z"
+                                      ></path>
+                                    </g>
+                                  </g>
+                                  <g
+                                    style={{ display: "block" }}
+                                    transform="matrix(1,0,0,1,35.875,34.76784896850586)"
+                                    opacity="1"
+                                  >
+                                    <g
+                                      opacity="1"
+                                      transform="matrix(1,0,0,1,0,0)"
+                                    >
+                                      <path
+                                        fill="rgb(196,82,44)"
+                                        fillOpacity="1"
+                                        d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"
+                                      ></path>
+                                    </g>
+                                  </g>
+                                  <g
+                                    style={{ display: "block" }}
+                                    transform="matrix(1,0,0,1,35.875,30.869281768798828)"
+                                    opacity="1"
+                                  >
+                                    <g
+                                      opacity="1"
+                                      transform="matrix(1,0,0,1,23,0)"
+                                    >
+                                      <path
+                                        fill="rgb(196,82,44)"
+                                        fillOpacity="1"
+                                        d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"
+                                      ></path>
+                                    </g>
+                                  </g>
+                                  <g
+                                    style={{ display: "block" }}
+                                    transform="matrix(1,0,0,1,35.875,37.752864837646484)"
+                                    opacity="1"
+                                  >
+                                    <g
+                                      opacity="1"
+                                      transform="matrix(1,0,0,1,-23,0)"
+                                    >
+                                      <path
+                                        fill="rgb(196,82,44)"
+                                        fillOpacity="1"
+                                        d=" M0,-7.397884368896484 C4.082892417907715,-7.397884368896484 7.397884368896484,-4.082892417907715 7.397884368896484,0 C7.397884368896484,4.082892417907715 4.082892417907715,7.397884368896484 0,7.397884368896484 C-4.082892417907715,7.397884368896484 -7.397884368896484,4.082892417907715 -7.397884368896484,0 C-7.397884368896484,-4.082892417907715 -4.082892417907715,-7.397884368896484 0,-7.397884368896484z"
+                                      ></path>
+                                    </g>
+                                  </g>
+                                  <g
+                                    style={{ display: "block" }}
+                                    transform="matrix(1,0,0,1,35.875,34.76784896850586)"
+                                    opacity="1"
+                                  >
+                                    <g
+                                      opacity="1"
+                                      transform="matrix(1,0,0,1,0,0)"
+                                    >
+                                      <path
+                                        fill="rgb(196,82,44)"
+                                        fillOpacity="1"
+                                        d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"
+                                      ></path>
+                                    </g>
+                                  </g>
+                                  <g
+                                    style={{ display: "block" }}
+                                    transform="matrix(1,0,0,1,35.875,30.869281768798828)"
+                                    opacity="1"
+                                  >
+                                    <g
+                                      opacity="1"
+                                      transform="matrix(1,0,0,1,23,0)"
+                                    >
+                                      <path
+                                        fill="rgb(196,82,44)"
+                                        fillOpacity="1"
+                                        d=" M0,-7 C3.863300085067749,-7 7,-3.863300085067749 7,0 C7,3.863300085067749 3.863300085067749,7 0,7 C-3.863300085067749,7 -7,3.863300085067749 -7,0 C-7,-3.863300085067749 -3.863300085067749,-7 0,-7z"
+                                      ></path>
+                                    </g>
+                                  </g>
+                                </g>
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    )}
+                </div>
+              )}
           </>
         )}
       </div>
@@ -3973,8 +4005,8 @@ const ChatContent = ({
                 isUploadingFile
                   ? "Subiendo archivo..."
                   : canSendMessages
-                  ? "Escribe un mensaje"
-                  : "Solo puedes monitorear esta conversación"
+                    ? "Escribe un mensaje"
+                    : "Solo puedes monitorear esta conversación"
               }
               className="message-input"
               disabled={isRecording || !canSendMessages || isUploadingFile}
@@ -4041,8 +4073,8 @@ const ChatContent = ({
                             (e.currentTarget.style.backgroundColor = "#f9fafb")
                           }
                           onMouseLeave={(e) =>
-                            (e.currentTarget.style.backgroundColor =
-                              "transparent")
+                          (e.currentTarget.style.backgroundColor =
+                            "transparent")
                           }
                         >
                           <div
@@ -4093,17 +4125,17 @@ const ChatContent = ({
                       username !== currentUsername
                     );
                   }).length === 0 && (
-                    <div
-                      style={{
-                        padding: "16px",
-                        textAlign: "center",
-                        color: "#6b7280",
-                        fontSize: "14px",
-                      }}
-                    >
-                      No se encontraron usuarios
-                    </div>
-                  )}
+                      <div
+                        style={{
+                          padding: "16px",
+                          textAlign: "center",
+                          color: "#6b7280",
+                          fontSize: "14px",
+                        }}
+                      >
+                        No se encontraron usuarios
+                      </div>
+                    )}
                 </div>
               )}
           </div>
@@ -4114,16 +4146,43 @@ const ChatContent = ({
             disabled={
               (!input && mediaFiles.length === 0) ||
               !canSendMessages ||
-              isUploadingFile
+              isUploadingFile ||
+              isSending // 🔥 NUEVO: Deshabilitar mientras se envía
             }
             title={
-              canSendMessages
-                ? "Enviar mensaje"
-                : "No puedes enviar mensajes en esta conversación"
+              isSending
+                ? "Enviando mensaje..."
+                : canSendMessages
+                  ? "Enviar mensaje"
+                  : "No puedes enviar mensajes en esta conversación"
             }
           >
-            <span className="send-text">Enviar mensaje</span>
-            <FaPaperPlane className="send-icon" />
+            {isUploadingFile ? (
+              <>
+                <span className="send-text">Subiendo archivo...</span>
+                <div
+                  className="send-icon"
+                  style={{ animation: "pulse 1.5s infinite" }}
+                >
+                  <FaPaperPlane />
+                </div>
+              </>
+            ) : isSending ? (
+              <>
+                <span className="send-text">Enviando...</span>
+                <div
+                  className="send-icon"
+                  style={{ animation: "pulse 1.5s infinite" }}
+                >
+                  <FaPaperPlane />
+                </div>
+              </>
+            ) : (
+              <>
+                <span className="send-text">Enviar mensaje</span>
+                <FaPaperPlane className="send-icon" />
+              </>
+            )}
           </button>
         </div>
       </div>
