@@ -1088,7 +1088,7 @@ const ChatPage = () => {
           let messageOrigin = "";
           let messageTitle = "";
           let buttonText = "";
-          
+
           if (data.isGroup) {
             const groupName = data.groupName || data.group || "Grupo";
             messageOrigin = `📁 ${groupName}`;
@@ -1109,10 +1109,9 @@ const ChatPage = () => {
             html: `
               <div style="text-align: left; font-size: 13px; margin-bottom: 10px;">
                 <div style="color: #666; margin-bottom: 4px;">${messageOrigin}</div>
-                <div style="color: #333;">${
-                  data.message?.substring(0, 60) || 
-                  (data.fileName ? "📎 " + data.fileName : "Mensaje recibido")
-                }${data.message?.length > 60 ? "..." : ""}</div>
+                <div style="color: #333;">${data.message?.substring(0, 60) ||
+              (data.fileName ? "📎 " + data.fileName : "Mensaje recibido")
+              }${data.message?.length > 60 ? "..." : ""}</div>
               </div>
             `,
             showConfirmButton: true,
@@ -2391,8 +2390,6 @@ const ChatPage = () => {
     // 🔥 CRÍTICO: Limpiar INMEDIATAMENTE el estado anterior
     clearMessages(); // Limpiar mensajes primero
     setAdminViewConversation(null); // Limpiar vista de admin
-    setCurrentRoomCode(null); // Limpiar código de sala
-    currentRoomCodeRef.current = null;
     setReplyingTo(null); // 🔥 Limpiar estado de respuesta
     setThreadMessage(null); // 🔥 Limpiar panel de hilo
 
@@ -2400,6 +2397,8 @@ const ChatPage = () => {
     setTo(group.name);
     setIsGroup(true);
     setRoomUsers(group.members);
+    setCurrentRoomCode(group.roomCode); // ✅ CORREGIDO: Establecer el roomCode de la nueva sala
+    currentRoomCodeRef.current = group.roomCode; // ✅ CORREGIDO: Actualizar la ref también
 
     // 📱 Cerrar sidebar en mobile al seleccionar un grupo
     if (window.innerWidth <= 768) {
@@ -2760,7 +2759,7 @@ const ChatPage = () => {
 
       // Buscar la sala en myActiveRooms
       let room = null;
-      
+
       if (roomCode) {
         room = myActiveRooms.find((r) => r.roomCode === roomCode);
       } else if (groupName) {

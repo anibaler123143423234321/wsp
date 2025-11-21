@@ -11,6 +11,7 @@ import {
   FaChevronDown,
   FaCopy,
   FaThumbtack,
+  FaDownload,
 } from "react-icons/fa";
 import EmojiPicker from "emoji-picker-react";
 import LoadMoreMessages from "./LoadMoreMessages";
@@ -1646,6 +1647,41 @@ const ChatContent = ({
                     <FaCopy style={{ color: "#8696a0" }} /> Copiar
                   </button>
 
+                  {/* Descargar - Solo si hay multimedia */}
+                  {message.mediaData && (
+                    <button
+                      onClick={() => {
+                        handleDownload(
+                          message.mediaData,
+                          message.fileName || (message.mediaType === "image" ? "imagen.jpg" : "archivo")
+                        );
+                        setShowMessageMenu(null);
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "10px 16px",
+                        backgroundColor: "transparent",
+                        border: "none",
+                        textAlign: "left",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        color: "#111",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        transition: "background-color 0.2s",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor = "#f0f2f5")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.backgroundColor = "transparent")
+                      }
+                    >
+                      <FaDownload style={{ color: "#8696a0" }} /> Descargar
+                    </button>
+                  )}
+
                   {/* Fijar mensaje - Solo en grupos y para roles permitidos */}
                   {isGroup && onPinMessage && (isAdmin || window.userRole === 'JEFEPISO' || window.userRole === 'PROGRAMADOR' || window.userRole === 'SUPERVISOR') && (
                     <button
@@ -2204,7 +2240,6 @@ const ChatContent = ({
                           loading="lazy"
                           className="media-image"
                           style={{
-                            maxWidth: "100%",
                             borderRadius: "7.5px",
                             display: "block",
                             cursor: "pointer",
@@ -2280,39 +2315,7 @@ const ChatContent = ({
                           )}
                         </div>
                         {/* Botón de descargar */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDownload(
-                              message.mediaData,
-                              message.fileName || "imagen"
-                            );
-                          }}
-                          style={{
-                            position: "absolute",
-                            top: "6px",
-                            right: "6px",
-                            backgroundColor: "rgba(0,0,0,0.6)",
-                            color: "#fff",
-                            padding: "6px 10px",
-                            borderRadius: "12px",
-                            fontSize: "10px",
-                            border: "none",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "3px",
-                            cursor: "pointer",
-                            transition: "background-color 0.2s",
-                          }}
-                          onMouseEnter={(e) =>
-                            (e.target.style.backgroundColor = "rgba(0,0,0,0.8)")
-                          }
-                          onMouseLeave={(e) =>
-                            (e.target.style.backgroundColor = "rgba(0,0,0,0.6)")
-                          }
-                        >
-                          ⬇️
-                        </button>
+
                       </div>
                     ) : message.mediaType === "video" ? (
                       <div style={{ position: "relative" }}>
@@ -2392,37 +2395,7 @@ const ChatContent = ({
                               </span>
                             )}
                           </div>
-                          <button
-                            onClick={() =>
-                              handleDownload(
-                                message.mediaData,
-                                message.fileName || "video"
-                              )
-                            }
-                            style={{
-                              backgroundColor: "rgba(0,0,0,0.6)",
-                              color: "#fff",
-                              padding: "4px 10px",
-                              borderRadius: "12px",
-                              fontSize: "10px",
-                              border: "none",
-                              cursor: "pointer",
-                              transition: "background-color 0.2s",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "3px",
-                            }}
-                            onMouseEnter={(e) =>
-                            (e.target.style.backgroundColor =
-                              "rgba(0,0,0,0.8)")
-                            }
-                            onMouseLeave={(e) =>
-                            (e.target.style.backgroundColor =
-                              "rgba(0,0,0,0.6)")
-                            }
-                          >
-                            ⬇️ Descargar
-                          </button>
+
                         </div>
                       </div>
                     ) : message.mediaType === "audio" ? (
@@ -4566,11 +4539,11 @@ const getSenderSuffix = (message) => {
 
   // Construir el sufijo con role y número de agente
   const parts = [];
-  
+
   if (role && String(role).trim()) {
     parts.push(String(role).trim());
   }
-  
+
   if (agentNumber && String(agentNumber).trim()) {
     parts.push(`N.º ${String(agentNumber).trim()}`);
   }
