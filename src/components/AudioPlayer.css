@@ -1,190 +1,246 @@
-.audio-player {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  max-width: 350px;
-  width: 100%;
-}
-
-.audio-player-controls {
+/* Contenedor principal: Transparente para integrarse en la burbuja del chat */
+.wa-audio-wrapper {
   display: flex;
   align-items: center;
   gap: 12px;
+  padding: 4px 0;
+  width: 280px;
+  /* Ancho fijo similar a WA */
+  position: relative;
+  /* No background color aquí, usa el de la burbuja padre */
 }
 
-.audio-play-btn {
+/* === SECCIÓN AVATAR === */
+.wa-avatar-section {
+  position: relative;
+  flex-shrink: 0;
+  width: 50px;
+  height: 50px;
+}
+
+.wa-avatar-circle {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: #dfe5e7;
+  /* Gris placeholder */
+}
+
+.wa-avatar-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.wa-avatar-placeholder {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  background-color: #cfd8dc;
+}
+
+/* Micrófono pequeño superpuesto */
+.wa-mic-badge {
+  position: absolute;
+  bottom: 0;
+  right: -2px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
   color: white;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  border: 2px solid transparent;
+  /* Borde simulado */
 }
 
-.audio-play-btn:hover:not(:disabled) {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+/* Color del micro dependiendo de si es mensaje propio o ajeno */
+.wa-audio-wrapper.own .wa-mic-badge {
+  background-color: #00a884;
+  /* Verde WA */
+  border-color: #d9fdd3;
+  /* Color de fondo de mensaje propio */
 }
 
-.audio-play-btn:active:not(:disabled) {
-  transform: scale(0.95);
+.wa-audio-wrapper.other .wa-mic-badge {
+  background-color: #00a884;
+  border-color: #ffffff;
+  /* Color de fondo de mensaje ajeno */
 }
 
-.audio-play-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.audio-loading-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.audio-progress-container {
+/* === SECCIÓN CONTROLES === */
+.wa-controls-section {
   flex: 1;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 4px;
 }
 
-.audio-progress-bar {
-  position: relative;
-  height: 6px;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 3px;
-  cursor: pointer;
-  overflow: visible;
-}
-
-.audio-progress-fill {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-  border-radius: 3px;
-  transition: width 0.1s linear;
-}
-
-.audio-progress-thumb {
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 14px;
-  height: 14px;
-  background: white;
-  border: 2px solid #667eea;
-  border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.audio-progress-bar:hover .audio-progress-thumb {
-  opacity: 1;
-}
-
-.audio-time {
+.wa-upper-controls {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: #666;
-  font-family: 'Courier New', monospace;
-  font-weight: 500;
+  gap: 10px;
 }
 
-.audio-time-current {
-  color: #667eea;
-}
-
-.audio-time-separator {
-  color: #999;
-}
-
-.audio-time-duration {
-  color: #999;
-}
-
-.audio-download-btn {
+/* Botón Play */
+.wa-play-button {
+  background: transparent;
+  border: none;
+  color: #667781;
+  /* Gris oscuro WA */
+  font-size: 22px;
+  cursor: pointer;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.05);
-  border: none;
-  color: #666;
+  width: 24px;
+  height: 24px;
+  transition: color 0.2s;
+}
+
+.wa-play-button:hover {
+  color: #444;
+}
+
+/* === SLIDER ESTILO WHATSAPP === */
+.wa-slider-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding-right: 8px;
+}
+
+.wa-seek-slider {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 3px;
+  /* Línea fina */
+  border-radius: 2px;
+  background: #d2d5da;
+  /* Color base gris */
+  outline: none;
   cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
+
+  /* Truco para la barra de progreso coloreada */
+  background-image: linear-gradient(#667781, #667781);
+  background-repeat: no-repeat;
+  /* background-size se controla via inline style en JS */
 }
 
-.audio-download-btn:hover {
-  background: rgba(0, 0, 0, 0.1);
-  color: #333;
-  transform: scale(1.05);
+/* Thumb (Bolita) */
+.wa-seek-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  background: #667781;
+  /* Mismo color que el progreso */
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.1s;
 }
 
-.audio-download-btn:active {
-  transform: scale(0.95);
+.wa-seek-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
 }
 
-.audio-file-name {
-  font-size: 12px;
-  color: #666;
-  font-weight: 500;
-  white-space: nowrap;
+/* === FOOTER INFO === */
+.wa-audio-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: #667781;
+  margin-top: 2px;
+  padding-right: 4px;
+}
+
+.wa-duration {
+  margin-left: 34px;
+  /* Alineado debajo del slider aprox */
+}
+
+.wa-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wa-time {
+  font-size: 11px;
+  color: #667781;
+}
+
+.wa-ticks {
+  display: flex;
+  align-items: center;
+  color: #8696a0;
+}
+
+.wa-ticks.read {
+  color: #53bdeb;
+  /* Azul check */
+}
+
+/* === WAVEFORM VISUALIZER === */
+.wa-waveform-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  height: 30px;
+  cursor: pointer;
+  padding-right: 8px;
+  position: relative;
   overflow: hidden;
-  text-overflow: ellipsis;
-  padding: 4px 8px;
-  background: rgba(0, 0, 0, 0.03);
-  border-radius: 6px;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .audio-player {
-    max-width: 100%;
-    padding: 10px;
-  }
-
-  .audio-play-btn {
-    width: 32px;
-    height: 32px;
-  }
-
-  .audio-download-btn {
-    width: 28px;
-    height: 28px;
-  }
-
-  .audio-time {
-    font-size: 10px;
-  }
-
-  .audio-file-name {
-    font-size: 11px;
-  }
+/* Contenedor de las barras */
+.wa-waveform-bars {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* Distribuye las barras */
+  width: 100%;
+  height: 100%;
+  gap: 2px;
+  /* Espacio entre barras */
 }
 
+/* Cada barra individual */
+.wa-bar {
+  width: 3px;
+  /* Ancho de cada barra */
+  background-color: #b9c0c4;
+  /* Color gris (no reproducido) */
+  border-radius: 3px;
+  transition: background-color 0.1s ease;
+  pointer-events: none;
+  /* Para que el click pase al contenedor */
+}
+
+/* Barras ya reproducidas (Color gris oscuro/azul) */
+.wa-bar.played {
+  background-color: #54656f;
+}
+
+/* Slider invisible encima para controlar la posición */
+.wa-seek-slider-hidden {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  /* Invisible pero funcional */
+  cursor: pointer;
+  z-index: 10;
+  margin: 0;
+}

@@ -1,170 +1,216 @@
 import { useState, useRef, useEffect } from 'react';
-import { FaPlay, FaPause, FaDownload } from 'react-icons/fa';
+import { FaPlay, FaPause, FaMicrophone } from 'react-icons/fa';
 import './AudioPlayer.css';
 
-const AudioPlayer = ({ src, fileName, onDownload, time, isOwnMessage, isRead, isSent, readBy }) => {
+const AudioPlayer = ({
+  src,
+  time,
+  isOwnMessage,
+  userPicture,
+  isSent,
+  isRead,
+  readBy
+}) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  // Estado inicial: barras grises planas mientras carga
+  const [waveformBars, setWaveformBars] = useState(Array(40).fill(5));
   const audioRef = useRef(null);
 
-  // Función para formatear la hora del mensaje
-  const formatMessageTime = (timeString) => {
-    if (!timeString) return '';
-
-    // Si ya viene en formato HH:MM, devolverlo tal cual
-    if (typeof timeString === 'string' && timeString.match(/^\d{1,2}:\d{2}/)) {
-      return timeString;
-    }
-
-    // Si es un timestamp o fecha, convertirlo
-    const date = new Date(timeString);
-    if (isNaN(date.getTime())) return timeString; // Si no es válido, devolver el original
-    return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
+  // Formatear tiempo
+  const formatTime = (timeInSeconds) => {
+    if (isNaN(timeInSeconds)) return "0:00";
+    const minutes = Math.floor(timeInSeconds / 60);
+    const seconds = Math.floor(timeInSeconds % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  const formatMessageTime = (timeString) => {
+    if (!timeString) return '';
+    if (typeof timeString === 'string' && timeString.includes(':')) return timeString;
+    try {
+      const date = new Date(timeString);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    } catch (e) {
+      return "";
+    }
+  };
+
+  // 🔥 LÓGICA DE ANÁLISIS DE AUDIO REAL
+  useEffect(() => {
+    if (!src) return;
+
+    const analyzeAudio = async () => {
+      try {
+        // 1. Obtenemos el archivo de audio como datos crudos
+        const response = await fetch(src);
+        const arrayBuffer = await response.arrayBuffer();
+
+        // 2. Creamos un contexto de audio para decodificarlo
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+        // 3. Obtenemos los datos del canal (PCM)
+        const rawData = audioBuffer.getChannelData(0);
+        const samples = 40; // Queremos 40 barras exactamente
+        const blockSize = Math.floor(rawData.length / samples); // Tamaño de cada bloque
+        const calculatedBars = [];
+
+        // 4. Calculamos el volumen promedio de cada bloque
+        for (let i = 0; i < samples; i++) {
+          let sum = 0;
+          const start = i * blockSize;
+          for (let j = 0; j < blockSize; j++) {
+            // Usamos valor absoluto porque la onda va de -1 a 1
+            sum += Math.abs(rawData[start + j]);
+          }
+          // Promedio del bloque
+          const average = sum / blockSize;
+
+          // 5. Normalizamos para que se vea bien (amplificamos un poco)
+          // Multiplicamos por un factor (ej: 500) y limitamos entre 10% y 100%
+          let barHeight = average * 1000;
+
+          if (barHeight > 100) barHeight = 100; // Tope máximo
+          if (barHeight < 15) barHeight = 15;   // Tope mínimo para que no desaparezca
+
+          calculatedBars.push(barHeight);
+        }
+
+        setWaveformBars(calculatedBars);
+
+      } catch (error) {
+        console.error("Error analizando audio:", error);
+        // Si falla (ej: CORS), dejamos barras aleatorias suaves como fallback
+        setWaveformBars(Array.from({ length: 40 }, () => Math.floor(Math.random() * (60 - 20 + 1)) + 20));
+      }
+    };
+
+    analyzeAudio();
+  }, [src]);
+
+  // Lógica de reproducción normal
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const handleLoadedMetadata = () => {
-      setDuration(audio.duration);
-      setIsLoading(false);
+    const setAudioData = () => {
+      if (audio.duration && !isNaN(audio.duration)) setDuration(audio.duration);
     };
 
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-    };
-
+    const setAudioTime = () => setCurrentTime(audio.currentTime);
     const handleEnded = () => {
       setIsPlaying(false);
       setCurrentTime(0);
     };
 
-    const handleError = () => {
-      setIsLoading(false);
-      console.error('Error al cargar el audio');
-    };
+    if (audio.readyState >= 1) setAudioData();
 
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', setAudioData);
+    audio.addEventListener('timeupdate', setAudioTime);
     audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('error', handleError);
 
     return () => {
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', setAudioData);
+      audio.removeEventListener('timeupdate', setAudioTime);
       audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('error', handleError);
     };
   }, [src]);
 
-  const togglePlayPause = () => {
+  const togglePlay = () => {
     const audio = audioRef.current;
     if (!audio) return;
-
-    if (isPlaying) {
-      audio.pause();
-    } else {
-      audio.play();
-    }
+    if (isPlaying) audio.pause();
+    else audio.play();
     setIsPlaying(!isPlaying);
   };
 
   const handleSeek = (e) => {
     const audio = audioRef.current;
     if (!audio) return;
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const percentage = x / rect.width;
-    const newTime = percentage * duration;
-    
+    const newTime = Number(e.target.value);
     audio.currentTime = newTime;
     setCurrentTime(newTime);
   };
 
-  const formatTime = (time) => {
-    if (isNaN(time)) return '0:00';
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="audio-player">
-      <audio ref={audioRef} src={src} preload="metadata" />
-      
-      <div className="audio-player-controls">
-        {/* Botón Play/Pause */}
-        <button
-          className="audio-play-btn"
-          onClick={togglePlayPause}
-          disabled={isLoading}
-          title={isPlaying ? 'Pausar' : 'Reproducir'}
-        >
-          {isLoading ? (
-            <div className="audio-loading-spinner" />
-          ) : isPlaying ? (
-            <FaPause size={12} />
-          ) : (
-            <FaPlay size={12} />
-          )}
-        </button>
+    <div className={`wa-audio-wrapper ${isOwnMessage ? 'own' : 'other'}`}>
+      <audio ref={audioRef} src={src} preload="metadata" crossorigin="anonymous" />
 
-        {/* Barra de progreso */}
-        <div className="audio-progress-container">
-          <div className="audio-progress-bar" onClick={handleSeek}>
-            <div 
-              className="audio-progress-fill" 
-              style={{ width: `${progress}%` }}
+      <div className="wa-avatar-section">
+        <div className="wa-avatar-circle">
+          {userPicture ? (
+            <img src={userPicture} alt="User" onError={(e) => e.target.style.display = 'none'} />
+          ) : (
+            <div className="wa-avatar-placeholder">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="#fff">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+              </svg>
+            </div>
+          )}
+        </div>
+        <div className={`wa-mic-badge ${isOwnMessage ? 'green' : 'blue'}`}>
+          <FaMicrophone />
+        </div>
+      </div>
+
+      <div className="wa-controls-section">
+        <div className="wa-upper-controls">
+          <button className="wa-play-button" onClick={togglePlay}>
+            {isPlaying ? <FaPause /> : <FaPlay style={{ marginLeft: '2px' }} />}
+          </button>
+
+          <div className="wa-waveform-wrapper">
+            <div className="wa-waveform-bars">
+              {waveformBars.map((height, index) => {
+                // Lógica visual de progreso
+                const barPosition = (index / waveformBars.length) * 100;
+                const isPlayed = barPosition < progressPercent;
+
+                return (
+                  <div
+                    key={index}
+                    className={`wa-bar ${isPlayed ? 'played' : ''}`}
+                    style={{ height: `${height}%` }}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Slider invisible para control */}
+            <input
+              type="range"
+              min="0"
+              max={duration || 100}
+              value={currentTime}
+              onChange={handleSeek}
+              className="wa-seek-slider-hidden"
             />
-            <div 
-              className="audio-progress-thumb" 
-              style={{ left: `${progress}%` }}
-            />
-          </div>
-          
-          {/* Tiempo */}
-          <div className="audio-time">
-            <span className="audio-time-current">{formatTime(currentTime)}</span>
-            <span className="audio-time-separator">/</span>
-            <span className="audio-time-duration">{formatTime(duration)}</span>
           </div>
         </div>
 
-        {/* Botón de descarga */}
-        <button
-          className="audio-download-btn"
-          onClick={() => onDownload(src, fileName)}
-          title="Descargar audio"
-        >
-          <FaDownload size={12} />
-        </button>
-      </div>
+        <div className="wa-audio-footer">
+          <span className="wa-duration">
+            {formatTime(duration > 0 ? (duration - currentTime) : duration)}
+          </span>
 
-      {/* Nombre del archivo con hora y checks */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', paddingTop: '4px' }}>
-        {fileName && (
-          <div className="audio-file-name" style={{ fontSize: '10px', color: '#8696a0', flex: 1 }}>
-            🎵 {fileName}
+          <div className="wa-meta">
+            <span className="wa-time">{formatMessageTime(time)}</span>
+            {isOwnMessage && (
+              <span className={`wa-ticks ${isRead || (readBy && readBy.length > 0) ? 'read' : ''}`}>
+                {isSent ? (
+                  <svg viewBox="0 0 18 18" height="16" width="16" preserveAspectRatio="xMidYMid meet" fill="currentColor">
+                    <path d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.039L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"></path>
+                  </svg>
+                ) : (
+                  <span style={{ fontSize: '10px' }}>⏳</span>
+                )}
+              </span>
+            )}
           </div>
-        )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#8696a0', whiteSpace: 'nowrap' }}>
-          {time && <span>{formatMessageTime(time)}</span>}
-          {isOwnMessage && (
-            <span
-              style={{
-                color: (readBy && readBy.length > 0) || isRead ? '#53bdeb' : '#8696a0',
-                fontSize: '11px'
-              }}
-            >
-              {isSent ? '✓✓' : '⏳'}
-            </span>
-          )}
         </div>
       </div>
     </div>
@@ -172,4 +218,3 @@ const AudioPlayer = ({ src, fileName, onDownload, time, isOwnMessage, isRead, is
 };
 
 export default AudioPlayer;
-

@@ -91,6 +91,7 @@ const ChatContent = ({
   isLoadingMessages, // 🔥 Estado de carga inicial de mensajes
   onLoadMoreMessages,
   currentUsername,
+  user,
   onEditMessage,
   onDeleteMessage,
   socket,
@@ -136,7 +137,7 @@ const ChatContent = ({
   const [mentionSearch, setMentionSearch] = useState("");
   const [mentionCursorPosition, setMentionCursorPosition] = useState(0);
   const inputRef = useRef(null);
-
+  const [isRecordingLocal, setIsRecordingLocal] = useState(false);
   // Función simple que usa directamente el displayDate del backend
   const formatDateFromBackend = (messageOrDate) => {
     // Si es un objeto mensaje con displayDate, usarlo directamente
@@ -211,9 +212,36 @@ const ChatContent = ({
   };
 
   // Función para descargar archivos
-  const handleDownload = (url) => {
-    // Abrir en nueva pestaña
-    window.open(url, "_blank");
+  const handleDownload = async (url, fileName) => {
+    if (!url) return;
+
+    try {
+      // 1. Intentamos descargar como Blob para forzar la descarga directa
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = fileName || "archivo"; // Usa el nombre proporcionado
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Limpiar memoria
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error("Error al descargar blob, intentando método alternativo:", error);
+
+      // 2. Fallback: Método clásico (si fetch falla por CORS, por ejemplo)
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName || "archivo";
+      link.target = "_blank"; // Solo como respaldo
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   // 🔥 Manejar drag & drop de archivos
@@ -1299,7 +1327,7 @@ const ChatContent = ({
     const isInfoMessage = message.type === "info";
     const isErrorMessage = message.type === "error";
 
-    // 🔥 NUEVO: Detectar si este mensaje debe agruparse con el anterior
+    // 🔥 Detectar si este mensaje debe agruparse con el anterior
     const previousMessage = index > 0 ? messages[index - 1] : null;
     const isGroupedWithPrevious =
       previousMessage &&
@@ -1381,7 +1409,7 @@ const ChatContent = ({
       );
     }
 
-    // 🔥 NUEVO: Ocultar mensajes de videollamada (se muestran en el banner del header)
+    // Ocultar mensajes de videollamada (se muestran en el banner del header)
     const messageText = message.text || message.message || "";
     const isVideoCallMessage =
       message.type === "video_call" ||
@@ -1389,8 +1417,7 @@ const ChatContent = ({
         messageText.includes("📹 Videollamada"));
 
     if (isVideoCallMessage) {
-      // console.log('🚫 Ocultando mensaje de videollamada del chat (se muestra en banner):', message.id);
-      return null; // No renderizar el mensaje en el chat
+      return null;
     }
 
     const isHighlighted = highlightedMessageId === message.id;
@@ -1472,8 +1499,7 @@ const ChatContent = ({
             transition: "all 0.3s ease",
             border: isHighlighted ? "2px solid #00a884" : "none",
             overflow: "visible",
-            // 🔥 El maxWidth se controla en el CSS de .own-message y .other-message (75%)
-            // Solo aplicamos maxWidth para media (imágenes, videos, etc.)
+            // El maxWidth se controla en el CSS de .own-message y .other-message
             ...(message.mediaType && { maxWidth: "400px" }),
           }}
         >
@@ -1494,12 +1520,11 @@ const ChatContent = ({
                     setShowMessageMenu(null);
                   } else {
                     const rect = e.currentTarget.getBoundingClientRect();
-                    const menuHeight = 200; // Altura aproximada del menú
+                    const menuHeight = 200;
                     const windowHeight = window.innerHeight;
                     const spaceBelow = windowHeight - rect.bottom;
                     const spaceAbove = rect.top;
 
-                    // Decidir si mostrar arriba o abajo
                     const showAbove =
                       spaceBelow < menuHeight && spaceAbove > spaceBelow;
 
@@ -1507,7 +1532,7 @@ const ChatContent = ({
                       top: showAbove
                         ? rect.top - menuHeight - 4
                         : rect.bottom + 4,
-                      left: Math.min(rect.right - 180, window.innerWidth - 190), // Evitar que se salga por la derecha
+                      left: Math.min(rect.right - 180, window.innerWidth - 190),
                     });
                     setShowMessageMenu(message.id);
                   }
@@ -1584,12 +1609,6 @@ const ChatContent = ({
                       gap: "12px",
                       transition: "background-color 0.2s",
                     }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.backgroundColor = "#f0f2f5")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.backgroundColor = "transparent")
-                    }
                   >
                     <FaReply style={{ color: "#8696a0" }} /> Responder
                   </button>
@@ -1598,25 +1617,27 @@ const ChatContent = ({
                   <button
                     onClick={async () => {
                       try {
+                        if (message.mediaType === 'image' && message.mediaData) {
+                          try {
+                            const response = await fetch(message.mediaData);
+                            const blob = await response.blob();
+                            await navigator.clipboard.write([
+                              new ClipboardItem({ [blob.type]: blob })
+                            ]);
+                            setShowMessageMenu(null);
+                            return;
+                          } catch (imgErr) {
+                            console.error("Error copiando imagen", imgErr);
+                          }
+                        }
                         let textToCopy = "";
-
-                        // Si es mensaje de texto
-                        if (message.text) {
-                          textToCopy = message.text;
-                        }
-                        // Si es mensaje multimedia con caption
-                        else if (message.caption) {
-                          textToCopy = message.caption;
-                        }
-                        // Si es archivo, copiar el nombre
-                        else if (message.fileName) {
-                          textToCopy = message.fileName;
-                        }
+                        if (message.text) textToCopy = message.text;
+                        else if (message.caption) textToCopy = message.caption;
+                        else if (message.mediaData) textToCopy = message.mediaData;
+                        else if (message.fileName) textToCopy = message.fileName;
 
                         if (textToCopy) {
                           await navigator.clipboard.writeText(textToCopy);
-                          // Opcional: mostrar notificación de éxito
-                          // console.log('Texto copiado:', textToCopy);
                         }
                       } catch (err) {
                         console.error("Error al copiar:", err);
@@ -1637,17 +1658,11 @@ const ChatContent = ({
                       gap: "12px",
                       transition: "background-color 0.2s",
                     }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.backgroundColor = "#f0f2f5")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.backgroundColor = "transparent")
-                    }
                   >
                     <FaCopy style={{ color: "#8696a0" }} /> Copiar
                   </button>
 
-                  {/* Descargar - Solo si hay multimedia */}
+                  {/* Descargar */}
                   {message.mediaData && (
                     <button
                       onClick={() => {
@@ -1671,18 +1686,12 @@ const ChatContent = ({
                         gap: "12px",
                         transition: "background-color 0.2s",
                       }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor = "#f0f2f5")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor = "transparent")
-                      }
                     >
                       <FaDownload style={{ color: "#8696a0" }} /> Descargar
                     </button>
                   )}
 
-                  {/* Fijar mensaje - Solo en grupos y para roles permitidos */}
+                  {/* Fijar mensaje */}
                   {isGroup && onPinMessage && (isAdmin || window.userRole === 'JEFEPISO' || window.userRole === 'PROGRAMADOR' || window.userRole === 'SUPERVISOR') && (
                     <button
                       onClick={() => {
@@ -1704,19 +1713,13 @@ const ChatContent = ({
                         transition: "background-color 0.2s",
                         fontWeight: pinnedMessageId === message.id ? "600" : "normal",
                       }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor = "#f0f2f5")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor = "transparent")
-                      }
                     >
                       <FaThumbtack style={{ color: pinnedMessageId === message.id ? "#d97706" : "#8696a0" }} />
                       {pinnedMessageId === message.id ? "Dejar de fijar" : "Fijar mensaje"}
                     </button>
                   )}
 
-                  {/* Info - para todos los mensajes */}
+                  {/* Info */}
                   {message.id && (
                     <button
                       onClick={() => {
@@ -1737,12 +1740,6 @@ const ChatContent = ({
                         gap: "12px",
                         transition: "background-color 0.2s",
                       }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor = "#f0f2f5")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor = "transparent")
-                      }
                     >
                       <FaInfoCircle style={{ color: "#8696a0" }} /> Info
                     </button>
@@ -1771,18 +1768,12 @@ const ChatContent = ({
                         gap: "12px",
                         transition: "background-color 0.2s",
                       }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor = "#f0f2f5")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor = "transparent")
-                      }
                     >
                       <FaSmile style={{ color: "#8696a0" }} /> Reaccionar
                     </button>
                   )}
 
-                  {/* Editar - solo para mensajes propios */}
+                  {/* Editar */}
                   {isOwnMessage && (
                     <button
                       onClick={(e) => {
@@ -1804,18 +1795,12 @@ const ChatContent = ({
                         gap: "12px",
                         transition: "background-color 0.2s",
                       }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor = "#f0f2f5")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor = "transparent")
-                      }
                     >
                       <FaEdit style={{ color: "#8696a0" }} /> Editar
                     </button>
                   )}
 
-                  {/* Eliminar - solo para ADMIN */}
+                  {/* Eliminar */}
                   {isAdmin && (
                     <button
                       onClick={(e) => {
@@ -1843,12 +1828,6 @@ const ChatContent = ({
                         transition: "background-color 0.2s",
                         borderTop: "1px solid #e0e0e0",
                       }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor = "#fff5f5")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor = "transparent")
-                      }
                     >
                       <FaTrash style={{ color: "#ff4444" }} /> Eliminar
                     </button>
@@ -1868,21 +1847,18 @@ const ChatContent = ({
                 marginBottom: "2px",
                 display: "flex",
                 alignItems: "center",
-                // Se puede eliminar 'gap: "4px"' si el sufijo ya maneja el espaciado
                 gap: "4px",
               }}
             >
               {/* Nombre del Remitente */}
               {message.sender}
 
-              {/* Renderizar el sufijo calculado (Nº de Agente o Rol) */}
+              {/* Renderizar el sufijo calculado */}
               {getSenderSuffix(message) && (
                 <span
                   style={{
-                    // Usar un color que contraste pero sea secundario
                     color: "#666",
                     fontWeight: "400",
-                    // Si el texto de getSenderSuffix empieza con " • ", este margen asegura la separación
                     marginLeft: "4px",
                   }}
                 >
@@ -1897,7 +1873,6 @@ const ChatContent = ({
           {message.replyToMessageId && (
             <div
               onClick={async () => {
-                // Buscar el mensaje original y hacer scroll hacia él
                 const originalMessage = document.getElementById(
                   `message-${message.replyToMessageId}`
                 );
@@ -1906,26 +1881,17 @@ const ChatContent = ({
                     behavior: "smooth",
                     block: "center",
                   });
-                  // Resaltar temporalmente el mensaje
                   setHighlightedMessageId(message.replyToMessageId);
                   setTimeout(() => setHighlightedMessageId(null), 2000);
                 } else {
-                  // 🔥 Si no se encuentra el mensaje, intentar cargar más mensajes
-                  // console.log(`⚠️ Mensaje original ${message.replyToMessageId} no encontrado, cargando más mensajes...`);
-
-                  // Cargar más mensajes hasta encontrar el original (máximo 5 intentos)
+                  // Lógica de carga de mensajes si no existe
                   let attempts = 0;
                   const maxAttempts = 5;
-
                   while (attempts < maxAttempts) {
                     if (hasMoreMessages && onLoadMoreMessages) {
                       await onLoadMoreMessages();
                       attempts++;
-
-                      // Esperar un poco para que se carguen los mensajes
                       await new Promise((resolve) => setTimeout(resolve, 500));
-
-                      // Verificar si ahora existe el mensaje
                       const foundMessage = document.getElementById(
                         `message-${message.replyToMessageId}`
                       );
@@ -1939,13 +1905,8 @@ const ChatContent = ({
                         break;
                       }
                     } else {
-                      // console.log('❌ No hay más mensajes para cargar');
                       break;
                     }
-                  }
-
-                  if (attempts >= maxAttempts) {
-                    // console.log('❌ No se pudo encontrar el mensaje original después de varios intentos');
                   }
                 }
               }}
@@ -2024,7 +1985,7 @@ const ChatContent = ({
                 onBlur={(e) => (e.target.style.borderColor = "#d1d7db")}
               />
 
-              {/* Input para cambiar archivo multimedia - Estilo mejorado */}
+              {/* Input para cambiar archivo multimedia */}
               <div style={{ marginBottom: "12px" }}>
                 <label
                   htmlFor={`file-input-${message.id}`}
@@ -2140,14 +2101,6 @@ const ChatContent = ({
                     alignItems: "center",
                     gap: "8px",
                   }}
-                  onMouseEnter={(e) =>
-                    !isEditingLoading &&
-                    (e.target.style.backgroundColor = "#06cf9c")
-                  }
-                  onMouseLeave={(e) =>
-                    !isEditingLoading &&
-                    (e.target.style.backgroundColor = "#00a884")
-                  }
                 >
                   {isEditingLoading && (
                     <div
@@ -2176,12 +2129,6 @@ const ChatContent = ({
                     fontWeight: "500",
                     transition: "background-color 0.2s",
                   }}
-                  onMouseEnter={(e) =>
-                    (e.target.style.backgroundColor = "#e4e6eb")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.target.style.backgroundColor = "#f0f2f5")
-                  }
                 >
                   Cancelar
                 </button>
@@ -2189,27 +2136,15 @@ const ChatContent = ({
             </div>
           ) : message.mediaType && message.mediaData ? (
             <div>
-              {/* 🔥 Mostrar mensaje eliminado para multimedia */}
+              {/* 🔥 BLOQUE MULTIMEDIA CON FIX DE ELIMINADO Y FIX DE IMAGEN/VIDEO */}
               {message.isDeleted ? (
                 <div>
-                  <div
-                    className="message-text"
-                    style={{
-                      color: "#8696a0",
-                      fontSize: "14px",
-                      fontStyle: "italic",
-                      lineHeight: "100%",
-                      fontFamily: "Inter, sans-serif",
-                      fontWeight: "400",
-                      marginBottom: "4px",
-                      whiteSpace: "pre-wrap",
-                      display: "block",
-                    }}
+                  <span
+                    className="mx_RedactedBody"
+                    title={`Mensaje eliminado el ${new Date().toLocaleDateString()} a las ${message.time}`}
                   >
-                    {message.deletedBy
-                      ? `🚫 Mensaje eliminado por ${message.deletedBy}`
-                      : "🚫 Mensaje eliminado"}
-                  </div>
+                    Mensaje eliminado
+                  </span>
                   {/* Hora del mensaje eliminado */}
                   <div
                     style={{
@@ -2233,7 +2168,8 @@ const ChatContent = ({
                     }}
                   >
                     {message.mediaType === "image" ? (
-                      <div style={{ position: "relative" }}>
+                      /* 🔥 FIX IMAGEN: Flex Column para poner hora abajo a la derecha */
+                      <div style={{ display: "flex", flexDirection: "column" }}>
                         <img
                           src={message.mediaData}
                           alt={message.fileName || "Imagen"}
@@ -2243,6 +2179,8 @@ const ChatContent = ({
                             borderRadius: "7.5px",
                             display: "block",
                             cursor: "pointer",
+                            maxWidth: "100%",
+                            objectFit: "contain"
                           }}
                           onClick={() =>
                             setImagePreview({
@@ -2251,30 +2189,29 @@ const ChatContent = ({
                             })
                           }
                         />
-                        {/* 🔥 NUEVO: Hora y checks en la esquina inferior derecha de la imagen */}
+                        {/* Metadata (Hora y Checks) debajo */}
                         <div
                           style={{
-                            position: "absolute",
-                            bottom: "6px",
-                            right: "6px",
-                            backgroundColor: "rgba(0,0,0,0.6)",
-                            color: "#fff",
-                            padding: "3px 8px",
-                            borderRadius: "12px",
-                            fontSize: "11px",
                             display: "flex",
+                            justifyContent: "flex-end",
                             alignItems: "center",
+                            marginTop: "4px",
                             gap: "4px",
-                            pointerEvents: "none",
+                            position: "static",
+                            backgroundColor: "transparent",
+                            padding: "0 2px",
+                            width: "100%"
                           }}
                         >
-                          <span>{message.time}</span>
+                          <span style={{ fontSize: "11px", color: "#667781", whiteSpace: "nowrap" }}>
+                            {message.time}
+                          </span>
                           {message.isEdited && (
                             <span
                               style={{
                                 fontSize: "10px",
-                                color: "rgba(255, 255, 255, 0.7)",
-                                marginLeft: "4px",
+                                color: "#8696a0",
+                                marginLeft: "2px",
                               }}
                             >
                               (editado)
@@ -2286,22 +2223,20 @@ const ChatContent = ({
                                 color:
                                   message.readBy && message.readBy.length > 0
                                     ? "#53bdeb"
-                                    : "#fff",
+                                    : "#8696a0",
                                 fontSize: "12px",
                                 display: "inline-flex",
                                 alignItems: "center",
+                                marginLeft: "2px",
                               }}
                             >
                               {message.isSent ? (
                                 <svg
                                   viewBox="0 0 18 18"
-                                  height="18"
-                                  width="18"
+                                  height="16"
+                                  width="16"
                                   preserveAspectRatio="xMidYMid meet"
                                   version="1.1"
-                                  x="0px"
-                                  y="0px"
-                                  enableBackground="new 0 0 18 18"
                                 >
                                   <path
                                     fill="currentColor"
@@ -2314,11 +2249,10 @@ const ChatContent = ({
                             </span>
                           )}
                         </div>
-                        {/* Botón de descargar */}
-
                       </div>
                     ) : message.mediaType === "video" ? (
-                      <div style={{ position: "relative" }}>
+                      /* 🔥 FIX VIDEO: Flex Column para poner hora abajo a la derecha */
+                      <div style={{ display: "flex", flexDirection: "column" }}>
                         <video
                           src={message.mediaData}
                           controls
@@ -2330,72 +2264,61 @@ const ChatContent = ({
                             display: "block",
                           }}
                         />
-                        {/* 🔥 NUEVO: Hora y checks debajo del video */}
+                        {/* Metadata del video */}
                         <div
                           style={{
                             display: "flex",
+                            justifyContent: "flex-end",
                             alignItems: "center",
-                            justifyContent: "space-between",
                             marginTop: "4px",
-                            gap: "8px",
+                            gap: "4px",
+                            width: "100%"
                           }}
                         >
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "4px",
-                              fontSize: "11px",
-                              color: "#8696a0",
-                            }}
-                          >
-                            <span>{message.time}</span>
-                            {message.isEdited && (
-                              <span
-                                style={{
-                                  fontSize: "10px",
-                                  color: "#8696a0",
-                                  marginLeft: "4px",
-                                }}
-                              >
-                                (editado)
-                              </span>
-                            )}
-                            {isOwnMessage && (
-                              <span
-                                style={{
-                                  color:
-                                    message.readBy && message.readBy.length > 0
-                                      ? "#53bdeb"
-                                      : "#8696a0",
-                                  fontSize: "12px",
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                }}
-                              >
-                                {message.isSent ? (
-                                  <svg
-                                    viewBox="0 0 18 18"
-                                    height="18"
-                                    width="18"
-                                    preserveAspectRatio="xMidYMid meet"
-                                    version="1.1"
-                                    x="0px"
-                                    y="0px"
-                                    enableBackground="new 0 0 18 18"
-                                  >
-                                    <path
-                                      fill="currentColor"
-                                      d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"
-                                    ></path>
-                                  </svg>
-                                ) : (
-                                  "⏳"
-                                )}
-                              </span>
-                            )}
-                          </div>
-
+                          <span style={{ fontSize: "11px", color: "#667781", whiteSpace: "nowrap" }}>
+                            {message.time}
+                          </span>
+                          {message.isEdited && (
+                            <span
+                              style={{
+                                fontSize: "10px",
+                                color: "#8696a0",
+                                marginLeft: "4px",
+                              }}
+                            >
+                              (editado)
+                            </span>
+                          )}
+                          {isOwnMessage && (
+                            <span
+                              style={{
+                                color:
+                                  message.readBy && message.readBy.length > 0
+                                    ? "#53bdeb"
+                                    : "#8696a0",
+                                fontSize: "12px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                              }}
+                            >
+                              {message.isSent ? (
+                                <svg
+                                  viewBox="0 0 18 18"
+                                  height="16"
+                                  width="16"
+                                  preserveAspectRatio="xMidYMid meet"
+                                  version="1.1"
+                                >
+                                  <path
+                                    fill="currentColor"
+                                    d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"
+                                  ></path>
+                                </svg>
+                              ) : (
+                                "⏳"
+                              )}
+                            </span>
+                          )}
                         </div>
                       </div>
                     ) : message.mediaType === "audio" ? (
@@ -2408,6 +2331,18 @@ const ChatContent = ({
                         isRead={message.isRead}
                         isSent={message.isSent}
                         readBy={message.readBy}
+                        userPicture={
+                          isOwnMessage
+                            ? (
+                              roomUsers?.find(u =>
+                                (typeof u === 'object') &&
+                                (u.username === currentUsername || u.nombre === currentUsername)
+                              )?.picture
+                              || user?.picture
+                              || null
+                            )
+                            : (message.senderPicture || null)
+                        }
                       />
                     ) : (
                       <div
@@ -2441,12 +2376,10 @@ const ChatContent = ({
                           e.currentTarget.style.transform = "scale(1)";
                         }}
                       >
-                        {/* 🔥 NUEVO: Ícono SVG de archivo según tipo */}
                         <div className="file-icon" style={{ flexShrink: 0 }}>
                           {renderFileIcon(message.fileName)}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          {/* 🔥 NUEVO: Badge con tipo de archivo */}
                           <div
                             style={{
                               display: "flex",
@@ -2554,9 +2487,6 @@ const ChatContent = ({
                                       width="18"
                                       preserveAspectRatio="xMidYMid meet"
                                       version="1.1"
-                                      x="0px"
-                                      y="0px"
-                                      enableBackground="new 0 0 18 18"
                                     >
                                       <path
                                         fill="currentColor"
@@ -2571,7 +2501,6 @@ const ChatContent = ({
                             )}
                           </div>
                         </div>
-                        {/* 🔥 NUEVO: Ícono de descarga mejorado */}
                         <div style={{ flexShrink: 0 }}>
                           <svg
                             width="24"
@@ -2697,106 +2626,68 @@ const ChatContent = ({
                   )}
 
                   {/* Mostrar reacciones del mensaje (para mensajes con archivos adjuntos) */}
-                  {Array.isArray(message.reactions) &&
-                    message.reactions.length > 0 && (
-                      <div
-                        style={{
-                          display: "flex",
-                          flexWrap: "wrap",
-                          gap: "4px",
-                          marginTop: "4px",
-                        }}
-                      >
-                        {/* Agrupar reacciones por emoji */}
-                        {Object.entries(
-                          message.reactions.reduce((acc, reaction) => {
-                            if (reaction && reaction.emoji) {
-                              if (!acc[reaction.emoji]) {
-                                acc[reaction.emoji] = [];
-                              }
-                              acc[reaction.emoji].push(reaction.username);
-                            }
-                            return acc;
-                          }, {})
-                        ).map(([emoji, users]) => (
-                          <div
-                            key={emoji}
-                            style={{
-                              backgroundColor: users.includes(currentUsername)
-                                ? "#e1f4d6"
-                                : "#f5f6f6",
-                              border: users.includes(currentUsername)
-                                ? "1px solid #00a884"
-                                : "1px solid #ddd",
-                              borderRadius: "12px",
-                              padding: "2px 8px",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "4px",
-                              fontSize: "12px",
-                              cursor: "pointer",
-                            }}
-                            onClick={() => handleReaction(message, emoji)}
-                            title={users.join(", ")}
-                          >
-                            <span style={{ fontSize: "14px" }}>{emoji}</span>
-                            <span
-                              style={{
-                                fontSize: "11px",
-                                color: "#667781",
-                                fontWeight: "500",
-                              }}
-                            >
-                              {users.length}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                  {Array.isArray(message.reactions) && message.reactions.length > 0 && (
+                    /* 🔥 CAMBIO: Usamos la clase contenedora 'absolute' */
+                    <div className="message-reactions-container">
+                      {Object.entries(
+                        message.reactions.reduce((acc, reaction) => {
+                          if (reaction && reaction.emoji) {
+                            if (!acc[reaction.emoji]) acc[reaction.emoji] = [];
+                            acc[reaction.emoji].push(reaction.username);
+                          }
+                          return acc;
+                        }, {})
+                      ).map(([emoji, users]) => (
+                        <div
+                          key={emoji}
+                          onClick={(e) => {
+                            e.stopPropagation(); // Evita abrir el mensaje si clickeas la reacción
+                            handleReaction(message, emoji);
+                          }}
+                          className="reaction-pill"
+                          title={users.join(", ")}
+                          style={{
+                            // Si el usuario actual reaccionó, pintamos el borde o fondo diferente
+                            backgroundColor: users.includes(currentUsername) ? "#e1f4d6" : "#ffffff",
+                            borderColor: users.includes(currentUsername) ? "#00a884" : "#e5e7eb",
+                          }}
+                        >
+                          <span className="reaction-emoji">{emoji}</span>
+                          {/* Mostramos el número solo si es > 1, igual que WhatsApp (opcional) */}
+                          {users.length > 1 && <span className="reaction-count">{users.length}</span>}
+                          {/* O si prefieres mostrar siempre el número, usa esta línea: */}
+                          {users.length <= 1 && <span className="reaction-count">{users.length}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Botón de Hilo visible debajo del mensaje (para archivos adjuntos) */}
                   {onOpenThread && !message.isDeleted && (
                     <div
+                      className="mx_ThreadSummaryLine"
                       onClick={() => onOpenThread(message)}
-                      style={{
-                        backgroundColor: "transparent",
-                        border: "none",
-                        color: "#00a884",
-                        cursor: "pointer",
-                        fontSize: "12px",
-                        padding: "4px 0",
-                        marginTop: "4px",
-                        fontWeight: "500",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "2px",
-                        transition: "opacity 0.2s",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.opacity = "0.7")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.opacity = "1")
-                      }
+                      title="Ver hilo de respuestas"
                     >
-                      <FaComments style={{ marginRight: "6px" }} />
-                      {message.threadCount > 0
-                        ? `${message.threadCount} ${message.threadCount === 1
-                          ? "respuesta"
-                          : "respuestas"
-                        }`
-                        : "Responder en hilo"}
+                      {/* Icono y Contador (Verde) */}
+                      <span className="mx_ThreadCounter">
+                        <FaComments style={{ fontSize: "14px" }} />
+                        {message.threadCount > 0
+                          ? `${message.threadCount} ${message.threadCount === 1 ? "respuesta" : "respuestas"}`
+                          : "Responder en hilo"
+                        }
+                      </span>
+
+                      {/* Texto "Última de..." en la misma línea (Gris) */}
                       {message.lastReplyFrom && message.threadCount > 0 && (
-                        <div
-                          style={{
-                            fontSize: "11px",
-                            color: "#8696a0",
-                            marginLeft: "20px",
-                            fontWeight: "400",
-                          }}
-                        >
-                          Última respuesta de {message.lastReplyFrom}
-                        </div>
+                        <>
+                          {/* Pequeño separador o espacio */}
+                          <span className="mx_ThreadSeparator">•</span>
+
+                          <span className="mx_ThreadLastReply">
+                            última de {message.lastReplyFrom}
+                          </span>
+                        </>
                       )}
                     </div>
                   )}
@@ -2804,28 +2695,17 @@ const ChatContent = ({
               )}
             </div>
           ) : (
+            /* 🔥 BLOQUE DE TEXTO CON FIX DE ELIMINADO */
             <div>
               {/* 🔥 Mostrar mensaje eliminado */}
               {message.isDeleted ? (
                 <div>
-                  <div
-                    className="message-text"
-                    style={{
-                      color: "#8696a0",
-                      fontSize: "14px",
-                      fontStyle: "italic",
-                      lineHeight: "100%",
-                      fontFamily: "Inter, sans-serif",
-                      fontWeight: "400",
-                      marginBottom: "4px",
-                      whiteSpace: "pre-wrap",
-                      display: "block",
-                    }}
+                  <span
+                    className="mx_RedactedBody"
+                    title={`Mensaje eliminado el ${new Date().toLocaleDateString()} a las ${message.time}`}
                   >
-                    {message.deletedBy
-                      ? `🚫 Mensaje eliminado por ${message.deletedBy}`
-                      : "🚫 Mensaje eliminado"}
-                  </div>
+                    Mensaje eliminado
+                  </span>
                   {/* Hora del mensaje eliminado */}
                   <div
                     style={{
@@ -2938,9 +2818,6 @@ const ChatContent = ({
                                         width="18"
                                         preserveAspectRatio="xMidYMid meet"
                                         version="1.1"
-                                        x="0px"
-                                        y="0px"
-                                        enableBackground="new 0 0 18 18"
                                       >
                                         <path
                                           fill="currentColor"
@@ -3053,9 +2930,6 @@ const ChatContent = ({
                                           width="18"
                                           preserveAspectRatio="xMidYMid meet"
                                           version="1.1"
-                                          x="0px"
-                                          y="0px"
-                                          enableBackground="new 0 0 18 18"
                                         >
                                           <path
                                             fill="currentColor"
@@ -3169,112 +3043,68 @@ const ChatContent = ({
               )}
 
               {/* Mostrar reacciones del mensaje */}
-              {Array.isArray(message.reactions) &&
-                message.reactions.length > 0 && (
-                  <div
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: "4px",
-                      marginTop: "4px",
-                    }}
-                  >
-                    {/* Agrupar reacciones por emoji */}
-                    {Object.entries(
-                      message.reactions.reduce((acc, reaction) => {
-                        if (reaction && reaction.emoji) {
-                          if (!acc[reaction.emoji]) {
-                            acc[reaction.emoji] = [];
-                          }
-                          acc[reaction.emoji].push(reaction.username);
-                        }
-                        return acc;
-                      }, {})
-                    ).map(([emoji, users]) => (
-                      <div
-                        key={emoji}
-                        style={{
-                          backgroundColor: users.includes(currentUsername)
-                            ? "#e1f4d6"
-                            : "#f5f6f6",
-                          border: users.includes(currentUsername)
-                            ? "1px solid #00a884"
-                            : "1px solid #ddd",
-                          borderRadius: "12px",
-                          padding: "2px 8px",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                          fontSize: "12px",
-                          cursor: "pointer",
-                        }}
-                        onClick={() => handleReaction(message, emoji)}
-                        title={users.join(", ")}
-                      >
-                        <span style={{ fontSize: "14px" }}>{emoji}</span>
-                        <span
-                          style={{
-                            fontSize: "11px",
-                            color: "#667781",
-                            fontWeight: "500",
-                          }}
-                        >
-                          {users.length}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+              {Array.isArray(message.reactions) && message.reactions.length > 0 && (
+                /* 🔥 CAMBIO: Usamos la clase contenedora 'absolute' */
+                <div className="message-reactions-container">
+                  {Object.entries(
+                    message.reactions.reduce((acc, reaction) => {
+                      if (reaction && reaction.emoji) {
+                        if (!acc[reaction.emoji]) acc[reaction.emoji] = [];
+                        acc[reaction.emoji].push(reaction.username);
+                      }
+                      return acc;
+                    }, {})
+                  ).map(([emoji, users]) => (
+                    <div
+                      key={emoji}
+                      onClick={(e) => {
+                        e.stopPropagation(); // Evita abrir el mensaje si clickeas la reacción
+                        handleReaction(message, emoji);
+                      }}
+                      className="reaction-pill"
+                      title={users.join(", ")}
+                      style={{
+                        // Si el usuario actual reaccionó, pintamos el borde o fondo diferente
+                        backgroundColor: users.includes(currentUsername) ? "#e1f4d6" : "#ffffff",
+                        borderColor: users.includes(currentUsername) ? "#00a884" : "#e5e7eb",
+                      }}
+                    >
+                      <span className="reaction-emoji">{emoji}</span>
+                      {/* Mostramos el número solo si es > 1, igual que WhatsApp (opcional) */}
+                      {users.length > 1 && <span className="reaction-count">{users.length}</span>}
+                      {/* O si prefieres mostrar siempre el número, usa esta línea: */}
+                      {users.length <= 1 && <span className="reaction-count">{users.length}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Botón de Hilo visible debajo del mensaje */}
               {onOpenThread && !message.isDeleted && (
                 <div
+                  className="mx_ThreadSummaryLine"
                   onClick={() => onOpenThread(message)}
-                  style={{
-                    backgroundColor: "transparent",
-                    border: "none",
-                    color: "#00a884",
-                    cursor: "pointer",
-                    fontSize: "12px",
-                    padding: "4px 0",
-                    marginTop: "4px",
-                    fontWeight: "500",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "2px",
-                    transition: "opacity 0.2s",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.7")}
-                  onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+                  title="Ver hilo de respuestas"
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}
-                  >
+                  {/* Icono y Contador (Verde) */}
+                  <span className="mx_ThreadCounter">
                     <FaComments style={{ fontSize: "14px" }} />
-                    <span>
-                      {message.threadCount > 0
-                        ? `${message.threadCount} ${message.threadCount === 1
-                          ? "respuesta"
-                          : "respuestas"
-                        }`
-                        : "Responder en hilo"}
-                    </span>
-                  </div>
+                    {message.threadCount > 0
+                      ? `${message.threadCount} ${message.threadCount === 1 ? "respuesta" : "respuestas"}`
+                      : "Responder en hilo"
+                    }
+                  </span>
+
+                  {/* Texto "Última de..." en la misma línea (Gris) */}
                   {message.lastReplyFrom && message.threadCount > 0 && (
-                    <div
-                      style={{
-                        fontSize: "11px",
-                        color: "#8696a0",
-                        marginLeft: "20px",
-                        fontWeight: "400",
-                      }}
-                    >
-                      Última respuesta de {message.lastReplyFrom}
-                    </div>
+                    <>
+                      {/* Pequeño separador o espacio */}
+                      <span className="mx_ThreadSeparator">•</span>
+
+                      <span className="mx_ThreadLastReply">
+                        última de {message.lastReplyFrom}
+                      </span>
+                    </>
                   )}
                 </div>
               )}
@@ -3358,8 +3188,14 @@ const ChatContent = ({
               onLoadMore={onLoadMoreMessages}
             />
 
-            {/* Mensajes agrupados por fecha */}
-            {groupMessagesByDate(messages).map((item, idx) => {
+            {/* Mensajes agrupados por fecha (CON FILTRO ANTI-DUPLICADOS) */}
+            {groupMessagesByDate(
+              messages.filter((msg, index, self) =>
+                index === self.findIndex((t) => (
+                  t.id === msg.id // Mantiene solo la primera ocurrencia de cada ID
+                ))
+              )
+            ).map((item, idx) => {
               if (item.type === "date-separator") {
                 return (
                   <div key={`date-${idx}`} className="date-separator">
@@ -3888,13 +3724,15 @@ const ChatContent = ({
           </div>
         )}
 
-        <div className="input-group">
+        <div className={`input-group ${isRecordingLocal ? "recording-mode" : ""}`}>
+
+          {/* 1. BOTÓN ADJUNTAR */}
           <label
             className={`btn-attach ${!canSendMessages ? "disabled" : ""}`}
             title={
               canSendMessages
-                ? "Adjuntar archivos (imágenes, PDFs, documentos - máx. 5, 10MB cada uno)"
-                : "No puedes enviar mensajes en esta conversación"
+                ? "Adjuntar archivos (imágenes, PDFs, documentos)"
+                : "No puedes enviar mensajes"
             }
           >
             <input
@@ -3917,8 +3755,8 @@ const ChatContent = ({
             </svg>
           </label>
 
-          {/* Botón de emoji picker */}
-          <div style={{ position: "relative" }} ref={emojiPickerRef}>
+          {/* 2. BOTÓN EMOJI */}
+          <div className="emoji-container" style={{ position: "relative" }} ref={emojiPickerRef}>
             <button
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
               className={`btn-attach ${!canSendMessages ? "disabled" : ""}`}
@@ -3928,7 +3766,6 @@ const ChatContent = ({
               <EmojiIcon className="attach-icon" />
             </button>
 
-            {/* Emoji Picker */}
             {showEmojiPicker && (
               <div
                 style={{
@@ -3950,14 +3787,17 @@ const ChatContent = ({
             )}
           </div>
 
-          {/* Botón de grabación de voz */}
+          {/* 3. GRABADORA DE VOZ */}
           <VoiceRecorder
             onSendAudio={onSendVoiceMessage}
             canSendMessages={canSendMessages}
+            onRecordingStart={() => setIsRecordingLocal(true)}
+            onRecordingStop={() => setIsRecordingLocal(false)}
           />
 
-          <div style={{ position: "relative", flex: 1 }}>
-            {/* 🔥 Loading overlay cuando se sube un archivo */}
+          {/* 4. INPUT DE TEXTO */}
+          <div className="text-input-container" style={{ position: "relative", flex: 1 }}>
+            {/* Overlay de carga al subir archivo */}
             {isUploadingFile && (
               <div
                 style={{
@@ -4009,168 +3849,78 @@ const ChatContent = ({
               disabled={isRecording || !canSendMessages || isUploadingFile}
             />
 
-            {/* Sugerencias de menciones */}
-            {showMentionSuggestions &&
-              isGroup &&
-              roomUsers &&
-              roomUsers.length > 0 && (
-                <div
-                  className="mention-suggestions"
-                  style={{
-                    position: "absolute",
-                    bottom: "100%",
-                    left: "0",
-                    right: "0",
-                    maxHeight: "200px",
-                    overflowY: "auto",
-                    backgroundColor: "#fff",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "8px",
-                    boxShadow: "0 -4px 12px rgba(0, 0, 0, 0.1)",
-                    marginBottom: "8px",
-                    zIndex: 1000,
-                  }}
-                >
-                  {roomUsers
-                    .filter((user) => {
-                      const username =
-                        typeof user === "string"
-                          ? user
-                          : user.username || user.nombre || user;
-                      return (
-                        username.toLowerCase().includes(mentionSearch) &&
-                        username !== currentUsername
-                      );
-                    })
-                    .slice(0, 5)
-                    .map((user, index) => {
-                      const username =
-                        typeof user === "string"
-                          ? user
-                          : user.username || user.nombre || user;
-                      const displayName =
-                        typeof user === "object" && user.nombre && user.apellido
-                          ? `${user.nombre} ${user.apellido}`
-                          : username;
-
-                      return (
-                        <div
-                          key={index}
-                          onClick={() => handleMentionSelect(user)}
-                          style={{
-                            padding: "10px 16px",
-                            cursor: "pointer",
-                            borderBottom: "1px solid #f3f4f6",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            transition: "background-color 0.2s",
-                          }}
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.backgroundColor = "#f9fafb")
-                          }
-                          onMouseLeave={(e) =>
-                          (e.currentTarget.style.backgroundColor =
-                            "transparent")
-                          }
-                        >
-                          <div
-                            style={{
-                              width: "32px",
-                              height: "32px",
-                              borderRadius: "50%",
-                              background:
-                                "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: "#fff",
-                              fontSize: "14px",
-                              fontWeight: "600",
-                            }}
-                          >
-                            {username.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <div
-                              style={{
-                                fontSize: "14px",
-                                fontWeight: "500",
-                                color: "#1f2937",
-                              }}
-                            >
-                              {displayName}
-                            </div>
-                            {displayName !== username && (
-                              <div
-                                style={{ fontSize: "12px", color: "#6b7280" }}
-                              >
-                                @{username}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  {roomUsers.filter((user) => {
-                    const username =
-                      typeof user === "string"
-                        ? user
-                        : user.username || user.nombre || user;
-                    return (
-                      username.toLowerCase().includes(mentionSearch) &&
-                      username !== currentUsername
-                    );
-                  }).length === 0 && (
-                      <div
-                        style={{
-                          padding: "16px",
-                          textAlign: "center",
-                          color: "#6b7280",
-                          fontSize: "14px",
-                        }}
-                      >
-                        No se encontraron usuarios
-                      </div>
-                    )}
-                </div>
-              )}
+            {/* Sugerencias de menciones (solo si aplica) */}
+            {showMentionSuggestions && isGroup && roomUsers && roomUsers.length > 0 && (
+              <div
+                className="mention-suggestions"
+                style={{
+                  position: "absolute",
+                  bottom: "100%",
+                  left: "0",
+                  right: "0",
+                  maxHeight: "200px",
+                  overflowY: "auto",
+                  backgroundColor: "#fff",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "8px",
+                  boxShadow: "0 -4px 12px rgba(0, 0, 0, 0.1)",
+                  marginBottom: "8px",
+                  zIndex: 1000,
+                }}
+              >
+                {/* Lógica de renderizado de menciones (resumida para el bloque) */}
+                {roomUsers
+                  .filter((user) => {
+                    const username = typeof user === "string" ? user : user.username || user.nombre || user;
+                    return username.toLowerCase().includes(mentionSearch) && username !== currentUsername;
+                  })
+                  .slice(0, 5)
+                  .map((user, index) => (
+                    <div
+                      key={index}
+                      onClick={() => handleMentionSelect(user)}
+                      style={{
+                        padding: "10px 16px",
+                        cursor: "pointer",
+                        borderBottom: "1px solid #f3f4f6",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                      }}
+                    >
+                      {/* Avatar simple para la sugerencia */}
+                      <div style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#ccc", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px" }}>@</div>
+                      <div>{typeof user === "object" ? user.nombre : user}</div>
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
 
+          {/* 5. BOTÓN ENVIAR (COMPLETO) */}
           <button
             onClick={onSendMessage}
             className="btn-send"
             disabled={
-              (!input && mediaFiles.length === 0) ||
+              (!input.trim() && mediaFiles.length === 0) ||
               !canSendMessages ||
               isUploadingFile ||
-              isSending // 🔥 NUEVO: Deshabilitar mientras se envía
+              isSending
             }
             title={
               isSending
-                ? "Enviando mensaje..."
-                : canSendMessages
-                  ? "Enviar mensaje"
-                  : "No puedes enviar mensajes en esta conversación"
+                ? "Enviando..."
+                : isUploadingFile
+                  ? "Subiendo archivo..."
+                  : !canSendMessages
+                    ? "Solo lectura"
+                    : "Enviar mensaje"
             }
           >
-            {isUploadingFile ? (
+            {isUploadingFile || isSending ? (
               <>
-                <span className="send-text">Subiendo archivo...</span>
-                <div
-                  className="send-icon"
-                  style={{ animation: "pulse 1.5s infinite" }}
-                >
-                  <FaPaperPlane />
-                </div>
-              </>
-            ) : isSending ? (
-              <>
-                <span className="send-text">Enviando...</span>
-                <div
-                  className="send-icon"
-                  style={{ animation: "pulse 1.5s infinite" }}
-                >
+                <span className="send-text">{isUploadingFile ? "Subiendo..." : "Enviando..."}</span>
+                <div className="send-icon" style={{ animation: "pulse 1s infinite", opacity: 0.7 }}>
                   <FaPaperPlane />
                 </div>
               </>

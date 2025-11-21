@@ -5,6 +5,7 @@ import LeftSidebar from '../components/LeftSidebar';
 import ChatHeader from '../components/ChatHeader';
 import ChatContent from '../components/ChatContent';
 import MembersPanel from '../components/MembersPanel';
+import ThreadPanel from '../components/ThreadPanel';
 import ActiveVideoCallBanner from '../components/ActiveVideoCallBanner';
 import PinnedMessageBanner from '../components/PinnedMessageBanner';
 import CreateRoomModal from '../components/modals/CreateRoomModal';
@@ -57,6 +58,7 @@ const ChatLayout = ({
 
   // Props para hilos
   onOpenThread,
+  onSendThreadMessage,
 
   // Props para mensajes de voz
   // Props para mensajes de voz
@@ -75,13 +77,24 @@ const ChatLayout = ({
   // State para el panel de miembros (lifted from ChatHeader)
   const [showMembersPanel, setShowMembersPanel] = React.useState(false);
 
+  // State para el panel de hilos
+  const [showThreadPanel, setShowThreadPanel] = React.useState(false);
+  const [threadMessage, setThreadMessage] = React.useState(null);
+
   const toggleMembersPanel = () => {
     setShowMembersPanel(!showMembersPanel);
   };
 
-  // Cerrar panel si cambia el chat
+  // Handler para abrir panel de hilos
+  const handleOpenThread = (message) => {
+    setThreadMessage(message);
+    setShowThreadPanel(true);
+  };
+
+  // Cerrar paneles si cambia el chat
   React.useEffect(() => {
     setShowMembersPanel(false);
+    setShowThreadPanel(false);
   }, [to]);
 
   // Función para obtener el usuario completo con el que se está chateando
@@ -299,7 +312,7 @@ const ChatLayout = ({
             canSendMessages={canSendMessages}
             replyingTo={replyingTo}
             onCancelReply={onCancelReply}
-            onOpenThread={onOpenThread}
+            onOpenThread={handleOpenThread}
             onSendVoiceMessage={onSendVoiceMessage}
             isAdmin={isAdmin}
             isOtherUserTyping={isTyping}
@@ -318,6 +331,16 @@ const ChatLayout = ({
             }}
           />
         </div>
+
+        {/* Thread Panel (Displacement Layout) */}
+        <ThreadPanel
+          isOpen={showThreadPanel}
+          message={threadMessage}
+          onClose={() => setShowThreadPanel(false)}
+          currentUsername={currentUsername}
+          socket={socket}
+          onSendMessage={onSendThreadMessage}
+        />
 
         {/* Members Panel (Displacement Layout) */}
         <MembersPanel

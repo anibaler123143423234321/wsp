@@ -274,7 +274,7 @@
   height: 100vh;
   max-height: 100vh;
   overflow: hidden;
-  background-color: #F8F7FC;
+  background-color: #f0f2f5;
   position: relative;
 }
 
@@ -495,14 +495,79 @@
 }
 
 .message-content {
-  /* 🔥 El ancho se controla con max-width: 75% en el inline style del JSX */
-  padding: 10px 14px;
-  border-radius: 12px;
+  overflow: visible !important;
+  /* CRITICAL: Permite que la reacción flote fuera */
   position: relative;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  word-break: break-word;
-  border: 2px solid;
+  /* Necesario para que el absolute funcione relativo a esto */
+}
+
+/* 2. Contenedor que posiciona la reacción ABAJO A LA DERECHA */
+.message-reactions-container {
+  position: absolute;
+  bottom: -12px;
+  /* Lo empuja hacia abajo (ajusta este valor si quieres más/menos) */
+  right: 10px;
+  /* Lo alinea a la derecha */
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 10;
+  /* Asegura que quede encima de todo */
+}
+
+/* 3. Estilo de la píldora (Burbuja blanca/gris flotante) */
+.reaction-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 16px;
+  /* Borde muy redondeado */
+  cursor: pointer;
+  height: 22px;
+  min-width: 34px;
+
+  /* Estilos visuales para que parezca un sticker pegado */
+  background-color: #ffffff;
+  /* Fondo blanco (o gris claro si es tema oscuro) */
+  border: 1px solid #e5e7eb;
+  /* Borde sutil */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  /* Sombrita para dar profundidad */
+
+  transition: transform 0.1s;
+  user-select: none;
+}
+
+.reaction-pill:hover {
+  transform: scale(1.1);
+  background-color: #f9fafb;
+}
+
+.reaction-emoji {
+  font-size: 14px;
+  line-height: 1;
+  margin-top: 1px;
+  /* Pequeño ajuste visual */
+}
+
+.reaction-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: #54656f;
+  line-height: 1;
+}
+
+/* Ajuste para modo oscuro (opcional, si tu app tiene clases de tema) */
+.dark-theme .reaction-pill {
+  background-color: #1f2c34;
+  border-color: #2a3942;
+  color: #e9edef;
+}
+
+.dark-theme .reaction-count {
+  color: #8696a0;
 }
 
 /* Media queries para mensajes en pantallas de 1024px - 1280px */
@@ -662,10 +727,9 @@
 
 /* Contenedor de input */
 .chat-input-container {
+  padding: 5px 8px;
   background: #ffffff;
   border-top: 1px solid #e5e7eb;
-  padding: 4px 8px;
-  box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -673,20 +737,59 @@
 
 .input-group {
   display: flex;
-  align-items: flex-start;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
   background: #ffffff;
   border: none;
-  border-radius: 30px;
-  padding: 3px 10px;
-  transition: all 0.2s ease;
+  border-radius: 24px;
+  padding: 4px 10px;
   width: 100%;
-  max-width: 100%;
   min-height: auto;
-  height: auto;
-  justify-content: flex-start;
-  flex-wrap: nowrap;
-  padding-top: 4px;
+}
+
+
+/* 3. Ajuste específico para alinear Clip (1), Emoji (2) y Micro (3) */
+.btn-attach,
+.input-group>div:nth-child(2),
+/* Contenedor del Emoji */
+.input-group>div:nth-child(3)
+
+/* Contenedor del Micro (VoiceRecorder) */
+  {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  /* Altura fija para forzar alineación */
+  width: 36px;
+  /* Ancho fijo */
+  margin-bottom: 0;
+  /* Pegados al fondo del flex-end */
+  padding-bottom: 0px;
+  /* 🔥 PEQUEÑO EMPUJÓN para alinearlos visualmente al centro del texto */
+  align-self: center;
+  /* Asegura que bajen */
+}
+
+/* Asegurar que el botón dentro del div de emoji ocupe el espacio */
+.input-group>div:nth-child(2) .btn-attach {
+  height: 100% !important;
+  width: 100% !important;
+  padding: 0 !important;
+  /* Quitamos el padding doble */
+  margin: 0 !important;
+  align-self: stretch !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  /* Mantenemos el círculo al hacer hover */
+}
+
+/* Opcional: Ajustar ligeramente el tamaño del SVG del emoji si se ve pequeño/grande */
+.input-group>div:nth-child(2) .btn-attach svg {
+  width: 24px;
+  height: 24px;
 }
 
 .input-group:hover {
@@ -751,6 +854,7 @@
   transition: all 0.2s ease;
   flex-shrink: 0;
   border-radius: 50%;
+  align-self: center;
 }
 
 .btn-attach:hover:not(.disabled) {
@@ -813,6 +917,7 @@
   margin-left: auto;
   margin-right: 0;
   order: 999;
+  align-self: center;
 }
 
 /* Agrupar los botones de la izquierda */
@@ -1210,7 +1315,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 16px;
-  background: #f0f2f5;
+  background: #ffffff;
   border-bottom: 1px solid #e5e7eb;
   min-height: 60px;
   position: sticky;
@@ -1297,4 +1402,254 @@
     height: 35px !important;
     font-size: 14px !important;
   }
+}
+
+/* ==============================================
+   🔥 ESTILOS MODO GRABACIÓN (Voice Recorder) - SOLUCIÓN FINAL
+   ============================================== */
+
+/* 1. El contenedor padre se convierte en una caja simple para dejar espacio */
+.input-group.recording-mode {
+  display: block !important;
+  /* Quitamos flex para evitar colisiones raras, o usamos flex simple */
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+/* 2. Ocultamos TODOS los elementos excepto la grabadora */
+.input-group.recording-mode .btn-attach,
+.input-group.recording-mode .emoji-container,
+.input-group.recording-mode .text-input-container,
+.input-group.recording-mode .btn-send {
+  display: none !important;
+}
+
+/* 3. Forzamos a la grabadora (y su contenedor activo) a ocupar todo */
+.input-group.recording-mode .voice-recorder-active {
+  display: flex !important;
+  width: 100% !important;
+  height: 100% !important;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  /* Fondo blanco para tapar cualquier cosa detrás */
+  border-radius: 24px;
+  padding: 4px 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* ==============================================
+   🔥 NUEVO DISEÑO DE ARCHIVOS (Estilo WhatsApp)
+   ============================================== */
+
+.wa-file-card {
+  position: relative;
+  /* Ancho mínimo obligatorio para que la fecha no se monte */
+  min-width: 260px !important;
+  max-width: 320px;
+  /* Padding inferior extra para dejar sitio a la hora absoluta */
+  padding: 10px 10px 26px 10px !important;
+  background-color: rgba(0, 0, 0, 0.04);
+  /* Gris muy suave */
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: background-color 0.2s;
+}
+
+.wa-file-card:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Icono del archivo (izquierda) */
+.wa-file-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Información central */
+.wa-file-info {
+  flex: 1;
+  min-width: 0;
+  /* Permite que el texto se trunque */
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wa-file-name {
+  color: #111b21;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.wa-file-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #667781;
+}
+
+.wa-file-tag {
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+/* Hora y checks flotantes (Esquina inferior derecha) */
+.wa-file-timestamp {
+  position: absolute;
+  bottom: 5px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #8696a0;
+  background: transparent;
+}
+
+/* Icono de descarga (derecha) */
+.wa-file-download {
+  color: #8696a0;
+  font-size: 18px;
+  padding: 4px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+
+/* ... al final de ChatContent.css ... */
+
+/* Estilo para mensajes eliminados (Estilo Matrix/Element) */
+.mx_RedactedBody {
+  color: #6b7280;
+  /* Equivalente a --cpd-color-text-secondary */
+  padding-left: 20px;
+  position: relative;
+  vertical-align: middle;
+  white-space: pre-wrap;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  /* Equivalente a font-body-sm */
+  line-height: 1.5;
+  display: inline-block;
+  font-style: italic;
+}
+
+/* Icono de papelera automático */
+.mx_RedactedBody::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  /* Icono de papelera en SVG gris */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236b7280'%3E%3Cpath d='M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1zM18 7H6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+/* ... al final de ChatContent.css ... */
+
+/* Estilo de Hilo en una sola línea (Estilo Matrix/Element) */
+.mx_ThreadSummaryLine {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  /* Fuerza una sola línea */
+  flex-wrap: nowrap;
+  gap: 4px;
+  margin-top: 6px;
+  padding: 2px 0;
+  cursor: pointer;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+  /* Evita saltos de línea */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 0.2s;
+}
+
+.mx_ThreadSummaryLine:hover {
+  opacity: 0.8;
+}
+
+.mx_ThreadCounter {
+  color: #00a884;
+  /* Verde WhatsApp para el contador */
+  fontWeight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mx_ThreadLastReply {
+  color: #6b7280;
+  /* Gris secundario (estilo Matrix) */
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+  /* Limita el ancho del nombre si es muy largo */
+}
+
+/* Separador pequeño */
+.mx_ThreadSeparator {
+  color: #9ca3af;
+  font-size: 10px;
+}
+
+/* Reacciones Compactas */
+.reaction-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  /* Menos espacio entre el emoji y el número */
+  padding: 1px 6px;
+  /* Menos relleno horizontal (hace la píldora más corta) */
+  border-radius: 12px;
+  cursor: pointer;
+  height: 20px;
+  /* Altura fija pequeña */
+  min-width: 28px;
+  /* Ancho mínimo reducido */
+  transition: transform 0.1s;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+  user-select: none;
+}
+
+.reaction-pill:hover {
+  transform: scale(1.1);
+}
+
+.reaction-emoji {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.reaction-count {
+  font-size: 10px;
+  /* Número más pequeño */
+  font-weight: 600;
+  color: #54656f;
+  line-height: 1;
 }

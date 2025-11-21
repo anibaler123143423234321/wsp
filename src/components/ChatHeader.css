@@ -262,17 +262,25 @@
 
 .chat-title .room-code,
 .room-code {
-  color: #ffffff !important;
-  font-size: 13px;
-  font-weight: 500;
-  padding: 1px 4px;
-  border-radius: 3px;
-  margin-left: 4px;
+  background-color: #f0f2f5;
+  /* Fondo gris muy suave */
+  color: #54656f !important;
+  /* Texto gris oscuro */
+  -webkit-text-fill-color: #54656f !important;
+  /* Sobrescribe el gradiente del título */
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  /* Un poco más de aire */
+  border-radius: 6px;
+  /* Bordes más redondeados */
+  margin-left: 8px;
   font-family: "Courier New", monospace;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.5px;
   display: inline-block;
-  -webkit-text-fill-color: #ffffff !important;
-  /* 🔥 FIX: Asegurar que el texto sea visible */
+  border: 1px solid #d1d7db;
+  /* Borde sutil */
+  vertical-align: middle;
 }
 
 .chat-subtitle {

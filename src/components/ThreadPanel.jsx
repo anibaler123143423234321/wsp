@@ -12,15 +12,16 @@ import AudioPlayer from "./AudioPlayer";
 import VoiceRecorder from "./VoiceRecorder";
 
 import "./ThreadPanel.css";
-import "./ThreadPanelWrapper.css";
 
 const ThreadPanel = ({
+  isOpen,
   message,
   onClose,
   currentUsername,
   socket,
   onSendMessage,
 }) => {
+  if (!isOpen) return null;
   const [threadMessages, setThreadMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,36 +31,12 @@ const ThreadPanel = ({
   );
   const [mediaFiles, setMediaFiles] = useState([]);
   const [mediaPreviews, setMediaPreviews] = useState([]);
-  const [panelWidth, setPanelWidth] = useState(450); // Ancho inicial del panel
-  const [isResizing, setIsResizing] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef(null);
   const emojiPickerRef = useRef(null);
   const fileInputRef = useRef(null);
-  const panelRef = useRef(null);
 
-  // Agregar clase al body cuando el hilo está abierto y ajustar margen del chat
-  useEffect(() => {
-    document.body.classList.add("thread-open");
 
-    // Ajustar el margen del chat content según el ancho del panel
-    const chatContent = document.querySelector(
-      ".flex-1.flex.flex-col.bg-white"
-    );
-    if (chatContent && window.innerWidth > 768) {
-      chatContent.style.marginRight = `${panelWidth}px`;
-    }
-
-    return () => {
-      document.body.classList.remove("thread-open");
-      const chatContent = document.querySelector(
-        ".flex-1.flex.flex-col.bg-white"
-      );
-      if (chatContent) {
-        chatContent.style.marginRight = "0";
-      }
-    };
-  }, [panelWidth]);
 
   // Cargar mensajes del hilo
 
@@ -141,43 +118,7 @@ const ThreadPanel = ({
     };
   }, [socket, message?.id, currentUsername]);
 
-  // Manejo del redimensionamiento del panel
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (!isResizing) return;
 
-      const newWidth = window.innerWidth - e.clientX;
-      const minWidth = 350;
-      const maxWidth = window.innerWidth * 0.6; // Máximo 60% del ancho de la ventana
-
-      if (newWidth >= minWidth && newWidth <= maxWidth) {
-        setPanelWidth(newWidth);
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-      document.body.style.cursor = "default";
-      document.body.style.userSelect = "auto";
-    };
-
-    if (isResizing) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-      document.body.style.cursor = "ew-resize";
-      document.body.style.userSelect = "none";
-    }
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isResizing]);
-
-  const handleResizeStart = (e) => {
-    e.preventDefault();
-    setIsResizing(true);
-  };
 
   const loadThreadMessages = useCallback(async () => {
     setLoading(true);
@@ -396,17 +337,9 @@ const ThreadPanel = ({
   if (!message) return null;
 
   return (
-    <div
-      ref={panelRef}
-      className="thread-panel"
-      style={{ width: `${panelWidth}px` }}
-    >
-      {/* Handle de redimensionamiento */}
-      <div className="thread-resize-handle" onMouseDown={handleResizeStart} />
-
+    <div className="thread-panel-container">
       <div className="thread-panel-header">
         <div className="thread-panel-title">
-          <span className="thread-icon">🧵</span>
           <span>Hilo</span>
         </div>
         <button className="thread-close-btn" onClick={onClose}>
@@ -515,11 +448,10 @@ const ThreadPanel = ({
           threadMessages.map((msg, index) => (
             <div
               key={msg.id || index}
-              className={`thread-message ${
-                msg.from === currentUsername
-                  ? "thread-message-own"
-                  : "thread-message-other"
-              }`}
+              className={`thread-message ${msg.from === currentUsername
+                ? "thread-message-own"
+                : "thread-message-other"
+                }`}
             >
               <div className="thread-message-header">
                 <strong>{msg.from}</strong>

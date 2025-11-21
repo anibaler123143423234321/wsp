@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FaTimes, FaUserPlus } from 'react-icons/fa';
 import './MembersPanel.css';
 
@@ -10,7 +10,28 @@ const MembersPanel = ({
     currentRoomCode,
     user
 }) => {
+    const [filterText, setFilterText] = useState('');
+
     if (!isOpen) return null;
+
+    // Filter members based on search text
+    const filteredUsers = roomUsers?.filter(member => {
+        const username = typeof member === 'string' ? member : member.username;
+        const nombre = typeof member === 'object' ? member.nombre : null;
+        const apellido = typeof member === 'object' ? member.apellido : null;
+        const displayName = typeof member === 'object' && member.displayName ? member.displayName : (nombre && apellido ? `${nombre} ${apellido}` : username);
+        const role = typeof member === 'object' ? member.role : null;
+        const numeroAgente = typeof member === 'object' ? member.numeroAgente : null;
+
+        const searchText = filterText.toLowerCase();
+
+        return (
+            displayName?.toLowerCase().includes(searchText) ||
+            username?.toLowerCase().includes(searchText) ||
+            role?.toLowerCase().includes(searchText) ||
+            numeroAgente?.toString().includes(searchText)
+        );
+    }) || [];
 
     return (
         <div className="members-panel-container">
@@ -32,7 +53,7 @@ const MembersPanel = ({
                 )}
 
                 <div className="members-list">
-                    {roomUsers && roomUsers.map((member, index) => {
+                    {filteredUsers && filteredUsers.map((member, index) => {
                         const username = typeof member === 'string' ? member : member.username;
                         const picture = typeof member === 'object' ? member.picture : null;
                         const nombre = typeof member === 'object' ? member.nombre : null;
@@ -92,6 +113,8 @@ const MembersPanel = ({
                     type="text"
                     placeholder="Filtrar miembros de la sala"
                     className="members-filter-input"
+                    value={filterText}
+                    onChange={(e) => setFilterText(e.target.value)}
                 />
             </div>
         </div>

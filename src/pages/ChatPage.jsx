@@ -138,7 +138,7 @@ const ChatPage = () => {
   const [adminViewConversation, setAdminViewConversation] = useState(null); // Conversación que el admin está viendo
   const [isAdminViewLoading, setIsAdminViewLoading] = useState(false); // Estado de carga para conversaciones asignadas (vista admin)
   const [replyingTo, setReplyingTo] = useState(null); // Mensaje al que se está respondiendo
-  const [threadMessage, setThreadMessage] = useState(null); // Mensaje del hilo abierto
+
   const [isUploadingFile, setIsUploadingFile] = useState(false); // 🔥 Estado para indicar si se está subiendo un archivo
 
   // Estados de UI
@@ -2189,14 +2189,7 @@ const ChatPage = () => {
 
       // El mensaje ya fue guardado en BD por el frontend que lo envió
       // Solo necesitamos notificar al usuario que hay un nuevo mensaje en el hilo
-      // El ThreadPanel se encargará de cargar los mensajes cuando se abra
-
-      // Si el hilo está abierto actualmente, podríamos recargar los mensajes
-      // Pero por ahora solo notificamos que hay un nuevo mensaje
-      if (threadMessage && threadMessage.id === data.threadId) {
-        // El hilo está abierto, podríamos recargar los mensajes aquí
-        // console.log('🧵 Nuevo mensaje en el hilo abierto:', data);
-      }
+      // El ThreadPanel (managed in ChatLayout) se encargará de cargar los mensajes cuando se abra
 
       // 🔥 Reproducir sonido si el mensaje es de otro usuario
       // Comparar con currentUserFullName (displayName) en lugar de solo username
@@ -2316,7 +2309,7 @@ const ChatPage = () => {
       s.off("unreadCountUpdate");
       s.off("unreadCountReset");
     };
-  }, [socket, username, isAdmin, soundsEnabled, addNewMessage, updateMessage, playMessageSound, setAssignedConversations, clearMessages, loadAssignedConversations, setCurrentRoomCode, user?.role, loadMyActiveRooms, user, currentUserFullName, currentRoomCode, to, userList, typingTimeout, threadMessage]);
+  }, [socket, username, isAdmin, soundsEnabled, addNewMessage, updateMessage, playMessageSound, setAssignedConversations, clearMessages, loadAssignedConversations, setCurrentRoomCode, user?.role, loadMyActiveRooms, user, currentUserFullName, currentRoomCode, to, userList, typingTimeout]);
 
   // Estado para el mensaje a resaltar
   const [highlightMessageId, setHighlightMessageId] = useState(null);
@@ -2354,7 +2347,6 @@ const ChatPage = () => {
     setCurrentRoomCode(null); // Limpiar código de sala
     currentRoomCodeRef.current = null;
     setReplyingTo(null); // 🔥 Limpiar estado de respuesta
-    setThreadMessage(null); // 🔥 Limpiar panel de hilo
 
     // Si es una conversación de admin (conversationData presente), guardarla
     if (conversationData) {
@@ -2391,7 +2383,6 @@ const ChatPage = () => {
     clearMessages(); // Limpiar mensajes primero
     setAdminViewConversation(null); // Limpiar vista de admin
     setReplyingTo(null); // 🔥 Limpiar estado de respuesta
-    setThreadMessage(null); // 🔥 Limpiar panel de hilo
 
     // Establecer nuevo estado
     setTo(group.name);
@@ -2415,7 +2406,6 @@ const ChatPage = () => {
     currentRoomCodeRef.current = null;
     setAdminViewConversation(null); // Limpiar vista de admin
     setReplyingTo(null); // 🔥 Limpiar estado de respuesta
-    setThreadMessage(null); // 🔥 Limpiar panel de hilo
 
     setTo(username);
   };
@@ -2431,7 +2421,6 @@ const ChatPage = () => {
     setAdminViewConversation(null);
     clearMessages();
     setReplyingTo(null); // 🔥 Limpiar estado de respuesta
-    setThreadMessage(null); // 🔥 Limpiar panel de hilo
 
     // En mobile, mostrar el sidebar
     if (window.innerWidth <= 768) {
@@ -2579,7 +2568,6 @@ const ChatPage = () => {
     setAdminViewConversation(null);
     clearMessages();
     setReplyingTo(null); // 🔥 Limpiar estado de respuesta
-    setThreadMessage(null); // 🔥 Limpiar panel de hilo
 
     // En mobile, mostrar el sidebar
     if (window.innerWidth <= 768) {
@@ -2629,7 +2617,6 @@ const ChatPage = () => {
       setAdminViewConversation(null); // Limpiar vista de admin
       setRoomUsers([]); // Limpiar usuarios de la sala anterior
       setReplyingTo(null); // 🔥 Limpiar estado de respuesta
-      setThreadMessage(null); // 🔥 Limpiar panel de hilo
 
       // Unirse a la sala seleccionada
       setTo(room.name);
@@ -3454,37 +3441,9 @@ const ChatPage = () => {
       console.error("❌ Error al enviar mensaje de voz:", error);
       await showErrorAlert(
         "Error",
-        "Error al enviar el mensaje de voz. Inténtalo de nuevo."
+        "Error al enviar mensaje de voz",
       );
     }
-  };
-
-  // Función para abrir un hilo
-  const handleOpenThread = (message) => {
-    setThreadMessage({
-      id: message.id,
-      from: message.sender || message.from,
-      to: message.receiver || message.to,
-      text: message.text || message.message,
-      sentAt: message.sentAt || message.time,
-      threadCount: message.threadCount || 0,
-      isGroup,
-      roomCode: currentRoomCode,
-      // 🔥 Incluir campos multimedia
-      mediaType: message.mediaType,
-      mediaData: message.mediaData,
-      fileName: message.fileName,
-      fileSize: message.fileSize,
-      time: message.time,
-      isRead: message.isRead,
-      isSent: message.isSent,
-      readBy: message.readBy,
-    });
-  };
-
-  // Función para cerrar el hilo
-  const handleCloseThread = () => {
-    setThreadMessage(null);
   };
 
   // Función para enviar mensaje en hilo
@@ -4177,7 +4136,6 @@ const ChatPage = () => {
       clearMessages();
       clearInput();
       setReplyingTo(null); // 🔥 Limpiar estado de respuesta
-      setThreadMessage(null); // 🔥 Limpiar panel de hilo
 
       // Desconectar socket
       if (socket) {
@@ -4356,7 +4314,8 @@ const ChatPage = () => {
         onCancelReply={handleCancelReply}
         onAddUsersToRoom={handleAddUsersToRoom}
         onRemoveUsersFromRoom={handleRemoveUsersFromRoom}
-        onOpenThread={handleOpenThread}
+        onOpenThread={(message) => { }} // Thread panel now managed in ChatLayout
+        onSendThreadMessage={handleSendThreadMessage} // 🔥 Handler para enviar mensajes en hilos
         onSendVoiceMessage={handleSendVoiceMessage}
         onStartVideoCall={handleStartVideoCall} // 🔥 NUEVO: Handler de videollamada
         isUploadingFile={isUploadingFile} // 🔥 Pasar estado de upload
@@ -4441,16 +4400,7 @@ const ChatPage = () => {
 
       {/* 🔥 BLOQUEADO: CallWindow deshabilitado */}
 
-      {/* Panel de hilos */}
-      {threadMessage && (
-        <ThreadPanel
-          message={threadMessage}
-          onClose={handleCloseThread}
-          onSendMessage={handleSendThreadMessage}
-          currentUsername={currentUserFullName}
-          socket={socket}
-        />
-      )}
+
 
       {/* Panel de configuración */}
       <SettingsPanel
