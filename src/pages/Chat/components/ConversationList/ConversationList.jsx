@@ -511,8 +511,8 @@ const ConversationList = ({
                         <div key={room.id} className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer max-[1280px]:!py-1.5 max-[1280px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!px-1.5 ${currentRoomCode === room.roomCode ? 'bg-[#e7f3f0]' : ''}`} style={{ padding: '6px 16px', gap: '8px', minHeight: '50px' }} onClick={() => onRoomSelect && onRoomSelect(room)}>
                           <div className="relative flex-shrink-0 max-[1280px]:!w-8 max-[1280px]:!h-8 max-[1024px]:!w-7 max-[1024px]:!h-7" style={{ width: '32px', height: '32px' }}>
                             <div className="rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold max-[1280px]:!text-sm max-[1024px]:!text-xs" style={{ width: '32px', height: '32px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '14px' }}>
-                              {room.picture ? (
-                                <img src={room.picture} alt={room.name} className="w-full h-full object-cover" />
+                              {room.description ? (
+                                <img src={room.description} alt={room.name} className="w-full h-full object-cover" />
                               ) : (
                                 "🏠"
                               )}
