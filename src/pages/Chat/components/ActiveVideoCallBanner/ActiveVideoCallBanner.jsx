@@ -4,6 +4,7 @@ import './ActiveVideoCallBanner.css';
 const ActiveVideoCallBanner = ({ messages, currentUsername, isGroup, currentRoomCode, to, socket, user }) => {
   const [activeCall, setActiveCall] = useState(null);
   const activeCallRef = useRef(null); // 🔥 NUEVO: Ref para mantener referencia actualizada
+  const [participants, setParticipants] = useState([]); // 🔥 NUEVO: Lista de participantes conectados
 
   // Función para calcular tiempo relativo
   const getRelativeTime = (timeStr) => {
@@ -31,6 +32,26 @@ const ActiveVideoCallBanner = ({ messages, currentUsername, isGroup, currentRoom
   useEffect(() => {
     activeCallRef.current = activeCall;
   }, [activeCall]);
+
+  // 🔥 NUEVO: Escuchar actualizaciones de participantes en videollamada
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleParticipantsUpdate = (data) => {
+      // console.log('👥 Participantes actualizados:', data);
+
+      // Solo actualizar si el roomCode coincide con el chat actual
+      if (data.roomCode === currentRoomCode) {
+        setParticipants(data.participants || []);
+      }
+    };
+
+    socket.on('videoRoomParticipantsUpdated', handleParticipantsUpdate);
+
+    return () => {
+      socket.off('videoRoomParticipantsUpdated', handleParticipantsUpdate);
+    };
+  }, [socket, currentRoomCode]);
 
   // 🔥 NUEVO: Escuchar evento videoCallEnded para ocultar el banner inmediatamente
   useEffect(() => {
@@ -213,6 +234,30 @@ const ActiveVideoCallBanner = ({ messages, currentUsername, isGroup, currentRoom
             {activeCall.isOwn ? 'Tu videollamada' : `${activeCall.initiator} inició videollamada`}
           </div>
         </div>
+
+        {/* 🔥 NUEVO: Mostrar participantes conectados */}
+        {participants.length > 0 && (
+          <div className="banner-participants">
+            <div className="participants-avatars">
+              {participants.slice(0, 5).map((participant, index) => (
+                <div key={participant.username} className="participant-avatar" style={{ zIndex: 5 - index }}>
+                  {participant.picture ? (
+                    <img src={participant.picture} alt={participant.username} />
+                  ) : (
+                    <div className="avatar-initials">
+                      {(participant.nombre?.[0] || participant.username?.[0] || '?').toUpperCase()}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {participants.length > 5 && (
+                <div className="participant-count">
+                  +{participants.length - 5}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <button className="banner-join-btn" onClick={handleJoinCall}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
