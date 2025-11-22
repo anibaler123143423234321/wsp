@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import './ActiveVideoCallBanner.css';
 
-const ActiveVideoCallBanner = ({ messages, currentUsername, isGroup, currentRoomCode, to, socket, user }) => {
+const ActiveVideoCallBanner = ({ messages = [], currentUsername, isGroup, currentRoomCode, to, socket, user }) => {
   const [activeCall, setActiveCall] = useState(null);
   const activeCallRef = useRef(null); // 🔥 NUEVO: Ref para mantener referencia actualizada
   const [participants, setParticipants] = useState([]); // 🔥 NUEVO: Lista de participantes conectados

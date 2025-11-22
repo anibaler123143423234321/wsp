@@ -510,7 +510,13 @@ const ConversationList = ({
                       return (
                         <div key={room.id} className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer max-[1280px]:!py-1.5 max-[1280px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!px-1.5 ${currentRoomCode === room.roomCode ? 'bg-[#e7f3f0]' : ''}`} style={{ padding: '6px 16px', gap: '8px', minHeight: '50px' }} onClick={() => onRoomSelect && onRoomSelect(room)}>
                           <div className="relative flex-shrink-0 max-[1280px]:!w-8 max-[1280px]:!h-8 max-[1024px]:!w-7 max-[1024px]:!h-7" style={{ width: '32px', height: '32px' }}>
-                            <div className="rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold max-[1280px]:!text-sm max-[1024px]:!text-xs" style={{ width: '32px', height: '32px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '14px' }}>🏠</div>
+                            <div className="rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold max-[1280px]:!text-sm max-[1024px]:!text-xs" style={{ width: '32px', height: '32px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '14px' }}>
+                              {room.picture ? (
+                                <img src={room.picture} alt={room.name} className="w-full h-full object-cover" />
+                              ) : (
+                                "🏠"
+                              )}
+                            </div>
                             {room.isActive && <div className="absolute bottom-0 right-0 rounded-full bg-white flex items-center justify-center" style={{ width: '12px', height: '12px', border: '2px solid white' }}><div className="rounded-full bg-green-500" style={{ width: '8px', height: '8px' }} /></div>}
                           </div>
                           <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px' }}>
@@ -535,7 +541,7 @@ const ConversationList = ({
                               )}
                               {hasMentionToUser(room.lastMessage?.text) && <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}><svg viewBox="0 0 24 24" height="16" preserveAspectRatio="xMidYMid meet" fill="none"><path d="M12 21C10.75 21 9.6 20.75 8.5 20.3C7.4 19.8 6.5 19.2 5.6 18.4C4.8 17.5 4.2 16.6 3.7 15.5C3.2 14.4 3 13.2 3 12C3 10.7 3.2 9.6 3.7 8.5C4.2 7.4 4.8 6.5 5.6 5.6C6.5 4.8 7.4 4.2 8.5 3.7C9.6 3.2 10.8 3 12 3C13.2 3 14.4 3.2 15.5 3.7C16.6 4.2 17.5 4.8 18.4 5.6C19.2 6.5 19.8 7.4 20.3 8.5C20.8 9.6 21 10.7 21 12V13.3C21 14.2 20.7 14.9 20 15.5C19.4 16.2 18.6 16.5 17.7 16.5C17.2 16.5 16.7 16.3 16.3 16.1C15.8 15.8 15.4 15.5 15.1 15C14.8 15.5 14.3 15.8 13.7 16.1C13.2 16.3 12.6 16.5 12 16.5C10.8 16.5 9.7 16 8.8 15.2C7.9 14.3 7.5 13.2 7.5 12C7.5 10.7 7.9 9.7 8.8 8.8C9.7 7.9 10.8 7.5 12 7.5C13.2 7.5 14.3 7.9 15.2 8.8C16 9.7 16.5 10.8 16.5 12V13.2C16.5 13.6 16.6 13.9 16.8 14.1C17.1 14.4 17.4 14.5 17.7 14.5C18.1 14.5 18.4 14.4 18.6 14.1C18.9 13.9 19 13.6 19 13.2V12C19 10 18.3 8.4 16.9 7C15.6 5.7 13.9 5 12 5C10 5 8.4 5.7 7 7C5.7 8.4 5 10 5 12C5 13.9 5.7 15.6 7 16.9C8.4 18.3 10 19 12 19H15.3C15.6 19 15.8 19.1 16 19.3C16.2 19.5 16.3 19.7 16.3 20C16.3 20.3 16.2 20.5 16 20.7C15.8 20.9 15.6 21 15.3 21H12ZM12 14.5C12.7 14.5 13.3 14.2 13.8 13.8C14.2 13.3 14.5 12.7 14.5 12C14.5 11.3 14.2 10.7 13.8 10.2C13.3 9.8 12.7 9.5 12 9.5C11.3 9.5 10.7 9.8 10.2 10.2C9.8 10.7 9.5 11.3 9.5 12C9.5 12.7 9.8 13.3 10.2 13.8C10.7 14.2 11.3 14.5 12 14.5Z" fill="currentColor" style={{ color: '#00a884' }}></path></svg></span>}
                             </div>
-                          </div>
+                          </div >
                         </div>
                       );
                     })}
@@ -543,7 +549,8 @@ const ConversationList = ({
                 );
               })()}
             </CollapsibleList>
-          )}
+          )
+          }
 
           {/* 🔥 SECCIÓN DE ASIGNADOS (Con CollapsibleList y Scroll Infinito Automático) */}
           <CollapsibleList
@@ -653,167 +660,171 @@ const ConversationList = ({
               ) : (<div className="flex flex-col items-center justify-center py-[60px] px-5 text-center"><div className="text-5xl mb-4 opacity-50">👁️</div><div className="text-sm text-gray-600 font-medium">{assignedSearchTerm ? `No se encontraron resultados para "${assignedSearchTerm}"` : 'No hay chats asignados'}</div></div>);
             })()}
           </CollapsibleList>
-        </div>
+        </div >
       )}
 
       {/* Módulo de Chats Monitoreo (solo para ADMIN) */}
-      {activeModule === 'monitoring' && isAdmin && (
-        <div className="flex-1 overflow-y-auto bg-white px-4 w-full min-w-0">
-          {assignedSearchTerm.trim() && messageSearchResults.length > 0 && (
-            <div className="mb-4">
-              <div className="text-xs text-gray-500 font-semibold mb-2 px-2" style={{ fontFamily: 'Inter, sans-serif' }}>📝 Mensajes encontrados ({messageSearchResults.length})</div>
-              {messageSearchResults.map((msg) => {
-                const isGroupMsg = msg.isGroup;
-                const conversationName = isGroupMsg ? msg.roomCode : msg.to;
-                const messagePreview = msg.message || (msg.fileName ? `📎 ${msg.fileName}` : 'Archivo');
-                return (
-                  <div key={msg.id} className="flex items-start gap-3 p-3 mb-2 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors" onClick={() => { if (isGroupMsg) { const room = myActiveRooms?.find(r => r.roomCode === msg.roomCode); if (room && onRoomSelect) onRoomSelect(room, msg.id); } else { onUserSelect(msg.to, null, msg.id); } }}>
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-200 flex items-center justify-center text-lg">{isGroupMsg ? '👥' : '💬'}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1"><span className="font-semibold text-sm text-gray-800" style={{ fontFamily: 'Inter, sans-serif' }}>{conversationName}</span><span className="text-xs text-gray-500">{isGroupMsg ? 'Grupo' : 'Chat'}</span></div>
-                      <p className="text-xs text-gray-700 truncate" style={{ fontFamily: 'Inter, sans-serif' }}>{messagePreview}</p>
-                      <p className="text-xs text-gray-500 mt-1">{new Date(msg.sentAt).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-                    </div>
-                  </div>
-                );
-              })}
-              <div className="border-t border-gray-200 my-3"></div>
-            </div>
-          )}
-          {isSearching && <div className="flex items-center justify-center py-8"><div className="text-sm text-gray-500">Buscando mensajes...</div></div>}
-          {(() => {
-            const filteredMonitoring = monitoringConversations.filter(conv => {
-              if (!assignedSearchTerm.trim()) return true;
-              const searchLower = assignedSearchTerm.toLowerCase();
-              const participants = conv.participants || [];
-              return (conv.name?.toLowerCase().includes(searchLower) || participants.some(p => p?.toLowerCase().includes(searchLower)) || conv.lastMessage?.toLowerCase().includes(searchLower));
-            });
-            return filteredMonitoring.length > 0 ? (
-              <>
-                {filteredMonitoring.sort((a, b) => {
-                  const aIsFavorite = favoriteConversationIds.includes(a.id);
-                  const bIsFavorite = favoriteConversationIds.includes(b.id);
-                  if (aIsFavorite && !bIsFavorite) return -1;
-                  if (!aIsFavorite && bIsFavorite) return 1;
-                  if (sortBy === 'newest') return new Date(b.lastMessageTime || b.createdAt) - new Date(a.lastMessageTime || a.createdAt);
-                  else if (sortBy === 'oldest') return new Date(a.lastMessageTime || a.createdAt) - new Date(b.lastMessageTime || b.createdAt);
-                  else if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '');
-                  return 0;
-                }).map((conv) => {
-                  const participants = conv.participants || [];
-                  const participant1Name = participants[0] || 'Usuario 1';
-                  const participant2Name = participants[1] || 'Usuario 2';
-                  const getInitials = (name) => { const parts = name.split(' '); if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase(); return name[0]?.toUpperCase() || 'U'; };
-                  const isFavorite = favoriteConversationIds.includes(conv.id);
+      {
+        activeModule === 'monitoring' && isAdmin && (
+          <div className="flex-1 overflow-y-auto bg-white px-4 w-full min-w-0">
+            {assignedSearchTerm.trim() && messageSearchResults.length > 0 && (
+              <div className="mb-4">
+                <div className="text-xs text-gray-500 font-semibold mb-2 px-2" style={{ fontFamily: 'Inter, sans-serif' }}>📝 Mensajes encontrados ({messageSearchResults.length})</div>
+                {messageSearchResults.map((msg) => {
+                  const isGroupMsg = msg.isGroup;
+                  const conversationName = isGroupMsg ? msg.roomCode : msg.to;
+                  const messagePreview = msg.message || (msg.fileName ? `📎 ${msg.fileName}` : 'Archivo');
                   return (
-                    <div key={conv.id} className="flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group relative" style={{ padding: '6px 10px', gap: '8px', minHeight: '50px', display: 'flex', alignItems: 'flex-start', width: '100%', minWidth: 0, position: 'relative' }} onClick={() => { if (onUserSelect) { const adminFullName = user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.username; const otherParticipant = participants.find(p => p.toLowerCase().trim() !== adminFullName?.toLowerCase().trim()) || participant2Name; onUserSelect(otherParticipant, null, conv); } }}>
-                      <div className="relative flex-shrink-0 cursor-pointer group" style={{ width: '32px', height: '32px' }} title={`${participant1Name} ↔️ ${participant2Name}`}>
-                        <div className="relative" style={{ width: '32px', height: '32px' }}>
-                          <div className="absolute rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-white font-bold hover:ring-2 hover:ring-purple-400 transition-all" style={{ width: '20px', height: '20px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '9px', top: '0', left: '0', zIndex: 2, cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); if (onUserSelect) onUserSelect(participant1Name, null, { ...conv, selectedParticipant: participant1Name }); }}>{getInitials(participant1Name)}</div>
-                          <div className="absolute rounded-full overflow-hidden bg-gradient-to-br from-pink-500 to-pink-700 flex items-center justify-center text-white font-bold hover:ring-2 hover:ring-pink-400 transition-all" style={{ width: '20px', height: '20px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '9px', bottom: '0', right: '0', zIndex: 1, cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); if (onUserSelect) onUserSelect(participant2Name, null, { ...conv, selectedParticipant: participant2Name }); }}>{getInitials(participant2Name)}</div>
+                    <div key={msg.id} className="flex items-start gap-3 p-3 mb-2 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors" onClick={() => { if (isGroupMsg) { const room = myActiveRooms?.find(r => r.roomCode === msg.roomCode); if (room && onRoomSelect) onRoomSelect(room, msg.id); } else { onUserSelect(msg.to, null, msg.id); } }}>
+                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-200 flex items-center justify-center text-lg">{isGroupMsg ? '👥' : '💬'}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1"><span className="font-semibold text-sm text-gray-800" style={{ fontFamily: 'Inter, sans-serif' }}>{conversationName}</span><span className="text-xs text-gray-500">{isGroupMsg ? 'Grupo' : 'Chat'}</span></div>
+                        <p className="text-xs text-gray-700 truncate" style={{ fontFamily: 'Inter, sans-serif' }}>{messagePreview}</p>
+                        <p className="text-xs text-gray-500 mt-1">{new Date(msg.sentAt).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="border-t border-gray-200 my-3"></div>
+              </div>
+            )}
+            {isSearching && <div className="flex items-center justify-center py-8"><div className="text-sm text-gray-500">Buscando mensajes...</div></div>}
+            {(() => {
+              const filteredMonitoring = monitoringConversations.filter(conv => {
+                if (!assignedSearchTerm.trim()) return true;
+                const searchLower = assignedSearchTerm.toLowerCase();
+                const participants = conv.participants || [];
+                return (conv.name?.toLowerCase().includes(searchLower) || participants.some(p => p?.toLowerCase().includes(searchLower)) || conv.lastMessage?.toLowerCase().includes(searchLower));
+              });
+              return filteredMonitoring.length > 0 ? (
+                <>
+                  {filteredMonitoring.sort((a, b) => {
+                    const aIsFavorite = favoriteConversationIds.includes(a.id);
+                    const bIsFavorite = favoriteConversationIds.includes(b.id);
+                    if (aIsFavorite && !bIsFavorite) return -1;
+                    if (!aIsFavorite && bIsFavorite) return 1;
+                    if (sortBy === 'newest') return new Date(b.lastMessageTime || b.createdAt) - new Date(a.lastMessageTime || a.createdAt);
+                    else if (sortBy === 'oldest') return new Date(a.lastMessageTime || a.createdAt) - new Date(b.lastMessageTime || b.createdAt);
+                    else if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '');
+                    return 0;
+                  }).map((conv) => {
+                    const participants = conv.participants || [];
+                    const participant1Name = participants[0] || 'Usuario 1';
+                    const participant2Name = participants[1] || 'Usuario 2';
+                    const getInitials = (name) => { const parts = name.split(' '); if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase(); return name[0]?.toUpperCase() || 'U'; };
+                    const isFavorite = favoriteConversationIds.includes(conv.id);
+                    return (
+                      <div key={conv.id} className="flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group relative" style={{ padding: '6px 10px', gap: '8px', minHeight: '50px', display: 'flex', alignItems: 'flex-start', width: '100%', minWidth: 0, position: 'relative' }} onClick={() => { if (onUserSelect) { const adminFullName = user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.username; const otherParticipant = participants.find(p => p.toLowerCase().trim() !== adminFullName?.toLowerCase().trim()) || participant2Name; onUserSelect(otherParticipant, null, conv); } }}>
+                        <div className="relative flex-shrink-0 cursor-pointer group" style={{ width: '32px', height: '32px' }} title={`${participant1Name} ↔️ ${participant2Name}`}>
+                          <div className="relative" style={{ width: '32px', height: '32px' }}>
+                            <div className="absolute rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-white font-bold hover:ring-2 hover:ring-purple-400 transition-all" style={{ width: '20px', height: '20px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '9px', top: '0', left: '0', zIndex: 2, cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); if (onUserSelect) onUserSelect(participant1Name, null, { ...conv, selectedParticipant: participant1Name }); }}>{getInitials(participant1Name)}</div>
+                            <div className="absolute rounded-full overflow-hidden bg-gradient-to-br from-pink-500 to-pink-700 flex items-center justify-center text-white font-bold hover:ring-2 hover:ring-pink-400 transition-all" style={{ width: '20px', height: '20px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '9px', bottom: '0', right: '0', zIndex: 1, cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); if (onUserSelect) onUserSelect(participant2Name, null, { ...conv, selectedParticipant: participant2Name }); }}>{getInitials(participant2Name)}</div>
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0 flex flex-col relative" style={{ gap: '2px', position: 'relative' }}>
+                          <div className="flex items-start justify-between gap-2 w-full min-w-0 relative" style={{ position: 'relative' }}>
+                            <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                              {isFavorite && <span className="flex-shrink-0 text-yellow-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '10px', fontFamily: 'Inter, sans-serif', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-yellow-500" /> Fijado</span>}
+                              <div className="flex items-center gap-1 w-full min-w-0">
+                                <div className="flex-1 min-w-0"><p className="font-semibold text-[#111]" style={{ fontSize: '11.5px', lineHeight: '14px', fontFamily: 'Inter, sans-serif', fontWeight: 600, width: '100%', minWidth: 0, maxWidth: '100%', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }} title={`${participant1Name} • ${participant2Name}`}>{participant1Name} • {participant2Name}</p></div>
+                                <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-0.5 rounded-full hover:bg-gray-200 transition-all duration-200 opacity-0 group-hover:opacity-100" style={{ opacity: isFavorite ? 1 : undefined, width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}>{isFavorite ? <FaStar className="text-yellow-500" size={10} /> : <FaRegStar className="text-gray-400" size={10} />}</button>
+                              </div>
+                            </div>
+                            {conv.lastMessageTimestamp && <span className="conversation-timestamp" style={{ fontSize: '10px' }}>{conv.lastMessageTimestamp}</span>}
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              {conv.lastMessage ? (
+                                <>
+                                  {conv.lastMessageFrom && <span className="text-gray-500 font-medium" style={{ fontSize: '11px', lineHeight: '14px', fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>{conv.lastMessageFrom.split(' ')[0]}:{' '}</span>}
+                                  <p className="text-gray-600" style={{ fontSize: '11px', lineHeight: '14px', fontFamily: 'Inter, sans-serif', fontWeight: 400, display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }}>{conv.lastMessageMediaType ? <span className="flex items-center gap-1">{conv.lastMessageMediaType === 'image' && '📷 Imagen'}{conv.lastMessageMediaType === 'video' && '🎥 Video'}{conv.lastMessageMediaType === 'audio' && '🎵 Audio'}{conv.lastMessageMediaType === 'document' && '📄 Documento'}{!['image', 'video', 'audio', 'document'].includes(conv.lastMessageMediaType) && '📎 Archivo'}</span> : conv.lastMessageThreadCount > 0 ? <span className="flex items-center gap-1"><span className="text-gray-500">🧵</span><span className="font-semibold text-[#00a884]">{conv.lastMessageThreadCount} {conv.lastMessageThreadCount === 1 ? 'respuesta' : 'respuestas'}</span>{conv.lastMessageLastReplyFrom && <span className="text-gray-500"> • {conv.lastMessageLastReplyFrom}</span>}</span> : conv.lastMessage}</p>
+                                </>
+                              ) : <p className="text-gray-400 italic truncate" style={{ fontSize: '11px', lineHeight: '14px', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>Sin mensajes aún</p>}
+                            </div>
+                            {hasMentionToUser(conv.lastMessage) && <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', flexShrink: 0, marginRight: '4px' }}><svg viewBox="0 0 24 24" height="16" preserveAspectRatio="xMidYMid meet" fill="none"><path d="M12 21C10.75 21 9.6 20.75 8.5 20.3C7.4 19.8 6.5 19.2 5.6 18.4C4.8 17.5 4.2 16.6 3.7 15.5C3.2 14.4 3 13.2 3 12C3 10.7 3.2 9.6 3.7 8.5C4.2 7.4 4.8 6.5 5.6 5.6C6.5 4.8 7.4 4.2 8.5 3.7C9.6 3.2 10.8 3 12 3C13.2 3 14.4 3.2 15.5 3.7C16.6 4.2 17.5 4.8 18.4 5.6C19.2 6.5 19.8 7.4 20.3 8.5C20.8 9.6 21 10.7 21 12V13.3C21 14.2 20.7 14.9 20 15.5C19.4 16.2 18.6 16.5 17.7 16.5C17.2 16.5 16.7 16.3 16.3 16.1C15.8 15.8 15.4 15.5 15.1 15C14.8 15.5 14.3 15.8 13.7 16.1C13.2 16.3 12.6 16.5 12 16.5C10.8 16.5 9.7 16 8.8 15.2C7.9 14.3 7.5 13.2 7.5 12C7.5 10.7 7.9 9.7 8.8 8.8C9.7 7.9 10.8 7.5 12 7.5C13.2 7.5 14.3 7.9 15.2 8.8C16 9.7 16.5 10.8 16.5 12V13.2C16.5 13.6 16.6 13.9 16.8 14.1C17.1 14.4 17.4 14.5 17.7 14.5C18.1 14.5 18.4 14.4 18.6 14.1C18.9 13.9 19 13.6 19 13.2V12C19 10 18.3 8.4 16.9 7C15.6 5.7 13.9 5 12 5C10 5 8.4 5.7 7 7C5.7 8.4 5 10 5 12C5 13.9 5.7 15.6 7 16.9C8.4 18.3 10 19 12 19H15.3C15.6 19 15.8 19.1 16 19.3C16.2 19.5 16.3 19.7 16.3 20C16.3 20.3 16.2 20.5 16 20.7C15.8 20.9 15.6 21 15.3 21H12ZM12 14.5C12.7 14.5 13.3 14.2 13.8 13.8C14.2 13.3 14.5 12.7 14.5 12C14.5 11.3 14.2 10.7 13.8 10.2C13.3 9.8 12.7 9.5 12 9.5C11.3 9.5 10.7 9.8 10.2 10.2C9.8 10.7 9.5 11.3 9.5 12C9.5 12.7 9.8 13.3 10.2 13.8C10.7 14.2 11.3 14.5 12 14.5Z" fill="currentColor" style={{ color: '#00a884' }}></path></svg></span>}
+                            {conv.unreadCount > 0 && <div className="flex-shrink-0 rounded-full bg-[#00a884] text-white flex items-center justify-center" style={{ minWidth: '18px', height: '18px', padding: '0 5px', fontSize: '10px', fontWeight: 600, fontFamily: 'Inter, sans-serif' }}>{conv.unreadCount > 99 ? '99+' : conv.unreadCount}</div>}
+                          </div>
                         </div>
                       </div>
-                      <div className="flex-1 min-w-0 flex flex-col relative" style={{ gap: '2px', position: 'relative' }}>
-                        <div className="flex items-start justify-between gap-2 w-full min-w-0 relative" style={{ position: 'relative' }}>
-                          <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                            {isFavorite && <span className="flex-shrink-0 text-yellow-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '10px', fontFamily: 'Inter, sans-serif', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-yellow-500" /> Fijado</span>}
-                            <div className="flex items-center gap-1 w-full min-w-0">
-                              <div className="flex-1 min-w-0"><p className="font-semibold text-[#111]" style={{ fontSize: '11.5px', lineHeight: '14px', fontFamily: 'Inter, sans-serif', fontWeight: 600, width: '100%', minWidth: 0, maxWidth: '100%', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }} title={`${participant1Name} • ${participant2Name}`}>{participant1Name} • {participant2Name}</p></div>
-                              <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-0.5 rounded-full hover:bg-gray-200 transition-all duration-200 opacity-0 group-hover:opacity-100" style={{ opacity: isFavorite ? 1 : undefined, width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}>{isFavorite ? <FaStar className="text-yellow-500" size={10} /> : <FaRegStar className="text-gray-400" size={10} />}</button>
-                            </div>
+                    );
+                  })}
+                  {monitoringTotalPages > 1 && (
+                    <div className="flex items-center justify-between gap-3 py-4 px-4 border-t border-gray-200" style={{ fontFamily: 'Inter, sans-serif' }}>
+                      <button onClick={() => onLoadMonitoringConversations(monitoringPage - 1)} disabled={monitoringPage === 1 || monitoringLoading} className="flex-1 px-4 py-2 text-xs font-semibold rounded-lg bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200" style={{ color: monitoringPage === 1 || monitoringLoading ? '#9ca3af' : '#111', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>← Anterior</button>
+                      <span className="text-xs text-gray-600 font-medium whitespace-nowrap" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>{monitoringPage} / {monitoringTotalPages}</span>
+                      <button onClick={() => onLoadMonitoringConversations(monitoringPage + 1)} disabled={monitoringPage === monitoringTotalPages || monitoringLoading} className="flex-1 px-4 py-2 text-xs font-semibold rounded-lg bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200" style={{ color: monitoringPage === monitoringTotalPages || monitoringLoading ? '#9ca3af' : '#111', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Siguiente →</button>
+                    </div>
+                  )}
+                </>
+              ) : (<div className="flex flex-col items-center justify-center py-[60px] px-5 text-center"><div className="text-5xl mb-4 opacity-50">👁️</div><div className="text-sm text-gray-600 font-medium">{assignedSearchTerm ? `No se encontraron resultados para "${assignedSearchTerm}"` : 'No hay chats para monitorear'}</div></div>);
+            })()}
+          </div>
+        )
+      }
+
+      {/* Lista de conversaciones (Directas / Nueva Conversación) */}
+      {
+        activeModule === 'conversations' && (
+          <div ref={conversationsListRef} className="flex-1 overflow-y-auto bg-white px-4" onScroll={handleScroll}>
+            {searchTerm.trim() && messageSearchResults.length > 0 && (
+              <div className="mb-4">
+                <div className="text-xs text-gray-500 font-semibold mb-2 px-2" style={{ fontFamily: 'Inter, sans-serif' }}>📝 Mensajes encontrados ({messageSearchResults.length})</div>
+                {messageSearchResults.map((msg) => {
+                  const isGroupMsg = msg.isGroup;
+                  const conversationName = isGroupMsg ? msg.roomCode : msg.to;
+                  const messagePreview = msg.message || (msg.fileName ? `📎 ${msg.fileName}` : 'Archivo');
+                  return (
+                    <div key={msg.id} className="flex items-start gap-3 p-3 mb-2 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors" onClick={() => { if (isGroupMsg) { const room = myActiveRooms?.find(r => r.roomCode === msg.roomCode); if (room && onRoomSelect) onRoomSelect(room, msg.id); } else { onUserSelect(msg.to, null, msg.id); } }}>
+                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-200 flex items-center justify-center text-lg">{isGroupMsg ? '👥' : '💬'}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1"><span className="font-semibold text-sm text-gray-800" style={{ fontFamily: 'Inter, sans-serif' }}>{conversationName}</span><span className="text-xs text-gray-500">{isGroupMsg ? 'Grupo' : 'Chat'}</span></div>
+                        <p className="text-xs text-gray-700 truncate" style={{ fontFamily: 'Inter, sans-serif' }}>{messagePreview}</p>
+                        <p className="text-xs text-gray-500 mt-1">{new Date(msg.sentAt).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="border-t border-gray-200 my-3"></div>
+              </div>
+            )}
+            {isSearching ? (<div className="p-5 text-center text-[#00a884] text-sm"><p>🔍 Buscando mensajes...</p></div>) : filteredConversations.length === 0 && messageSearchResults.length === 0 ? (
+              <div className="p-5 text-center text-[#999] text-sm">
+                {searchTerm.trim().length > 0 ? <p>No se encontraron resultados para "{searchTerm}"</p> : !isAdmin && !isGroup ? <><p>No tienes conversaciones asignadas</p><p className="text-xs mt-2">Espera a que un administrador te asigne una conversación</p></> : <p>No hay usuarios conectados</p>}
+              </div>
+            ) : (
+              <>
+                {filteredConversations.map((conversation) => {
+                  const unreadCount = unreadMessages?.[conversation.username] || 0;
+                  const displayName = conversation.nombre && conversation.apellido ? `${conversation.nombre} ${conversation.apellido}` : conversation.username;
+                  const getInitials = () => { if (conversation.nombre && conversation.apellido) return `${conversation.nombre[0]}${conversation.apellido[0]}`.toUpperCase(); return conversation.username?.[0]?.toUpperCase() || 'U'; };
+                  return (
+                    <div key={conversation.id || conversation.username} className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 ${conversation.username === user?.username ? 'bg-[#e9edef]' : ''} ${isGroup ? 'cursor-default opacity-60 hover:bg-transparent' : 'cursor-pointer'}`} style={{ padding: '8px 12px', gap: '10px', minHeight: '60px' }} onClick={() => { if (isGroup) return; onUserSelect && onUserSelect(displayName); }}>
+                      <div className="relative flex-shrink-0" style={{ width: '40px', height: '40px' }}>
+                        <div className="rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold" style={{ width: '40px', height: '40px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '14px' }}>{conversation.picture ? <img src={conversation.picture} alt={displayName} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = getInitials(); }} /> : getInitials()}</div>
+                      </div>
+                      <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px' }}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-col flex-1 min-w-0">
+                            <h3 className="font-semibold text-[#111] truncate" style={{ fontSize: '14px', lineHeight: '18px', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{displayName}</h3>
+                            <span className="text-gray-500 truncate" style={{ fontSize: '10px', lineHeight: '12px', fontFamily: 'Inter, sans-serif', fontWeight: 300 }}>{conversation.role && conversation.numeroAgente ? <>Rol: {conversation.role} • N° Agente: {conversation.numeroAgente}</> : conversation.numeroAgente ? <>N° Agente: {conversation.numeroAgente}</> : <>Rol: {conversation.role || 'Sin rol'}</>}</span>
                           </div>
-                          {conv.lastMessageTimestamp && <span className="conversation-timestamp" style={{ fontSize: '10px' }}>{conv.lastMessageTimestamp}</span>}
+                          <span className="conversation-timestamp">{conversation.timestamp || ''}</span>
                         </div>
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            {conv.lastMessage ? (
-                              <>
-                                {conv.lastMessageFrom && <span className="text-gray-500 font-medium" style={{ fontSize: '11px', lineHeight: '14px', fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>{conv.lastMessageFrom.split(' ')[0]}:{' '}</span>}
-                                <p className="text-gray-600" style={{ fontSize: '11px', lineHeight: '14px', fontFamily: 'Inter, sans-serif', fontWeight: 400, display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }}>{conv.lastMessageMediaType ? <span className="flex items-center gap-1">{conv.lastMessageMediaType === 'image' && '📷 Imagen'}{conv.lastMessageMediaType === 'video' && '🎥 Video'}{conv.lastMessageMediaType === 'audio' && '🎵 Audio'}{conv.lastMessageMediaType === 'document' && '📄 Documento'}{!['image', 'video', 'audio', 'document'].includes(conv.lastMessageMediaType) && '📎 Archivo'}</span> : conv.lastMessageThreadCount > 0 ? <span className="flex items-center gap-1"><span className="text-gray-500">🧵</span><span className="font-semibold text-[#00a884]">{conv.lastMessageThreadCount} {conv.lastMessageThreadCount === 1 ? 'respuesta' : 'respuestas'}</span>{conv.lastMessageLastReplyFrom && <span className="text-gray-500"> • {conv.lastMessageLastReplyFrom}</span>}</span> : conv.lastMessage}</p>
-                              </>
-                            ) : <p className="text-gray-400 italic truncate" style={{ fontSize: '11px', lineHeight: '14px', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>Sin mensajes aún</p>}
-                          </div>
-                          {hasMentionToUser(conv.lastMessage) && <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', flexShrink: 0, marginRight: '4px' }}><svg viewBox="0 0 24 24" height="16" preserveAspectRatio="xMidYMid meet" fill="none"><path d="M12 21C10.75 21 9.6 20.75 8.5 20.3C7.4 19.8 6.5 19.2 5.6 18.4C4.8 17.5 4.2 16.6 3.7 15.5C3.2 14.4 3 13.2 3 12C3 10.7 3.2 9.6 3.7 8.5C4.2 7.4 4.8 6.5 5.6 5.6C6.5 4.8 7.4 4.2 8.5 3.7C9.6 3.2 10.8 3 12 3C13.2 3 14.4 3.2 15.5 3.7C16.6 4.2 17.5 4.8 18.4 5.6C19.2 6.5 19.8 7.4 20.3 8.5C20.8 9.6 21 10.7 21 12V13.3C21 14.2 20.7 14.9 20 15.5C19.4 16.2 18.6 16.5 17.7 16.5C17.2 16.5 16.7 16.3 16.3 16.1C15.8 15.8 15.4 15.5 15.1 15C14.8 15.5 14.3 15.8 13.7 16.1C13.2 16.3 12.6 16.5 12 16.5C10.8 16.5 9.7 16 8.8 15.2C7.9 14.3 7.5 13.2 7.5 12C7.5 10.7 7.9 9.7 8.8 8.8C9.7 7.9 10.8 7.5 12 7.5C13.2 7.5 14.3 7.9 15.2 8.8C16 9.7 16.5 10.8 16.5 12V13.2C16.5 13.6 16.6 13.9 16.8 14.1C17.1 14.4 17.4 14.5 17.7 14.5C18.1 14.5 18.4 14.4 18.6 14.1C18.9 13.9 19 13.6 19 13.2V12C19 10 18.3 8.4 16.9 7C15.6 5.7 13.9 5 12 5C10 5 8.4 5.7 7 7C5.7 8.4 5 10 5 12C5 13.9 5.7 15.6 7 16.9C8.4 18.3 10 19 12 19H15.3C15.6 19 15.8 19.1 16 19.3C16.2 19.5 16.3 19.7 16.3 20C16.3 20.3 16.2 20.5 16 20.7C15.8 20.9 15.6 21 15.3 21H12ZM12 14.5C12.7 14.5 13.3 14.2 13.8 13.8C14.2 13.3 14.5 12.7 14.5 12C14.5 11.3 14.2 10.7 13.8 10.2C13.3 9.8 12.7 9.5 12 9.5C11.3 9.5 10.7 9.8 10.2 10.2C9.8 10.7 9.5 11.3 9.5 12C9.5 12.7 9.8 13.3 10.2 13.8C10.7 14.2 11.3 14.5 12 14.5Z" fill="currentColor" style={{ color: '#00a884' }}></path></svg></span>}
-                          {conv.unreadCount > 0 && <div className="flex-shrink-0 rounded-full bg-[#00a884] text-white flex items-center justify-center" style={{ minWidth: '18px', height: '18px', padding: '0 5px', fontSize: '10px', fontWeight: 600, fontFamily: 'Inter, sans-serif' }}>{conv.unreadCount > 99 ? '99+' : conv.unreadCount}</div>}
+                        <div className="flex items-center justify-between">
+                          <p className="text-gray-600 truncate" style={{ fontSize: '12px', lineHeight: '16px', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{conversation.lastMessage || 'Haz clic para chatear'}</p>
+                          {unreadCount > 0 && <span className="bg-[#25d366] text-white font-bold rounded-full flex items-center justify-center ml-2 flex-shrink-0" style={{ fontSize: '11.66px', minWidth: '20px', height: '20px', padding: '0 6px' }}>{unreadCount}</span>}
                         </div>
                       </div>
                     </div>
                   );
                 })}
-                {monitoringTotalPages > 1 && (
-                  <div className="flex items-center justify-between gap-3 py-4 px-4 border-t border-gray-200" style={{ fontFamily: 'Inter, sans-serif' }}>
-                    <button onClick={() => onLoadMonitoringConversations(monitoringPage - 1)} disabled={monitoringPage === 1 || monitoringLoading} className="flex-1 px-4 py-2 text-xs font-semibold rounded-lg bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200" style={{ color: monitoringPage === 1 || monitoringLoading ? '#9ca3af' : '#111', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>← Anterior</button>
-                    <span className="text-xs text-gray-600 font-medium whitespace-nowrap" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>{monitoringPage} / {monitoringTotalPages}</span>
-                    <button onClick={() => onLoadMonitoringConversations(monitoringPage + 1)} disabled={monitoringPage === monitoringTotalPages || monitoringLoading} className="flex-1 px-4 py-2 text-xs font-semibold rounded-lg bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200" style={{ color: monitoringPage === monitoringTotalPages || monitoringLoading ? '#9ca3af' : '#111', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>Siguiente →</button>
-                  </div>
-                )}
+                {userListLoading && <div className="p-4 text-center text-gray-500 text-sm"><p>⏳ Cargando más usuarios...</p></div>}
+                {!userListHasMore && !searchTerm && filteredConversations.length > 0 && <div className="p-4 text-center text-gray-400 text-xs"><p>✓ Todos los usuarios cargados</p></div>}
               </>
-            ) : (<div className="flex flex-col items-center justify-center py-[60px] px-5 text-center"><div className="text-5xl mb-4 opacity-50">👁️</div><div className="text-sm text-gray-600 font-medium">{assignedSearchTerm ? `No se encontraron resultados para "${assignedSearchTerm}"` : 'No hay chats para monitorear'}</div></div>);
-          })()}
-        </div>
-      )}
-
-      {/* Lista de conversaciones (Directas / Nueva Conversación) */}
-      {activeModule === 'conversations' && (
-        <div ref={conversationsListRef} className="flex-1 overflow-y-auto bg-white px-4" onScroll={handleScroll}>
-          {searchTerm.trim() && messageSearchResults.length > 0 && (
-            <div className="mb-4">
-              <div className="text-xs text-gray-500 font-semibold mb-2 px-2" style={{ fontFamily: 'Inter, sans-serif' }}>📝 Mensajes encontrados ({messageSearchResults.length})</div>
-              {messageSearchResults.map((msg) => {
-                const isGroupMsg = msg.isGroup;
-                const conversationName = isGroupMsg ? msg.roomCode : msg.to;
-                const messagePreview = msg.message || (msg.fileName ? `📎 ${msg.fileName}` : 'Archivo');
-                return (
-                  <div key={msg.id} className="flex items-start gap-3 p-3 mb-2 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors" onClick={() => { if (isGroupMsg) { const room = myActiveRooms?.find(r => r.roomCode === msg.roomCode); if (room && onRoomSelect) onRoomSelect(room, msg.id); } else { onUserSelect(msg.to, null, msg.id); } }}>
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-200 flex items-center justify-center text-lg">{isGroupMsg ? '👥' : '💬'}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1"><span className="font-semibold text-sm text-gray-800" style={{ fontFamily: 'Inter, sans-serif' }}>{conversationName}</span><span className="text-xs text-gray-500">{isGroupMsg ? 'Grupo' : 'Chat'}</span></div>
-                      <p className="text-xs text-gray-700 truncate" style={{ fontFamily: 'Inter, sans-serif' }}>{messagePreview}</p>
-                      <p className="text-xs text-gray-500 mt-1">{new Date(msg.sentAt).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-                    </div>
-                  </div>
-                );
-              })}
-              <div className="border-t border-gray-200 my-3"></div>
-            </div>
-          )}
-          {isSearching ? (<div className="p-5 text-center text-[#00a884] text-sm"><p>🔍 Buscando mensajes...</p></div>) : filteredConversations.length === 0 && messageSearchResults.length === 0 ? (
-            <div className="p-5 text-center text-[#999] text-sm">
-              {searchTerm.trim().length > 0 ? <p>No se encontraron resultados para "{searchTerm}"</p> : !isAdmin && !isGroup ? <><p>No tienes conversaciones asignadas</p><p className="text-xs mt-2">Espera a que un administrador te asigne una conversación</p></> : <p>No hay usuarios conectados</p>}
-            </div>
-          ) : (
-            <>
-              {filteredConversations.map((conversation) => {
-                const unreadCount = unreadMessages?.[conversation.username] || 0;
-                const displayName = conversation.nombre && conversation.apellido ? `${conversation.nombre} ${conversation.apellido}` : conversation.username;
-                const getInitials = () => { if (conversation.nombre && conversation.apellido) return `${conversation.nombre[0]}${conversation.apellido[0]}`.toUpperCase(); return conversation.username?.[0]?.toUpperCase() || 'U'; };
-                return (
-                  <div key={conversation.id || conversation.username} className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 ${conversation.username === user?.username ? 'bg-[#e9edef]' : ''} ${isGroup ? 'cursor-default opacity-60 hover:bg-transparent' : 'cursor-pointer'}`} style={{ padding: '8px 12px', gap: '10px', minHeight: '60px' }} onClick={() => { if (isGroup) return; onUserSelect && onUserSelect(displayName); }}>
-                    <div className="relative flex-shrink-0" style={{ width: '40px', height: '40px' }}>
-                      <div className="rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold" style={{ width: '40px', height: '40px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '14px' }}>{conversation.picture ? <img src={conversation.picture} alt={displayName} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = getInitials(); }} /> : getInitials()}</div>
-                    </div>
-                    <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px' }}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex flex-col flex-1 min-w-0">
-                          <h3 className="font-semibold text-[#111] truncate" style={{ fontSize: '14px', lineHeight: '18px', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{displayName}</h3>
-                          <span className="text-gray-500 truncate" style={{ fontSize: '10px', lineHeight: '12px', fontFamily: 'Inter, sans-serif', fontWeight: 300 }}>{conversation.role && conversation.numeroAgente ? <>Rol: {conversation.role} • N° Agente: {conversation.numeroAgente}</> : conversation.numeroAgente ? <>N° Agente: {conversation.numeroAgente}</> : <>Rol: {conversation.role || 'Sin rol'}</>}</span>
-                        </div>
-                        <span className="conversation-timestamp">{conversation.timestamp || ''}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-gray-600 truncate" style={{ fontSize: '12px', lineHeight: '16px', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>{conversation.lastMessage || 'Haz clic para chatear'}</p>
-                        {unreadCount > 0 && <span className="bg-[#25d366] text-white font-bold rounded-full flex items-center justify-center ml-2 flex-shrink-0" style={{ fontSize: '11.66px', minWidth: '20px', height: '20px', padding: '0 6px' }}>{unreadCount}</span>}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              {userListLoading && <div className="p-4 text-center text-gray-500 text-sm"><p>⏳ Cargando más usuarios...</p></div>}
-              {!userListHasMore && !searchTerm && filteredConversations.length > 0 && <div className="p-4 text-center text-gray-400 text-xs"><p>✓ Todos los usuarios cargados</p></div>}
-            </>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )
+      }
     </div >
   );
 };

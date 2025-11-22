@@ -1449,8 +1449,8 @@ const ChatContent = ({
               ? isOwnMessage ? "#c9e8ba" : "#d4d2e0"
               : isOwnMessage ? "#E1F4D6" : "#E8E6F0",
             color: "#1f2937",
-            padding: "6px 19.25px",
-            paddingRight: message.isDeleted ? "19.25px" : "50px",
+            padding: "4px 10px",
+            paddingRight: message.isDeleted ? "10px" : "30px",
 
             borderTopLeftRadius: borderTopLeft,
             borderTopRightRadius: borderTopRight,
@@ -1586,9 +1586,36 @@ const ChatContent = ({
 
           {/* ==================== HEADER USUARIO ==================== */}
           {!isOwnMessage && !isGroupedWithPrevious && (
-            <div style={{ fontSize: "12px", fontWeight: "600", color: "#00a884", marginBottom: "2px", display: "flex", alignItems: "center", gap: "4px" }}>
-              {message.sender}
-              {getSenderSuffix(message) && <span style={{ color: "#666", fontWeight: "400", marginLeft: "4px" }}>{getSenderSuffix(message)}</span>}
+            <div style={{
+              fontSize: "12px",
+              fontWeight: "600",
+              color: "#00a884",
+              marginBottom: "2px",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              maxWidth: "100%"
+            }}>
+              <span style={{
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap"
+              }}>
+                {message.sender}
+              </span>
+              {getSenderSuffix(message) && (
+                <span style={{
+                  color: "#666",
+                  fontWeight: "400",
+                  marginLeft: "4px",
+                  flexShrink: 0,
+                  whiteSpace: "nowrap"
+                }}>
+                  {getSenderSuffix(message)}
+                </span>
+              )}
             </div>
           )}
 
@@ -1736,7 +1763,7 @@ const ChatContent = ({
             /* 🔥 Z-INDEX 10 PARA QUE NO SE OCULTE CON EL MENSAJE SIGUIENTE */
             <div className="message-reactions-container" style={{ zIndex: 10, position: 'absolute', bottom: '-12px', right: isOwnMessage ? 'auto' : '10px', left: isOwnMessage ? '10px' : 'auto' }}>
               {Object.entries(message.reactions.reduce((acc, reaction) => { if (reaction?.emoji) { if (!acc[reaction.emoji]) acc[reaction.emoji] = []; acc[reaction.emoji].push(reaction.username); } return acc; }, {})).map(([emoji, users]) => (
-                <div key={emoji} onClick={(e) => { e.stopPropagation(); handleReaction(message, emoji); }} className="reaction-pill" style={{ backgroundColor: users.includes(currentUsername) ? "#e1f4d6" : "#ffffff", borderColor: users.includes(currentUsername) ? "#00a884" : "#e5e7eb" }}>
+                <div key={emoji} onClick={(e) => { e.stopPropagation(); handleReaction(message, emoji); }} className="reaction-pill" style={{ backgroundColor: users.includes(currentUsername) ? "#e1f4d6" : "#ffffff", borderColor: users.includes(currentUsername) ? "#00a884" : "#e5e7eb" }} title={users.join(', ')}>
                   <span className="reaction-emoji">{emoji}</span>
                   {users.length > 1 && <span className="reaction-count">{users.length}</span>}
                 </div>

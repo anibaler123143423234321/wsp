@@ -78,6 +78,9 @@ const ChatLayout = ({
 
   // 🔥 Props de encuestas
   onPollVote,
+
+  // 🔥 Props de actualización de sala
+  onRoomUpdated,
 }) => {
   // State para el panel de miembros (lifted from ChatHeader)
   const [showMembersPanel, setShowMembersPanel] = React.useState(false);
@@ -174,6 +177,13 @@ const ChatLayout = ({
 
   // Función para obtener el picture del usuario con el que se está chateando
   const getUserPicture = () => {
+    if (isGroup) {
+      const room = myActiveRooms?.find(r => r.roomCode === currentRoomCode);
+      // 🔥 Fallback: Si no hay picture, revisar description por si guardamos la URL ahí
+      if (room?.picture) return room.picture;
+      if (room?.description && room.description.startsWith('http')) return room.description;
+      return null;
+    }
     const targetUser = getTargetUser();
     return targetUser?.picture || null;
   };
@@ -360,7 +370,6 @@ const ChatLayout = ({
             }}
           />
         </div>
-
         {/* Thread Panel (Displacement Layout) */}
         <ThreadPanel
           isOpen={showThreadPanel}
@@ -391,58 +400,71 @@ const ChatLayout = ({
             roomCode: currentRoomCode,
             roomName: to,
             roomUsers: roomUsers,
-            to: to
+            to: to,
+            picture: getUserPicture(),
+            description: isGroup ? myActiveRooms?.find(r => r.roomCode === currentRoomCode)?.description : null,
+            roomId: currentRoomCode
           }}
           onCreatePoll={handleCreatePoll}
+          user={user} // 🔥 Pass user for permission checks
+          onRoomUpdated={onRoomUpdated} // 🔥 Pass callback for updates
         />
 
-      </div>
+      </div >
 
       {/* Modales */}
-      {showCreateRoomModal && (
-        <CreateRoomModal
-          isOpen={showCreateRoomModal}
-          onClose={() => setShowCreateRoomModal(false)}
-          roomForm={roomForm}
-          setRoomForm={setRoomForm}
-          onCreateRoom={onCreateRoom}
-        />
-      )}
+      {
+        showCreateRoomModal && (
+          <CreateRoomModal
+            isOpen={showCreateRoomModal}
+            onClose={() => setShowCreateRoomModal(false)}
+            roomForm={roomForm}
+            setRoomForm={setRoomForm}
+            onCreateRoom={onCreateRoom}
+          />
+        )
+      }
 
-      {showJoinRoomModal && (
-        <JoinRoomModal
-          isOpen={showJoinRoomModal}
-          onClose={() => setShowJoinRoomModal(false)}
-          joinRoomForm={joinRoomForm}
-          setJoinRoomForm={setJoinRoomForm}
-          onJoinRoom={onJoinRoom}
-        />
-      )}
+      {
+        showJoinRoomModal && (
+          <JoinRoomModal
+            isOpen={showJoinRoomModal}
+            onClose={() => setShowJoinRoomModal(false)}
+            joinRoomForm={joinRoomForm}
+            setJoinRoomForm={setJoinRoomForm}
+            onJoinRoom={onJoinRoom}
+          />
+        )
+      }
 
-      {showAdminRoomsModal && (
-        <AdminRoomsModal
-          isOpen={showAdminRoomsModal}
-          onClose={() => setShowAdminRoomsModal(false)}
-          onDeleteRoom={onDeleteRoom}
-          onDeactivateRoom={onDeactivateRoom}
-          onActivateRoom={onActivateRoom}
-          onEditRoom={onEditRoom}
-          onViewRoomUsers={onViewRoomUsers}
-          currentUser={user}
-        />
-      )}
+      {
+        showAdminRoomsModal && (
+          <AdminRoomsModal
+            isOpen={showAdminRoomsModal}
+            onClose={() => setShowAdminRoomsModal(false)}
+            onDeleteRoom={onDeleteRoom}
+            onDeactivateRoom={onDeactivateRoom}
+            onActivateRoom={onActivateRoom}
+            onEditRoom={onEditRoom}
+            onViewRoomUsers={onViewRoomUsers}
+            currentUser={user}
+          />
+        )
+      }
 
       {/* Modal de Crear Encuesta */}
-      {showCreatePollModal && (
-        <CreatePollModal
-          isOpen={showCreatePollModal}
-          onClose={() => setShowCreatePollModal(false)}
-          onCreatePoll={handlePollCreated}
-        />
-      )}
+      {
+        showCreatePollModal && (
+          <CreatePollModal
+            isOpen={showCreatePollModal}
+            onClose={() => setShowCreatePollModal(false)}
+            onCreatePoll={handlePollCreated}
+          />
+        )
+      }
 
       {/* Otros modales... */}
-    </div>
+    </div >
   );
 };
 

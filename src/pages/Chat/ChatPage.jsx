@@ -4411,6 +4411,7 @@ const ChatPage = () => {
         onPinMessage={handlePinMessage}
         pinnedMessageId={pinnedMessageId}
         onPollVote={handlePollVote} // 🔥 NUEVO: Handler para votar en encuestas
+        onRoomUpdated={() => loadMyActiveRooms(1, false)} // 🔥 Handler para actualizar salas
 
         // Props de modales
         showCreateRoomModal={showCreateRoomModal}
