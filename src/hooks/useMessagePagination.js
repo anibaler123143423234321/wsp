@@ -291,7 +291,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
 
         if (messageId !== null && messageId !== undefined) {
           // Buscar por ID
-          shouldUpdate = msg.id === messageId;
+          shouldUpdate = String(msg.id) === String(messageId);
         } else if (updates.videoRoomID) {
           // 🔥 NUEVO: Buscar por videoRoomID
           // Caso normal: usar campo videoRoomID

@@ -1663,11 +1663,14 @@ const ChatContent = ({
                   {message.mediaType === "image" ? (
                     <div style={{ display: "flex", flexDirection: "column", minWidth: "200px" }}>
                       <img src={message.mediaData} alt="Imagen" loading="lazy" className="media-image" style={{ borderRadius: "7.5px", display: "block", cursor: "pointer", maxWidth: "100%", objectFit: "contain", minHeight: "100px", backgroundColor: "rgba(0,0,0,0.05)" }} onClick={() => setImagePreview({ url: message.mediaData, fileName: message.fileName || "imagen" })} />
-                      {message.text && message.text !== "Imagen" && (
-                        <div style={{ marginTop: "6px", marginBottom: "2px", fontSize: "14.2px", color: "#111b21", lineHeight: "1.4", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                          {renderTextWithMentions(message.text)}
-                        </div>
-                      )}
+                      {(() => {
+                        const caption = message.text || message.message || ""; // 🔥 El mismo fix
+                        return caption && caption !== "Imagen" && (
+                          <div style={{ marginTop: "6px", marginBottom: "2px", fontSize: "14.2px", color: "#111b21", lineHeight: "1.4", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                            {renderTextWithMentions(caption)}
+                          </div>
+                        );
+                      })()}
                       <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginTop: "2px", gap: "4px", width: "100%" }}>
                         <span style={{ fontSize: "11px", color: "#667781" }}>{message.time}</span>
                         {isOwnMessage && <span style={{ color: message.readBy?.length > 0 ? "#53bdeb" : "#8696a0", fontSize: "12px" }}>{message.isSent ? "✔✔" : "⏳"}</span>}
@@ -1683,11 +1686,14 @@ const ChatContent = ({
                         style={{ width: "100%", maxHeight: "350px", borderRadius: "7.5px", minHeight: "100px", backgroundColor: "rgba(0,0,0,0.1)", objectFit: "contain" }}
                         onError={(e) => console.error("❌ Error al cargar video:", message.mediaData, e)}
                       />
-                      {message.text && message.text !== "VIDIO" && (
-                        <div style={{ marginTop: "6px", marginBottom: "2px", fontSize: "14.2px", color: "#111b21", lineHeight: "1.4", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                          {renderTextWithMentions(message.text)}
-                        </div>
-                      )}
+                      {(() => {
+                        const caption = message.text || message.message || ""; // 🔥 El mismo fix
+                        return caption && caption !== "VIDIO" && (
+                          <div style={{ marginTop: "6px", marginBottom: "2px", fontSize: "14.2px", color: "#111b21", lineHeight: "1.4", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                            {renderTextWithMentions(caption)}
+                          </div>
+                        );
+                      })()}
                       <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "2px", gap: "4px" }}>
                         <span style={{ fontSize: "11px", color: "#667781" }}>{message.time}</span>
                         {isOwnMessage && <span style={{ color: message.readBy?.length > 0 ? "#53bdeb" : "#8696a0", fontSize: "12px" }}>{message.isSent ? "✔✔" : "⏳"}</span>}
@@ -1718,8 +1724,9 @@ const ChatContent = ({
                   {(() => {
                     const MAX_LENGTH = 300;
                     const isExpanded = expandedMessages.has(message.id);
-                    const shouldTruncate = message.text && message.text.length > MAX_LENGTH;
-                    const displayText = shouldTruncate && !isExpanded ? message.text.substring(0, MAX_LENGTH) : message.text;
+                    const finalText = message.text || message.message || "";
+                    const shouldTruncate = finalText && finalText.length > MAX_LENGTH;
+                    const displayText = shouldTruncate && !isExpanded ? finalText.substring(0, MAX_LENGTH) : finalText;
                     return (
                       <>
                         <div className="message-text" style={{ color: "#000000D9", fontSize: "14.97px", lineHeight: "1.4", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
