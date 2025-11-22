@@ -100,6 +100,16 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
     if (result.isConfirmed) {
       try {
         await apiService.deleteAssignedConversation(conv.id);
+
+        // 🔥 Emitir websocket para notificar a los participantes
+        if (socket && socket.connected && conv.participants) {
+          socket.emit('conversationRemoved', {
+            conversationId: conv.id,
+            conversationName: conv.name,
+            participants: conv.participants || []
+          });
+        }
+
         await showSuccessAlert('¡Eliminado!', 'La conversación ha sido eliminada correctamente');
         loadConversations();
         if (onConversationUpdated) {

@@ -215,9 +215,9 @@ const ChatPage = () => {
 
     // 4. Actualizar título
     if (totalUnread > 0) {
-      document.title = `(${totalUnread}) Chat Call Center +34`;
+      document.title = `(${totalUnread}) Chat +34`;
     } else {
-      document.title = "Chat Call Center +34";
+      document.title = "Chat +34";
     }
   }, [assignedConversations, myActiveRooms, unreadMessages, user]);
 
@@ -982,6 +982,22 @@ const ChatPage = () => {
         "Expulsado",
         data.message || "Has sido expulsado de la sala"
       );
+    });
+
+    s.on("conversationRemoved", async (data) => {
+      console.log("🗑️ Conversación removida:", data);
+      try {
+        // Mostrar alerta de notificación
+        await showErrorAlert(
+          "Conversación removida",
+          `Has sido removido de la conversación: ${data.conversationName}`
+        );
+
+        // Recargar la lista de conversaciones asignadas
+        await loadAssignedConversations();
+      } catch (error) {
+        console.error("Error al procesar remoción de conversación:", error);
+      }
     });
 
     s.on("messagePinned", (data) => {
@@ -2329,6 +2345,7 @@ const ChatPage = () => {
       s.off("roomCountUpdate");
       s.off("unreadCountUpdate");
       s.off("unreadCountReset");
+      s.off("conversationRemoved"); // 🔥 Limpiar listener de conversación removida
     };
   }, [socket, username, isAdmin, soundsEnabled, addNewMessage, updateMessage, playMessageSound, setAssignedConversations, clearMessages, loadAssignedConversations, setCurrentRoomCode, user?.role, loadMyActiveRooms, user, currentUserFullName, currentRoomCode, to, userList, typingTimeout]);
 

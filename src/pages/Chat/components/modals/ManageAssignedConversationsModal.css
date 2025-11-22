@@ -64,10 +64,12 @@
 .conversation-card {
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   border: 1px solid #e8e8e8;
-  border-radius: 12px;
-  padding: 1.25rem 1.5rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  /* Bordes menos redondeados para ahorrar espacio */
+  padding: 0.75rem 1rem;
+  /* Mucho menos padding (antes era 1.25rem) */
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .conversation-card:hover {
@@ -76,18 +78,16 @@
   transform: translateY(-2px);
 }
 
+/* Header más compacto */
 .conversation-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.5rem;
 }
 
 .conversation-header h3 {
-  margin: 0;
-  font-size: 1rem;
-  color: #2c3e50;
-  font-weight: 600;
+  font-size: 0.95rem;
+  /* Fuente un poco más pequeña */
 }
 
 .conversation-actions {
@@ -95,17 +95,14 @@
   gap: 0.5rem;
 }
 
+/* Botones de acción más pequeños */
 .action-btn {
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
-  padding: 0.6rem;
-  cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
+  padding: 0.4rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  width: 30px;
+  /* Ancho fijo para uniformidad */
+  height: 30px;
 }
 
 .action-btn:hover {
@@ -142,27 +139,36 @@
 
 .conversation-info {
   display: flex;
-  flex-direction: column;
-  gap: 0.625rem;
+  flex-direction: row;
+  /* Forzar fila horizontal en lugar de columna */
+  align-items: center;
+  justify-content: space-between;
+  /* Espaciar elementos a lo ancho */
+  gap: 1rem;
+  font-size: 0.8rem;
 }
 
+/* Ajustar cada ítem de información */
 .info-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: #555;
+  gap: 0.4rem;
+  white-space: nowrap;
+  /* Evitar que el texto salte de línea si es posible */
+}
+
+/* Ocultar etiquetas de texto redundantes en móviles o si se desea muy compacto */
+.info-item>span:first-of-type {
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: #666;
+  margin-right: 4px;
 }
 
 .info-item svg {
   color: #00bfa5;
   font-size: 0.9rem;
   flex-shrink: 0;
-}
-
-.info-item>span:first-of-type {
-  font-weight: 600;
-  color: #2c3e50;
 }
 
 .participants {
@@ -172,14 +178,15 @@
 }
 
 .participant-badge {
-  background: linear-gradient(135deg, #A50104 0%, #8B0003 100%);
-  color: white;
-  padding: 0.35rem 0.85rem;
-  border-radius: 20px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  box-shadow: 0 2px 6px rgba(165, 1, 4, 0.2);
-  transition: all 0.2s ease;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.7rem;
+  border-radius: 12px;
+}
+
+.status,
+.date {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.6rem;
 }
 
 .participant-badge:hover {
@@ -371,8 +378,15 @@
     justify-content: flex-end;
   }
 
-  .info-item {
+  .conversation-info {
     flex-wrap: wrap;
+    /* Permitir que bajen si no caben */
+    gap: 0.5rem;
+  }
+
+  .info-item {
+    flex: 1 1 auto;
+    /* Que ocupen el espacio disponible */
   }
 
   .participants {
