@@ -41,9 +41,9 @@
 .info-panel-header {
     display: flex;
     align-items: center;
-    padding: 10px 20px;
-    height: 60px;
-    background: var(--main-bg);
+    padding: 14px 20px;
+    height: 65px;
+    background: var(--panel-bg);
     border-bottom: 1px solid var(--border-color);
     color: var(--text-primary);
 }

@@ -62,16 +62,18 @@
 }
 
 .conversation-card {
-  background: #f8f9fa;
-  border: 1px solid #e0e0e0;
-  border-radius: 10px;
-  padding: 1rem 1.25rem;
-  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .conversation-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: #00bfa5;
+  box-shadow: 0 8px 24px rgba(165, 1, 4, 0.12);
+  border-color: #A50104;
+  transform: translateY(-2px);
 }
 
 .conversation-header {
@@ -94,12 +96,12 @@
 }
 
 .action-btn {
-  background: none;
-  border: none;
-  padding: 0.5rem;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  padding: 0.6rem;
   cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.2s ease;
+  border-radius: 8px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -107,7 +109,8 @@
 }
 
 .action-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .edit-btn {
@@ -115,7 +118,9 @@
 }
 
 .edit-btn:hover {
-  background: rgba(52, 152, 219, 0.1);
+  background: #3498db;
+  color: white;
+  border-color: #3498db;
 }
 
 .delete-btn {
@@ -123,7 +128,9 @@
 }
 
 .delete-btn:hover {
-  background: rgba(231, 76, 60, 0.1);
+  background: #e74c3c;
+  color: white;
+  border-color: #e74c3c;
 }
 
 .conversation-description {
@@ -153,7 +160,7 @@
   flex-shrink: 0;
 }
 
-.info-item > span:first-of-type {
+.info-item>span:first-of-type {
   font-weight: 600;
   color: #2c3e50;
 }
@@ -165,12 +172,19 @@
 }
 
 .participant-badge {
-  background: #00bfa5;
+  background: linear-gradient(135deg, #A50104 0%, #8B0003 100%);
   color: white;
-  padding: 0.2rem 0.65rem;
-  border-radius: 16px;
-  font-size: 0.8rem;
-  font-weight: 500;
+  padding: 0.35rem 0.85rem;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(165, 1, 4, 0.2);
+  transition: all 0.2s ease;
+}
+
+.participant-badge:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(165, 1, 4, 0.3);
 }
 
 .date {
@@ -179,25 +193,30 @@
 }
 
 .status {
-  padding: 0.2rem 0.65rem;
-  border-radius: 16px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  padding: 0.35rem 0.85rem;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .status.active {
-  background: #d4edda;
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
   color: #155724;
+  border: 1px solid #b1dfbb;
 }
 
 .status.expiring-soon {
-  background: #fff3cd;
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
   color: #856404;
+  border: 1px solid #ffd966;
 }
 
 .status.expired {
-  background: #f8d7da;
+  background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
   color: #721c24;
+  border: 1px solid #f1b0b7;
 }
 
 /* Modo edición */
@@ -255,33 +274,38 @@
 
 .btn-save,
 .btn-cancel {
-  padding: 0.6rem 1.5rem;
+  padding: 0.7rem 1.75rem;
   border: none;
-  border-radius: 8px;
-  font-weight: 600;
+  border-radius: 10px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 0.9rem;
+  letter-spacing: 0.3px;
 }
 
 .btn-save {
-  background: #00bfa5;
+  background: linear-gradient(135deg, #A50104 0%, #8B0003 100%);
   color: white;
+  box-shadow: 0 4px 12px rgba(165, 1, 4, 0.3);
 }
 
 .btn-save:hover {
-  background: #00a890;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 191, 165, 0.3);
+  background: linear-gradient(135deg, #8B0003 0%, #6B0002 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(165, 1, 4, 0.4);
 }
 
 .btn-cancel {
-  background: #e0e0e0;
-  color: #555;
+  background: #f5f5f5;
+  color: #666;
+  border: 1px solid #e0e0e0;
 }
 
 .btn-cancel:hover {
-  background: #d0d0d0;
+  background: #e8e8e8;
+  border-color: #d0d0d0;
+  transform: translateY(-1px);
 }
 
 /* Estados vacío y cargando */
@@ -306,8 +330,13 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .empty-state svg {
@@ -350,4 +379,3 @@
     width: 100%;
   }
 }
-

@@ -369,6 +369,7 @@ const ChatLayout = ({
           currentUsername={currentUsername}
           socket={socket}
           onSendMessage={onSendThreadMessage}
+          currentRoomCode={currentRoomCode}
         />
 
         {/* Members Panel (Displacement Layout) */}

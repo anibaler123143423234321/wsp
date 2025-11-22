@@ -2114,7 +2114,7 @@ const ChatPage = () => {
     // Evento: Contador de hilo actualizado
     s.on("threadCountUpdated", (data) => {
       const { messageId, lastReplyFrom, from, to, isGroup } = data;
-      // console.log('🔢 Evento threadCountUpdated recibido:', data);
+      console.log('🔢 Evento threadCountUpdated recibido:', data);
 
       // 🔥 CORREGIDO: Actualizar el contador SIEMPRE, sin importar quién envió el mensaje
       // El contador debe reflejar el número real de mensajes en el hilo
@@ -3527,7 +3527,7 @@ const ChatPage = () => {
           roomCode: messageData.roomCode,
           isGroup: messageData.isGroup,
         };
-        // console.log('📤 Emitiendo threadCountUpdated:', threadCountData);
+        console.log('📤 Emitiendo threadCountUpdated:', threadCountData);
         socket.emit("threadCountUpdated", threadCountData);
       }
 

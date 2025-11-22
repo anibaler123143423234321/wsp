@@ -74,7 +74,7 @@ const InfoPanel = ({ isOpen, onClose, chatInfo, onCreatePoll }) => {
                         <ActionRow
                             icon={<FaPoll />}
                             text="Crear Encuesta"
-                            onClick={onCreatePoll}
+                        //  onClick={onCreatePoll}
                         />
 
                         <ActionRow

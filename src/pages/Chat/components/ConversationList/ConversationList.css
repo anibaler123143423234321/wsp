@@ -75,7 +75,7 @@
   transition: color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.search-input:focus + .search-icon {
+.search-input:focus+.search-icon {
   color: #dc2626;
 }
 
@@ -123,11 +123,9 @@
 }
 
 .conversation-item:hover {
-  background: linear-gradient(
-    90deg,
-    rgba(220, 38, 38, 0.03) 0%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      rgba(220, 38, 38, 0.03) 0%,
+      transparent 100%);
 }
 
 .conversation-item:hover::before {
@@ -135,11 +133,9 @@
 }
 
 .conversation-item.active {
-  background: linear-gradient(
-    90deg,
-    rgba(220, 38, 38, 0.08) 0%,
-    rgba(220, 38, 38, 0.02) 100%
-  );
+  background: linear-gradient(90deg,
+      rgba(220, 38, 38, 0.08) 0%,
+      rgba(220, 38, 38, 0.02) 100%);
   border-left: 0.25rem solid #dc2626;
 }
 
@@ -199,6 +195,7 @@
 }
 
 @keyframes pulse-online {
+
   0%,
   100% {
     opacity: 1;
@@ -227,6 +224,7 @@
 }
 
 @keyframes pulse-unread {
+
   0%,
   100% {
     transform: scale(1);
@@ -280,6 +278,7 @@
 }
 
 @keyframes typing-bounce {
+
   0%,
   80%,
   100% {
@@ -297,11 +296,10 @@
   padding: 1rem;
   background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
   color: white;
-
-  .conversation-item {
-    padding: 0.25rem;
-    min-height: 45px;
-  }
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
 }
 
 @media (max-width: 1024px) {
@@ -324,11 +322,9 @@
 }
 
 .conversation-item:hover {
-  background: linear-gradient(
-    90deg,
-    rgba(220, 38, 38, 0.03) 0%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      rgba(220, 38, 38, 0.03) 0%,
+      transparent 100%);
 }
 
 .conversation-item:hover::before {
@@ -336,11 +332,9 @@
 }
 
 .conversation-item.active {
-  background: linear-gradient(
-    90deg,
-    rgba(220, 38, 38, 0.08) 0%,
-    rgba(220, 38, 38, 0.02) 100%
-  );
+  background: linear-gradient(90deg,
+      rgba(220, 38, 38, 0.08) 0%,
+      rgba(220, 38, 38, 0.02) 100%);
   border-left: 0.25rem solid #dc2626;
 }
 
@@ -400,6 +394,7 @@
 }
 
 @keyframes pulse-online {
+
   0%,
   100% {
     opacity: 1;
@@ -428,6 +423,7 @@
 }
 
 @keyframes pulse-unread {
+
   0%,
   100% {
     transform: scale(1);
@@ -598,4 +594,99 @@
     right: 6px !important;
     top: 6px !important;
   }
+}
+
+/* Estilos para listas colapsables y redimensionables */
+.mx_RoomSublist {
+  position: relative;
+  user-select: auto;
+  width: auto;
+  /* Altura controlada por JS, pero ponemos límites */
+  max-height: 800px;
+  min-height: 76px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  transition: height 0.1s ease-out;
+  border-bottom: 1px solid #eee;
+}
+
+.mx_RoomSublist_content {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.mx_RoomSublist_content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.mx_RoomSublist_content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mx_RoomSublist_content::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.mx_RoomSublist_resizerHandle {
+  position: absolute;
+  user-select: none;
+  width: 100%;
+  height: 10px;
+  left: 0px;
+  cursor: row-resize;
+  bottom: -5px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mx_RoomSublist_resizerHandle::after {
+  content: '';
+  width: 32px;
+  height: 4px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.mx_RoomSublist:hover .mx_RoomSublist_resizerHandle::after {
+  opacity: 1;
+}
+
+.mx_AutoHideScrollbar {
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s;
+}
+
+.mx_AutoHideScrollbar:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+/* Ajustes para el header del colapsable */
+.mx_RoomSublist_header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  cursor: pointer;
+  user-select: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #fff;
+}
+
+.mx_RoomSublist_header:hover {
+  color: #374151;
+  background-color: #f9fafb;
 }

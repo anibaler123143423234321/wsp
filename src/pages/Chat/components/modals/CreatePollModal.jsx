@@ -63,6 +63,7 @@ const CreatePollModal = ({ isOpen, onClose, onCreatePoll }) => {
             <div className="poll-modal-container" onClick={(e) => e.stopPropagation()}>
                 <div className="poll-modal-header">
                     <h2>Crear Encuesta</h2>
+
                     <button className="poll-modal-close-btn" onClick={handleClose}>
                         <FaTimes />
                     </button>

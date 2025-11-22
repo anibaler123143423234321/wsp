@@ -20,6 +20,7 @@ const ThreadPanel = ({
   currentUsername,
   socket,
   onSendMessage,
+  currentRoomCode, // 🔥 NUEVO: RoomCode actual de la sesión
 }) => {
   if (!isOpen) return null;
   const [threadMessages, setThreadMessages] = useState([]);
@@ -247,13 +248,30 @@ const ThreadPanel = ({
 
     setIsSending(true);
     try {
+      // 🔥 DEBUG: Verificar qué contiene el mensaje original
+      console.log('🔍 DEBUG ThreadPanel - message object:', {
+        id: message.id,
+        from: message.from,
+        to: message.to,
+        isGroup: message.isGroup,
+        roomCode: message.roomCode,
+        receiver: message.receiver,
+        sender: message.sender,
+        realSender: message.realSender,
+      });
+
       const messageData = {
         text: input,
         threadId: message.id,
         from: currentUsername,
-        to: message.from === currentUsername ? message.to : message.from,
+        // 🔥 CORREGIDO: Para mensajes de grupo, usar message.receiver (nombre de sala)
+        // Para mensajes 1-a-1, determinar el destinatario correcto  
+        to: message.isGroup
+          ? message.receiver  // Para grupos, usar receiver (nombre de la sala)
+          : (message.realSender === currentUsername ? message.receiver : message.realSender),
         isGroup: message.isGroup,
-        roomCode: message.roomCode,
+        // 🔥 CORREGIDO: Usar currentRoomCode de la sesión actual (prop) en lugar de message.roomCode (undefined)
+        roomCode: message.isGroup ? currentRoomCode : undefined,
       };
 
       // Si hay archivos, subirlos primero
@@ -294,15 +312,18 @@ const ThreadPanel = ({
         text: "",
         threadId: message.id,
         from: currentUsername,
-        to: message.from === currentUsername ? message.to : message.from,
+        // 🔥 CORREGIDO: Para mensajes de grupo, usar message.receiver (nombre de sala)
+        to: message.isGroup
+          ? message.receiver  // Para grupos, usar receiver (nombre de la sala)
+          : (message.realSender === currentUsername ? message.receiver : message.realSender),
         isGroup: message.isGroup,
-        roomCode: message.roomCode,
+        // 🔥 CORREGIDO: Usar currentRoomCode de la sesión actual (prop)
+        roomCode: message.isGroup ? currentRoomCode : undefined,
         mediaType: "audio",
         mediaData: uploadResult.fileUrl,
         fileName: uploadResult.fileName,
         fileSize: uploadResult.fileSize,
       };
-
       // 🔥 CONFIAR EN EL BACKEND - NO agregar nada localmente
       // El socket devolverá el mensaje con threadMessage
 

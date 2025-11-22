@@ -1634,17 +1634,34 @@ const ChatContent = ({
               ) : (
                 <div className="media-message" style={{ marginBottom: "2px" }}>
                   {message.mediaType === "image" ? (
-                    <div style={{ display: "flex", flexDirection: "column" }}>
-                      <img src={message.mediaData} alt="Imagen" loading="lazy" className="media-image" style={{ borderRadius: "7.5px", display: "block", cursor: "pointer", maxWidth: "100%", objectFit: "contain" }} onClick={() => setImagePreview({ url: message.mediaData, fileName: message.fileName || "imagen" })} />
-                      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginTop: "4px", gap: "4px", width: "100%" }}>
+                    <div style={{ display: "flex", flexDirection: "column", minWidth: "200px" }}>
+                      <img src={message.mediaData} alt="Imagen" loading="lazy" className="media-image" style={{ borderRadius: "7.5px", display: "block", cursor: "pointer", maxWidth: "100%", objectFit: "contain", minHeight: "100px", backgroundColor: "rgba(0,0,0,0.05)" }} onClick={() => setImagePreview({ url: message.mediaData, fileName: message.fileName || "imagen" })} />
+                      {message.text && message.text !== "Imagen" && (
+                        <div style={{ marginTop: "6px", marginBottom: "2px", fontSize: "14.2px", color: "#111b21", lineHeight: "1.4", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                          {renderTextWithMentions(message.text)}
+                        </div>
+                      )}
+                      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginTop: "2px", gap: "4px", width: "100%" }}>
                         <span style={{ fontSize: "11px", color: "#667781" }}>{message.time}</span>
                         {isOwnMessage && <span style={{ color: message.readBy?.length > 0 ? "#53bdeb" : "#8696a0", fontSize: "12px" }}>{message.isSent ? "✔✔" : "⏳"}</span>}
                       </div>
                     </div>
                   ) : message.mediaType === "video" ? (
-                    <div style={{ display: "flex", flexDirection: "column" }}>
-                      <video src={message.mediaData} controls preload="metadata" className="media-video" style={{ maxWidth: "100%", borderRadius: "7.5px" }} />
-                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px", gap: "4px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", minWidth: "200px", maxWidth: "300px" }}>
+                      <video
+                        src={message.mediaData}
+                        controls
+                        preload="metadata"
+                        className="media-video"
+                        style={{ width: "100%", maxHeight: "350px", borderRadius: "7.5px", minHeight: "100px", backgroundColor: "rgba(0,0,0,0.1)", objectFit: "contain" }}
+                        onError={(e) => console.error("❌ Error al cargar video:", message.mediaData, e)}
+                      />
+                      {message.text && message.text !== "VIDIO" && (
+                        <div style={{ marginTop: "6px", marginBottom: "2px", fontSize: "14.2px", color: "#111b21", lineHeight: "1.4", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                          {renderTextWithMentions(message.text)}
+                        </div>
+                      )}
+                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "2px", gap: "4px" }}>
                         <span style={{ fontSize: "11px", color: "#667781" }}>{message.time}</span>
                         {isOwnMessage && <span style={{ color: message.readBy?.length > 0 ? "#53bdeb" : "#8696a0", fontSize: "12px" }}>{message.isSent ? "✔✔" : "⏳"}</span>}
                       </div>
