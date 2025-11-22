@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { FaTimes, FaUserMinus, FaExclamationTriangle, FaCheck } from 'react-icons/fa';
 import BaseModal from './BaseModal';
-import apiService from '../../apiService';
-import { showSuccessAlert, showErrorAlert, showConfirmAlert } from '../../sweetalert2';
+import apiService from "../../../../apiService";
+import { showSuccessAlert, showErrorAlert, showConfirmAlert } from "../../../../sweetalert2";
 import './Modal.css';
 
 const RemoveUsersFromRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembers = [], onUsersRemoved, currentUser }) => {

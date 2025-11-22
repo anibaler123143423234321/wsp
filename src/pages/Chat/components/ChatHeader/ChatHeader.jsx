@@ -1,6 +1,6 @@
 import { FaArrowLeft, FaUserPlus, FaUserMinus } from 'react-icons/fa';
 // Importamos el nuevo componente
-import VideoCallButton from './VideoCallButton';
+import VideoCallButton from '../VideoCallButton/VideoCallButton';
 import './ChatHeader.css';
 
 const ChatHeader = ({

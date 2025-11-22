@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { FaEdit, FaTrash, FaUsers, FaClock, FaCalendarAlt, FaClipboardList } from 'react-icons/fa';
 import BaseModal from './BaseModal';
 import './ManageAssignedConversationsModal.css';
-import apiService from '../../apiService';
-import { showSuccessAlert, showErrorAlert, showConfirmAlert } from '../../sweetalert2';
+import apiService from "../../../../apiService";
+import { showSuccessAlert, showErrorAlert, showConfirmAlert } from "../../../../sweetalert2";
 
 const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated, currentUser, socket }) => {
   const [conversations, setConversations] = useState([]);
@@ -222,136 +222,136 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
       ) : (
         <div className="conversations-list">
           {conversations.map((conv) => (
-                <div key={conv.id} className="conversation-card" style={{ backgroundColor: '#f9f9f9', border: '1px solid #e0e0e0' }}>
-                  {editingConv === conv.id ? (
-                    // Modo edición
-                    <div className="edit-mode">
-                      <div className="form-group">
-                        <label style={{ color: '#000000' }}>Nombre de la conversación</label>
-                        <input
-                          type="text"
-                          value={editForm.name}
-                          onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                          placeholder="Nombre de la conversación"
-                          style={{ backgroundColor: '#FFFFFF', color: '#000000', border: '1px solid #d1d7db' }}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label style={{ color: '#000000' }}>Descripción (opcional)</label>
-                        <textarea
-                          value={editForm.description}
-                          onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                          placeholder="Descripción de la conversación"
-                          rows="3"
-                          style={{ backgroundColor: '#FFFFFF', color: '#000000', border: '1px solid #d1d7db' }}
-                        />
-                      </div>
-                      <div className="edit-actions">
-                        <button className="btn-save" onClick={() => handleSaveEdit(conv.id)}>
-                          Guardar
+            <div key={conv.id} className="conversation-card" style={{ backgroundColor: '#f9f9f9', border: '1px solid #e0e0e0' }}>
+              {editingConv === conv.id ? (
+                // Modo edición
+                <div className="edit-mode">
+                  <div className="form-group">
+                    <label style={{ color: '#000000' }}>Nombre de la conversación</label>
+                    <input
+                      type="text"
+                      value={editForm.name}
+                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                      placeholder="Nombre de la conversación"
+                      style={{ backgroundColor: '#FFFFFF', color: '#000000', border: '1px solid #d1d7db' }}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label style={{ color: '#000000' }}>Descripción (opcional)</label>
+                    <textarea
+                      value={editForm.description}
+                      onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                      placeholder="Descripción de la conversación"
+                      rows="3"
+                      style={{ backgroundColor: '#FFFFFF', color: '#000000', border: '1px solid #d1d7db' }}
+                    />
+                  </div>
+                  <div className="edit-actions">
+                    <button className="btn-save" onClick={() => handleSaveEdit(conv.id)}>
+                      Guardar
+                    </button>
+                    <button className="btn-cancel" onClick={handleCancelEdit}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                // Modo vista
+                <>
+                  <div className="conversation-header">
+                    <h3 style={{ color: '#000000' }}>
+                      {conv.name}
+                      {!conv.isActive && (
+                        <span style={{ marginLeft: '10px', fontSize: '12px', color: '#999', fontWeight: 'normal' }}>
+                          (Inactiva)
+                        </span>
+                      )}
+                    </h3>
+                    <div className="conversation-actions">
+                      <button
+                        className="action-btn edit-btn"
+                        onClick={() => handleEdit(conv)}
+                        title="Editar"
+                      >
+                        <FaEdit />
+                      </button>
+                      {canDelete && conv.isActive && (
+                        <button
+                          className="action-btn"
+                          onClick={() => handleDeactivate(conv)}
+                          title="Desactivar"
+                          style={{ color: '#f59e0b' }}
+                        >
+                          ⏸️
                         </button>
-                        <button className="btn-cancel" onClick={handleCancelEdit}>
-                          Cancelar
+                      )}
+                      {canDelete && !conv.isActive && (
+                        <button
+                          className="action-btn"
+                          onClick={() => handleActivate(conv)}
+                          title="Activar"
+                          style={{ color: '#10b981' }}
+                        >
+                          ▶️
                         </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          className="action-btn delete-btn"
+                          onClick={() => handleDelete(conv)}
+                          title="Eliminar permanentemente"
+                        >
+                          <FaTrash />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {conv.description && (
+                    <p className="conversation-description" style={{ color: '#666666' }}>{conv.description}</p>
+                  )}
+
+                  <div className="conversation-info">
+                    <div className="info-item">
+                      <FaUsers style={{ color: '#A50104' }} />
+                      <span style={{ color: '#000000' }}>Participantes:</span>
+                      <div className="participants">
+                        {conv.participants?.map((participant, idx) => {
+                          // Función para extraer solo los primeros nombres
+                          const getShortName = (fullName) => {
+                            const parts = fullName.split(' ');
+                            return parts.length > 2 ? `${parts[0]} ${parts[1]}` : parts[0];
+                          };
+
+                          return (
+                            <span key={idx} className="participant-badge" title={participant}>
+                              {getShortName(participant)}
+                            </span>
+                          );
+                        })}
                       </div>
                     </div>
-                  ) : (
-                    // Modo vista
-                    <>
-                      <div className="conversation-header">
-                        <h3 style={{ color: '#000000' }}>
-                          {conv.name}
-                          {!conv.isActive && (
-                            <span style={{ marginLeft: '10px', fontSize: '12px', color: '#999', fontWeight: 'normal' }}>
-                              (Inactiva)
-                            </span>
-                          )}
-                        </h3>
-                        <div className="conversation-actions">
-                          <button
-                            className="action-btn edit-btn"
-                            onClick={() => handleEdit(conv)}
-                            title="Editar"
-                          >
-                            <FaEdit />
-                          </button>
-                          {canDelete && conv.isActive && (
-                            <button
-                              className="action-btn"
-                              onClick={() => handleDeactivate(conv)}
-                              title="Desactivar"
-                              style={{ color: '#f59e0b' }}
-                            >
-                              ⏸️
-                            </button>
-                          )}
-                          {canDelete && !conv.isActive && (
-                            <button
-                              className="action-btn"
-                              onClick={() => handleActivate(conv)}
-                              title="Activar"
-                              style={{ color: '#10b981' }}
-                            >
-                              ▶️
-                            </button>
-                          )}
-                          {canDelete && (
-                            <button
-                              className="action-btn delete-btn"
-                              onClick={() => handleDelete(conv)}
-                              title="Eliminar permanentemente"
-                            >
-                              <FaTrash />
-                            </button>
-                          )}
-                        </div>
-                      </div>
 
-                      {conv.description && (
-                        <p className="conversation-description" style={{ color: '#666666' }}>{conv.description}</p>
-                      )}
+                    <div className="info-item">
+                      <FaCalendarAlt style={{ color: '#A50104' }} />
+                      <span style={{ color: '#000000' }}>Creada:</span>
+                      <span className="date" style={{ color: '#666666' }}>{formatDate(conv.createdAt)}</span>
+                    </div>
 
-                      <div className="conversation-info">
-                        <div className="info-item">
-                          <FaUsers style={{ color: '#A50104' }} />
-                          <span style={{ color: '#000000' }}>Participantes:</span>
-                          <div className="participants">
-                            {conv.participants?.map((participant, idx) => {
-                              // Función para extraer solo los primeros nombres
-                              const getShortName = (fullName) => {
-                                const parts = fullName.split(' ');
-                                return parts.length > 2 ? `${parts[0]} ${parts[1]}` : parts[0];
-                              };
-
-                              return (
-                                <span key={idx} className="participant-badge" title={participant}>
-                                  {getShortName(participant)}
-                                </span>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        <div className="info-item">
-                          <FaCalendarAlt style={{ color: '#A50104' }} />
-                          <span style={{ color: '#000000' }}>Creada:</span>
-                          <span className="date" style={{ color: '#666666' }}>{formatDate(conv.createdAt)}</span>
-                        </div>
-
-                        <div className="info-item">
-                          <FaClock style={{ color: '#A50104' }} />
-                          <span style={{ color: '#000000' }}>Estado:</span>
-                          <span className={`status ${formatExpiration(conv.expiresAt).className}`}>
-                            {formatExpiration(conv.expiresAt).text}
-                          </span>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
+                    <div className="info-item">
+                      <FaClock style={{ color: '#A50104' }} />
+                      <span style={{ color: '#000000' }}>Estado:</span>
+                      <span className={`status ${formatExpiration(conv.expiresAt).className}`}>
+                        {formatExpiration(conv.expiresAt).text}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
-          )}
+          ))}
+        </div>
+      )}
 
       <div className="modal-footer" style={{ borderTop: '1px solid #e0e0e0', backgroundColor: '#FFFFFF' }}>
         <button className="btn-secondary" onClick={onClose}>

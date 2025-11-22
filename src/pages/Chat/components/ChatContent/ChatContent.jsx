@@ -14,10 +14,10 @@ import {
   FaDownload,
 } from "react-icons/fa";
 import EmojiPicker from "emoji-picker-react";
-import LoadMoreMessages from "./LoadMoreMessages";
-import WelcomeScreen from "./WelcomeScreen";
-import AudioPlayer from "./AudioPlayer";
-import VoiceRecorder from "./VoiceRecorder";
+import LoadMoreMessages from "../LoadMoreMessages/LoadMoreMessages";
+import WelcomeScreen from "../WelcomeScreen/WelcomeScreen";
+import AudioPlayer from "../AudioPlayer/AudioPlayer";
+import VoiceRecorder from "../VoiceRecorder/VoiceRecorder";
 
 import "./ChatContent.css";
 

@@ -3,7 +3,7 @@ import { FaTimes, FaUser, FaComments, FaInfoCircle, FaSearch, FaCheck } from 're
 import BaseModal from './BaseModal';
 import './Modal.css';
 import './CreateConversationModal.css';
-import apiService from '../../apiService';
+import apiService from "../../../../apiService";
 
 const CreateConversationModal = ({
   isOpen,

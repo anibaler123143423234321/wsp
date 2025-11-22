@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { FaTimes, FaBars, FaSignInAlt, FaStar, FaRegStar, FaChevronDown, FaChevronRight, FaChevronLeft, FaArrowRight } from 'react-icons/fa';
 import { MessageSquare, Home, Users } from 'lucide-react';
 import clsx from 'clsx';
-import apiService from '../apiService';
+import apiService from '../../../../apiService';
 import './ConversationList.css';
 
 // Componente SVG personalizado para el ícono de comunidad (Asignados)

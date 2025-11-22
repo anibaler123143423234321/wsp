@@ -7,9 +7,9 @@ import {
   FaSpinner,
 } from "react-icons/fa";
 import EmojiPicker from "emoji-picker-react";
-import apiService from "../apiService";
-import AudioPlayer from "./AudioPlayer";
-import VoiceRecorder from "./VoiceRecorder";
+import apiService from "../../../../apiService";
+import AudioPlayer from "../AudioPlayer/AudioPlayer";
+import VoiceRecorder from "../VoiceRecorder/VoiceRecorder";
 
 import "./ThreadPanel.css";
 

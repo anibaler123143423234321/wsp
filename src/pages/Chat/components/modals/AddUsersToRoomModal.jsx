@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { FaTimes, FaUserPlus, FaSearch, FaCheck } from 'react-icons/fa';
 import BaseModal from './BaseModal';
-import apiService from '../../apiService';
-import { showSuccessAlert, showErrorAlert } from '../../sweetalert2';
+import apiService from "../../../../apiService";
+import { showSuccessAlert, showErrorAlert, showConfirmAlert } from "../../../../sweetalert2";
 import './Modal.css';
 import './AddUsersToRoomModal.css';
 

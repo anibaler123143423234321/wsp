@@ -1,16 +1,16 @@
 import React from 'react';
 import { FaBars } from 'react-icons/fa';
-import Sidebar from '../components/Sidebar';
-import LeftSidebar from '../components/LeftSidebar';
-import ChatHeader from '../components/ChatHeader';
-import ChatContent from '../components/ChatContent';
-import MembersPanel from '../components/MembersPanel';
-import ThreadPanel from '../components/ThreadPanel';
-import ActiveVideoCallBanner from '../components/ActiveVideoCallBanner';
-import PinnedMessageBanner from '../components/PinnedMessageBanner';
-import CreateRoomModal from '../components/modals/CreateRoomModal';
-import JoinRoomModal from '../components/modals/JoinRoomModal';
-import AdminRoomsModal from '../components/modals/AdminRoomsModal';
+import Sidebar from '../pages/Chat/components/Sidebar/Sidebar';
+import LeftSidebar from '../pages/Chat/components/LeftSidebar/LeftSidebar';
+import ChatHeader from '../pages/Chat/components/ChatHeader/ChatHeader';
+import ChatContent from '../pages/Chat/components/ChatContent/ChatContent';
+import MembersPanel from '../pages/Chat/components/MembersPanel/MembersPanel';
+import ThreadPanel from '../pages/Chat/components/ThreadPanel/ThreadPanel';
+import ActiveVideoCallBanner from '../pages/Chat/components/ActiveVideoCallBanner/ActiveVideoCallBanner';
+import PinnedMessageBanner from '../pages/Chat/components/PinnedMessageBanner/PinnedMessageBanner';
+import CreateRoomModal from '../pages/Chat/components/modals/CreateRoomModal';
+import JoinRoomModal from '../pages/Chat/components/modals/JoinRoomModal';
+import AdminRoomsModal from '../pages/Chat/components/modals/AdminRoomsModal';
 import './ChatLayout.css';
 
 const ChatLayout = ({

@@ -1,6 +1,6 @@
 import React from 'react';
-import ChatPage from './pages/ChatPage';
-import VideoCallRoom from './components/VideoCallRoom'; // 🔥 NUEVO: Importar componente de videollamada
+import ChatPage from './pages/Chat/ChatPage';
+import VideoCallRoom from './pages/Chat/components/VideoCallRoom/VideoCallRoom'; // 🔥 NUEVO: Importar componente de videollamada
 import './App.css';
 
 function App() {

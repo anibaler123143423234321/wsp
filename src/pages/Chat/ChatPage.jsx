@@ -1,27 +1,27 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Swal from "sweetalert2";
-import ChatLayout from "../layouts/ChatLayout";
-import Login from "../components/Login";
-import LoadingScreen from "../components/LoadingScreen";
-import RoomCreatedModal from "../components/modals/RoomCreatedModal";
-import EditRoomModal from "../components/modals/EditRoomModal";
-import CreateConversationModal from "../components/modals/CreateConversationModal";
-import ManageAssignedConversationsModal from "../components/modals/ManageAssignedConversationsModal";
-import AddUsersToRoomModal from "../components/modals/AddUsersToRoomModal";
-import RemoveUsersFromRoomModal from "../components/modals/RemoveUsersFromRoomModal";
-import ThreadPanel from "../components/ThreadPanel";
-import SettingsPanel from "../components/SettingsPanel";
-import ActiveVideoCallBanner from "../components/ActiveVideoCallBanner";
-import { useAuth } from "../hooks/useAuth";
-import { useSocket } from "../hooks/useSocket";
-import { useMessages } from "../hooks/useMessages";
-import { useMessagePagination } from "../hooks/useMessagePagination";
-import apiService from "../apiService";
+import ChatLayout from "../../layouts/ChatLayout";
+import Login from "../Login/Login";
+import LoadingScreen from "./components/LoadingScreen/LoadingScreen";
+import RoomCreatedModal from "./components/modals/RoomCreatedModal";
+import EditRoomModal from "./components/modals/EditRoomModal";
+import CreateConversationModal from "./components/modals/CreateConversationModal";
+import ManageAssignedConversationsModal from "./components/modals/ManageAssignedConversationsModal";
+import AddUsersToRoomModal from "./components/modals/AddUsersToRoomModal";
+import RemoveUsersFromRoomModal from "./components/modals/RemoveUsersFromRoomModal";
+import ThreadPanel from "./components/ThreadPanel/ThreadPanel";
+import SettingsPanel from "./components/SettingsPanel/SettingsPanel";
+import ActiveVideoCallBanner from "./components/ActiveVideoCallBanner/ActiveVideoCallBanner";
+import { useAuth } from "../../hooks/useAuth";
+import { useSocket } from "../../hooks/useSocket";
+import { useMessages } from "../../hooks/useMessages";
+import { useMessagePagination } from "../../hooks/useMessagePagination";
+import apiService from "../../apiService";
 import {
   showSuccessAlert,
   showErrorAlert,
   showConfirmAlert,
-} from "../sweetalert2";
+} from "../../sweetalert2";
 
 const ChatPage = () => {
   // Hooks personalizados

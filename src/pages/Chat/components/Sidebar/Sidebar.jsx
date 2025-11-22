@@ -1,5 +1,5 @@
-import LeftSidebar from './LeftSidebar';
-import ConversationList from './ConversationList';
+import LeftSidebar from '../LeftSidebar/LeftSidebar';
+import ConversationList from '../ConversationList/ConversationList';
 import './Sidebar.css';
 
 /**
@@ -137,40 +137,40 @@ const Sidebar = ({
         <div className="hidden max-[768px]:block fixed inset-0 overflow-hidden">
           <div className="w-full h-screen bg-white">
             <ConversationList
-            user={user}
-            userList={userList}
-            assignedConversations={assignedConversations}
-            monitoringConversations={monitoringConversations}
-            monitoringPage={monitoringPage}
-            monitoringTotal={monitoringTotal}
-            monitoringTotalPages={monitoringTotalPages}
-            monitoringLoading={monitoringLoading}
-            onLoadMonitoringConversations={onLoadMonitoringConversations}
-            myActiveRooms={myActiveRooms}
-            currentRoomCode={currentRoomCode}
-            isGroup={isGroup}
-            onUserSelect={onUserSelect}
-            onRoomSelect={onRoomSelect}
-            unreadMessages={unreadMessages}
-            onToggleSidebar={onToggleSidebar}
-            userListHasMore={userListHasMore}
-            userListLoading={userListLoading}
-            onLoadMoreUsers={onLoadMoreUsers}
-            roomTypingUsers={roomTypingUsers}
-            assignedPage={assignedPage}
-            assignedTotal={assignedTotal}
-            assignedTotalPages={assignedTotalPages}
-            assignedLoading={assignedLoading}
-            onLoadAssignedConversations={onLoadAssignedConversations}
-            roomsPage={roomsPage}
-            roomsTotal={roomsTotal}
-            roomsTotalPages={roomsTotalPages}
-            roomsLoading={roomsLoading}
-            onLoadUserRooms={onLoadUserRooms}
-            roomsLimit={roomsLimit}
-            onRoomsLimitChange={onRoomsLimitChange}
-            onGoToRoomsPage={onGoToRoomsPage}
-          />
+              user={user}
+              userList={userList}
+              assignedConversations={assignedConversations}
+              monitoringConversations={monitoringConversations}
+              monitoringPage={monitoringPage}
+              monitoringTotal={monitoringTotal}
+              monitoringTotalPages={monitoringTotalPages}
+              monitoringLoading={monitoringLoading}
+              onLoadMonitoringConversations={onLoadMonitoringConversations}
+              myActiveRooms={myActiveRooms}
+              currentRoomCode={currentRoomCode}
+              isGroup={isGroup}
+              onUserSelect={onUserSelect}
+              onRoomSelect={onRoomSelect}
+              unreadMessages={unreadMessages}
+              onToggleSidebar={onToggleSidebar}
+              userListHasMore={userListHasMore}
+              userListLoading={userListLoading}
+              onLoadMoreUsers={onLoadMoreUsers}
+              roomTypingUsers={roomTypingUsers}
+              assignedPage={assignedPage}
+              assignedTotal={assignedTotal}
+              assignedTotalPages={assignedTotalPages}
+              assignedLoading={assignedLoading}
+              onLoadAssignedConversations={onLoadAssignedConversations}
+              roomsPage={roomsPage}
+              roomsTotal={roomsTotal}
+              roomsTotalPages={roomsTotalPages}
+              roomsLoading={roomsLoading}
+              onLoadUserRooms={onLoadUserRooms}
+              roomsLimit={roomsLimit}
+              onRoomsLimitChange={onRoomsLimitChange}
+              onGoToRoomsPage={onGoToRoomsPage}
+            />
           </div>
         </div>
       )}

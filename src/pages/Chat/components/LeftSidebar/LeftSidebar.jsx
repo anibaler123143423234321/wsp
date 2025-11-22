@@ -1,6 +1,6 @@
 import { FaPlus, FaSignInAlt, FaDoorOpen, FaUserFriends, FaClipboardList, FaTimes } from 'react-icons/fa';
-import logoutIcon from '../assets/mbrilogout_99583.svg';
-import menuBackground from '../assets/menu.png';
+import logoutIcon from '../../../../assets/mbrilogout_99583.svg';
+import menuBackground from '../../../../assets/menu.png';
 import './LeftSidebar.css';
 
 const LeftSidebar = ({
@@ -117,8 +117,8 @@ const LeftSidebar = ({
               }}
               className="hidden max-[768px]:flex items-center justify-center w-12 h-12 bg-red-600/80 hover:bg-red-700/90 rounded-full transition-all duration-200 active:scale-95 z-50 shadow-lg"
               title="Cerrar menú"
-              style={{ 
-                minWidth: '48px', 
+              style={{
+                minWidth: '48px',
                 minHeight: '48px',
                 touchAction: 'manipulation',
                 border: '2px solid rgba(255, 255, 255, 0.5)',
