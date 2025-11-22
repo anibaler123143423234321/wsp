@@ -140,7 +140,7 @@ const ChatPage = () => {
   const [replyingTo, setReplyingTo] = useState(null); // Mensaje al que se está respondiendo
 
   const [isUploadingFile, setIsUploadingFile] = useState(false); // 🔥 Estado para indicar si se está subiendo un archivo
-
+  const [pinnedMessageId, setPinnedMessageId] = useState(null);
   // Estados de UI
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   // Sidebar cerrado por defecto en mobile, abierto en desktop
@@ -982,6 +982,16 @@ const ChatPage = () => {
         "Expulsado",
         data.message || "Has sido expulsado de la sala"
       );
+    });
+
+    s.on("messagePinned", (data) => {
+      // data debería traer { messageId, roomCode }
+      if (
+        (data.roomCode && data.roomCode === currentRoomCode) ||
+        (!data.roomCode && data.from === to) // Lógica para chat 1-1
+      ) {
+        setPinnedMessageId(data.messageId);
+      }
     });
 
     s.on("message", (data) => {
@@ -2197,6 +2207,17 @@ const ChatPage = () => {
         // console.log('🔔 Reproduciendo sonido de notificación para mensaje de hilo');
         playMessageSound(soundsEnabled);
       }
+    });
+
+    // 🔥 NUEVO: Evento para actualizaciones de encuestas en tiempo real
+    s.on('pollUpdated', (data) => {
+      console.log('📊 Encuesta actualizada:', data);
+
+      // Actualizar el mensaje con los datos de la encuesta actualizada
+      updateMessage(data.messageId, {
+        poll: data.poll,
+        isPoll: true
+      });
     });
 
     // 🔥 NUEVO: Listener para actualizaciones de conteos de mensajes no leídos
@@ -3589,6 +3610,24 @@ const ChatPage = () => {
     };
   }, []);
 
+  // 🔥 Handler para votar en encuestas
+  const handlePollVote = useCallback((messageId, optionIndex) => {
+    if (!socket || !socket.connected) {
+      console.error('⚠️ Socket no conectado');
+      return;
+    }
+
+    console.log(`📊 Votando en encuesta - MessageID: ${messageId}, Opción: ${optionIndex}`);
+
+    socket.emit('pollVote', {
+      messageId,
+      optionIndex,
+      username: currentUserFullName,
+      roomCode: isGroup ? currentRoomCode : null,
+      to: !isGroup ? to : null,
+    });
+  }, [socket, currentUserFullName, isGroup, currentRoomCode, to]);
+
   const handleShowAdminRooms = () => {
     setShowAdminRoomsModal(true);
   };
@@ -4104,6 +4143,38 @@ const ChatPage = () => {
     }
   };
 
+  // 🔥 NUEVO: Función para fijar/desfijar mensajes
+  const handlePinMessage = async (message) => {
+    try {
+      // Si el mensaje ya está fijado, lo desfijamos (null). Si no, fijamos el nuevo ID.
+      const newPinnedId = pinnedMessageId === message.id ? null : message.id;
+
+      // Actualización optimista local
+      setPinnedMessageId(newPinnedId);
+
+      // Si tienes un endpoint en el backend para esto, llámalo aquí:
+      // await apiService.pinMessage(currentRoomCode, newPinnedId);
+
+      // Emitir evento de socket para que todos vean el mensaje fijado
+      if (socket && socket.connected) {
+        socket.emit("pinMessage", {
+          roomCode: currentRoomCode,
+          to: !isGroup ? to : null, // Para chats individuales
+          messageId: newPinnedId,
+          isGroup: isGroup,
+          pinnedBy: username
+        });
+      }
+
+      if (newPinnedId) {
+        await showSuccessAlert("Mensaje fijado", "El mensaje se ha fijado en la parte superior.");
+      }
+    } catch (error) {
+      console.error("Error al fijar mensaje:", error);
+      await showErrorAlert("Error", "No se pudo fijar el mensaje.");
+    }
+  };
+
   const handleLoginSuccess = (userData) => {
     // Guardar datos del usuario en localStorage
     localStorage.setItem("user", JSON.stringify(userData));
@@ -4320,6 +4391,10 @@ const ChatPage = () => {
         onStartVideoCall={handleStartVideoCall} // 🔥 NUEVO: Handler de videollamada
         isUploadingFile={isUploadingFile} // 🔥 Pasar estado de upload
         isSending={isSending} // 🔥 NUEVO: Estado de envío para prevenir duplicados
+        onPinMessage={handlePinMessage}
+        pinnedMessageId={pinnedMessageId}
+        onPollVote={handlePollVote} // 🔥 NUEVO: Handler para votar en encuestas
+
         // Props de modales
         showCreateRoomModal={showCreateRoomModal}
         setShowCreateRoomModal={setShowCreateRoomModal}

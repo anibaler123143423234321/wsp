@@ -1,0 +1,203 @@
+:root {
+    --panel-bg: #ffffff;
+    --main-bg: #f0f2f5;
+    --text-primary: #111b21;
+    --text-secondary: #54656f;
+    --accent-color: #00a884;
+    /* Color verde moderno tipo chat */
+    --border-color: #e9edef;
+    --hover-color: #f5f6f6;
+    --danger-color: #ea0038;
+}
+
+.info-panel-container {
+    width: 350px;
+    /* Un ancho más estándar */
+    height: 100%;
+    background-color: var(--main-bg) !important;
+    border-left: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.05);
+    animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    z-index: 100;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Header */
+.info-panel-header {
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+    height: 60px;
+    background: var(--main-bg);
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.info-panel-title {
+    flex: 1;
+    font-weight: 500;
+    font-size: 16px;
+}
+
+.info-close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    color: var(--text-secondary);
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.info-close-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: var(--text-primary);
+}
+
+/* Contenido Scrollable */
+.info-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Tarjetas (Secciones) */
+.info-section {
+    background: var(--panel-bg);
+    border-radius: 8px;
+    /* Bordes menos redondeados, más profesional */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.info-section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    padding: 16px 20px 8px 20px;
+    margin: 0;
+    letter-spacing: 0.5px;
+}
+
+/* Items de Información */
+.info-item {
+    display: flex;
+    flex-direction: column;
+    /* Columna para mejor lectura en móviles */
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.info-value {
+    font-size: 15px;
+    color: var(--text-primary);
+    font-weight: 400;
+    word-break: break-word;
+}
+
+/* --- HERRAMIENTAS EN COLUMNA --- */
+.info-tools-list {
+    display: flex;
+    flex-direction: column;
+    padding: 8px 0;
+}
+
+.info-tool-btn {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 14px 20px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    gap: 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.info-tool-btn:last-child {
+    border-bottom: none;
+}
+
+.info-tool-btn:hover {
+    background-color: var(--hover-color);
+}
+
+.info-tool-icon {
+    font-size: 20px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+}
+
+.info-tool-text {
+    font-size: 15px;
+    color: var(--text-primary);
+    font-weight: 400;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .info-panel-container {
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 100%;
+        width: 100%;
+        /* Full width en mobile */
+        max-width: 400px;
+        /* Pero no gigante en tablets */
+        z-index: 2000;
+    }
+}
+
+/* Scrollbar sutil */
+.info-content::-webkit-scrollbar {
+    width: 5px;
+}
+
+.info-content::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 3px;
+}
+
+.info-content::-webkit-scrollbar-track {
+    background: transparent;
+}

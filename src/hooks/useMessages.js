@@ -27,17 +27,15 @@ export const useMessages = () => {
 
   const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
-      // 🔥 Límite de 10MB para todos los archivos
-      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+      // 🔥 Límite actualizado a 70MB
+      const MAX_FILE_SIZE = 70 * 1024 * 1024; // 70MB
 
       if (file.size > MAX_FILE_SIZE) {
-        reject(new Error("El archivo es demasiado grande. Máximo 10MB."));
+        reject(new Error("El archivo es demasiado grande. Máximo 70MB."));
         return;
       }
 
-      // ✅ Permitir todos los tipos de archivos (imágenes, PDFs, documentos, etc.)
-      // Ya no hay restricción de tipo de archivo
-
+      // ✅ Permitir todos los tipos de archivos
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result);
       reader.onerror = (error) => reject(error);
@@ -52,11 +50,12 @@ export const useMessages = () => {
     // ✅ Permitir todos los tipos de archivos (imágenes, PDFs, documentos, etc.)
     // Ya no hay restricción de tipo de archivo
 
-    // 🔥 Validar tamaño de cada archivo (10MB máximo)
-    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    // 🔥 Validar tamaño de cada archivo (70MB máximo) - ACTUALIZADO
+    const MAX_FILE_SIZE = 70 * 1024 * 1024; // 70MB
+
     const oversizedFiles = files.filter(file => file.size > MAX_FILE_SIZE);
     if (oversizedFiles.length > 0) {
-      alert(`❌ Algunos archivos superan el límite de 10MB:\n${oversizedFiles.map(f => `- ${f.name} (${(f.size / 1024 / 1024).toFixed(2)}MB)`).join('\n')}`);
+      alert(`❌ Algunos archivos superan el límite de 70MB:\n${oversizedFiles.map(f => `- ${f.name} (${(f.size / 1024 / 1024).toFixed(2)}MB)`).join('\n')}`);
       e.target.value = ''; // Limpiar el input
       return;
     }

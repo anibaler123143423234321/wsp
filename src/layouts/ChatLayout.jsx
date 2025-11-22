@@ -6,10 +6,12 @@ import ChatHeader from '../pages/Chat/components/ChatHeader/ChatHeader';
 import ChatContent from '../pages/Chat/components/ChatContent/ChatContent';
 import MembersPanel from '../pages/Chat/components/MembersPanel/MembersPanel';
 import ThreadPanel from '../pages/Chat/components/ThreadPanel/ThreadPanel';
+import InfoPanel from '../pages/Chat/components/InfoPanel/InfoPanel';
 import ActiveVideoCallBanner from '../pages/Chat/components/ActiveVideoCallBanner/ActiveVideoCallBanner';
 import PinnedMessageBanner from '../pages/Chat/components/PinnedMessageBanner/PinnedMessageBanner';
 import CreateRoomModal from '../pages/Chat/components/modals/CreateRoomModal';
 import JoinRoomModal from '../pages/Chat/components/modals/JoinRoomModal';
+import CreatePollModal from '../pages/Chat/components/modals/CreatePollModal';
 import AdminRoomsModal from '../pages/Chat/components/modals/AdminRoomsModal';
 import './ChatLayout.css';
 
@@ -72,7 +74,10 @@ const ChatLayout = ({
   pinnedMessage,
   onPinMessage,
   onUnpinMessage,
-  onClickPinnedMessage
+  onClickPinnedMessage,
+
+  // 🔥 Props de encuestas
+  onPollVote,
 }) => {
   // State para el panel de miembros (lifted from ChatHeader)
   const [showMembersPanel, setShowMembersPanel] = React.useState(false);
@@ -81,8 +86,30 @@ const ChatLayout = ({
   const [showThreadPanel, setShowThreadPanel] = React.useState(false);
   const [threadMessage, setThreadMessage] = React.useState(null);
 
+  // State para el panel de información
+  const [showCreatePollModal, setShowCreatePollModal] = React.useState(false);
+  const [showInfoPanel, setShowInfoPanel] = React.useState(false);
+
   const toggleMembersPanel = () => {
     setShowMembersPanel(!showMembersPanel);
+  };
+
+  const toggleInfoPanel = () => {
+    setShowInfoPanel(!showInfoPanel);
+  };
+
+  const handleCreatePoll = () => {
+    setShowCreatePollModal(true);
+  };
+
+  const handlePollCreated = (pollData) => {
+    // Enviar la encuesta como mensaje
+    if (onSendMessage) {
+      onSendMessage({
+        poll: pollData,
+        isPoll: true
+      });
+    }
   };
 
   // Handler para abrir panel de hilos
@@ -95,6 +122,7 @@ const ChatLayout = ({
   React.useEffect(() => {
     setShowMembersPanel(false);
     setShowThreadPanel(false);
+    setShowInfoPanel(false);
   }, [to]);
 
   // Función para obtener el usuario completo con el que se está chateando
@@ -255,6 +283,7 @@ const ChatLayout = ({
             onRemoveUsersFromRoom={onRemoveUsersFromRoom}
             user={user}
             onToggleMembersPanel={toggleMembersPanel}
+            onToggleInfoPanel={toggleInfoPanel}
           />
 
           {/* 🔥 NUEVO: Banner de videollamada activa */}
@@ -352,6 +381,20 @@ const ChatLayout = ({
           user={user}
         />
 
+        {/* Info Panel (Displacement Layout) */}
+        <InfoPanel
+          isOpen={showInfoPanel}
+          onClose={() => setShowInfoPanel(false)}
+          chatInfo={{
+            isGroup: isGroup,
+            roomCode: currentRoomCode,
+            roomName: to,
+            roomUsers: roomUsers,
+            to: to
+          }}
+          onCreatePoll={handleCreatePoll}
+        />
+
       </div>
 
       {/* Modales */}
@@ -385,6 +428,15 @@ const ChatLayout = ({
           onEditRoom={onEditRoom}
           onViewRoomUsers={onViewRoomUsers}
           currentUser={user}
+        />
+      )}
+
+      {/* Modal de Crear Encuesta */}
+      {showCreatePollModal && (
+        <CreatePollModal
+          isOpen={showCreatePollModal}
+          onClose={() => setShowCreatePollModal(false)}
+          onCreatePoll={handlePollCreated}
         />
       )}
 

@@ -18,6 +18,7 @@ import LoadMoreMessages from "../LoadMoreMessages/LoadMoreMessages";
 import WelcomeScreen from "../WelcomeScreen/WelcomeScreen";
 import AudioPlayer from "../AudioPlayer/AudioPlayer";
 import VoiceRecorder from "../VoiceRecorder/VoiceRecorder";
+import PollMessage from "../PollMessage/PollMessage";
 
 import "./ChatContent.css";
 
@@ -1318,7 +1319,9 @@ const ChatContent = ({
   };
 
   const renderMessage = (message, index) => {
-    // 🔥 Usar isSelf si está definido (mensajes históricos), sino usar la lógica anterior
+    // ==========================================
+    // 1. LÓGICA DE ESTADO Y PROPIEDAD
+    // ==========================================
     const isOwnMessage =
       message.isSelf !== undefined
         ? message.isSelf
@@ -1327,7 +1330,9 @@ const ChatContent = ({
     const isInfoMessage = message.type === "info";
     const isErrorMessage = message.type === "error";
 
-    // 🔥 Detectar si este mensaje debe agruparse con el anterior
+    // ==========================================
+    // 2. LÓGICA DE AGRUPACIÓN
+    // ==========================================
     const previousMessage = index > 0 ? messages[index - 1] : null;
     const isGroupedWithPrevious =
       previousMessage &&
@@ -1338,38 +1343,28 @@ const ChatContent = ({
         ? previousMessage.isSelf
         : previousMessage.sender === "Tú" ||
         previousMessage.sender === currentUsername) === isOwnMessage &&
-      (previousMessage.sender === message.sender ||
-        (isOwnMessage && previousMessage.isSelf === message.isSelf));
+      (previousMessage.sender === message.sender);
 
+    const nextMessage = index < messages.length - 1 ? messages[index + 1] : null;
+    const isGroupedWithNext =
+      nextMessage &&
+      nextMessage.type !== "info" &&
+      nextMessage.type !== "error" &&
+      !nextMessage.isDeleted &&
+      (nextMessage.isSelf !== undefined
+        ? nextMessage.isSelf
+        : nextMessage.sender === "Tú" ||
+        nextMessage.sender === currentUsername) === isOwnMessage &&
+      (nextMessage.sender === message.sender);
+
+    // ==========================================
+    // 3. RENDERIZADO DE MENSAJES DE SISTEMA
+    // ==========================================
     if (isInfoMessage) {
       return (
-        <div
-          key={index}
-          className="message info-message"
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            margin: "8px 0",
-            padding: "0 16px",
-          }}
-        >
-          <div
-            className="info-content"
-            style={{
-              backgroundColor: "rgba(0, 168, 132, 0.1)",
-              color: "#00a884",
-              padding: "6px 12px",
-              borderRadius: "7.5px",
-              fontSize: "13px",
-              textAlign: "center",
-              border: "1px solid rgba(0, 168, 132, 0.3)",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-            }}
-          >
-            <span className="info-icon">ℹ️</span>
-            <span className="info-text">{message.text}</span>
+        <div key={index} className="message info-message" style={{ display: "flex", justifyContent: "center", margin: "8px 0", padding: "0 16px" }}>
+          <div className="info-content" style={{ backgroundColor: "rgba(0, 168, 132, 0.1)", color: "#00a884", padding: "6px 12px", borderRadius: "7.5px", fontSize: "13px", textAlign: "center", border: "1px solid rgba(0, 168, 132, 0.3)", display: "flex", alignItems: "center", gap: "6px" }}>
+            <span className="info-icon">ℹ️</span><span className="info-text">{message.text}</span>
           </div>
         </div>
       );
@@ -1377,72 +1372,52 @@ const ChatContent = ({
 
     if (isErrorMessage) {
       return (
-        <div
-          key={index}
-          className="message error-message"
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            margin: "8px 0",
-            padding: "0 16px",
-          }}
-        >
-          <div
-            className="error-content"
-            style={{
-              backgroundColor: "rgba(255, 69, 58, 0.1)",
-              color: "#ff453a",
-              padding: "6px 12px",
-              borderRadius: "7.5px",
-              fontSize: "13px",
-              textAlign: "center",
-              border: "1px solid rgba(255, 69, 58, 0.3)",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-            }}
-          >
-            <span className="error-icon">⚠️</span>
-            <span className="error-text">{message.text}</span>
+        <div key={index} className="message error-message" style={{ display: "flex", justifyContent: "center", margin: "8px 0", padding: "0 16px" }}>
+          <div className="error-content" style={{ backgroundColor: "rgba(255, 69, 58, 0.1)", color: "#ff453a", padding: "6px 12px", borderRadius: "7.5px", fontSize: "13px", textAlign: "center", border: "1px solid rgba(255, 69, 58, 0.3)", display: "flex", alignItems: "center", gap: "6px" }}>
+            <span className="error-icon">⚠️</span><span className="error-text">{message.text}</span>
           </div>
         </div>
       );
     }
 
-    // Ocultar mensajes de videollamada (se muestran en el banner del header)
+    // Ocultar videollamadas
     const messageText = message.text || message.message || "";
-    const isVideoCallMessage =
-      message.type === "video_call" ||
-      (typeof messageText === "string" &&
-        messageText.includes("📹 Videollamada"));
-
-    if (isVideoCallMessage) {
+    if (message.type === "video_call" || (typeof messageText === "string" && messageText.includes("📹 Videollamada"))) {
       return null;
     }
 
     const isHighlighted = highlightedMessageId === message.id;
+    const isMenuOpen = showMessageMenu === message.id;
+
+    // ==========================================
+    // 4. ESTILOS DE BORDE Y MARGEN
+    // ==========================================
+    const borderTopLeft = isOwnMessage ? "17.11px" : isGroupedWithPrevious ? "2px" : "17.11px";
+    const borderBottomLeft = isOwnMessage ? "17.11px" : isGroupedWithNext ? "2px" : "17.11px";
+    const borderTopRight = isOwnMessage ? isGroupedWithPrevious ? "2px" : "17.11px" : "17.11px";
+    const borderBottomRight = isOwnMessage ? isGroupedWithNext ? "2px" : "17.11px" : "17.11px";
+    const marginTop = isGroupedWithPrevious ? "1px" : "8px";
 
     return (
       <div
         key={index}
         id={`message-${message.id}`}
-        className={`message ${isOwnMessage ? "own-message" : "other-message"} ${isHighlighted ? "highlighted-message" : ""
-          }`}
+        className={`message ${isOwnMessage ? "own-message" : "other-message"} ${isHighlighted ? "highlighted-message" : ""}`}
         style={{
           display: "flex",
-          alignItems: "flex-end",
-          marginTop: isGroupedWithPrevious ? "1px" : "8px",
-          marginBottom: "2px",
+          alignItems: "flex-start", // Avatar arriba
+          marginTop: marginTop,
+          marginBottom: "0px",
           padding: "0 8px",
           gap: "6px",
           transition: "all 0.3s ease",
           overflow: "visible",
           position: "relative",
-          zIndex: showMessageMenu === message.id ? 10000 : 1,
+          zIndex: isMenuOpen ? 1000 : 1,
         }}
       >
-        {/* Avatar para mensajes de otros - ocultar si está agrupado */}
-        {!isOwnMessage && !isGroupedWithPrevious && (
+        {/* ==================== AVATAR ==================== */}
+        {!isOwnMessage && (
           <div
             className="message-avatar"
             style={{
@@ -1455,34 +1430,33 @@ const ChatContent = ({
               justifyContent: "center",
               fontSize: "12px",
               flexShrink: 0,
-              marginBottom: "2px",
+              visibility: !isGroupedWithPrevious ? "visible" : "hidden",
+              opacity: !isGroupedWithPrevious ? 1 : 0,
+              marginTop: "0px",
             }}
           >
             {message.sender?.charAt(0).toUpperCase() || "👤"}
           </div>
         )}
-        {/* Espaciador invisible cuando el avatar está oculto */}
-        {!isOwnMessage && isGroupedWithPrevious && (
-          <div style={{ width: "28px", flexShrink: 0 }} />
-        )}
 
+        {isOwnMessage && <div style={{ width: "0px" }} />}
+
+        {/* ==================== CONTENIDO DEL MENSAJE ==================== */}
         <div
           className="message-content"
           style={{
             backgroundColor: isHighlighted
-              ? isOwnMessage
-                ? "#c9e8ba"
-                : "#d4d2e0"
-              : isOwnMessage
-                ? "#E1F4D6"
-                : "#E8E6F0",
+              ? isOwnMessage ? "#c9e8ba" : "#d4d2e0"
+              : isOwnMessage ? "#E1F4D6" : "#E8E6F0",
             color: "#1f2937",
             padding: "6px 19.25px",
-            paddingRight: message.isDeleted ? "19.25px" : "32px",
-            borderTopRightRadius: "17.11px",
-            borderBottomRightRadius: "17.11px",
-            borderBottomLeftRadius: "17.11px",
-            borderTopLeftRadius: isOwnMessage ? "17.11px" : "4px",
+            paddingRight: message.isDeleted ? "19.25px" : "50px",
+
+            borderTopLeftRadius: borderTopLeft,
+            borderTopRightRadius: borderTopRight,
+            borderBottomLeftRadius: borderBottomLeft,
+            borderBottomRightRadius: borderBottomRight,
+
             minWidth: "80px",
             width: "fit-content",
             height: "fit-content",
@@ -1490,1460 +1464,234 @@ const ChatContent = ({
             display: "flex",
             flexDirection: "column",
             gap: "4.28px",
-            boxShadow: isHighlighted
-              ? "0 0 15px rgba(0, 168, 132, 0.5)"
-              : "0 1px 0.5px rgba(0,0,0,.13)",
+            boxShadow: (isGroupedWithNext || isGroupedWithPrevious) && !isHighlighted ? "none" : "0 1px 0.5px rgba(0,0,0,.13)",
             wordWrap: "break-word",
             overflowWrap: "break-word",
             wordBreak: "break-word",
-            transition: "all 0.3s ease",
             border: isHighlighted ? "2px solid #00a884" : "none",
             overflow: "visible",
-            // El maxWidth se controla en el CSS de .own-message y .other-message
             ...(message.mediaType && { maxWidth: "400px" }),
           }}
+          onMouseEnter={(e) => {
+            if (!isHighlighted) e.currentTarget.style.filter = "brightness(0.96)";
+            const actions = e.currentTarget.querySelector('.message-actions-container');
+            if (actions) actions.style.opacity = '1';
+            e.currentTarget.parentElement.style.zIndex = "100";
+          }}
+          onMouseLeave={(e) => {
+            if (!isHighlighted) e.currentTarget.style.filter = "brightness(1)";
+            const actions = e.currentTarget.querySelector('.message-actions-container');
+            if (actions && !isMenuOpen) actions.style.opacity = '0';
+            if (!isMenuOpen) e.currentTarget.parentElement.style.zIndex = "1";
+          }}
         >
-          {/* 🔥 Botón de menú en esquina superior derecha */}
+
+          {/* ==================== BOTONES FLOTANTES Y MENÚ ==================== */}
           {!message.isDeleted && (
             <div
+              className="message-actions-container"
               style={{
                 position: "absolute",
                 top: "2px",
                 right: "2px",
-                zIndex: 9999,
-              }}
-              ref={showMessageMenu === message.id ? messageMenuRef : null}
-            >
-              <button
-                onClick={(e) => {
-                  if (showMessageMenu === message.id) {
-                    setShowMessageMenu(null);
-                  } else {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const menuHeight = 200;
-                    const windowHeight = window.innerHeight;
-                    const spaceBelow = windowHeight - rect.bottom;
-                    const spaceAbove = rect.top;
-
-                    const showAbove =
-                      spaceBelow < menuHeight && spaceAbove > spaceBelow;
-
-                    setMenuPosition({
-                      top: showAbove
-                        ? rect.top - menuHeight - 4
-                        : rect.bottom + 4,
-                      left: Math.min(rect.right - 180, window.innerWidth - 190),
-                    });
-                    setShowMessageMenu(message.id);
-                  }
-                }}
-                style={{
-                  backgroundColor: isOwnMessage
-                    ? "rgba(255, 255, 255, 0.7)"
-                    : "rgba(255, 255, 255, 0.8)",
-                  border: "none",
-                  color: "#54656f",
-                  cursor: "pointer",
-                  fontSize: "12px",
-                  padding: "2px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: "50%",
-                  width: "20px",
-                  height: "20px",
-                  transition: "all 0.2s",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor =
-                    "rgba(255, 255, 255, 0.95)";
-                  e.currentTarget.style.transform = "scale(1.1)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = isOwnMessage
-                    ? "rgba(255, 255, 255, 0.7)"
-                    : "rgba(255, 255, 255, 0.8)";
-                  e.currentTarget.style.transform = "scale(1)";
-                }}
-                title="Más opciones"
-              >
-                <FaChevronDown />
-              </button>
-
-              {/* Menú desplegable */}
-              {showMessageMenu === message.id && (
-                <div
-                  style={{
-                    position: "fixed",
-                    top: `${menuPosition.top}px`,
-                    left: `${menuPosition.left}px`,
-                    backgroundColor: "#fff",
-                    border: "1px solid #e0e0e0",
-                    borderRadius: "8px",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                    zIndex: 99999,
-                    minWidth: "180px",
-                    overflow: "hidden",
-                  }}
-                >
-                  {/* Responder */}
-                  <button
-                    onClick={() => {
-                      if (window.handleReplyMessage) {
-                        window.handleReplyMessage(message);
-                      }
-                      setShowMessageMenu(null);
-                    }}
-                    style={{
-                      width: "100%",
-                      padding: "10px 16px",
-                      backgroundColor: "transparent",
-                      border: "none",
-                      textAlign: "left",
-                      cursor: "pointer",
-                      fontSize: "14px",
-                      color: "#111",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "12px",
-                      transition: "background-color 0.2s",
-                    }}
-                  >
-                    <FaReply style={{ color: "#8696a0" }} /> Responder
-                  </button>
-
-                  {/* Copiar */}
-                  <button
-                    onClick={async () => {
-                      try {
-                        if (message.mediaType === 'image' && message.mediaData) {
-                          try {
-                            const response = await fetch(message.mediaData);
-                            const blob = await response.blob();
-                            await navigator.clipboard.write([
-                              new ClipboardItem({ [blob.type]: blob })
-                            ]);
-                            setShowMessageMenu(null);
-                            return;
-                          } catch (imgErr) {
-                            console.error("Error copiando imagen", imgErr);
-                          }
-                        }
-                        let textToCopy = "";
-                        if (message.text) textToCopy = message.text;
-                        else if (message.caption) textToCopy = message.caption;
-                        else if (message.mediaData) textToCopy = message.mediaData;
-                        else if (message.fileName) textToCopy = message.fileName;
-
-                        if (textToCopy) {
-                          await navigator.clipboard.writeText(textToCopy);
-                        }
-                      } catch (err) {
-                        console.error("Error al copiar:", err);
-                      }
-                      setShowMessageMenu(null);
-                    }}
-                    style={{
-                      width: "100%",
-                      padding: "10px 16px",
-                      backgroundColor: "transparent",
-                      border: "none",
-                      textAlign: "left",
-                      cursor: "pointer",
-                      fontSize: "14px",
-                      color: "#111",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "12px",
-                      transition: "background-color 0.2s",
-                    }}
-                  >
-                    <FaCopy style={{ color: "#8696a0" }} /> Copiar
-                  </button>
-
-                  {/* Descargar */}
-                  {message.mediaData && (
-                    <button
-                      onClick={() => {
-                        handleDownload(
-                          message.mediaData,
-                          message.fileName || (message.mediaType === "image" ? "imagen.jpg" : "archivo")
-                        );
-                        setShowMessageMenu(null);
-                      }}
-                      style={{
-                        width: "100%",
-                        padding: "10px 16px",
-                        backgroundColor: "transparent",
-                        border: "none",
-                        textAlign: "left",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        color: "#111",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "12px",
-                        transition: "background-color 0.2s",
-                      }}
-                    >
-                      <FaDownload style={{ color: "#8696a0" }} /> Descargar
-                    </button>
-                  )}
-
-                  {/* Fijar mensaje */}
-                  {isGroup && onPinMessage && (isAdmin || window.userRole === 'JEFEPISO' || window.userRole === 'PROGRAMADOR' || window.userRole === 'SUPERVISOR') && (
-                    <button
-                      onClick={() => {
-                        onPinMessage(message);
-                        setShowMessageMenu(null);
-                      }}
-                      style={{
-                        width: "100%",
-                        padding: "10px 16px",
-                        backgroundColor: "transparent",
-                        border: "none",
-                        textAlign: "left",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        color: pinnedMessageId === message.id ? "#d97706" : "#111",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "12px",
-                        transition: "background-color 0.2s",
-                        fontWeight: pinnedMessageId === message.id ? "600" : "normal",
-                      }}
-                    >
-                      <FaThumbtack style={{ color: pinnedMessageId === message.id ? "#d97706" : "#8696a0" }} />
-                      {pinnedMessageId === message.id ? "Dejar de fijar" : "Fijar mensaje"}
-                    </button>
-                  )}
-
-                  {/* Info */}
-                  {message.id && (
-                    <button
-                      onClick={() => {
-                        setShowMessageInfo(message);
-                        setShowMessageMenu(null);
-                      }}
-                      style={{
-                        width: "100%",
-                        padding: "10px 16px",
-                        backgroundColor: "transparent",
-                        border: "none",
-                        textAlign: "left",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        color: "#111",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "12px",
-                        transition: "background-color 0.2s",
-                      }}
-                    >
-                      <FaInfoCircle style={{ color: "#8696a0" }} /> Info
-                    </button>
-                  )}
-
-                  {/* Reaccionar */}
-                  {message.id && (
-                    <button
-                      onClick={() => {
-                        setShowReactionPicker(
-                          showReactionPicker === message.id ? null : message.id
-                        );
-                        setShowMessageMenu(null);
-                      }}
-                      style={{
-                        width: "100%",
-                        padding: "10px 16px",
-                        backgroundColor: "transparent",
-                        border: "none",
-                        textAlign: "left",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        color: "#111",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "12px",
-                        transition: "background-color 0.2s",
-                      }}
-                    >
-                      <FaSmile style={{ color: "#8696a0" }} /> Reaccionar
-                    </button>
-                  )}
-
-                  {/* Editar */}
-                  {isOwnMessage && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStartEdit(message);
-                        setShowMessageMenu(null);
-                      }}
-                      style={{
-                        width: "100%",
-                        padding: "10px 16px",
-                        backgroundColor: "transparent",
-                        border: "none",
-                        textAlign: "left",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        color: "#111",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "12px",
-                        transition: "background-color 0.2s",
-                      }}
-                    >
-                      <FaEdit style={{ color: "#8696a0" }} /> Editar
-                    </button>
-                  )}
-
-                  {/* Eliminar */}
-                  {isAdmin && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (onDeleteMessage) {
-                          onDeleteMessage(
-                            message.id,
-                            message.realSender || message.sender
-                          );
-                        }
-                        setShowMessageMenu(null);
-                      }}
-                      style={{
-                        width: "100%",
-                        padding: "10px 16px",
-                        backgroundColor: "transparent",
-                        border: "none",
-                        textAlign: "left",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        color: "#ff4444",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "12px",
-                        transition: "background-color 0.2s",
-                        borderTop: "1px solid #e0e0e0",
-                      }}
-                    >
-                      <FaTrash style={{ color: "#ff4444" }} /> Eliminar
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-
-          {!isOwnMessage && (
-            <div
-              style={{
-                fontSize: "12px",
-                fontWeight: "500",
-                color: "#00a884",
-                marginBottom: "2px",
+                zIndex: 1001,
                 display: "flex",
                 alignItems: "center",
-                gap: "4px",
+                gap: "2px",
+                backgroundColor: isOwnMessage ? "rgba(225, 244, 214, 0.95)" : "rgba(232, 230, 240, 0.95)",
+                borderRadius: "12px",
+                padding: "2px",
+                opacity: isMenuOpen ? 1 : 0,
+                transition: "opacity 0.15s ease-in-out",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
               }}
             >
-              {/* Nombre del Remitente */}
-              {message.sender}
+              {/* 1. FLECHA RESPONDER */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (window.handleReplyMessage) window.handleReplyMessage(message);
+                }}
+                style={{ border: "none", color: "#54656f", cursor: "pointer", fontSize: "14px", padding: "4px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", width: "26px", height: "26px", backgroundColor: "transparent", transition: "background-color 0.2s" }}
+                title="Responder"
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.08)"}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+              >
+                <FaReply />
+              </button>
 
-              {/* Renderizar el sufijo calculado */}
-              {getSenderSuffix(message) && (
-                <span
-                  style={{
-                    color: "#666",
-                    fontWeight: "400",
-                    marginLeft: "4px",
+              {/* 2. DESPLEGADOR DE MENÚ */}
+              <div style={{ position: 'relative', display: 'flex' }}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isMenuOpen) {
+                      setShowMessageMenu(null);
+                    } else {
+                      // 🔥 Lógica Responsiva: Calcular si cabe abajo
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const spaceBelow = window.innerHeight - rect.bottom;
+                      const minSpaceNeeded = 240; // Altura estimada del menú
+
+                      // Guardamos la dirección en el estado del menú
+                      setMenuPosition({
+                        openUp: spaceBelow < minSpaceNeeded // True si debe abrir hacia arriba
+                      });
+                      setShowMessageMenu(message.id);
+                    }
                   }}
+                  style={{ border: "none", color: "#54656f", cursor: "pointer", fontSize: "12px", padding: "4px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", width: "26px", height: "26px", backgroundColor: isMenuOpen ? "rgba(0,0,0,0.1)" : "transparent", transition: "background-color 0.2s" }}
+                  title="Más opciones"
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.08)"}
+                  onMouseLeave={(e) => !isMenuOpen && (e.currentTarget.style.backgroundColor = "transparent")}
                 >
-                  {getSenderSuffix(message)}
-                </span>
-              )}
+                  <FaChevronDown />
+                </button>
+
+                {/* 🔥 MENÚ ABSOLUTO RESPONSIVO 🔥 */}
+                {isMenuOpen && (
+                  <div
+                    ref={messageMenuRef}
+                    style={{
+                      position: "absolute",
+                      // Si openUp es true, bottom: 100% (Arriba). Si no, top: 100% (Abajo)
+                      top: menuPosition.openUp ? "auto" : "100%",
+                      bottom: menuPosition.openUp ? "100%" : "auto",
+                      right: "0",
+                      marginTop: menuPosition.openUp ? "0" : "4px",
+                      marginBottom: menuPosition.openUp ? "4px" : "0",
+                      backgroundColor: "#fff",
+                      border: "1px solid #e0e0e0",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                      zIndex: 999999,
+                      minWidth: "180px",
+                      overflow: "hidden",
+                      animation: "fadeIn 0.1s ease-out"
+                    }}
+                  >
+                    <button onClick={() => { if (window.handleReplyMessage) window.handleReplyMessage(message); setShowMessageMenu(null); }} style={{ width: "100%", padding: "10px 16px", backgroundColor: "transparent", border: "none", textAlign: "left", cursor: "pointer", fontSize: "14px", color: "#111", display: "flex", alignItems: "center", gap: "12px", transition: "background 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}><FaReply style={{ color: "#8696a0" }} /> Responder</button>
+                    <button onClick={async () => { try { let textToCopy = message.text || message.caption || message.fileName || ""; if (textToCopy) await navigator.clipboard.writeText(textToCopy); } catch (err) { console.error(err); } setShowMessageMenu(null); }} style={{ width: "100%", padding: "10px 16px", backgroundColor: "transparent", border: "none", textAlign: "left", cursor: "pointer", fontSize: "14px", color: "#111", display: "flex", alignItems: "center", gap: "12px" }} onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}><FaCopy style={{ color: "#8696a0" }} /> Copiar</button>
+                    {message.mediaData && (<button onClick={() => { handleDownload(message.mediaData, message.fileName || "archivo"); setShowMessageMenu(null); }} style={{ width: "100%", padding: "10px 16px", backgroundColor: "transparent", border: "none", textAlign: "left", cursor: "pointer", fontSize: "14px", color: "#111", display: "flex", alignItems: "center", gap: "12px" }} onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}><FaDownload style={{ color: "#8696a0" }} /> Descargar</button>)}
+                    {isGroup && onPinMessage && (isAdmin || window.userRole === 'JEFEPISO' || window.userRole === 'PROGRAMADOR' || window.userRole === 'SUPERVISOR') && (<button onClick={() => { onPinMessage(message); setShowMessageMenu(null); }} style={{ width: "100%", padding: "10px 16px", backgroundColor: "transparent", border: "none", textAlign: "left", cursor: "pointer", fontSize: "14px", color: pinnedMessageId === message.id ? "#d97706" : "#111", display: "flex", alignItems: "center", gap: "12px", fontWeight: pinnedMessageId === message.id ? "600" : "normal" }} onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}><FaThumbtack style={{ color: pinnedMessageId === message.id ? "#d97706" : "#8696a0" }} /> {pinnedMessageId === message.id ? "Dejar de fijar" : "Fijar mensaje"}</button>)}
+                    {message.id && (<button onClick={() => { setShowMessageInfo(message); setShowMessageMenu(null); }} style={{ width: "100%", padding: "10px 16px", backgroundColor: "transparent", border: "none", textAlign: "left", cursor: "pointer", fontSize: "14px", color: "#111", display: "flex", alignItems: "center", gap: "12px" }} onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}><FaInfoCircle style={{ color: "#8696a0" }} /> Info</button>)}
+                    {message.id && (<button onClick={() => { setShowReactionPicker(showReactionPicker === message.id ? null : message.id); setShowMessageMenu(null); }} style={{ width: "100%", padding: "10px 16px", backgroundColor: "transparent", border: "none", textAlign: "left", cursor: "pointer", fontSize: "14px", color: "#111", display: "flex", alignItems: "center", gap: "12px" }} onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}><FaSmile style={{ color: "#8696a0" }} /> Reaccionar</button>)}
+                    {isOwnMessage && (<button onClick={(e) => { e.stopPropagation(); handleStartEdit(message); setShowMessageMenu(null); }} style={{ width: "100%", padding: "10px 16px", backgroundColor: "transparent", border: "none", textAlign: "left", cursor: "pointer", fontSize: "14px", color: "#111", display: "flex", alignItems: "center", gap: "12px" }} onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}><FaEdit style={{ color: "#8696a0" }} /> Editar</button>)}
+                    {isAdmin && (<button onClick={(e) => { e.stopPropagation(); if (onDeleteMessage) onDeleteMessage(message.id, message.realSender || message.sender); setShowMessageMenu(null); }} style={{ width: "100%", padding: "10px 16px", backgroundColor: "transparent", border: "none", textAlign: "left", cursor: "pointer", fontSize: "14px", color: "#ff4444", display: "flex", alignItems: "center", gap: "12px", borderTop: "1px solid #e0e0e0" }} onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}><FaTrash style={{ color: "#ff4444" }} /> Eliminar</button>)}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
+          {/* ==================== HEADER USUARIO ==================== */}
+          {!isOwnMessage && !isGroupedWithPrevious && (
+            <div style={{ fontSize: "12px", fontWeight: "600", color: "#00a884", marginBottom: "2px", display: "flex", alignItems: "center", gap: "4px" }}>
+              {message.sender}
+              {getSenderSuffix(message) && <span style={{ color: "#666", fontWeight: "400", marginLeft: "4px" }}>{getSenderSuffix(message)}</span>}
+            </div>
+          )}
 
-          {/* Preview del mensaje al que se responde */}
+          {/* ==================== PREVIEW RESPUESTA ==================== */}
           {message.replyToMessageId && (
             <div
               onClick={async () => {
-                const originalMessage = document.getElementById(
-                  `message-${message.replyToMessageId}`
-                );
+                const originalMessage = document.getElementById(`message-${message.replyToMessageId}`);
                 if (originalMessage) {
-                  originalMessage.scrollIntoView({
-                    behavior: "smooth",
-                    block: "center",
-                  });
+                  originalMessage.scrollIntoView({ behavior: "smooth", block: "center" });
                   setHighlightedMessageId(message.replyToMessageId);
                   setTimeout(() => setHighlightedMessageId(null), 2000);
                 } else {
-                  // Lógica de carga de mensajes si no existe
-                  let attempts = 0;
-                  const maxAttempts = 5;
-                  while (attempts < maxAttempts) {
-                    if (hasMoreMessages && onLoadMoreMessages) {
-                      await onLoadMoreMessages();
-                      attempts++;
-                      await new Promise((resolve) => setTimeout(resolve, 500));
-                      const foundMessage = document.getElementById(
-                        `message-${message.replyToMessageId}`
-                      );
-                      if (foundMessage) {
-                        foundMessage.scrollIntoView({
-                          behavior: "smooth",
-                          block: "center",
-                        });
-                        setHighlightedMessageId(message.replyToMessageId);
-                        setTimeout(() => setHighlightedMessageId(null), 2000);
-                        break;
-                      }
-                    } else {
-                      break;
-                    }
-                  }
+                  if (hasMoreMessages && onLoadMoreMessages) await onLoadMoreMessages();
                 }
               }}
-              style={{
-                backgroundColor: "transparent",
-                borderLeft: "4px solid #00a884",
-                padding: "4px 8px",
-                borderRadius: "4px",
-                marginBottom: "4px",
-                fontSize: "11px",
-                cursor: "pointer",
-                transition: "background-color 0.2s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "rgba(0, 0, 0, 0.05)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent";
-              }}
+              style={{ backgroundColor: "transparent", borderLeft: "4px solid #00a884", padding: "4px 8px", borderRadius: "4px", marginBottom: "4px", fontSize: "11px", cursor: "pointer" }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(0, 0, 0, 0.05)"}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
             >
-              <div
-                style={{
-                  color: "#00a884",
-                  fontWeight: "600",
-                  marginBottom: "1px",
-                }}
-              >
-                {message.replyToSender}
-                {message.replyToSenderNumeroAgente && (
-                  <span
-                    style={{
-                      color: "#666",
-                      fontWeight: "400",
-                      marginLeft: "4px",
-                    }}
-                  >
-                    • N° {message.replyToSenderNumeroAgente}
-                  </span>
-                )}
+              <div style={{ color: "#00a884", fontWeight: "600", marginBottom: "1px" }}>
+                {message.replyToSender} {message.replyToSenderNumeroAgente && <span style={{ color: "#666", fontWeight: "400" }}>• N° {message.replyToSenderNumeroAgente}</span>}
               </div>
-              <div
-                style={{
-                  color: "#1f2937",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {message.replyToText || "Archivo multimedia"}
-              </div>
+              <div style={{ color: "#1f2937", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{message.replyToText || "Archivo multimedia"}</div>
             </div>
           )}
 
+          {/* ==================== CONTENIDO ==================== */}
           {editingMessageId === message.id ? (
-            // Modo de edición (para texto y multimedia)
+            /* MODO EDICIÓN */
             <div style={{ marginBottom: "8px" }}>
-              <textarea
-                value={editText}
-                onChange={(e) => setEditText(e.target.value)}
-                style={{
-                  width: "100%",
-                  minHeight: "60px",
-                  padding: "10px 12px",
-                  borderRadius: "7.5px",
-                  border: "1px solid #d1d7db",
-                  fontSize: "14px",
-                  fontFamily: "inherit",
-                  resize: "vertical",
-                  marginBottom: "12px",
-                  outline: "none",
-                  transition: "border-color 0.2s",
-                }}
-                placeholder="Editar mensaje..."
-                autoFocus
-                onFocus={(e) => (e.target.style.borderColor = "#00a884")}
-                onBlur={(e) => (e.target.style.borderColor = "#d1d7db")}
-              />
-
-              {/* Input para cambiar archivo multimedia */}
-              <div style={{ marginBottom: "12px" }}>
-                <label
-                  htmlFor={`file-input-${message.id}`}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "8px 16px",
-                    backgroundColor: "#f0f2f5",
-                    color: "#54656f",
-                    borderRadius: "7.5px",
-                    cursor: "pointer",
-                    fontSize: "13px",
-                    fontWeight: "500",
-                    border: "1px solid #d1d7db",
-                    transition: "all 0.2s",
-                    userSelect: "none",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.backgroundColor = "#e4e6eb";
-                    e.target.style.borderColor = "#00a884";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.backgroundColor = "#f0f2f5";
-                    e.target.style.borderColor = "#d1d7db";
-                  }}
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"
-                      stroke="#54656f"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  Seleccionar archivo
-                </label>
-                <input
-                  id={`file-input-${message.id}`}
-                  type="file"
-                  accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx"
-                  onChange={(e) => setEditFile(e.target.files[0])}
-                  style={{ display: "none" }}
-                />
-                {editFile ? (
-                  <div
-                    style={{
-                      marginTop: "8px",
-                      padding: "8px 12px",
-                      backgroundColor: "#d1f4dd",
-                      borderRadius: "7.5px",
-                      fontSize: "12px",
-                      color: "#00a884",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}
-                  >
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M20 6L9 17l-5-5"
-                        stroke="#00a884"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    <span style={{ fontWeight: "500" }}>
-                      Nuevo archivo: {editFile.name}
-                    </span>
-                  </div>
-                ) : (
-                  <div
-                    style={{
-                      marginTop: "8px",
-                      fontSize: "11px",
-                      color: "#8696a0",
-                    }}
-                  >
-                    Ningún archivo seleccionado
-                  </div>
-                )}
-              </div>
-
+              <textarea value={editText} onChange={(e) => setEditText(e.target.value)} style={{ width: "100%", minHeight: "60px", padding: "10px 12px", borderRadius: "7.5px", border: "1px solid #d1d7db", marginBottom: "12px", outline: "none" }} autoFocus />
               <div style={{ display: "flex", gap: "8px" }}>
-                <button
-                  onClick={handleSaveEdit}
-                  disabled={isEditingLoading}
-                  style={{
-                    backgroundColor: isEditingLoading ? "#8696a0" : "#00a884",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: "7.5px",
-                    padding: "8px 20px",
-                    fontSize: "13px",
-                    cursor: isEditingLoading ? "not-allowed" : "pointer",
-                    fontWeight: "500",
-                    transition: "background-color 0.2s",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                  }}
-                >
-                  {isEditingLoading && (
-                    <div
-                      style={{
-                        width: "14px",
-                        height: "14px",
-                        border: "2px solid #fff",
-                        borderTopColor: "transparent",
-                        borderRadius: "50%",
-                        animation: "spin 0.6s linear infinite",
-                      }}
-                    />
-                  )}
-                  {isEditingLoading ? "Guardando..." : "Guardar"}
-                </button>
-                <button
-                  onClick={handleCancelEdit}
-                  style={{
-                    backgroundColor: "#f0f2f5",
-                    color: "#54656f",
-                    border: "none",
-                    borderRadius: "7.5px",
-                    padding: "8px 20px",
-                    fontSize: "13px",
-                    cursor: "pointer",
-                    fontWeight: "500",
-                    transition: "background-color 0.2s",
-                  }}
-                >
-                  Cancelar
-                </button>
+                <button onClick={handleSaveEdit} disabled={isEditingLoading} style={{ backgroundColor: isEditingLoading ? "#8696a0" : "#00a884", color: "#fff", border: "none", borderRadius: "7.5px", padding: "8px 20px", fontSize: "13px", cursor: "pointer" }}>{isEditingLoading ? "Guardando..." : "Guardar"}</button>
+                <button onClick={handleCancelEdit} style={{ backgroundColor: "#f0f2f5", color: "#54656f", border: "none", borderRadius: "7.5px", padding: "8px 20px", fontSize: "13px", cursor: "pointer" }}>Cancelar</button>
               </div>
             </div>
           ) : message.mediaType && message.mediaData ? (
+            /* MODO MULTIMEDIA */
             <div>
-              {/* 🔥 BLOQUE MULTIMEDIA CON FIX DE ELIMINADO Y FIX DE IMAGEN/VIDEO */}
               {message.isDeleted ? (
-                <div>
-                  <span
-                    className="mx_RedactedBody"
-                    title={`Mensaje eliminado el ${new Date().toLocaleDateString()} a las ${message.time}`}
-                  >
-                    Mensaje eliminado
-                  </span>
-                  {/* Hora del mensaje eliminado */}
-                  <div
-                    style={{
-                      fontSize: "11px",
-                      color: "#8696a0",
-                      marginTop: "2px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                    }}
-                  >
-                    <span>{message.time}</span>
-                  </div>
-                </div>
+                <div><span className="mx_RedactedBody" title={`Eliminado: ${message.time}`}>Mensaje eliminado</span><div style={{ fontSize: "11px", color: "#8696a0", marginTop: "2px" }}>{message.time}</div></div>
               ) : (
-                <>
-                  <div
-                    className="media-message"
-                    style={{
-                      marginBottom: "2px",
-                    }}
-                  >
-                    {message.mediaType === "image" ? (
-                      /* 🔥 FIX IMAGEN: Flex Column para poner hora abajo a la derecha */
-                      <div style={{ display: "flex", flexDirection: "column" }}>
-                        <img
-                          src={message.mediaData}
-                          alt={message.fileName || "Imagen"}
-                          loading="lazy"
-                          className="media-image"
-                          style={{
-                            borderRadius: "7.5px",
-                            display: "block",
-                            cursor: "pointer",
-                            maxWidth: "100%",
-                            objectFit: "contain"
-                          }}
-                          onClick={() =>
-                            setImagePreview({
-                              url: message.mediaData,
-                              fileName: message.fileName || "imagen",
-                            })
-                          }
-                        />
-                        {/* Metadata (Hora y Checks) debajo */}
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "flex-end",
-                            alignItems: "center",
-                            marginTop: "4px",
-                            gap: "4px",
-                            position: "static",
-                            backgroundColor: "transparent",
-                            padding: "0 2px",
-                            width: "100%"
-                          }}
-                        >
-                          <span style={{ fontSize: "11px", color: "#667781", whiteSpace: "nowrap" }}>
-                            {message.time}
-                          </span>
-                          {message.isEdited && (
-                            <span
-                              style={{
-                                fontSize: "10px",
-                                color: "#8696a0",
-                                marginLeft: "2px",
-                              }}
-                            >
-                              (editado)
-                            </span>
-                          )}
-                          {isOwnMessage && (
-                            <span
-                              style={{
-                                color:
-                                  message.readBy && message.readBy.length > 0
-                                    ? "#53bdeb"
-                                    : "#8696a0",
-                                fontSize: "12px",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                marginLeft: "2px",
-                              }}
-                            >
-                              {message.isSent ? (
-                                <svg
-                                  viewBox="0 0 18 18"
-                                  height="16"
-                                  width="16"
-                                  preserveAspectRatio="xMidYMid meet"
-                                  version="1.1"
-                                >
-                                  <path
-                                    fill="currentColor"
-                                    d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"
-                                  ></path>
-                                </svg>
-                              ) : (
-                                "⏳"
-                              )}
-                            </span>
-                          )}
-                        </div>
+                <div className="media-message" style={{ marginBottom: "2px" }}>
+                  {message.mediaType === "image" ? (
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      <img src={message.mediaData} alt="Imagen" loading="lazy" className="media-image" style={{ borderRadius: "7.5px", display: "block", cursor: "pointer", maxWidth: "100%", objectFit: "contain" }} onClick={() => setImagePreview({ url: message.mediaData, fileName: message.fileName || "imagen" })} />
+                      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginTop: "4px", gap: "4px", width: "100%" }}>
+                        <span style={{ fontSize: "11px", color: "#667781" }}>{message.time}</span>
+                        {isOwnMessage && <span style={{ color: message.readBy?.length > 0 ? "#53bdeb" : "#8696a0", fontSize: "12px" }}>{message.isSent ? "✔✔" : "⏳"}</span>}
                       </div>
-                    ) : message.mediaType === "video" ? (
-                      /* 🔥 FIX VIDEO: Flex Column para poner hora abajo a la derecha */
-                      <div style={{ display: "flex", flexDirection: "column" }}>
-                        <video
-                          src={message.mediaData}
-                          controls
-                          preload="metadata"
-                          className="media-video"
-                          style={{
-                            maxWidth: "100%",
-                            borderRadius: "7.5px",
-                            display: "block",
-                          }}
-                        />
-                        {/* Metadata del video */}
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "flex-end",
-                            alignItems: "center",
-                            marginTop: "4px",
-                            gap: "4px",
-                            width: "100%"
-                          }}
-                        >
-                          <span style={{ fontSize: "11px", color: "#667781", whiteSpace: "nowrap" }}>
-                            {message.time}
-                          </span>
-                          {message.isEdited && (
-                            <span
-                              style={{
-                                fontSize: "10px",
-                                color: "#8696a0",
-                                marginLeft: "4px",
-                              }}
-                            >
-                              (editado)
-                            </span>
-                          )}
-                          {isOwnMessage && (
-                            <span
-                              style={{
-                                color:
-                                  message.readBy && message.readBy.length > 0
-                                    ? "#53bdeb"
-                                    : "#8696a0",
-                                fontSize: "12px",
-                                display: "inline-flex",
-                                alignItems: "center",
-                              }}
-                            >
-                              {message.isSent ? (
-                                <svg
-                                  viewBox="0 0 18 18"
-                                  height="16"
-                                  width="16"
-                                  preserveAspectRatio="xMidYMid meet"
-                                  version="1.1"
-                                >
-                                  <path
-                                    fill="currentColor"
-                                    d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"
-                                  ></path>
-                                </svg>
-                              ) : (
-                                "⏳"
-                              )}
-                            </span>
-                          )}
-                        </div>
+                    </div>
+                  ) : message.mediaType === "video" ? (
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      <video src={message.mediaData} controls preload="metadata" className="media-video" style={{ maxWidth: "100%", borderRadius: "7.5px" }} />
+                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px", gap: "4px" }}>
+                        <span style={{ fontSize: "11px", color: "#667781" }}>{message.time}</span>
+                        {isOwnMessage && <span style={{ color: message.readBy?.length > 0 ? "#53bdeb" : "#8696a0", fontSize: "12px" }}>{message.isSent ? "✔✔" : "⏳"}</span>}
                       </div>
-                    ) : message.mediaType === "audio" ? (
-                      <AudioPlayer
-                        src={message.mediaData}
-                        fileName={message.fileName}
-                        onDownload={handleDownload}
-                        time={message.time}
-                        isOwnMessage={isOwnMessage}
-                        isRead={message.isRead}
-                        isSent={message.isSent}
-                        readBy={message.readBy}
-                        userPicture={
-                          isOwnMessage
-                            ? (
-                              roomUsers?.find(u =>
-                                (typeof u === 'object') &&
-                                (u.username === currentUsername || u.nombre === currentUsername)
-                              )?.picture
-                              || user?.picture
-                              || null
-                            )
-                            : (message.senderPicture || null)
-                        }
-                      />
-                    ) : (
-                      <div
-                        className="file-message"
-                        onClick={() =>
-                          handleDownload(
-                            message.mediaData,
-                            message.fileName || "archivo"
-                          )
-                        }
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          padding: "8px 12px",
-                          backgroundColor: "rgba(255,255,255,0.1)",
-                          borderRadius: "8px",
-                          border: "1px solid rgba(255,255,255,0.2)",
-                          cursor: "pointer",
-                          transition: "all 0.2s",
-                          maxWidth: "280px",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor =
-                            "rgba(255,255,255,0.2)";
-                          e.currentTarget.style.transform = "scale(1.02)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor =
-                            "rgba(255,255,255,0.1)";
-                          e.currentTarget.style.transform = "scale(1)";
-                        }}
-                      >
-                        <div className="file-icon" style={{ flexShrink: 0 }}>
-                          {renderFileIcon(message.fileName)}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "6px",
-                              marginBottom: "4px",
-                            }}
-                          >
-                            <span
-                              style={{
-                                backgroundColor: getFileIcon(message.fileName)
-                                  .color,
-                                color: "#fff",
-                                fontSize: "9px",
-                                fontWeight: "700",
-                                padding: "2px 6px",
-                                borderRadius: "4px",
-                                textTransform: "uppercase",
-                                letterSpacing: "0.5px",
-                              }}
-                            >
-                              {getFileIcon(message.fileName).name}
-                            </span>
-                          </div>
-                          <div
-                            className="file-name"
-                            style={{
-                              color: "#000000D9",
-                              fontSize: "13px",
-                              fontWeight: "600",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                              marginBottom: "4px",
-                            }}
-                          >
-                            {message.fileName}
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "5px",
-                              flexWrap: "wrap",
-                            }}
-                          >
-                            {message.fileSize && (
-                              <span
-                                style={{
-                                  color: "#8696a0",
-                                  fontSize: "11px",
-                                  fontWeight: "400",
-                                }}
-                              >
-                                {(message.fileSize / 1024 / 1024).toFixed(2)} MB
-                              </span>
-                            )}
-                            {message.fileSize && (
-                              <span
-                                style={{ color: "#8696a0", fontSize: "11px" }}
-                              >
-                                •
-                              </span>
-                            )}
-                            <span
-                              style={{ color: "#8696a0", fontSize: "11px" }}
-                            >
-                              {message.time}
-                            </span>
-                            {message.isEdited && (
-                              <>
-                                <span
-                                  style={{ color: "#8696a0", fontSize: "11px" }}
-                                >
-                                  •
-                                </span>
-                                <span
-                                  style={{ fontSize: "10px", color: "#8696a0" }}
-                                >
-                                  editado
-                                </span>
-                              </>
-                            )}
-                            {isOwnMessage && (
-                              <>
-                                <span
-                                  style={{ color: "#8696a0", fontSize: "11px" }}
-                                >
-                                  •
-                                </span>
-                                <span
-                                  style={{
-                                    color: message.isRead
-                                      ? "#53bdeb"
-                                      : "#8696a0",
-                                    fontSize: "12px",
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                  }}
-                                >
-                                  {message.isSent ? (
-                                    <svg
-                                      viewBox="0 0 18 18"
-                                      height="18"
-                                      width="18"
-                                      preserveAspectRatio="xMidYMid meet"
-                                      version="1.1"
-                                    >
-                                      <path
-                                        fill="currentColor"
-                                        d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"
-                                      ></path>
-                                    </svg>
-                                  ) : (
-                                    "⏳"
-                                  )}
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        <div style={{ flexShrink: 0 }}>
-                          <svg
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <circle
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              fill="#00a884"
-                              opacity="0.1"
-                            />
-                            <path
-                              d="M12 7V13M12 13L9.5 10.5M12 13L14.5 10.5"
-                              stroke="#00a884"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M8 16H16"
-                              stroke="#00a884"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Selector de reacciones (fuera del menú) */}
-                  {message.id && showReactionPicker === message.id && (
-                    <div style={{ position: "relative", marginTop: "4px" }}>
-                      <div
-                        ref={reactionPickerRef}
-                        style={{
-                          position: "absolute",
-                          bottom: "100%",
-                          left: isOwnMessage ? "auto" : "0",
-                          right: isOwnMessage ? "0" : "auto",
-                          backgroundColor: "#fff",
-                          borderRadius: "20px",
-                          padding: "8px",
-                          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                          display: "flex",
-                          gap: "4px",
-                          zIndex: 1000,
-                          marginBottom: "4px",
-                        }}
-                      >
-                        {["👍", "❤️", "😂", "😮", "😢", "🙏"].map((emoji) => (
-                          <button
-                            key={emoji}
-                            onClick={() => handleReaction(message, emoji)}
-                            style={{
-                              backgroundColor: "transparent",
-                              border: "none",
-                              fontSize: "20px",
-                              cursor: "pointer",
-                              padding: "4px",
-                              borderRadius: "50%",
-                              transition: "transform 0.2s",
-                            }}
-                            onMouseEnter={(e) =>
-                              (e.target.style.transform = "scale(1.2)")
-                            }
-                            onMouseLeave={(e) =>
-                              (e.target.style.transform = "scale(1)")
-                            }
-                          >
-                            {emoji}
-                          </button>
-                        ))}
-                        {/* Botón + para más emojis */}
-                        <button
-                          onClick={() => {
-                            setShowReactionPicker(null);
-                            setShowEmojiPicker(true);
-                            // Guardar el mensaje actual para reaccionar después
-                            window.currentReactionMessage = message;
-                          }}
-                          style={{
-                            backgroundColor: "#f0f2f5",
-                            border: "none",
-                            width: "28px",
-                            height: "28px",
-                            cursor: "pointer",
-                            padding: "0",
-                            borderRadius: "50%",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            transition: "all 0.2s",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.target.style.transform = "scale(1.2)";
-                            e.target.style.backgroundColor = "#e4e6eb";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.transform = "scale(1)";
-                            e.target.style.backgroundColor = "#f0f2f5";
-                          }}
-                          title="Más emojis"
-                        >
-                          <svg
-                            viewBox="0 0 24 24"
-                            width="20"
-                            height="20"
-                            preserveAspectRatio="xMidYMid meet"
-                          >
-                            <path
-                              fill="currentColor"
-                              d="M19,13h-6v6h-2v-6H5v-2h6V5h2v6h6V13z"
-                            />
-                          </svg>
-                        </button>
+                    </div>
+                  ) : message.mediaType === "audio" ? (
+                    <AudioPlayer src={message.mediaData} fileName={message.fileName} onDownload={handleDownload} time={message.time} isOwnMessage={isOwnMessage} isRead={message.isRead} isSent={message.isSent} readBy={message.readBy} userPicture={isOwnMessage ? (roomUsers?.find(u => (u.username === currentUsername))?.picture || user?.picture) : message.senderPicture} />
+                  ) : (
+                    <div className="file-message" onClick={() => handleDownload(message.mediaData, message.fileName || "archivo")} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", backgroundColor: "rgba(255,255,255,0.1)", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.2)", cursor: "pointer", maxWidth: "280px" }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.2)"; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.1)"; }}>
+                      <div className="file-icon" style={{ flexShrink: 0 }}>{renderFileIcon(message.fileName)}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", gap: "6px", marginBottom: "4px" }}><span style={{ backgroundColor: getFileIcon(message.fileName).color, color: "#fff", fontSize: "9px", fontWeight: "700", padding: "2px 6px", borderRadius: "4px" }}>{getFileIcon(message.fileName).name}</span></div>
+                        <div className="file-name" style={{ fontSize: "13px", fontWeight: "600", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{message.fileName}</div>
+                        <div style={{ fontSize: "11px", color: "#8696a0" }}>{message.time}</div>
                       </div>
                     </div>
                   )}
-
-                  {/* Mostrar reacciones del mensaje (para mensajes con archivos adjuntos) */}
-                  {Array.isArray(message.reactions) && message.reactions.length > 0 && (
-                    /* 🔥 CAMBIO: Usamos la clase contenedora 'absolute' */
-                    <div className="message-reactions-container">
-                      {Object.entries(
-                        message.reactions.reduce((acc, reaction) => {
-                          if (reaction && reaction.emoji) {
-                            if (!acc[reaction.emoji]) acc[reaction.emoji] = [];
-                            acc[reaction.emoji].push(reaction.username);
-                          }
-                          return acc;
-                        }, {})
-                      ).map(([emoji, users]) => (
-                        <div
-                          key={emoji}
-                          onClick={(e) => {
-                            e.stopPropagation(); // Evita abrir el mensaje si clickeas la reacción
-                            handleReaction(message, emoji);
-                          }}
-                          className="reaction-pill"
-                          title={users.join(", ")}
-                          style={{
-                            // Si el usuario actual reaccionó, pintamos el borde o fondo diferente
-                            backgroundColor: users.includes(currentUsername) ? "#e1f4d6" : "#ffffff",
-                            borderColor: users.includes(currentUsername) ? "#00a884" : "#e5e7eb",
-                          }}
-                        >
-                          <span className="reaction-emoji">{emoji}</span>
-                          {/* Mostramos el número solo si es > 1, igual que WhatsApp (opcional) */}
-                          {users.length > 1 && <span className="reaction-count">{users.length}</span>}
-                          {/* O si prefieres mostrar siempre el número, usa esta línea: */}
-                          {users.length <= 1 && <span className="reaction-count">{users.length}</span>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Botón de Hilo visible debajo del mensaje (para archivos adjuntos) */}
-                  {onOpenThread && !message.isDeleted && (
-                    <div
-                      className="mx_ThreadSummaryLine"
-                      onClick={() => onOpenThread(message)}
-                      title="Ver hilo de respuestas"
-                    >
-                      {/* Icono y Contador (Verde) */}
-                      <span className="mx_ThreadCounter">
-                        <FaComments style={{ fontSize: "14px" }} />
-                        {message.threadCount > 0
-                          ? `${message.threadCount} ${message.threadCount === 1 ? "respuesta" : "respuestas"}`
-                          : "Responder en hilo"
-                        }
-                      </span>
-
-                      {/* Texto "Última de..." en la misma línea (Gris) */}
-                      {message.lastReplyFrom && message.threadCount > 0 && (
-                        <>
-                          {/* Pequeño separador o espacio */}
-                          <span className="mx_ThreadSeparator">•</span>
-
-                          <span className="mx_ThreadLastReply">
-                            última de {message.lastReplyFrom}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </>
+                </div>
               )}
             </div>
           ) : (
-            /* 🔥 BLOQUE DE TEXTO CON FIX DE ELIMINADO */
+            /* MODO TEXTO */
             <div>
-              {/* 🔥 Mostrar mensaje eliminado */}
               {message.isDeleted ? (
-                <div>
-                  <span
-                    className="mx_RedactedBody"
-                    title={`Mensaje eliminado el ${new Date().toLocaleDateString()} a las ${message.time}`}
-                  >
-                    Mensaje eliminado
-                  </span>
-                  {/* Hora del mensaje eliminado */}
-                  <div
-                    style={{
-                      fontSize: "11px",
-                      color: "#8696a0",
-                      marginTop: "2px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                    }}
-                  >
-                    <span>{message.time}</span>
-                  </div>
-                </div>
+                <div><span className="mx_RedactedBody">Mensaje eliminado</span><div style={{ fontSize: "11px", color: "#8696a0", marginTop: "2px" }}>{message.time}</div></div>
               ) : (
                 <>
                   {(() => {
-                    const MAX_LENGTH = 300; // Máximo de caracteres antes de mostrar "Ver más"
+                    const MAX_LENGTH = 300;
                     const isExpanded = expandedMessages.has(message.id);
-                    const shouldTruncate =
-                      message.text && message.text.length > MAX_LENGTH;
-                    const displayText =
-                      shouldTruncate && !isExpanded
-                        ? message.text.substring(0, MAX_LENGTH)
-                        : message.text;
-
+                    const shouldTruncate = message.text && message.text.length > MAX_LENGTH;
+                    const displayText = shouldTruncate && !isExpanded ? message.text.substring(0, MAX_LENGTH) : message.text;
                     return (
                       <>
-                        <div
-                          className="message-text"
-                          style={{
-                            color: "#000000D9",
-                            fontSize: "14.97px",
-                            lineHeight: "100%",
-                            letterSpacing: "0%",
-                            fontFamily: "Inter, sans-serif",
-                            fontWeight: "400",
-                            fontStyle: "Regular",
-                            marginBottom: "1px",
-                            whiteSpace: "pre-wrap",
-                            display: "block",
-                            wordWrap: "break-word",
-                            overflowWrap: "break-word",
-                          }}
-                        >
+                        <div className="message-text" style={{ color: "#000000D9", fontSize: "14.97px", lineHeight: "1.4", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
                           {renderTextWithMentions(displayText)}
                           {shouldTruncate && !isExpanded && "..."}
-                          {/* Hora y checks inline */}
                           {(!shouldTruncate || isExpanded) && (
-                            <span
-                              className="message-time-inline"
-                              style={{
-                                fontSize: "12.83px",
-                                color: "#00000073",
-                                marginLeft: "6px",
-                                whiteSpace: "nowrap",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "3px",
-                                verticalAlign: "bottom",
-                                fontFamily:
-                                  '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                                fontWeight: "300",
-                                lineHeight: "17.11px",
-                                letterSpacing: "0px",
-                              }}
-                            >
+                            <span className="message-time-inline" style={{ fontSize: "11px", color: "#00000073", marginLeft: "8px", float: "right", marginTop: "6px", display: "inline-flex", alignItems: "center", gap: "2px" }}>
                               <span>{message.time}</span>
-                              {message.isEdited && (
-                                <span
-                                  style={{
-                                    fontSize: "10px",
-                                    color: "#8696a0",
-                                    marginLeft: "4px",
-                                  }}
-                                >
-                                  (editado)
-                                </span>
-                              )}
-                              {isOwnMessage && (
-                                <>
-                                  <span
-                                    className="message-status"
-                                    style={{
-                                      color:
-                                        message.readBy &&
-                                          message.readBy.length > 0
-                                          ? "#27AE60"
-                                          : "#8696a0",
-                                      fontSize: "11px",
-                                      cursor: isGroup ? "pointer" : "default",
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                    }}
-                                    onClick={() => {
-                                      if (isGroup && message.id) {
-                                        setShowMessageInfo(message);
-                                      }
-                                    }}
-                                    title={
-                                      isGroup
-                                        ? "Ver información de lectura"
-                                        : ""
-                                    }
-                                  >
-                                    {message.isSent ? (
-                                      <svg
-                                        viewBox="0 0 18 18"
-                                        height="18"
-                                        width="18"
-                                        preserveAspectRatio="xMidYMid meet"
-                                        version="1.1"
-                                      >
-                                        <path
-                                          fill="currentColor"
-                                          d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"
-                                        ></path>
-                                      </svg>
-                                    ) : (
-                                      "⏳"
-                                    )}
-                                  </span>
-                                </>
-                              )}
+                              {message.isEdited && <span style={{ fontSize: "10px", color: "#8696a0" }}>(editado)</span>}
+                              {isOwnMessage && <span style={{ color: message.readBy?.length > 0 ? "#53bdeb" : "#8696a0", fontSize: "12px" }}>{message.isSent ? "✔✔" : "⏳"}</span>}
                             </span>
                           )}
                         </div>
-
-                        {/* Botón "Ver más" / "Ver menos" */}
                         {shouldTruncate && (
                           <div style={{ marginTop: "4px" }}>
-                            <button
-                              onClick={() => {
-                                setExpandedMessages((prev) => {
-                                  const newSet = new Set(prev);
-                                  if (isExpanded) {
-                                    newSet.delete(message.id);
-                                  } else {
-                                    newSet.add(message.id);
-                                  }
-                                  return newSet;
-                                });
-                              }}
-                              style={{
-                                backgroundColor: "transparent",
-                                border: "none",
-                                color: "#00a884",
-                                cursor: "pointer",
-                                fontSize: "13px",
-                                padding: "0",
-                                fontWeight: "500",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "2px",
-                              }}
-                            >
-                              {isExpanded ? "Ver menos" : "Ver más"}
-                            </button>
-                            {/* Hora y checks cuando el mensaje está truncado */}
-                            {!isExpanded && (
-                              <span
-                                className="message-time-inline"
-                                style={{
-                                  fontSize: "12.83px",
-                                  color: "#00000073",
-                                  marginLeft: "0",
-                                  marginTop: "4px",
-                                  whiteSpace: "nowrap",
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: "3px",
-                                  verticalAlign: "bottom",
-                                  fontFamily:
-                                    '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                                  fontWeight: "300",
-                                  lineHeight: "17.11px",
-                                  letterSpacing: "0px",
-                                }}
-                              >
-                                <span>{message.time}</span>
-                                {message.isEdited && (
-                                  <span
-                                    style={{
-                                      fontSize: "10px",
-                                      color: "#8696a0",
-                                      marginLeft: "4px",
-                                    }}
-                                  >
-                                    (editado)
-                                  </span>
-                                )}
-                                {isOwnMessage && (
-                                  <>
-                                    <span
-                                      className="message-status"
-                                      style={{
-                                        color:
-                                          message.readBy &&
-                                            message.readBy.length > 0
-                                            ? "#27AE60"
-                                            : "#8696a0",
-                                        fontSize: "11px",
-                                        cursor: isGroup ? "pointer" : "default",
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                      }}
-                                      onClick={() => {
-                                        if (isGroup && message.id) {
-                                          setShowMessageInfo(message);
-                                        }
-                                      }}
-                                      title={
-                                        isGroup
-                                          ? "Ver información de lectura"
-                                          : ""
-                                      }
-                                    >
-                                      {message.isSent ? (
-                                        <svg
-                                          viewBox="0 0 18 18"
-                                          height="18"
-                                          width="18"
-                                          preserveAspectRatio="xMidYMid meet"
-                                          version="1.1"
-                                        >
-                                          <path
-                                            fill="currentColor"
-                                            d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"
-                                          ></path>
-                                        </svg>
-                                      ) : (
-                                        "⏳"
-                                      )}
-                                    </span>
-                                  </>
-                                )}
-                              </span>
-                            )}
+                            <button onClick={() => setExpandedMessages(prev => { const newSet = new Set(prev); if (isExpanded) newSet.delete(message.id); else newSet.add(message.id); return newSet; })} style={{ backgroundColor: "transparent", border: "none", color: "#00a884", cursor: "pointer", fontSize: "13px", padding: "0", fontWeight: "500" }}>{isExpanded ? "Ver menos" : "Ver más"}</button>
                           </div>
                         )}
                       </>
@@ -2951,165 +1699,42 @@ const ChatContent = ({
                   })()}
                 </>
               )}
-
-              {/* Selector de reacciones (fuera del menú) */}
-              {message.id && showReactionPicker === message.id && (
-                <div style={{ position: "relative", marginTop: "4px" }}>
-                  <div
-                    ref={reactionPickerRef}
-                    style={{
-                      position: "absolute",
-                      bottom: "100%",
-                      left: isOwnMessage ? "auto" : "0",
-                      right: isOwnMessage ? "0" : "auto",
-                      backgroundColor: "#fff",
-                      borderRadius: "20px",
-                      padding: "8px",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                      display: "flex",
-                      gap: "4px",
-                      zIndex: 1000,
-                      marginBottom: "4px",
-                    }}
-                  >
-                    {["👍", "❤️", "😂", "😮", "😢", "🙏"].map((emoji) => (
-                      <button
-                        key={emoji}
-                        onClick={() => handleReaction(message, emoji)}
-                        style={{
-                          backgroundColor: "transparent",
-                          border: "none",
-                          fontSize: "20px",
-                          cursor: "pointer",
-                          padding: "4px",
-                          borderRadius: "50%",
-                          transition: "transform 0.2s",
-                        }}
-                        onMouseEnter={(e) =>
-                          (e.target.style.transform = "scale(1.2)")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.target.style.transform = "scale(1)")
-                        }
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                    {/* Botón + para más emojis */}
-                    <button
-                      onClick={() => {
-                        setShowReactionPicker(null);
-                        setShowEmojiPicker(true);
-                        // Guardar el mensaje actual para reaccionar después
-                        window.currentReactionMessage = message;
-                      }}
-                      style={{
-                        backgroundColor: "#f0f2f5",
-                        border: "none",
-                        width: "28px",
-                        height: "28px",
-                        cursor: "pointer",
-                        padding: "0",
-                        borderRadius: "50%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        transition: "all 0.2s",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.transform = "scale(1.2)";
-                        e.target.style.backgroundColor = "#e4e6eb";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.transform = "scale(1)";
-                        e.target.style.backgroundColor = "#f0f2f5";
-                      }}
-                      title="Más emojis"
-                    >
-                      <svg
-                        viewBox="0 0 24 24"
-                        width="20"
-                        height="20"
-                        preserveAspectRatio="xMidYMid meet"
-                      >
-                        <path
-                          fill="currentColor"
-                          d="M19,13h-6v6h-2v-6H5v-2h6V5h2v6h6V13z"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Mostrar reacciones del mensaje */}
-              {Array.isArray(message.reactions) && message.reactions.length > 0 && (
-                /* 🔥 CAMBIO: Usamos la clase contenedora 'absolute' */
-                <div className="message-reactions-container">
-                  {Object.entries(
-                    message.reactions.reduce((acc, reaction) => {
-                      if (reaction && reaction.emoji) {
-                        if (!acc[reaction.emoji]) acc[reaction.emoji] = [];
-                        acc[reaction.emoji].push(reaction.username);
-                      }
-                      return acc;
-                    }, {})
-                  ).map(([emoji, users]) => (
-                    <div
-                      key={emoji}
-                      onClick={(e) => {
-                        e.stopPropagation(); // Evita abrir el mensaje si clickeas la reacción
-                        handleReaction(message, emoji);
-                      }}
-                      className="reaction-pill"
-                      title={users.join(", ")}
-                      style={{
-                        // Si el usuario actual reaccionó, pintamos el borde o fondo diferente
-                        backgroundColor: users.includes(currentUsername) ? "#e1f4d6" : "#ffffff",
-                        borderColor: users.includes(currentUsername) ? "#00a884" : "#e5e7eb",
-                      }}
-                    >
-                      <span className="reaction-emoji">{emoji}</span>
-                      {/* Mostramos el número solo si es > 1, igual que WhatsApp (opcional) */}
-                      {users.length > 1 && <span className="reaction-count">{users.length}</span>}
-                      {/* O si prefieres mostrar siempre el número, usa esta línea: */}
-                      {users.length <= 1 && <span className="reaction-count">{users.length}</span>}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Botón de Hilo visible debajo del mensaje */}
-              {onOpenThread && !message.isDeleted && (
-                <div
-                  className="mx_ThreadSummaryLine"
-                  onClick={() => onOpenThread(message)}
-                  title="Ver hilo de respuestas"
-                >
-                  {/* Icono y Contador (Verde) */}
-                  <span className="mx_ThreadCounter">
-                    <FaComments style={{ fontSize: "14px" }} />
-                    {message.threadCount > 0
-                      ? `${message.threadCount} ${message.threadCount === 1 ? "respuesta" : "respuestas"}`
-                      : "Responder en hilo"
-                    }
-                  </span>
-
-                  {/* Texto "Última de..." en la misma línea (Gris) */}
-                  {message.lastReplyFrom && message.threadCount > 0 && (
-                    <>
-                      {/* Pequeño separador o espacio */}
-                      <span className="mx_ThreadSeparator">•</span>
-
-                      <span className="mx_ThreadLastReply">
-                        última de {message.lastReplyFrom}
-                      </span>
-                    </>
-                  )}
-                </div>
-              )}
             </div>
           )}
+
+          {/* ==================== REACCIONES (SELECTOR & VISUALIZADOR) ==================== */}
+
+          {/* Selector flotante */}
+          {message.id && showReactionPicker === message.id && (
+            <div style={{ position: "relative", marginTop: "4px" }}>
+              <div ref={reactionPickerRef} style={{ position: "absolute", bottom: "100%", left: isOwnMessage ? "auto" : "0", right: isOwnMessage ? "0" : "auto", backgroundColor: "#fff", borderRadius: "20px", padding: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.15)", display: "flex", gap: "4px", zIndex: 1000 }}>
+                {["👍", "❤️", "😂", "😮", "😢", "🙏"].map((emoji) => (<button key={emoji} onClick={() => handleReaction(message, emoji)} style={{ backgroundColor: "transparent", border: "none", fontSize: "20px", cursor: "pointer", padding: "4px", transition: "transform 0.2s" }}>{emoji}</button>))}
+                <button onClick={() => { setShowReactionPicker(null); setShowEmojiPicker(true); window.currentReactionMessage = message; }} style={{ backgroundColor: "#f0f2f5", border: "none", width: "28px", height: "28px", borderRadius: "50%" }}>+</button>
+              </div>
+            </div>
+          )}
+
+          {/* Reacciones existentes (FIXED VISIBILITY) */}
+          {Array.isArray(message.reactions) && message.reactions.length > 0 && (
+            /* 🔥 Z-INDEX 10 PARA QUE NO SE OCULTE CON EL MENSAJE SIGUIENTE */
+            <div className="message-reactions-container" style={{ zIndex: 10, position: 'absolute', bottom: '-12px', right: isOwnMessage ? 'auto' : '10px', left: isOwnMessage ? '10px' : 'auto' }}>
+              {Object.entries(message.reactions.reduce((acc, reaction) => { if (reaction?.emoji) { if (!acc[reaction.emoji]) acc[reaction.emoji] = []; acc[reaction.emoji].push(reaction.username); } return acc; }, {})).map(([emoji, users]) => (
+                <div key={emoji} onClick={(e) => { e.stopPropagation(); handleReaction(message, emoji); }} className="reaction-pill" style={{ backgroundColor: users.includes(currentUsername) ? "#e1f4d6" : "#ffffff", borderColor: users.includes(currentUsername) ? "#00a884" : "#e5e7eb" }}>
+                  <span className="reaction-emoji">{emoji}</span>
+                  {users.length > 1 && <span className="reaction-count">{users.length}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ==================== HILO (THREAD) ==================== */}
+          {onOpenThread && !message.isDeleted && (
+            <div className="mx_ThreadSummaryLine" onClick={() => onOpenThread(message)} title="Ver hilo de respuestas">
+              <span className="mx_ThreadCounter"><FaComments style={{ fontSize: "14px" }} /> {message.threadCount > 0 ? `${message.threadCount} respuestas` : "Responder en hilo"}</span>
+              {message.lastReplyFrom && message.threadCount > 0 && <><span className="mx_ThreadSeparator">•</span><span className="mx_ThreadLastReply">última de {message.lastReplyFrom}</span></>}
+            </div>
+          )}
+
         </div>
       </div>
     );

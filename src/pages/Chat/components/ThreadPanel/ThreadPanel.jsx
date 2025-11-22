@@ -148,9 +148,12 @@ const ThreadPanel = ({
   // Función para convertir archivo a base64
   const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
-      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+      // 🔥 Límite actualizado a 70MB
+      const MAX_FILE_SIZE = 70 * 1024 * 1024; // 70MB
+
       if (file.size > MAX_FILE_SIZE) {
-        reject(new Error("El archivo es demasiado grande. Máximo 10MB."));
+        // Actualizamos también el mensaje de error
+        reject(new Error("El archivo es demasiado grande. Máximo 70MB."));
         return;
       }
       const reader = new FileReader();
@@ -160,26 +163,26 @@ const ThreadPanel = ({
     });
   };
 
-  // Manejar selección de archivos
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
-    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-    const oversizedFiles = files.filter((file) => file.size > MAX_FILE_SIZE);
+    // ✅ Permitir todos los tipos de archivos (imágenes, PDFs, documentos, etc.)
+    // Ya no hay restricción de tipo de archivo
+
+    // 🔥 Validar tamaño de cada archivo (70MB máximo) - ACTUALIZADO
+    const MAX_FILE_SIZE = 70 * 1024 * 1024; // 70MB
+
+    const oversizedFiles = files.filter(file => file.size > MAX_FILE_SIZE);
     if (oversizedFiles.length > 0) {
-      alert(
-        `❌ Algunos archivos superan el límite de 10MB:\n${oversizedFiles
-          .map((f) => `- ${f.name} (${(f.size / 1024 / 1024).toFixed(2)}MB)`)
-          .join("\n")}`
-      );
-      e.target.value = "";
+      alert(`❌ Algunos archivos superan el límite de 70MB:\n${oversizedFiles.map(f => `- ${f.name} (${(f.size / 1024 / 1024).toFixed(2)}MB)`).join('\n')}`);
+      e.target.value = ''; // Limpiar el input
       return;
     }
 
     if (files.length > 5) {
       alert("❌ Máximo 5 archivos a la vez");
-      e.target.value = "";
+      e.target.value = ''; // Limpiar el input
       return;
     }
 
@@ -191,21 +194,29 @@ const ThreadPanel = ({
         const previews = results.map((data, index) => {
           const file = files[index];
           const fileType = file.type;
-          let type = "file";
-          if (fileType.startsWith("image/")) type = "image";
-          else if (fileType.startsWith("video/")) type = "video";
-          else if (fileType.startsWith("audio/")) type = "audio";
-          else if (fileType === "application/pdf") type = "pdf";
-          else if (fileType.includes("document") || fileType.includes("word"))
-            type = "document";
-          else if (fileType.includes("sheet") || fileType.includes("excel"))
-            type = "spreadsheet";
+
+          // Determinar el tipo de archivo para el preview
+          let displayType = 'file'; // Por defecto
+          if (fileType.startsWith('image/')) {
+            displayType = 'image';
+          } else if (fileType === 'application/pdf') {
+            displayType = 'pdf';
+          } else if (fileType.startsWith('video/')) {
+            displayType = 'video';
+          } else if (fileType.startsWith('audio/')) {
+            displayType = 'audio';
+          } else if (fileType.includes('word') || fileType.includes('document')) {
+            displayType = 'document';
+          } else if (fileType.includes('sheet') || fileType.includes('excel')) {
+            displayType = 'spreadsheet';
+          }
 
           return {
-            data,
             name: file.name,
+            type: displayType,
+            mimeType: fileType,
+            data: data,
             size: file.size,
-            type,
           };
         });
         setMediaPreviews(previews);
@@ -213,10 +224,9 @@ const ThreadPanel = ({
       .catch((error) => {
         console.error("Error al procesar archivos:", error);
         alert("Error al procesar archivos: " + error.message);
-        e.target.value = "";
+        e.target.value = ''; // Limpiar el input
       });
   };
-
   // Remover archivo de la lista
   const handleRemoveMediaFile = (index) => {
     const newFiles = mediaFiles.filter((_, i) => i !== index);
