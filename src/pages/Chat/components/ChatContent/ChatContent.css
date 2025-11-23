@@ -479,6 +479,397 @@
   margin-bottom: 10px;
 }
 
+/* ============================================================
+   🔥 DISEÑO DE CHAT MODERNO (TIPO SLACK / TEAMS)
+   ============================================================ */
+
+/* --- 1. CONTENEDOR DE LA FILA (Row Layout) --- */
+.message-row {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  padding: 2px 16px 2px 0;
+  /* Padding reducido arriba/abajo */
+  margin-bottom: 0 !important;
+  /* Sin margen entre mensajes del mismo grupo */
+  position: relative;
+  transition: background-color 0.2s ease;
+  border-radius: 0;
+}
+
+/* Cuando el mensaje es propio (.is-own), el menú debe alinearse a la IZQUIERDA del botón
+   para que crezca hacia la derecha (hacia el centro de la pantalla) */
+.message-row.is-own .slack-dropdown-menu {
+  right: auto !important;
+  /* Deja de empujar hacia la izquierda */
+  left: 0 !important;
+  /* Pégate al borde izquierdo del botón */
+  text-align: left !important;
+  /* Asegura que el texto del menú se lea normal */
+  transform-origin: top left;
+  /* La animación sale desde la esquina correcta */
+}
+
+/* Asegurar que el Toolbar tenga z-index suficiente para flotar sobre todo */
+.message-row:hover {
+  z-index: 100;
+  /* Eleva toda la fila al pasar el mouse */
+}
+
+/* Reforzar el background al pasar el mouse (por si no se notaba) */
+.message-row:hover {
+  background-color: #c3c6ce !important;
+  /* Gris un poco más visible */
+}
+
+/* Separación extra cuando empieza un nuevo grupo de mensajes */
+.message-row.group-start {
+  margin-top: 12px !important;
+}
+
+
+/* --- 2. COLUMNA LATERAL (Avatar / Hora) --- */
+.message-gutter {
+  width: 60px;
+  /* Ancho fijo */
+  min-width: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  /* Alinear contenido a la derecha de la columna */
+  padding-right: 12px;
+  flex-shrink: 0;
+}
+
+/* Avatar (Visible solo al inicio del grupo) */
+.slack-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  /* Bordes ligeramente redondeados */
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Hora lateral (Visible en mensajes continuos al hacer hover) */
+.message-timestamp-left {
+  font-size: 10px;
+  color: #9ca3af;
+  opacity: 0;
+  /* Invisible por defecto */
+  margin-top: 6px;
+  transition: opacity 0.1s;
+}
+
+.message-row:hover .message-timestamp-left {
+  opacity: 1;
+  /* Visible al hover */
+}
+
+/* Ocultar hora lateral si es el inicio del grupo (ya tiene avatar) */
+.message-row.group-start .message-timestamp-left {
+  display: none;
+}
+
+
+/* --- 3. COLUMNA CENTRAL (Contenido) --- */
+.message-main-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* Centra verticalmente si es una sola línea */
+}
+
+/* Header: Nombre + Hora (Solo inicio de grupo) */
+.message-header {
+  display: flex;
+  align-items: center;
+  /* Centrado vertical perfecto */
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.sender-name {
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.sender-name:hover {
+  text-decoration: underline;
+}
+
+.header-timestamp {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 1px;
+  /* Ajuste fino óptico */
+}
+
+/* Cuerpo del Texto */
+.message-text-body {
+  font-size: 15px;
+  line-height: 1.5;
+  color: #1d1c1d;
+  word-wrap: break-word;
+  /* Sin fondo por defecto para mensajes de otros */
+}
+
+
+/* --- 4. TOOLBAR FLOTANTE (Acciones) --- */
+.action-toolbar {
+  position: absolute;
+  right: 16px;
+  top: -14px;
+  /* Flota un poco sobre el borde superior */
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+  padding: 2px;
+  display: none;
+  /* Oculto por defecto */
+  z-index: 50;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Mostrar toolbar al hover o si está activo */
+.message-row:hover .action-toolbar,
+.action-toolbar.active {
+  display: flex;
+}
+
+/* Botones del toolbar */
+.toolbar-btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #5e5e5e;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toolbar-btn:hover {
+  background-color: #f3f4f6;
+  color: #111;
+  transform: scale(1.05);
+}
+
+
+/* --- 5. MENÚ DESPLEGABLE (Dropdown) --- */
+.slack-dropdown-menu {
+  position: absolute;
+  right: 0;
+  background: white;
+  min-width: 200px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 6px 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.1s ease-out;
+}
+
+.slack-dropdown-menu .menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  transition: background-color 0.1s;
+}
+
+.slack-dropdown-menu .menu-item:hover {
+  background-color: #f3f4f6;
+}
+
+.slack-dropdown-menu .menu-icon {
+  margin-right: 12px;
+  width: 16px;
+  color: #6b7280;
+  text-align: center;
+}
+
+/* Separador en el menú */
+.menu-separator {
+  height: 1px;
+  background-color: #e5e7eb;
+  margin: 4px 0;
+}
+
+/* Item Rojo (Eliminar) */
+.menu-item-danger {
+  color: #dc2626 !important;
+}
+
+.menu-item-danger .menu-icon {
+  color: #dc2626 !important;
+}
+
+.menu-item-danger:hover {
+  background-color: #fee2e2 !important;
+}
+
+
+/* ============================================================
+   🔥 LÓGICA PARA MENSAJES PROPIOS (A LA DERECHA)
+   ============================================================ */
+
+/* 1. Invertir dirección de la fila */
+.message-row.is-own {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+/* 2. Ajustar columna lateral (Avatar/Hora) */
+.message-row.is-own .message-gutter {
+  padding-right: 0;
+  padding-left: 12px;
+  /* Invertir padding */
+  align-items: flex-start;
+  /* Alinear a la izquierda de su columna (pegado al borde derecho de la pantalla) */
+}
+
+/* 3. Ajustar columna de contenido */
+.message-row.is-own .message-main-content {
+  align-items: flex-end;
+  /* Pegar todo el contenido a la derecha */
+}
+
+/* 4. Header invertido (Hora - Nombre) */
+.message-row.is-own .message-header {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+}
+
+/* 5. Estilo Visual del Mensaje Propio (Burbuja verde suave) */
+.message-row.is-own .message-text-body {
+  text-align: left;
+  /* El texto se lee mejor alineado a la izquierda dentro de la burbuja */
+  background-color: #e1f4d6;
+  /* Verde suave tipo WhatsApp */
+  padding: 6px 12px;
+  border-radius: 8px;
+  border-top-right-radius: 0;
+  /* Punta visual indicando origen */
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+  display: inline-block;
+  /* Para que el fondo abrace solo el texto */
+  max-width: fit-content;
+}
+
+/* 6. Toolbar invertido (a la izquierda) */
+.message-row.is-own .action-toolbar {
+  right: auto;
+  /* Anular derecha */
+  left: 16px;
+  /* Poner a la izquierda */
+  flex-direction: row-reverse;
+  /* (Opcional) Invertir orden de botones */
+}
+
+/* 7. Ajuste de la barra de respuesta para mensajes propios */
+.message-row.is-own .reply-preview-bar {
+  border-left: none !important;
+  border-right: 3px solid #00a884;
+  text-align: right;
+  margin-left: auto;
+  /* Empujar a la derecha */
+}
+
+/* 8. Ajuste de imágenes/video propios */
+.message-row.is-own img,
+.message-row.is-own video {
+  margin-left: auto;
+  /* Asegura que la media se pegue a la derecha */
+}
+
+/* ============================================================
+   🔥 FIX: SELECTOR DE REACCIONES (POPUP)
+   ============================================================ */
+
+.reaction-picker-popup {
+  position: absolute;
+  bottom: 100%;
+  /* Aparece ARRIBA del botón */
+  left: 50%;
+  transform: translateX(-50%);
+  /* Centrado respecto al botón */
+  margin-bottom: 8px;
+  background-color: white;
+  padding: 6px;
+  border-radius: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e5e7eb;
+  display: flex;
+  gap: 4px;
+  z-index: 1000;
+  animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  white-space: nowrap;
+}
+
+/* Botones individuales de emoji */
+.reaction-emoji-btn {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  transition: transform 0.2s, background-color 0.2s;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reaction-emoji-btn:hover {
+  transform: scale(1.2);
+  background-color: #f3f4f6;
+}
+
+/* Botón de (+) más pequeño */
+.reaction-emoji-btn.plus-btn {
+  font-size: 16px;
+  color: #6b7280;
+  background-color: #f3f4f6;
+}
+
+.reaction-emoji-btn.plus-btn:hover {
+  background-color: #e5e7eb;
+  color: #111;
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.5);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
 @keyframes messageSlideIn {
   from {
     opacity: 0;

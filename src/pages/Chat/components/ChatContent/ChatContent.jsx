@@ -1320,69 +1320,41 @@ const ChatContent = ({
   };
 
   const renderMessage = (message, index) => {
-    // ==========================================
-    // 1. LÓGICA DE ESTADO Y PROPIEDAD
-    // ==========================================
-    const isOwnMessage =
-      message.isSelf !== undefined
-        ? message.isSelf
-        : message.sender === "Tú" || message.sender === currentUsername;
+    // ============================================================
+    // 1. PREPARACIÓN DE DATOS Y LÓGICA
+    // ============================================================
+    const isOwnMessage = message.isSelf !== undefined
+      ? message.isSelf
+      : message.sender === "Tú" || message.sender === currentUsername;
 
-    const isInfoMessage = message.type === "info";
-    const isErrorMessage = message.type === "error";
+    // Lógica de agrupación (Slack Style)
+    const prevMsg = index > 0 ? messages[index - 1] : null;
 
-    // ==========================================
-    // 2. LÓGICA DE AGRUPACIÓN (NUEVA)
-    // ==========================================
-    const previousMessage = index > 0 ? messages[index - 1] : null;
-    const nextMessage = index < messages.length - 1 ? messages[index + 1] : null;
+    // Compara si el mensaje anterior es del mismo autor y si no es un mensaje de sistema
+    const isSameGroup = (m1, m2) => {
+      if (!m1 || !m2) return false;
+      if (m1.type === "info" || m1.type === "error") return false;
+      // Puedes agregar validación de fecha aquí si es necesario
+      return m1.sender === m2.sender;
+    };
 
-    const isSameSenderAsPrevious = previousMessage &&
-      previousMessage.type !== "info" &&
-      previousMessage.type !== "error" &&
-      !previousMessage.isDeleted &&
-      (previousMessage.isSelf !== undefined ? previousMessage.isSelf : previousMessage.sender === "Tú" || previousMessage.sender === currentUsername) === isOwnMessage &&
-      (previousMessage.sender === message.sender);
+    const isGroupStart = !isSameGroup(prevMsg, message);
 
-    const isSameSenderAsNext = nextMessage &&
-      nextMessage.type !== "info" &&
-      nextMessage.type !== "error" &&
-      !nextMessage.isDeleted &&
-      (nextMessage.isSelf !== undefined ? nextMessage.isSelf : nextMessage.sender === "Tú" || nextMessage.sender === currentUsername) === isOwnMessage &&
-      (nextMessage.sender === message.sender);
+    // Color consistente del usuario (Necesitas asegurarte que getUserColor exista o usar un default)
+    // Si no tienes la función getUserColor definida fuera, usa esta línea temporal:
+    const userColor = "#00a884";
 
-    // Determinar clases de agrupación
-    let groupingClass = "";
-    if (isSameSenderAsPrevious && isSameSenderAsNext) {
-      groupingClass = "grouped-middle";
-    } else if (isSameSenderAsPrevious && !isSameSenderAsNext) {
-      groupingClass = "grouped-bottom";
-    } else if (!isSameSenderAsPrevious && isSameSenderAsNext) {
-      groupingClass = "grouped-top";
-    }
+    const isMenuOpen = showMessageMenu === message.id;
+    const isHighlighted = highlightedMessageId === message.id;
 
-    // Mantener compatibilidad temporal para el siguiente paso
-    const isGroupedWithPrevious = isSameSenderAsPrevious;
-    const isGroupedWithNext = isSameSenderAsNext;
-
-    // ==========================================
-    // 3. RENDERIZADO DE MENSAJES DE SISTEMA
-    // ==========================================
-    if (isInfoMessage) {
+    // Si es mensaje de sistema, retornamos diseño simple centrado
+    if (message.type === "info" || message.type === "error") {
+      const color = message.type === "info" ? "#00a884" : "#ff453a";
+      const bg = message.type === "info" ? "rgba(0, 168, 132, 0.1)" : "rgba(255, 69, 58, 0.1)";
       return (
-        <div key={index} className="message info-message" style={{ display: "flex", justifyContent: "center", margin: "8px 0", padding: "0 16px" }}>
-          <div className="info-content" style={{ backgroundColor: "rgba(0, 168, 132, 0.1)", color: "#00a884", padding: "6px 12px", borderRadius: "7.5px", fontSize: "13px", textAlign: "center", border: "1px solid rgba(0, 168, 132, 0.3)", display: "flex", alignItems: "center", gap: "6px" }}>
-            <span className="info-icon">ℹ️</span><span className="info-text">{message.text}</span>
-          </div>
-        </div>
-      );
-    }
-
-    if (isErrorMessage) {
-      return (
-        <div key={index} className="message error-message" style={{ display: "flex", justifyContent: "center", margin: "8px 0", padding: "0 16px" }}>
-          <div className="error-content" style={{ backgroundColor: "rgba(255, 69, 58, 0.1)", color: "#ff453a", padding: "6px 12px", borderRadius: "7.5px", fontSize: "13px", textAlign: "center", border: "1px solid rgba(255, 69, 58, 0.3)", display: "flex", alignItems: "center", gap: "6px" }}>
-            <span className="error-icon">⚠️</span><span className="error-text">{message.text}</span>
+        <div key={index} style={{ display: 'flex', justifyContent: 'center', margin: '10px 0', width: '100%' }}>
+          <div style={{ backgroundColor: bg, color: color, padding: '4px 12px', borderRadius: '8px', fontSize: '12px' }}>
+            {message.text}
           </div>
         </div>
       );
@@ -1394,402 +1366,270 @@ const ChatContent = ({
       return null;
     }
 
-    const isHighlighted = highlightedMessageId === message.id;
-    const isMenuOpen = showMessageMenu === message.id;
-
-    // ==========================================
-    // 4. ESTILOS DE BORDE Y MARGEN
-    // ==========================================
-    // ==========================================
-    // 4. ESTILOS DE BORDE Y MARGEN
-    // ==========================================
-    // ==========================================
-    // 4. ESTILOS DE BORDE Y MARGEN (Manejados por CSS)
-    // ==========================================
-
+    // ============================================================
+    // 2. RENDERIZADO (ROW LAYOUT - TIPO SLACK)
+    // ============================================================
     return (
       <div
         key={index}
+        className={`message-row ${isGroupStart ? 'group-start' : ''} ${isOwnMessage ? 'is-own' : ''}`}
         id={`message-${message.id}`}
-        className={`message ${isOwnMessage ? "own-message" : "other-message"} ${groupingClass} ${isHighlighted ? "highlighted-message" : ""}`}
+        onMouseLeave={() => { if (isMenuOpen) return; setShowMessageMenu(null); }}
         style={{
-          zIndex: isMenuOpen ? 1000 : 1,
+          backgroundColor: isHighlighted ? 'rgba(0, 168, 132, 0.1)' : 'transparent'
         }}
       >
-        {/* ==================== AVATAR ==================== */}
-        {!isOwnMessage && (
-          <div
-            className="message-avatar"
-            style={{
-              width: "28px",
-              height: "28px",
-              borderRadius: "50%",
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "12px",
-              flexShrink: 0,
-              visibility: !isGroupedWithPrevious ? "visible" : "hidden",
-              opacity: !isGroupedWithPrevious ? 1 : 0,
-              marginRight: "8px",
-              alignSelf: "flex-start",
-            }}
-          >
-            {message.sender?.charAt(0).toUpperCase() || "👤"}
-          </div>
-        )}
-
-        {isOwnMessage && <div style={{ width: "0px" }} />}
-
-        {/* ==================== CONTENIDO DEL MENSAJE ==================== */}
-        <div
-          className="message-content"
-          style={{
-            backgroundColor: isHighlighted
-              ? isOwnMessage ? "#c9e8ba" : "#d4d2e0"
-              : isOwnMessage ? "#E1F4D6" : "#E8E6F0",
-            color: "#1f2937",
-            padding: "4px 8px",
-            paddingRight: message.isDeleted ? "10px" : "26px",
-
-            // Border radius handled by CSS classes
-
-            minWidth: "80px",
-            width: "fit-content",
-            height: "fit-content",
-            position: "relative",
-            display: "flex",
-            flexDirection: "column",
-            gap: "2px", // 🔥 Gap reducido entre elementos internos
-            boxShadow: (isGroupedWithNext || isGroupedWithPrevious) && !isHighlighted ? "none" : "0 1px 0.5px rgba(0,0,0,.13)",
-            wordWrap: "break-word",
-            overflowWrap: "break-word",
-            wordBreak: "break-word",
-            border: isHighlighted ? "2px solid #00a884" : "none",
-            overflow: "visible",
-            ...(message.mediaType && { maxWidth: "400px" }),
-          }}
-          onMouseEnter={(e) => {
-            if (!isHighlighted) e.currentTarget.style.filter = "brightness(0.96)";
-            const actions = e.currentTarget.querySelector('.message-actions-container');
-            if (actions) actions.style.opacity = '1';
-            e.currentTarget.parentElement.style.zIndex = "100";
-          }}
-          onMouseLeave={(e) => {
-            if (!isHighlighted) e.currentTarget.style.filter = "brightness(1)";
-            const actions = e.currentTarget.querySelector('.message-actions-container');
-            if (actions && !isMenuOpen) actions.style.opacity = '0';
-            if (!isMenuOpen) e.currentTarget.parentElement.style.zIndex = "1";
-          }}
-        >
-
-          {/* ==================== BOTONES FLOTANTES Y MENÚ ==================== */}
-          {!message.isDeleted && (
+        {/* === COLUMNA IZQUIERDA (GUTTER): AVATAR O HORA === */}
+        <div className="message-gutter">
+          {isGroupStart ? (
+            // INICIO DE GRUPO: Mostrar Avatar
             <div
-              className="message-actions-container"
+              className="slack-avatar"
               style={{
-                position: "absolute",
-                top: "2px",
-                right: "2px",
-                zIndex: 1001,
-                display: "flex",
-                alignItems: "center",
-                gap: "2px",
-                backgroundColor: isOwnMessage ? "rgba(225, 244, 214, 0.95)" : "rgba(232, 230, 240, 0.95)",
-                borderRadius: "12px",
-                padding: "2px",
-                opacity: isMenuOpen ? 1 : 0,
-                transition: "opacity 0.15s ease-in-out",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
+                // Si tienes getUserColor úsalo, sino un gradiente por defecto
+                background: message.senderPicture ? `url(${message.senderPicture}) center/cover` : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'white', fontWeight: 'bold', fontSize: '14px'
               }}
             >
-              {/* 1. FLECHA RESPONDER */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (window.handleReplyMessage) window.handleReplyMessage(message);
-                }}
-                style={{ border: "none", color: "#54656f", cursor: "pointer", fontSize: "14px", padding: "4px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", width: "26px", height: "26px", backgroundColor: "transparent", transition: "background-color 0.2s" }}
-                title="Responder"
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.08)"}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-              >
-                <FaReply />
-              </button>
-
-              {/* 2. DESPLEGADOR DE MENÚ */}
-              <div style={{ position: 'relative', display: 'flex' }}>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (isMenuOpen) {
-                      setShowMessageMenu(null);
-                    } else {
-                      // 🔥 Lógica Responsiva: Calcular si cabe abajo
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const spaceBelow = window.innerHeight - rect.bottom;
-                      const minSpaceNeeded = 240; // Altura estimada del menú
-
-                      // Guardamos la dirección en el estado del menú
-                      setMenuPosition({
-                        openUp: spaceBelow < minSpaceNeeded // True si debe abrir hacia arriba
-                      });
-                      setShowMessageMenu(message.id);
-                    }
-                  }}
-                  style={{ border: "none", color: "#54656f", cursor: "pointer", fontSize: "12px", padding: "4px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", width: "26px", height: "26px", backgroundColor: isMenuOpen ? "rgba(0,0,0,0.1)" : "transparent", transition: "background-color 0.2s" }}
-                  title="Más opciones"
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.08)"}
-                  onMouseLeave={(e) => !isMenuOpen && (e.currentTarget.style.backgroundColor = "transparent")}
-                >
-                  <FaChevronDown />
-                </button>
-
-                {/* 🔥 MENÚ ABSOLUTO RESPONSIVO 🔥 */}
-                {isMenuOpen && (
-                  <div
-                    ref={messageMenuRef}
-                    style={{
-                      position: "absolute",
-                      // Si openUp es true, bottom: 100% (Arriba). Si no, top: 100% (Abajo)
-                      top: menuPosition.openUp ? "auto" : "100%",
-                      bottom: menuPosition.openUp ? "100%" : "auto",
-                      right: "0",
-                      marginTop: menuPosition.openUp ? "0" : "4px",
-                      marginBottom: menuPosition.openUp ? "4px" : "0",
-                      backgroundColor: "#fff",
-                      border: "1px solid #e0e0e0",
-                      borderRadius: "8px",
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                      zIndex: 999999,
-                      minWidth: "180px",
-                      overflow: "hidden",
-                      animation: "fadeIn 0.1s ease-out"
-                    }}
-                  >
-                    <button onClick={() => { if (window.handleReplyMessage) window.handleReplyMessage(message); setShowMessageMenu(null); }} style={{ width: "100%", padding: "10px 16px", backgroundColor: "transparent", border: "none", textAlign: "left", cursor: "pointer", fontSize: "14px", color: "#111", display: "flex", alignItems: "center", gap: "12px", transition: "background 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}><FaReply style={{ color: "#8696a0" }} /> Responder</button>
-                    {onOpenThread && (<button onClick={() => { onOpenThread(message); setShowMessageMenu(null); }} style={{ width: "100%", padding: "10px 16px", backgroundColor: "transparent", border: "none", textAlign: "left", cursor: "pointer", fontSize: "14px", color: "#111", display: "flex", alignItems: "center", gap: "12px", transition: "background 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}><FaComments style={{ color: "#8696a0" }} /> Responder en hilo</button>)}
-                    <button onClick={async () => { try { let textToCopy = message.text || message.caption || message.fileName || ""; if (textToCopy) await navigator.clipboard.writeText(textToCopy); } catch (err) { console.error(err); } setShowMessageMenu(null); }} style={{ width: "100%", padding: "10px 16px", backgroundColor: "transparent", border: "none", textAlign: "left", cursor: "pointer", fontSize: "14px", color: "#111", display: "flex", alignItems: "center", gap: "12px" }} onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}><FaCopy style={{ color: "#8696a0" }} /> Copiar</button>
-                    {message.mediaData && (<button onClick={() => { handleDownload(message.mediaData, message.fileName || "archivo"); setShowMessageMenu(null); }} style={{ width: "100%", padding: "10px 16px", backgroundColor: "transparent", border: "none", textAlign: "left", cursor: "pointer", fontSize: "14px", color: "#111", display: "flex", alignItems: "center", gap: "12px" }} onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}><FaDownload style={{ color: "#8696a0" }} /> Descargar</button>)}
-                    {isGroup && onPinMessage && (isAdmin || window.userRole === 'JEFEPISO' || window.userRole === 'PROGRAMADOR' || window.userRole === 'SUPERVISOR') && (<button onClick={() => { onPinMessage(message); setShowMessageMenu(null); }} style={{ width: "100%", padding: "10px 16px", backgroundColor: "transparent", border: "none", textAlign: "left", cursor: "pointer", fontSize: "14px", color: pinnedMessageId === message.id ? "#d97706" : "#111", display: "flex", alignItems: "center", gap: "12px", fontWeight: pinnedMessageId === message.id ? "600" : "normal" }} onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}><FaThumbtack style={{ color: pinnedMessageId === message.id ? "#d97706" : "#8696a0" }} /> {pinnedMessageId === message.id ? "Dejar de fijar" : "Fijar mensaje"}</button>)}
-                    {message.id && (<button onClick={() => { setShowMessageInfo(message); setShowMessageMenu(null); }} style={{ width: "100%", padding: "10px 16px", backgroundColor: "transparent", border: "none", textAlign: "left", cursor: "pointer", fontSize: "14px", color: "#111", display: "flex", alignItems: "center", gap: "12px" }} onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}><FaInfoCircle style={{ color: "#8696a0" }} /> Info</button>)}
-                    {message.id && (<button onClick={() => { setShowReactionPicker(showReactionPicker === message.id ? null : message.id); setShowMessageMenu(null); }} style={{ width: "100%", padding: "10px 16px", backgroundColor: "transparent", border: "none", textAlign: "left", cursor: "pointer", fontSize: "14px", color: "#111", display: "flex", alignItems: "center", gap: "12px" }} onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}><FaSmile style={{ color: "#8696a0" }} /> Reaccionar</button>)}
-                    {isOwnMessage && (<button onClick={(e) => { e.stopPropagation(); handleStartEdit(message); setShowMessageMenu(null); }} style={{ width: "100%", padding: "10px 16px", backgroundColor: "transparent", border: "none", textAlign: "left", cursor: "pointer", fontSize: "14px", color: "#111", display: "flex", alignItems: "center", gap: "12px" }} onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}><FaEdit style={{ color: "#8696a0" }} /> Editar</button>)}
-                    {isAdmin && (<button onClick={(e) => { e.stopPropagation(); if (onDeleteMessage) onDeleteMessage(message.id, message.realSender || message.sender); setShowMessageMenu(null); }} style={{ width: "100%", padding: "10px 16px", backgroundColor: "transparent", border: "none", textAlign: "left", cursor: "pointer", fontSize: "14px", color: "#ff4444", display: "flex", alignItems: "center", gap: "12px", borderTop: "1px solid #e0e0e0" }} onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}><FaTrash style={{ color: "#ff4444" }} /> Eliminar</button>)}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* ==================== HEADER USUARIO ==================== */}
-          {!isOwnMessage && !isGroupedWithPrevious && (
-            <div style={{
-              fontSize: "12px",
-              fontWeight: "600",
-              color: "#00a884",
-              marginBottom: "2px",
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              maxWidth: "100%"
-            }}>
-              <span style={{
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap"
-              }}>
-                {message.sender}
-              </span>
-              {getSenderSuffix(message) && (
-                <span style={{
-                  color: "#666",
-                  fontWeight: "400",
-                  marginLeft: "4px",
-                  flexShrink: 0,
-                  whiteSpace: "nowrap"
-                }}>
-                  {getSenderSuffix(message)}
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* ==================== PREVIEW RESPUESTA ==================== */}
-          {message.replyToMessageId && (
-            <div
-              onClick={async () => {
-                const originalMessage = document.getElementById(`message-${message.replyToMessageId}`);
-                if (originalMessage) {
-                  originalMessage.scrollIntoView({ behavior: "smooth", block: "center" });
-                  setHighlightedMessageId(message.replyToMessageId);
-                  setTimeout(() => setHighlightedMessageId(null), 2000);
-                } else {
-                  if (hasMoreMessages && onLoadMoreMessages) await onLoadMoreMessages();
-                }
-              }}
-              style={{ backgroundColor: "transparent", borderLeft: "4px solid #00a884", padding: "4px 8px", borderRadius: "4px", marginBottom: "4px", fontSize: "11px", cursor: "pointer" }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(0, 0, 0, 0.05)"}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-            >
-              <div style={{ color: "#00a884", fontWeight: "600", marginBottom: "1px" }}>
-                {message.replyToSender} {message.replyToSenderNumeroAgente && <span style={{ color: "#666", fontWeight: "400" }}>• N° {message.replyToSenderNumeroAgente}</span>}
-              </div>
-              <div style={{ color: "#1f2937", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{message.replyToText || "Archivo multimedia"}</div>
-            </div>
-          )}
-
-          {/* ==================== CONTENIDO ==================== */}
-          {editingMessageId === message.id ? (
-            /* MODO EDICIÓN */
-            <div style={{ marginBottom: "8px" }}>
-              <textarea value={editText} onChange={(e) => setEditText(e.target.value)} style={{ width: "100%", minHeight: "60px", padding: "10px 12px", borderRadius: "7.5px", border: "1px solid #d1d7db", marginBottom: "12px", outline: "none" }} autoFocus />
-              <div style={{ display: "flex", gap: "8px" }}>
-                <button onClick={handleSaveEdit} disabled={isEditingLoading} style={{ backgroundColor: isEditingLoading ? "#8696a0" : "#00a884", color: "#fff", border: "none", borderRadius: "7.5px", padding: "8px 20px", fontSize: "13px", cursor: "pointer" }}>{isEditingLoading ? "Guardando..." : "Guardar"}</button>
-                <button onClick={handleCancelEdit} style={{ backgroundColor: "#f0f2f5", color: "#54656f", border: "none", borderRadius: "7.5px", padding: "8px 20px", fontSize: "13px", cursor: "pointer" }}>Cancelar</button>
-              </div>
-            </div>
-          ) : message.mediaType && message.mediaData ? (
-            /* MODO MULTIMEDIA */
-            <div>
-              {message.isDeleted ? (
-                <div><span className="mx_RedactedBody" title={`Eliminado: ${message.time}`}>Mensaje eliminado</span><div style={{ fontSize: "11px", color: "#8696a0", marginTop: "2px" }}>{message.time}</div></div>
-              ) : (
-                <div className="media-message" style={{ marginBottom: "2px" }}>
-                  {message.mediaType === "image" ? (
-                    <div style={{ display: "flex", flexDirection: "column", minWidth: "200px" }}>
-                      <img src={message.mediaData} alt="Imagen" loading="lazy" className="media-image" style={{ borderRadius: "7.5px", display: "block", cursor: "pointer", maxWidth: "100%", objectFit: "contain", minHeight: "100px", backgroundColor: "rgba(0,0,0,0.05)" }} onClick={() => setImagePreview({ url: message.mediaData, fileName: message.fileName || "imagen" })} />
-                      {(() => {
-                        const caption = message.text || message.message || ""; // 🔥 El mismo fix
-                        return caption && caption !== "Imagen" && (
-                          <div style={{ marginTop: "6px", marginBottom: "2px", fontSize: "14.2px", color: "#111b21", lineHeight: "1.4", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                            {renderTextWithMentions(caption)}
-                          </div>
-                        );
-                      })()}
-                      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginTop: "2px", gap: "4px", width: "100%" }}>
-                        <span style={{ fontSize: "11px", color: "#667781" }}>{message.time}</span>
-                        {isOwnMessage && <span style={{ color: message.readBy?.length > 0 ? "#53bdeb" : "#8696a0", fontSize: "12px" }}>{message.isSent ? "✔✔" : "⏳"}</span>}
-                      </div>
-                    </div>
-                  ) : message.mediaType === "video" ? (
-                    <div style={{ display: "flex", flexDirection: "column", minWidth: "200px", maxWidth: "300px" }}>
-                      <video
-                        src={message.mediaData}
-                        controls
-                        preload="metadata"
-                        className="media-video"
-                        style={{ width: "100%", maxHeight: "350px", borderRadius: "7.5px", minHeight: "100px", backgroundColor: "rgba(0,0,0,0.1)", objectFit: "contain" }}
-                        onError={(e) => console.error("❌ Error al cargar video:", message.mediaData, e)}
-                      />
-                      {(() => {
-                        const caption = message.text || message.message || ""; // 🔥 El mismo fix
-                        return caption && caption !== "VIDIO" && (
-                          <div style={{ marginTop: "6px", marginBottom: "2px", fontSize: "14.2px", color: "#111b21", lineHeight: "1.4", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                            {renderTextWithMentions(caption)}
-                          </div>
-                        );
-                      })()}
-                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "2px", gap: "4px" }}>
-                        <span style={{ fontSize: "11px", color: "#667781" }}>{message.time}</span>
-                        {isOwnMessage && <span style={{ color: message.readBy?.length > 0 ? "#53bdeb" : "#8696a0", fontSize: "12px" }}>{message.isSent ? "✔✔" : "⏳"}</span>}
-                      </div>
-                    </div>
-                  ) : message.mediaType === "audio" ? (
-                    <AudioPlayer src={message.mediaData} fileName={message.fileName} onDownload={handleDownload} time={message.time} isOwnMessage={isOwnMessage} isRead={message.isRead} isSent={message.isSent} readBy={message.readBy} userPicture={isOwnMessage ? (roomUsers?.find(u => (u.username === currentUsername))?.picture || user?.picture) : message.senderPicture} />
-                  ) : (
-                    <div className="file-message" onClick={() => handleDownload(message.mediaData, message.fileName || "archivo")} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", backgroundColor: "rgba(255,255,255,0.1)", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.2)", cursor: "pointer", maxWidth: "280px" }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.2)"; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.1)"; }}>
-                      <div className="file-icon" style={{ flexShrink: 0 }}>{renderFileIcon(message.fileName)}</div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", gap: "6px", marginBottom: "4px" }}><span style={{ backgroundColor: getFileIcon(message.fileName).color, color: "#fff", fontSize: "9px", fontWeight: "700", padding: "2px 6px", borderRadius: "4px" }}>{getFileIcon(message.fileName).name}</span></div>
-                        <div className="file-name" style={{ fontSize: "13px", fontWeight: "600", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{message.fileName}</div>
-                        <div style={{ fontSize: "11px", color: "#8696a0" }}>{message.time}</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
+              {!message.senderPicture && (message.sender?.charAt(0).toUpperCase() || "👤")}
             </div>
           ) : (
-            /* MODO TEXTO */
-            <div>
-              {message.isDeleted ? (
-                <div><span className="mx_RedactedBody">Mensaje eliminado</span><div style={{ fontSize: "11px", color: "#8696a0", marginTop: "2px" }}>{message.time}</div></div>
-              ) : (
-                <>
-                  {(() => {
-                    const MAX_LENGTH = 300;
-                    const isExpanded = expandedMessages.has(message.id);
-                    const finalText = message.text || message.message || "";
-                    const shouldTruncate = finalText && finalText.length > MAX_LENGTH;
-                    const displayText = shouldTruncate && !isExpanded ? finalText.substring(0, MAX_LENGTH) : finalText;
-                    return (
-                      <>
-                        <div className="message-text" style={{ color: "#000000D9", fontSize: "14.97px", lineHeight: "1.4", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                          {renderTextWithMentions(displayText)}
-                          {shouldTruncate && !isExpanded && "..."}
-                          {(!shouldTruncate || isExpanded) && (
-                            <span className="message-time-inline" style={{ fontSize: "11px", color: "#00000073", marginLeft: "8px", float: "right", marginTop: "6px", display: "inline-flex", alignItems: "center", gap: "2px" }}>
-                              <span>{message.time}</span>
-                              {message.isEdited && <span style={{ fontSize: "10px", color: "#8696a0" }}>(editado)</span>}
-                              {isOwnMessage && <span style={{ color: message.readBy?.length > 0 ? "#53bdeb" : "#8696a0", fontSize: "12px" }}>{message.isSent ? "✔✔" : "⏳"}</span>}
-                            </span>
-                          )}
-                        </div>
-                        {shouldTruncate && (
-                          <div style={{ marginTop: "4px" }}>
-                            <button onClick={() => setExpandedMessages(prev => { const newSet = new Set(prev); if (isExpanded) newSet.delete(message.id); else newSet.add(message.id); return newSet; })} style={{ backgroundColor: "transparent", border: "none", color: "#00a884", cursor: "pointer", fontSize: "13px", padding: "0", fontWeight: "500" }}>{isExpanded ? "Ver menos" : "Ver más"}</button>
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
-                </>
-              )}
+            // CONTINUACIÓN: Mostrar Hora (visible en hover por CSS)
+            <span className="message-timestamp-left">
+              {formatTime(message.time)}
+            </span>
+          )}
+        </div>
+
+        {/* === COLUMNA CENTRAL: CONTENIDO === */}
+        <div className="message-main-content">
+
+          {/* HEADER (Solo si es inicio de grupo) */}
+          {isGroupStart && (
+            <div className="message-header">
+              <span className="sender-name" style={{ color: userColor }} onClick={() => handleMentionSelect(message.sender)}>
+                {message.sender} {getSenderSuffix(message)}
+              </span>
+              <span className="header-timestamp">
+                {formatTime(message.time)}
+              </span>
             </div>
           )}
 
-          {/* ==================== REACCIONES (SELECTOR & VISUALIZADOR) ==================== */}
+          {/* CUERPO DEL MENSAJE */}
+          <div className="message-text-body">
+            {message.isDeleted ? (
+              <span className="mx_RedactedBody">Mensaje eliminado</span>
+            ) : (
+              <>
+                {/* PREVIEW DE RESPUESTA */}
+                {message.replyToMessageId && (
+                  <div onClick={() => {
+                    const el = document.getElementById(`message-${message.replyToMessageId}`);
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }} style={{ borderLeft: `3px solid #ccc`, background: 'rgba(0,0,0,0.03)', padding: '2px 6px', marginBottom: '4px', fontSize: '12px', cursor: 'pointer', borderRadius: '4px' }}>
+                    <strong>{message.replyToSender}</strong>: {message.replyToText || "Adjunto"}
+                  </div>
+                )}
 
-          {/* Selector flotante */}
-          {message.id && showReactionPicker === message.id && (
-            <div style={{ position: "relative", marginTop: "4px" }}>
-              <div ref={reactionPickerRef} style={{ position: "absolute", bottom: "100%", left: isOwnMessage ? "auto" : "0", right: isOwnMessage ? "0" : "auto", backgroundColor: "#fff", borderRadius: "20px", padding: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.15)", display: "flex", gap: "4px", zIndex: 1000 }}>
-                {["👍", "❤️", "😂", "😮", "😢", "🙏"].map((emoji) => (<button key={emoji} onClick={() => handleReaction(message, emoji)} style={{ backgroundColor: "transparent", border: "none", fontSize: "20px", cursor: "pointer", padding: "4px", transition: "transform 0.2s" }}>{emoji}</button>))}
-                <button onClick={() => { setShowReactionPicker(null); setShowEmojiPicker(true); window.currentReactionMessage = message; }} style={{ backgroundColor: "#f0f2f5", border: "none", width: "28px", height: "28px", borderRadius: "50%" }}>+</button>
-              </div>
-            </div>
-          )}
+                {/* CONTENIDO REAL (Texto, Imagen, Video, Archivo) */}
+                {message.mediaType === 'image' ? (
+                  <img
+                    src={message.mediaData}
+                    alt="imagen"
+                    style={{ maxWidth: '350px', borderRadius: '8px', border: '1px solid #e5e7eb', cursor: 'pointer', display: 'block' }}
+                    onClick={() => setImagePreview({ url: message.mediaData, fileName: message.fileName })}
+                  />
+                ) : message.mediaType === 'video' ? (
+                  <video
+                    src={message.mediaData} controls
+                    style={{ maxWidth: '350px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                  />
+                ) : message.mediaType === 'audio' ? (
+                  <AudioPlayer src={message.mediaData} fileName={message.fileName} />
+                ) : message.mediaType && message.mediaData ? (
+                  // ARCHIVOS GENÉRICOS
+                  <div className="wa-file-card" onClick={() => handleDownload(message.mediaData, message.fileName)}>
+                    <div className="wa-file-icon">{renderFileIcon(message.fileName)}</div>
+                    <div className="wa-file-info">
+                      <div className="wa-file-name">{message.fileName}</div>
+                      <div className="wa-file-meta">Click para descargar</div>
+                    </div>
+                  </div>
+                ) : (
+                  // TEXTO PLANO
+                  renderTextWithMentions(message.text || "")
+                )}
 
-          {/* Reacciones existentes (FIXED VISIBILITY) */}
-          {Array.isArray(message.reactions) && message.reactions.length > 0 && (
-            /* 🔥 Z-INDEX 10 PARA QUE NO SE OCULTE CON EL MENSAJE SIGUIENTE */
-            <div className="message-reactions-container" style={{ zIndex: 10, position: 'absolute', bottom: '-12px', right: isOwnMessage ? 'auto' : '10px', left: isOwnMessage ? '10px' : 'auto' }}>
-              {Object.entries(message.reactions.reduce((acc, reaction) => { if (reaction?.emoji) { if (!acc[reaction.emoji]) acc[reaction.emoji] = []; acc[reaction.emoji].push(reaction.username); } return acc; }, {})).map(([emoji, users]) => (
-                <div key={emoji} onClick={(e) => { e.stopPropagation(); handleReaction(message, emoji); }} className="reaction-pill" style={{ backgroundColor: users.includes(currentUsername) ? "#e1f4d6" : "#ffffff", borderColor: users.includes(currentUsername) ? "#00a884" : "#e5e7eb" }} title={users.join(', ')}>
-                  <span className="reaction-emoji">{emoji}</span>
-                  {users.length > 1 && <span className="reaction-count">{users.length}</span>}
+                {/* EDICIÓN (Indicador) */}
+                {message.isEdited && <span style={{ fontSize: '10px', color: '#9ca3af', marginLeft: '4px' }}>(editado)</span>}
+              </>
+            )}
+          </div>
+
+          {/* REACCIONES (Debajo del texto) */}
+          {message.reactions && message.reactions.length > 0 && (
+            <div className="reactions-row" style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+              {Object.entries(message.reactions.reduce((acc, r) => {
+                if (!acc[r.emoji]) acc[r.emoji] = [];
+                acc[r.emoji].push(r.username); return acc;
+              }, {})).map(([emoji, users]) => (
+                <div key={emoji} className="reaction-pill" onClick={() => handleReaction(message, emoji)} title={users.join(', ')}>
+                  {emoji} <span style={{ fontSize: '10px', fontWeight: 'bold', marginLeft: '4px' }}>{users.length}</span>
                 </div>
               ))}
             </div>
           )}
-
-          {/* ==================== HILO (THREAD) ==================== */}
-          {onOpenThread && !message.isDeleted && message.threadCount > 0 && (
-            <div className="thread-pill-container">
-              <div className="thread-pill" onClick={() => onOpenThread(message)} title="Ver hilo de respuestas">
-                <FaComments className="thread-pill-icon" />
-                <span className="thread-pill-count">{message.threadCount} respuestas</span>
-                <FaChevronRight className="thread-pill-arrow" />
-              </div>
-            </div>
-          )}
-
         </div>
-      </div >
+
+        {/* === TOOLBAR FLOTANTE (DERECHA ARRIBA) - VISIBLE ON HOVER === */}
+        {!message.isDeleted && (
+          <div className={`action-toolbar ${isMenuOpen ? 'active' : ''}`}>
+
+            {/* 1. BOTÓN REACCIONAR (Smile) */}
+            <div style={{ position: 'relative' }}> {/* Envolvemos en relative para posicionar el popup */}
+              <button className="toolbar-btn" title="Reaccionar" onClick={() => setShowReactionPicker(message.id)}>
+                <FaSmile size={15} />
+              </button>
+
+              {/* 🔥🔥🔥 ESTO ES LO QUE FALTABA: EL POPUP DE EMOJIS 🔥🔥🔥 */}
+              {showReactionPicker === message.id && (
+                <div
+                  ref={reactionPickerRef}
+                  className="reaction-picker-popup"
+                >
+                  {["👍", "❤️", "😂", "😮", "😢", "🙏"].map((emoji) => (
+                    <button
+                      key={emoji}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleReaction(message, emoji);
+                      }}
+                      className="reaction-emoji-btn"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                  {/* Botón Más (+) */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowReactionPicker(null);
+                      setShowEmojiPicker(true);
+                      window.currentReactionMessage = message;
+                    }}
+                    className="reaction-emoji-btn plus-btn"
+                  >
+                    +
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 2. Reply */}
+            <button className="toolbar-btn" title="Responder" onClick={() => window.handleReplyMessage && window.handleReplyMessage(message)}>
+              <FaReply size={15} />
+            </button>
+
+            {/* 3. Thread (Si aplica) */}
+            {onOpenThread && (
+              <button className="toolbar-btn" title="Responder en hilo" onClick={() => onOpenThread(message)}>
+                <FaComments size={15} />
+              </button>
+            )}
+
+            {/* 4. MENÚ DESPLEGABLE (3 Puntos) */}
+            <div style={{ position: 'relative' }}>
+              <button
+                className="toolbar-btn"
+                title="Más opciones"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Cálculo para saber si abrir arriba o abajo
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const spaceBelow = window.innerHeight - rect.bottom;
+                  setMenuPosition({ openUp: spaceBelow < 300 });
+                  setShowMessageMenu(isMenuOpen ? null : message.id);
+                }}
+              >
+                {/* Icono 3 puntos */}
+                <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" /></svg>
+              </button>
+
+              {/* === CONTENIDO DEL DESPLEGADOR (COMPLETO CON TODOS LOS BOTONES) === */}
+              {isMenuOpen && (
+                <div
+                  ref={messageMenuRef}
+                  className="slack-dropdown-menu"
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: menuPosition.openUp ? 'auto' : '100%',
+                    bottom: menuPosition.openUp ? '100%' : 'auto',
+                    background: 'white',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    zIndex: 9999,
+                    minWidth: '200px',
+                    padding: '6px 0',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}
+                >
+
+                  {onOpenThread && (
+                    <button className="menu-item" onClick={() => { onOpenThread(message); setShowMessageMenu(null); }}>
+                      <FaComments className="menu-icon" /> Crear Hilo
+                    </button>
+                  )}
+
+                  <button className="menu-item" onClick={async () => { try { let t = message.text || message.fileName || ""; if (t) await navigator.clipboard.writeText(t); } catch (e) { } setShowMessageMenu(null); }}>
+                    <FaCopy className="menu-icon" /> Copiar texto
+                  </button>
+
+                  {message.mediaData && (
+                    <button className="menu-item" onClick={() => { handleDownload(message.mediaData, message.fileName); setShowMessageMenu(null); }}>
+                      <FaDownload className="menu-icon" /> Descargar
+                    </button>
+                  )}
+
+                  <button className="menu-item" onClick={() => { setShowMessageInfo(message); setShowMessageMenu(null); }}>
+                    <FaInfoCircle className="menu-icon" /> Info. Mensaje
+                  </button>
+
+                  {/* FUNCIONES PRIVILEGIADAS */}
+                  {isGroup && onPinMessage && (isAdmin || (user?.role && ['JEFEPISO', 'PROGRAMADOR', 'SUPERVISOR'].includes(user.role.toUpperCase()))) && (
+                    <button className="menu-item" onClick={() => { onPinMessage(message); setShowMessageMenu(null); }}>
+                      <FaThumbtack className="menu-icon" style={{ color: pinnedMessageId === message.id ? "#d97706" : "inherit" }} />
+                      {pinnedMessageId === message.id ? "Desfijar mensaje" : "Fijar mensaje"}
+                    </button>
+                  )}
+
+                  {isOwnMessage && (
+                    <button className="menu-item" onClick={(e) => { e.stopPropagation(); handleStartEdit(message); setShowMessageMenu(null); }}>
+                      <FaEdit className="menu-icon" /> Editar mensaje
+                    </button>
+                  )}
+
+                  <div style={{ height: '1px', background: '#eee', margin: '4px 0' }}></div>
+
+                  {(isAdmin || isOwnMessage) && (
+                    <button
+                      className="menu-item"
+                      style={{ color: '#dc2626' }}
+                      onClick={(e) => { e.stopPropagation(); if (onDeleteMessage) onDeleteMessage(message.id, message.realSender || message.sender); setShowMessageMenu(null); }}
+                    >
+                      <FaTrash className="menu-icon" /> Eliminar mensaje
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     );
   };
 
