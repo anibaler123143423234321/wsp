@@ -1354,14 +1354,14 @@ const ChatContent = ({
 
     // Color consistente del usuario (Necesitas asegurarte que getUserColor exista o usar un default)
     // Si no tienes la función getUserColor definida fuera, usa esta línea temporal:
-    const userColor = "#ff453a";
+    const userColor = "#54656f ";
 
     const isMenuOpen = showMessageMenu === message.id;
     const isHighlighted = highlightedMessageId === message.id;
 
     // Si es mensaje de sistema, retornamos diseño simple centrado
     if (message.type === "info" || message.type === "error") {
-      const color = message.type === "info" ? "#00a884" : "#ff453a";
+      const color = message.type === "info" ? "ff453a" : "#ff453a";
       const bg = message.type === "info" ? "rgba(0, 168, 132, 0.1)" : "rgba(255, 69, 58, 0.1)";
       return (
         <div key={index} style={{ display: 'flex', justifyContent: 'center', margin: '10px 0', width: '100%' }}>
@@ -1922,7 +1922,7 @@ const ChatContent = ({
                 width: "48px",
                 height: "48px",
                 border: "4px solid rgba(0, 168, 132, 0.2)",
-                borderTop: "4px solid #00a884",
+                borderTop: "4px solid ff453a",
                 borderRadius: "50%",
                 animation: "spin 1s linear infinite",
               }}
@@ -2034,7 +2034,7 @@ const ChatContent = ({
                         {/* Nombre del usuario que está escribiendo */}
                         <div
                           style={{
-                            color: "#00a884",
+                            color: "ff453a",
                             fontSize: "11px",
                             fontWeight: "600",
                             marginBottom: "2px",
@@ -2219,7 +2219,7 @@ const ChatContent = ({
                             {/* Nombre del usuario que está escribiendo */}
                             <div
                               style={{
-                                color: "#00a884",
+                                color: "ff453a",
                                 fontSize: "11px",
                                 fontWeight: "600",
                                 marginBottom: "2px",
@@ -2433,7 +2433,7 @@ const ChatContent = ({
           <div
             style={{
               backgroundColor: "#d1f4dd",
-              borderLeft: "3px solid #00a884",
+              borderLeft: "3px solid ff453a",
               padding: "8px 12px",
               display: "flex",
               justifyContent: "space-between",
@@ -2444,7 +2444,7 @@ const ChatContent = ({
             <div style={{ flex: 1 }}>
               <div
                 style={{
-                  color: "#00a884",
+                  color: "ff453a",
                   fontSize: "12px",
                   fontWeight: "600",
                   marginBottom: "2px",
@@ -2469,7 +2469,7 @@ const ChatContent = ({
               style={{
                 backgroundColor: "transparent",
                 border: "none",
-                color: "#00a884",
+                color: "ff453a",
                 cursor: "pointer",
                 fontSize: "18px",
                 padding: "4px 8px",
@@ -2571,7 +2571,7 @@ const ChatContent = ({
                   justifyContent: "center",
                   zIndex: 10,
                   borderRadius: "12px",
-                  color: "#00a884",
+                  color: "ff453a",
                   fontWeight: "500",
                   fontSize: "14px",
                   backdropFilter: "blur(2px)",
@@ -2581,7 +2581,7 @@ const ChatContent = ({
                   style={{
                     width: "16px",
                     height: "16px",
-                    border: "2px solid #00a884",
+                    border: "2px solid ff453a",
                     borderRightColor: "transparent",
                     borderRadius: "50%",
                     animation: "spin 0.75s linear infinite",
@@ -2791,7 +2791,7 @@ const ChatContent = ({
                   style={{
                     fontSize: "13px",
                     fontWeight: "600",
-                    color: "#00a884",
+                    color: "ff453a",
                     marginBottom: "8px",
                     display: "flex",
                     alignItems: "center",

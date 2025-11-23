@@ -3927,7 +3927,7 @@ const ChatPage = () => {
 
       modalContent.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-          <h3 style="margin: 0; color: #00a884;">👥 Usuarios en "${roomName}"</h3>
+          <h3 style="margin: 0; color: ff453a;">👥 Usuarios en "${roomName}"</h3>
           <button onclick="this.closest('.modal-overlay').remove()" style="background: none; border: none; color: #8696a0; font-size: 20px; cursor: pointer;">✕</button>
         </div>
         <div style="margin-bottom: 16px;">
@@ -3942,7 +3942,7 @@ const ChatPage = () => {
         <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid #374045;">
           <span style="color: #8696a0;">Total: ${roomUsersData.totalUsers || 0
         }/${roomUsersData.maxCapacity || 0}</span>
-          <button onclick="this.closest('.modal-overlay').remove()" style="background: #00a884; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Cerrar</button>
+          <button onclick="this.closest('.modal-overlay').remove()" style="background: ff453a; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Cerrar</button>
         </div>
       `;
 

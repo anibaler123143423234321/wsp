@@ -179,7 +179,7 @@ const AdminRoomsModal = ({ isOpen, onClose, onDeleteRoom, onDeactivateRoom, onAc
                   <div className="room-name" style={{ color: '#000000' }}>{room.name}</div>
                   <div className="room-details">
                     <span className="room-code" style={{ backgroundColor: '#e0e0e0', color: '#000000' }}>Código: {room.roomCode}</span>
-                    <span className="room-capacity" style={{ color: '#00a884' }}>Capacidad: {room.currentMembers}/{room.maxCapacity}</span>
+                    <span className="room-capacity" style={{ color: 'ff453a' }}>Capacidad: {room.currentMembers}/{room.maxCapacity}</span>
                     <span className={`room-status ${room.isActive ? 'active' : 'inactive'}`}>
                       {room.isActive ? 'Activa' : 'Inactiva'}
                     </span>

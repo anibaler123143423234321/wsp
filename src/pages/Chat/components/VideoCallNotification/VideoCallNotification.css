@@ -1,6 +1,6 @@
 .video-call-notification {
     background-color: #e7f3ff;
-    border: 2px solid #00a884;
+    border: 2px solid ff453a;
     border-radius: 12px;
     padding: 16px;
     margin-bottom: 8px;
@@ -17,7 +17,7 @@
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background-color: #00a884;
+    background-color: ff453a;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -42,7 +42,7 @@
 
 .video-call-join-btn {
     width: 100%;
-    background-color: #00a884;
+    background-color: ff453a;
     color: white;
     border: none;
     border-radius: 8px;

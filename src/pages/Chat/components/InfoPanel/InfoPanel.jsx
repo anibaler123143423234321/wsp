@@ -40,7 +40,7 @@ const InfoPanel = ({ isOpen, onClose, chatInfo, onCreatePoll, user, onRoomUpdate
                 icon: 'error',
                 title: 'Error',
                 text: 'Por favor selecciona un archivo de imagen válido',
-                confirmButtonColor: '#00a884'
+                confirmButtonColor: 'ff453a'
             });
             return;
         }
@@ -51,7 +51,7 @@ const InfoPanel = ({ isOpen, onClose, chatInfo, onCreatePoll, user, onRoomUpdate
                 icon: 'error',
                 title: 'Error',
                 text: 'La imagen no debe superar los 70MB',
-                confirmButtonColor: '#00a884'
+                confirmButtonColor: 'ff453a'
             });
             return;
         }
@@ -105,7 +105,7 @@ const InfoPanel = ({ isOpen, onClose, chatInfo, onCreatePoll, user, onRoomUpdate
                 icon: 'error',
                 title: 'Error',
                 text: 'No se pudo actualizar la foto del grupo',
-                confirmButtonColor: '#00a884'
+                confirmButtonColor: 'ff453a'
             });
         } finally {
             setIsUploading(false);

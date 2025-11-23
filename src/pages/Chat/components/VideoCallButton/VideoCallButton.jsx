@@ -25,7 +25,7 @@ const VideoCallButton = ({ onStartVideoCall, isGroup, user }) => {
             onClick={onStartVideoCall}
             title={isGroup ? "Iniciar videollamada grupal" : "Iniciar videollamada"}
         >
-            <FaVideo />
+            <FaVideo size={24} color="rgb(239, 68, 68)" />
         </button>
     );
 };

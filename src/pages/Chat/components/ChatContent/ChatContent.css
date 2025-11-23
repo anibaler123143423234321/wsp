@@ -797,7 +797,7 @@
 /* 7. Ajuste de la barra de respuesta para mensajes propios */
 .message-row.is-own .reply-preview-bar {
   border-left: none !important;
-  border-right: 3px solid #00a884;
+  border-right: 3px solid ff453a;
   text-align: right;
   margin-left: auto;
   /* Empujar a la derecha */
@@ -1285,7 +1285,7 @@
 }
 
 .btn-attach:hover:not(.disabled) .attach-icon {
-  color: #00a884;
+  color: ff453a;
 }
 
 .btn {
@@ -2035,7 +2035,7 @@
   right: -2px;
   width: 7px;
   height: 7px;
-  background-color: #00a884;
+  background-color: ff453a;
   border-radius: 50%;
   border: 1px solid #fff;
 }
@@ -2389,7 +2389,7 @@
 
 .popover-status {
   font-size: 11px;
-  color: #00a884;
+  color: ff453a;
 }
 
 @keyframes fadeIn {

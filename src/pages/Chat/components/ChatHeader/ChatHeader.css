@@ -201,7 +201,7 @@
 }
 
 .status-indicator.connected {
-  background-color: #00a884;
+  background-color: ff453a;
   box-shadow: 0 0 6px rgba(0, 168, 132, 0.5);
 }
 
@@ -407,7 +407,7 @@
   gap: 4px;
   padding: 6px 10px;
   background: linear-gradient(135deg, rgba(0, 168, 132, 0.1) 0%, rgba(0, 168, 132, 0.05) 100%);
-  color: #00a884;
+  color: ff453a;
   border: 1px solid rgba(0, 168, 132, 0.3);
   border-radius: 8px;
   cursor: pointer;
@@ -710,7 +710,7 @@
 
 /* Botón para habilitar sonidos */
 .enable-sounds-btn {
-  background: #00a884;
+  background: ff453a;
   color: white;
   border: none;
   border-radius: 8px;
@@ -981,7 +981,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #00a884;
+  color: ff453a;
   font-weight: 500;
   animation: fadeIn 0.3s ease-in;
 }
@@ -1146,7 +1146,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #00a884;
+  color: ff453a;
   font-weight: 500;
   animation: fadeIn 0.3s ease-in;
 }
@@ -1335,7 +1335,7 @@
 
 .members-panel-header {
   padding: 16px 20px;
-  background-color: #00a884;
+  background-color: ff453a;
   color: white;
   display: flex;
   align-items: center;
@@ -1384,7 +1384,7 @@
   align-items: center;
   gap: 12px;
   font-size: 16px;
-  color: #00a884;
+  color: ff453a;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s;
@@ -1484,7 +1484,7 @@
 .member-role-badge {
   display: inline-block;
   font-size: 11px;
-  color: #00a884;
+  color: ff453a;
   background-color: rgba(0, 168, 132, 0.1);
   padding: 2px 6px;
   border-radius: 4px;
@@ -1509,7 +1509,7 @@
 }
 
 .members-filter-input:focus {
-  border-color: #00a884;
+  border-color: ff453a;
 }
 
 @keyframes fadeIn {

@@ -68,7 +68,7 @@
 .invite-text {
     font-size: 15px;
     font-weight: 400;
-    color: #00a884;
+    color: ff453a;
 }
 
 /* Member List */
@@ -214,7 +214,7 @@
 }
 
 .members-filter-input:focus {
-    border-color: #00a884;
+    border-color: ff453a;
     background-color: white;
 }
 

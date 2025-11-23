@@ -32,7 +32,7 @@
 }
 
 .voice-recorder-btn:hover:not(.disabled) .voice-recorder-icon-btn {
-  color: #00a884;
+  color: ff453a;
 }
 
 /* 🔥 Interfaz de grabación activa (EXPANDIDA) */
@@ -135,7 +135,7 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #00a884;
+  background: ff453a;
 }
 
 .voice-recorder-icon svg {
@@ -172,7 +172,7 @@
 }
 
 .voice-recorder-send {
-  background: #00a884;
+  background: ff453a;
 }
 
 .voice-recorder-send:hover {

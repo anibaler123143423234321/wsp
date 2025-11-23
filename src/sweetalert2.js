@@ -17,15 +17,15 @@ export const loadSweetAlert2 = () => {
     const scriptElement = document.createElement('script');
     scriptElement.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
     scriptElement.async = true;
-    
+
     scriptElement.onload = () => {
       resolve(window.Swal);
     };
-    
+
     scriptElement.onerror = () => {
       reject(new Error('No se pudo cargar SweetAlert2'));
     };
-    
+
     document.head.appendChild(scriptElement);
   });
 };
@@ -33,13 +33,13 @@ export const loadSweetAlert2 = () => {
 // Función para mostrar una alerta de confirmación
 export const showConfirmAlert = async (title, text, icon = 'warning') => {
   const Swal = await loadSweetAlert2();
-  
+
   return Swal.fire({
     title,
     text,
     icon,
     showCancelButton: true,
-    confirmButtonColor: '#00a884',
+    confirmButtonColor: 'ff453a',
     cancelButtonColor: '#d33',
     confirmButtonText: 'Sí, eliminar',
     cancelButtonText: 'Cancelar',
@@ -58,12 +58,12 @@ export const showConfirmAlert = async (title, text, icon = 'warning') => {
 // Función para mostrar una alerta de éxito
 export const showSuccessAlert = async (title, text) => {
   const Swal = await loadSweetAlert2();
-  
+
   return Swal.fire({
     title,
     text,
     icon: 'success',
-    confirmButtonColor: '#00a884',
+    confirmButtonColor: 'ff453a',
     background: '#2a3942',
     color: '#e9edef',
     timer: 2000,
@@ -80,12 +80,12 @@ export const showSuccessAlert = async (title, text) => {
 // Función para mostrar una alerta de error
 export const showErrorAlert = async (title, text) => {
   const Swal = await loadSweetAlert2();
-  
+
   return Swal.fire({
     title,
     text,
     icon: 'error',
-    confirmButtonColor: '#00a884',
+    confirmButtonColor: 'ff453a',
     background: '#2a3942',
     color: '#e9edef',
     customClass: {
@@ -100,7 +100,7 @@ export const showErrorAlert = async (title, text) => {
 // Función para mostrar una alerta con progreso
 export const showProgressAlert = async (title, text) => {
   const Swal = await loadSweetAlert2();
-  
+
   return Swal.fire({
     title,
     text,
@@ -122,7 +122,7 @@ export const showProgressAlert = async (title, text) => {
 // Función para actualizar el progreso de una alerta
 export const updateProgressAlert = async (title, text, progress) => {
   const Swal = await loadSweetAlert2();
-  
+
   if (Swal.isVisible()) {
     Swal.update({
       title,
@@ -137,7 +137,7 @@ export const updateProgressAlert = async (title, text, progress) => {
 // Función para cerrar una alerta
 export const closeAlert = async () => {
   const Swal = await loadSweetAlert2();
-  
+
   if (Swal.isVisible()) {
     Swal.close();
   }

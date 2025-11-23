@@ -61,14 +61,14 @@
 
 /* Color del micro dependiendo de si es mensaje propio o ajeno */
 .wa-audio-wrapper.own .wa-mic-badge {
-  background-color: #00a884;
+  background-color: ff453a;
   /* Verde WA */
   border-color: #d9fdd3;
   /* Color de fondo de mensaje propio */
 }
 
 .wa-audio-wrapper.other .wa-mic-badge {
-  background-color: #00a884;
+  background-color: ff453a;
   border-color: #ffffff;
   /* Color de fondo de mensaje ajeno */
 }
