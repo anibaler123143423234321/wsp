@@ -31,6 +31,23 @@ export const useSocketListeners = (
 
         const s = socket;
 
+        s.on('roomJoined', (data) => {
+            console.log('🏠 Room Joined:', data);
+
+            // 1. Actualizar la lista de usuarios (ya lo haces probablemente)
+            chatState.setRoomUsers(data.users);
+
+            // 2. 🔥 ESTO ES LO QUE FALTA: Actualizar el mensaje fijado inicial
+            // Si el backend manda null, se limpia. Si manda un ID, se fija.
+            chatState.setPinnedMessageId(data.pinnedMessageId || null);
+        });
+
+        s.on('messagePinned', (data) => {
+            console.log('📌 Message Pinned Event:', data);
+            // Actualizar estado en tiempo real cuando alguien fija algo
+            chatState.setPinnedMessageId(data.messageId);
+        });
+
         // =====================================================
         // 1. USUARIOS Y LISTAS
         // =====================================================
@@ -478,6 +495,7 @@ export const useSocketListeners = (
             s.off("videoCallEnded"); s.off("kicked"); s.off("roomDeactivated");
             s.off("addedToRoom"); s.off("removedFromRoom"); s.off("monitoringMessage");
             s.off("reactionUpdated"); s.off("threadCountUpdated");
+            s.off("messagePinned"); s.off("roomJoined");
         };
 
     }, [socket, username]);

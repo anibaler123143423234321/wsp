@@ -40,6 +40,9 @@ const ChatPage = () => {
 
   const socket = useSocket(isAuthenticated, username, user);
 
+  // 1. 🔥 NUEVO ESTADO: Guardar el objeto del mensaje fijado
+  const [pinnedMessageObject, setPinnedMessageObject] = useState(null);
+
   // ===== HOOK DE ESTADOS CENTRALIZADOS =====
   const chatState = useChatState();
 
@@ -125,6 +128,42 @@ const ChatPage = () => {
     currentUserFullName,
     chatState.userList,
   ]);
+
+  // 2. 🔥 NUEVO EFECTO: Resolver el mensaje (Local o API)
+  useEffect(() => {
+    const resolvePinnedMessage = async () => {
+      const pinId = chatState.pinnedMessageId;
+
+      // A. Si no hay ID, limpiamos
+      if (!pinId) {
+        setPinnedMessageObject(null);
+        return;
+      }
+
+      // B. Intentamos buscarlo en los mensajes cargados (rápido)
+      // 🔥 IMPORTANTE: Asegúrate de que 'messages' sea un array
+      const msgArray = Array.isArray(messages) ? messages : [];
+      const foundInList = msgArray.find(m => m.id === pinId);
+
+      if (foundInList) {
+        console.log("📌 Mensaje fijado encontrado en memoria local");
+        setPinnedMessageObject(foundInList);
+      } else {
+        // C. Si no está en la lista (es antiguo), lo pedimos a la API
+        console.log(`📌 Mensaje fijado ${pinId} no está en lista. Buscando en API...`);
+        try {
+          const fetchedMsg = await apiService.getMessageById(pinId);
+          if (fetchedMsg) {
+            setPinnedMessageObject(fetchedMsg);
+          }
+        } catch (err) {
+          console.error("Error cargando mensaje fijado:", err);
+        }
+      }
+    };
+
+    resolvePinnedMessage();
+  }, [chatState.pinnedMessageId, messages]);
 
   // Efecto para título de pestaña
   useEffect(() => {
@@ -1296,7 +1335,6 @@ const ChatPage = () => {
         isUploadingFile={chatState.isUploadingFile}
         isSending={chatState.isSending}
         onPinMessage={handlePinMessage}
-        pinnedMessageId={chatState.pinnedMessageId}
         onPollVote={handlePollVote}
         onRoomUpdated={() => roomManagement.loadMyActiveRooms(1, false, null, user)}
         // Props de modales
@@ -1305,6 +1343,8 @@ const ChatPage = () => {
         roomForm={chatState.roomForm}
         setRoomForm={chatState.setRoomForm}
         onCreateRoom={roomManagement.handleCreateRoom}
+        pinnedMessage={pinnedMessageObject}
+        pinnedMessageId={chatState.pinnedMessageId}
         showJoinRoomModal={chatState.showJoinRoomModal}
         setShowJoinRoomModal={chatState.setShowJoinRoomModal}
         joinRoomForm={chatState.joinRoomForm}

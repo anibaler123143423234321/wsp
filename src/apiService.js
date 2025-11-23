@@ -21,6 +21,7 @@ class ApiService {
     // console.log("API_BASECHAT_URL:", this.baseChatUrl);
   }
 
+
   // Método para cambiar la sede y actualizar las URLs
   setSede(sede) {
     const previousSede = this.currentSede;
@@ -112,6 +113,7 @@ class ApiService {
       throw error;
     }
   }
+
 
   // Método para hacer login usando la API de Angular
   async login(credentials, sede = 'CHICLAYO_PIURA') {
@@ -971,6 +973,29 @@ class ApiService {
     } catch (error) {
       console.error("Error al incrementar contador de hilo:", error);
       throw error;
+    }
+  }
+
+  // 🔥 NUEVO: Obtener un mensaje específico por ID (para mensajes fijados antiguos)
+  async getMessageById(messageId) {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/messages/${messageId}`,
+        {
+          method: "GET",
+        }
+      );
+
+      if (!response.ok) {
+        // Si no existe (404), retornamos null silenciosamente
+        if (response.status === 404) return null;
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error al obtener mensaje por ID:", error);
+      return null;
     }
   }
 

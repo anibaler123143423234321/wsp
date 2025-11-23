@@ -44,7 +44,6 @@ const ChatLayout = ({
 
   // Props del socket
   soundsEnabled, onEnableSounds, socket, isTyping, typingUser,
-
   // Props del usuario
   currentUsername,
 
@@ -68,17 +67,13 @@ const ChatLayout = ({
 
   // 🔥 Props de estado de carga
   isUploadingFile,
-  isSending, // 🔥 NUEVO: Estado de envío para prevenir duplicados
-
-  // Props de mensajes fijados
+  isSending,
   pinnedMessage,
   onPinMessage,
   onUnpinMessage,
   onClickPinnedMessage,
-
-  // 🔥 Props de encuestas
+  pinnedMessageId,
   onPollVote,
-
   // 🔥 Props de actualización de sala
   onRoomUpdated,
 }) => {
@@ -361,7 +356,10 @@ const ChatLayout = ({
             isSending={isSending} // 🔥 NUEVO: Estado de envío
             onStartVideoCall={onStartVideoCall} // 🔥 NUEVO: Handler de videollamada
             onPinMessage={onPinMessage} // 🔥 NUEVO: Fijar mensajes
-            pinnedMessageId={pinnedMessage?.id} // 🔥 NUEVO: ID del mensaje fijado
+            onUnpinMessage={onUnpinMessage} // 🔥 NUEVO: Desfijar mensajes
+            onClickPinnedMessage={onClickPinnedMessage} // 🔥 NUEVO: Click en mensaje fijado
+            pinnedMessageId={pinnedMessageId} // 🔥 Usa la prop directa, NO pinnedMessage?.id
+            pinnedMessage={pinnedMessage}     // ❌ TE FALTA ESTO (El objeto con los datos)
             userRole={user?.role} // 🔥 NUEVO: Rol del usuario
             chatInfo={{ // 🔥 NUEVO: Información del chat
               name: to,

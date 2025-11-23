@@ -112,6 +112,7 @@ const ChatContent = ({
   isSending, // 🔥 NUEVO: Estado de envío para prevenir duplicados
   onPinMessage, // 🔥 NUEVO: Función para fijar mensajes
   pinnedMessageId, // 🔥 NUEVO: ID del mensaje fijado actual
+  pinnedMessage
 }) => {
   const chatHistoryRef = useRef(null);
   const isUserScrollingRef = useRef(false);
