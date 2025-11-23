@@ -134,7 +134,7 @@ const ChatContent = ({
   const emojiPickerRef = useRef(null);
   const reactionPickerRef = useRef(null);
   const messageMenuRef = useRef(null);
-
+  const [openReadReceiptsId, setOpenReadReceiptsId] = useState(null);
   // Estados para menciones (@)
   const [showMentionSuggestions, setShowMentionSuggestions] = useState(false);
   const [mentionSearch, setMentionSearch] = useState("");
@@ -539,6 +539,17 @@ const ChatContent = ({
       }, 500);
     }
   }, [highlightMessageId, messages, onMessageHighlighted]);
+
+  // Cerrar el popover de leídos al hacer click en cualquier otro lado
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.mx_ReadReceiptGroup_container')) {
+        setOpenReadReceiptsId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Scroll automático al final para mensajes nuevos (estilo WhatsApp)
   useEffect(() => {
@@ -1384,16 +1395,31 @@ const ChatContent = ({
         <div className="message-gutter">
           {isGroupStart ? (
             // INICIO DE GRUPO: Mostrar Avatar
-            <div
-              className="slack-avatar"
-              style={{
-                // Si tienes getUserColor úsalo, sino un gradiente por defecto
-                background: message.senderPicture ? `url(${message.senderPicture}) center/cover` : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'white', fontWeight: 'bold', fontSize: '14px'
-              }}
-            >
-              {!message.senderPicture && (message.sender?.charAt(0).toUpperCase() || "👤")}
+            <div className="message-gutter">
+              {isGroupStart ? (
+                // INICIO DE GRUPO: Mostrar Avatar
+                <div
+                  className="slack-avatar"
+                  style={{
+                    // 🔥 CORRECCIÓN: Si es mensaje propio, usamos user.picture. Si no, message.senderPicture.
+                    background: (isOwnMessage ? user?.picture : message.senderPicture)
+                      ? `url(${isOwnMessage ? user.picture : message.senderPicture}) center/cover`
+                      : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'white', fontWeight: 'bold', fontSize: '14px'
+                  }}
+                >
+                  {/* Lógica para mostrar inicial si no hay foto */}
+                  {!(isOwnMessage ? user?.picture : message.senderPicture) && (
+                    (isOwnMessage ? (currentUsername?.charAt(0)?.toUpperCase() || "T") : message.sender?.charAt(0)?.toUpperCase()) || "👤"
+                  )}
+                </div>
+              ) : (
+                // CONTINUACIÓN: Mostrar Hora (visible en hover por CSS)
+                <span className="message-timestamp-left">
+                  {formatTime(message.time)}
+                </span>
+              )}
             </div>
           ) : (
             // CONTINUACIÓN: Mostrar Hora (visible en hover por CSS)
@@ -1482,12 +1508,108 @@ const ChatContent = ({
               ))}
             </div>
           )}
+          {/* 🔥 HILO CON AVATARES (VERSIÓN FINAL A PRUEBA DE FALLOS) 🔥 */}
+          {message.threadCount > 0 && (
+            <div className="thread-row-container">
+
+              {/* --- DEBUG: ESTO TE AYUDARÁ A VER SI LLEGAN DATOS EN LA CONSOLA --- */}
+              {console.log(`Mensaje ${message.id} Hilo:`, {
+                count: message.threadCount,
+                quien: message.lastReplyFrom,
+                tieneFoto: roomUsers?.find(u => u.username === message.lastReplyFrom)?.picture
+              })}
+
+              {/* 1. EL BOTÓN DEL HILO */}
+              <div
+                className="mx_ThreadSummaryLine"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onOpenThread) onOpenThread(message);
+                }}
+                title="Ver hilo"
+              >
+                <div className="thread-icon-wrapper">
+                  <FaComments size={13} color="#54656f" />
+                </div>
+
+                <span className="mx_ThreadCounter">
+                  {message.threadCount} {message.threadCount === 1 ? 'respuesta' : 'respuestas'}
+                </span>
+
+                {/* 🔥 CAMBIO: Si hay nombre lo muestra, si no, muestra una flechita discreta */}
+                <div className="thread-vertical-line"></div>
+                <span className="mx_ThreadLastReply">
+                  {message.lastReplyFrom ? message.lastReplyFrom : "Ver"}
+                </span>
+                <FaChevronRight size={10} color="#8696a0" style={{ marginLeft: '4px' }} />
+              </div>
+
+              {/* 2. LOS AVATARES (Derecha) - VERSIÓN FORZADA */}
+              <div className="thread-face-pile">
+                {(() => {
+                  // 1. Obtener un nombre seguro (si viene null, usamos "Usuario")
+                  const rawName = message.lastReplyFrom;
+                  const displayName = rawName ? rawName.trim() : "?";
+
+                  // 2. Intentar buscar la foto en roomUsers (si hay lista)
+                  let foundUser = null;
+                  if (roomUsers && Array.isArray(roomUsers) && rawName) {
+                    const searchName = rawName.toLowerCase();
+                    foundUser = roomUsers.find(u => {
+                      const uName = (u.username || "").toLowerCase();
+                      const uFull = (u.nombre && u.apellido) ? `${u.nombre} ${u.apellido}`.toLowerCase() : "";
+                      return uName === searchName || uFull === searchName;
+                    });
+                  }
+
+                  // 3. Intentar buscar foto en historial de mensajes (Plan B)
+                  let avatarUrl = foundUser?.picture;
+                  if (!avatarUrl && messages && rawName) {
+                    const msgMatch = messages.find(m =>
+                      (m.sender === rawName || m.realSender === rawName) && m.senderPicture
+                    );
+                    if (msgMatch) avatarUrl = msgMatch.senderPicture;
+                  }
+
+                  // === RENDERIZADO (SIN EXCUSAS) ===
+
+                  // CASO A: Tenemos foto -> La mostramos
+                  if (avatarUrl) {
+                    return (
+                      <div
+                        className="thread-mini-avatar"
+                        style={{ backgroundImage: `url(${avatarUrl})` }}
+                        title={`Última respuesta de: ${displayName}`}
+                      />
+                    );
+                  }
+
+                  // CASO B: No hay foto (picture = null) -> Mostramos la INICIAL
+                  // Generamos un color consistente basado en el nombre
+                  const colors = ['#f56565', '#ed8936', '#ecc94b', '#48bb78', '#38b2ac', '#4299e1', '#667eea', '#9f7aea', '#ed64a6'];
+                  const charCode = displayName.charCodeAt(0) || 0;
+                  const colorIndex = charCode % colors.length;
+                  const bgColor = colors[colorIndex];
+
+                  return (
+                    <div
+                      className="thread-mini-avatar placeholder"
+                      style={{ background: bgColor }}
+                      title={`Última respuesta de: ${displayName}`}
+                    >
+                      {displayName.charAt(0).toUpperCase()}
+                    </div>
+                  );
+                })()}
+              </div>
+
+            </div>
+          )}
         </div>
 
         {/* === TOOLBAR FLOTANTE (DERECHA ARRIBA) - VISIBLE ON HOVER === */}
         {!message.isDeleted && (
-          <div className={`action-toolbar ${isMenuOpen ? 'active' : ''}`}>
-
+          <div className={`action-toolbar ${isMenuOpen || showReactionPicker === message.id ? 'active' : ''}`}>
             {/* 1. BOTÓN REACCIONAR (Smile) */}
             <div style={{ position: 'relative' }}> {/* Envolvemos en relative para posicionar el popup */}
               <button className="toolbar-btn" title="Reaccionar" onClick={() => setShowReactionPicker(message.id)}>
@@ -1596,9 +1718,9 @@ const ChatContent = ({
                     </button>
                   )}
 
-                  <button className="menu-item" onClick={() => { setShowMessageInfo(message); setShowMessageMenu(null); }}>
+                  {<button className="menu-item" onClick={() => { setShowMessageInfo(message); setShowMessageMenu(null); }}>
                     <FaInfoCircle className="menu-icon" /> Info. Mensaje
-                  </button>
+                  </button>}
 
                   {/* FUNCIONES PRIVILEGIADAS */}
                   {isGroup && onPinMessage && (isAdmin || (user?.role && ['JEFEPISO', 'PROGRAMADOR', 'SUPERVISOR'].includes(user.role.toUpperCase()))) && (
@@ -1628,6 +1750,114 @@ const ChatContent = ({
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* === 🛡️ AVATARES DE LECTURA (MEJORADO & FINAL) 🛡️ === */}
+        {message.readBy && message.readBy.length > 0 && !isOwnMessage && (
+          <div className="read-by-avatars-container">
+
+            {/* 1. ZONA INTERACTIVA (BOLITAS) */}
+            <div
+              className="read-receipts-trigger"
+              // Calculamos el ancho exacto para que el área de click sea precisa
+              style={{ width: `${(Math.min(message.readBy.length, 5) * 10) + 6}px` }}
+              onClick={(e) => {
+                e.stopPropagation(); // Evita abrir el mensaje o el teclado
+                // Toggle del popover
+                setOpenReadReceiptsId(openReadReceiptsId === message.id ? null : message.id);
+              }}
+              title="Ver quién lo ha leído"
+            >
+              {message.readBy.slice(0, 5).map((readerName, idx) => {
+                // A. Buscar datos del usuario (Foto) de forma segura
+                let userPic = null;
+                const searchName = typeof readerName === 'string' ? readerName.toLowerCase().trim() : "";
+
+                if (roomUsers && Array.isArray(roomUsers)) {
+                  const u = roomUsers.find(u => {
+                    const uName = (u.username || "").toLowerCase();
+                    const uFull = (u.nombre && u.apellido) ? `${u.nombre} ${u.apellido}`.toLowerCase() : "";
+                    return uName === searchName || uFull === searchName;
+                  });
+                  if (u) userPic = u.picture;
+                }
+
+                // B. Calcular posición (Stacking de derecha a izquierda)
+                // El último que leyó aparece "arriba" en la pila
+                const totalToShow = Math.min(message.readBy.length, 5);
+                const rightPos = (totalToShow - 1 - idx) * 10;
+
+                return (
+                  <div
+                    key={idx}
+                    className="mini-read-avatar"
+                    style={{
+                      right: `${rightPos}px`,
+                      zIndex: idx + 1, // Asegura el orden de superposición visual
+                      ...(userPic && { backgroundImage: `url(${userPic})` }),
+                      ...(!userPic && { background: `linear-gradient(135deg, #667eea 0%, #764ba2 100%)` })
+                    }}
+                  >
+                    {!userPic && typeof readerName === 'string' && readerName.charAt(0).toUpperCase()}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* 2. VENTANA FLOTANTE (POPOVER DETALLADO) */}
+            {openReadReceiptsId === message.id && (
+              <div className="read-receipts-popover" onClick={(e) => e.stopPropagation()}>
+
+                {/* Cabecera */}
+                <div className="popover-header">
+                  {message.readBy.length} {message.readBy.length === 1 ? 'persona' : 'personas'}
+                </div>
+
+                {/* Lista con Scroll */}
+                <div className="popover-list">
+                  {message.readBy.map((readerName, idx) => {
+                    // Lógica repetida para buscar datos completos en la lista
+                    let userPic = null;
+                    let fullName = readerName;
+                    const searchName = typeof readerName === 'string' ? readerName.toLowerCase().trim() : "";
+
+                    if (roomUsers && Array.isArray(roomUsers)) {
+                      const u = roomUsers.find(u => {
+                        const uName = (u.username || "").toLowerCase();
+                        const uFull = (u.nombre && u.apellido) ? `${u.nombre} ${u.apellido}`.toLowerCase() : "";
+                        return uName === searchName || uFull === searchName;
+                      });
+                      if (u) {
+                        userPic = u.picture;
+                        fullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : u.username;
+                      }
+                    }
+
+                    return (
+                      <div key={idx} className="popover-item">
+                        {/* Avatar Grande */}
+                        <div className="popover-avatar">
+                          {userPic ? (
+                            <img src={userPic} alt={fullName} />
+                          ) : (
+                            <span className="popover-avatar-initial">
+                              {typeof readerName === 'string' ? readerName.charAt(0).toUpperCase() : "?"}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Texto */}
+                        <div className="popover-info">
+                          <div className="popover-name">{fullName}</div>
+                          <div className="popover-status">Visto</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -2583,73 +2813,101 @@ const ChatContent = ({
                       gap: "8px",
                     }}
                   >
-                    {showMessageInfo.readBy.map((reader, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "12px",
-                          padding: "8px",
-                          backgroundColor: "#f5f6f6",
-                          borderRadius: "8px",
-                        }}
-                      >
+                    {showMessageInfo.readBy.map((reader, index) => {
+                      // 1. Normalizar el nombre del lector
+                      const readerName = typeof reader === 'string' ? reader : reader.username || reader.nombre;
+
+                      // 2. BUSCAR EL USUARIO EN LA SALA (Para obtener su foto)
+                      let userWithPic = null;
+                      if (roomUsers && Array.isArray(roomUsers)) {
+                        const search = readerName.toLowerCase().trim();
+                        userWithPic = roomUsers.find(u => {
+                          const uUser = (u.username || "").toLowerCase();
+                          const uFull = (u.nombre && u.apellido) ? `${u.nombre} ${u.apellido}`.toLowerCase() : "";
+                          return uUser === search || uFull === search;
+                        });
+                      }
+
+                      // 3. Obtener la URL de la foto (si existe)
+                      const avatarUrl = userWithPic?.picture;
+
+                      return (
                         <div
+                          key={index}
                           style={{
-                            width: "32px",
-                            height: "32px",
-                            borderRadius: "50%",
-                            background:
-                              "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                             display: "flex",
                             alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: "14px",
-                            color: "#fff",
-                            fontWeight: "600",
+                            gap: "12px",
+                            padding: "8px",
+                            backgroundColor: "#f5f6f6",
+                            borderRadius: "8px",
                           }}
                         >
-                          {reader.charAt(0).toUpperCase()}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <p
+                          {/* --- AVATAR CON FOTO --- */}
+                          <div
                             style={{
-                              margin: 0,
+                              width: "32px",
+                              height: "32px",
+                              borderRadius: "50%",
+                              // 🔥 AQUÍ ESTÁ EL CAMBIO CLAVE: Usamos la foto si existe
+                              background: avatarUrl
+                                ? `url(${avatarUrl}) center/cover no-repeat`
+                                : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
                               fontSize: "14px",
-                              fontWeight: "500",
-                              color: "#111",
+                              color: "#fff",
+                              fontWeight: "600",
+                              flexShrink: 0,
+                              border: "1px solid rgba(0,0,0,0.05)"
                             }}
                           >
-                            {reader}
-                          </p>
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "16px",
-                            color: "#53bdeb",
-                            display: "flex",
-                            alignItems: "center",
-                          }}
-                        >
-                          <svg
-                            viewBox="0 0 18 18"
-                            height="18"
-                            width="18"
-                            preserveAspectRatio="xMidYMid meet"
-                            version="1.1"
-                            x="0px"
-                            y="0px"
-                            enableBackground="new 0 0 18 18"
+                            {/* Solo mostramos la inicial si NO hay foto */}
+                            {!avatarUrl && readerName.charAt(0).toUpperCase()}
+                          </div>
+
+                          <div style={{ flex: 1 }}>
+                            <p
+                              style={{
+                                margin: 0,
+                                fontSize: "14px",
+                                fontWeight: "500",
+                                color: "#111",
+                              }}
+                            >
+                              {readerName}
+                            </p>
+                          </div>
+
+                          <div
+                            style={{
+                              fontSize: "16px",
+                              color: "#53bdeb",
+                              display: "flex",
+                              alignItems: "center",
+                            }}
                           >
-                            <path
-                              fill="currentColor"
-                              d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"
-                            ></path>
-                          </svg>
+                            {/* Doble Check Azul */}
+                            <svg
+                              viewBox="0 0 18 18"
+                              height="18"
+                              width="18"
+                              preserveAspectRatio="xMidYMid meet"
+                              version="1.1"
+                              x="0px"
+                              y="0px"
+                              enableBackground="new 0 0 18 18"
+                            >
+                              <path
+                                fill="currentColor"
+                                d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"
+                              ></path>
+                            </svg>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <p

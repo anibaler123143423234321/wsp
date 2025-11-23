@@ -497,17 +497,22 @@
   border-radius: 0;
 }
 
-/* Cuando el mensaje es propio (.is-own), el menú debe alinearse a la IZQUIERDA del botón
-   para que crezca hacia la derecha (hacia el centro de la pantalla) */
+/* 2. Menú Desplegable en Mensajes Propios -> ABRE HACIA LA IZQUIERDA */
 .message-row.is-own .slack-dropdown-menu {
-  right: auto !important;
-  /* Deja de empujar hacia la izquierda */
-  left: 0 !important;
-  /* Pégate al borde izquierdo del botón */
+  right: 0 !important;
+  /* El borde derecho se pega al botón */
+  left: auto !important;
+  /* Crece hacia la izquierda */
   text-align: left !important;
-  /* Asegura que el texto del menú se lea normal */
-  transform-origin: top left;
-  /* La animación sale desde la esquina correcta */
+  transform-origin: top right;
+
+  /* 🔥 AJUSTE DE ANCHO (Para que no sea gigante) */
+  min-width: 150px;
+  /* Mínimo razonable */
+  width: max-content;
+  /* Se ajusta al texto (no ocupa todo el ancho) */
+  max-width: 250px;
+  /* Límite para que no sea eterno */
 }
 
 /* Asegurar que el Toolbar tenga z-index suficiente para flotar sobre todo */
@@ -575,12 +580,8 @@
 
 /* --- 3. COLUMNA CENTRAL (Contenido) --- */
 .message-main-content {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  /* Centra verticalmente si es una sola línea */
+  position: relative !important;
+  /* Referencia clave */
 }
 
 /* Header: Nombre + Hora (Solo inicio de grupo) */
@@ -594,8 +595,8 @@
 
 .sender-name {
   font-weight: 700;
-  font-size: 14px;
-  cursor: pointer;
+  font-size: 12.5px !important;
+  /* Antes era 14px */
   line-height: 1.2;
 }
 
@@ -604,27 +605,32 @@
 }
 
 .header-timestamp {
-  font-size: 11px;
+  font-size: 10px !important;
+  /* Antes era 11px */
   color: #6b7280;
-  margin-top: 1px;
-  /* Ajuste fino óptico */
+  margin-top: 2px;
 }
 
 /* Cuerpo del Texto */
 .message-text-body {
-  font-size: 15px;
-  line-height: 1.5;
+  font-size: 13.5px !important;
+  /* Antes era 15px */
+  line-height: 1.4;
+  /* Un poco más ajustado */
   color: #1d1c1d;
-  word-wrap: break-word;
-  /* Sin fondo por defecto para mensajes de otros */
 }
 
+.read-by-avatars-container,
+.mx_ReadReceiptGroup {
+  bottom: 2px !important;
+  /* Pegado al borde inferior */
+}
 
 /* --- 4. TOOLBAR FLOTANTE (Acciones) --- */
 .action-toolbar {
   position: absolute;
-  right: 16px;
-  top: -14px;
+  top: -28px !important;
+  right: 12px !important;
   /* Flota un poco sobre el borde superior */
   background-color: #ffffff;
   border: 1px solid #e5e7eb;
@@ -666,20 +672,23 @@
 }
 
 
-/* --- 5. MENÚ DESPLEGABLE (Dropdown) --- */
+/* Ajuste general del menú para que sea compacto */
 .slack-dropdown-menu {
   position: absolute;
-  right: 0;
   background: white;
-  min-width: 200px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  padding: 6px 0;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  padding: 4px 0;
   z-index: 9999;
   display: flex;
   flex-direction: column;
-  animation: fadeIn 0.1s ease-out;
+
+  /* Por defecto (mensajes de otros) */
+  right: auto;
+  left: 0;
+  min-width: 150px;
+  width: max-content;
 }
 
 .slack-dropdown-menu .menu-item {
@@ -775,14 +784,14 @@
   max-width: fit-content;
 }
 
-/* 6. Toolbar invertido (a la izquierda) */
+/* 1. Toolbar en Mensajes Propios -> A LA DERECHA */
 .message-row.is-own .action-toolbar {
-  right: auto;
-  /* Anular derecha */
-  left: 16px;
-  /* Poner a la izquierda */
-  flex-direction: row-reverse;
-  /* (Opcional) Invertir orden de botones */
+  right: 16px !important;
+  /* Pegado a la derecha (cerca de tu avatar/mensaje) */
+  left: auto !important;
+  /* Soltar la izquierda */
+  flex-direction: row;
+  /* Orden normal de iconos */
 }
 
 /* 7. Ajuste de la barra de respuesta para mensajes propios */
@@ -926,23 +935,24 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  padding: 2px 6px;
-  border-radius: 16px;
-  /* Borde muy redondeado */
+  gap: 4px;
+  padding: 4px 8px;
+  /* Un poco más de espacio */
+  border-radius: 12px;
   cursor: pointer;
-  height: 22px;
-  min-width: 34px;
+  height: auto;
+  /* Permitir que se ajuste */
+  min-height: 24px;
+  min-width: 38px;
 
-  /* Estilos visuales para que parezca un sticker pegado */
+  /* 🔥 AQUÍ ESTABA EL ERROR: Cambiamos a colores oscuros */
   background-color: #ffffff;
-  /* Fondo blanco (o gris claro si es tema oscuro) */
-  border: 1px solid #e5e7eb;
-  /* Borde sutil */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-  /* Sombrita para dar profundidad */
+  color: #111b21;
+  /* Texto negro/gris oscuro (antes era blanco) */
+  border: 1px solid #d1d7db;
 
-  transition: transform 0.1s;
+  transition: transform 0.1s, background-color 0.2s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
   user-select: none;
 }
 
@@ -1091,14 +1101,8 @@
 }
 
 .date-separator-content {
-  background: #e5e7eb;
-  color: #6b7280;
-  padding: 6px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  text-align: center;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  font-size: 12px !important;
+  padding: 4px 12px;
 }
 
 /* Mensajes de información */
@@ -1110,14 +1114,10 @@
 
 .info-content,
 .error-content {
-  background-color: rgba(255, 255, 255, 0.1);
-  padding: 8px 16px;
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #8696a0;
+  font-size: 12px !important;
+  /* Antes 13px */
+  padding: 6px 12px;
+  /* Menos relleno */
 }
 
 .error-content {
@@ -1207,6 +1207,7 @@
 }
 
 .message-input {
+  font-size: 10.5px !important;
   flex: 1 1 auto;
   background: #FAFAFA;
   border: none;
@@ -1972,55 +1973,168 @@
 
 /* ... al final de ChatContent.css ... */
 
-/* Estilo de Hilo en una sola línea (Estilo Matrix/Element) */
+/* ============================================================
+   🔥 HILO DESPLEGABLE (EFECTO ACORDEÓN)
+   ============================================================ */
+
 .mx_ThreadSummaryLine {
   display: flex;
   align-items: center;
-  flex-direction: row;
-  /* Fuerza una sola línea */
-  flex-wrap: nowrap;
-  gap: 4px;
+  gap: 0;
+  /* El gap lo manejamos internamente */
   margin-top: 6px;
-  padding: 2px 0;
+
+  /* Estilo base de la cápsula */
+  background-color: #ffffff;
+  /* Fondo blanco limpio */
+  padding: 4px 8px;
+  /* Padding inicial ajustado */
+  border-radius: 18px;
+  /* Bien redondeado */
+
   cursor: pointer;
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-size: 12px;
-  line-height: 1.5;
-  white-space: nowrap;
-  /* Evita saltos de línea */
+  width: fit-content;
+  max-width: 100%;
+
+  /* Sombra suave para que resalte sobre el fondo gris del chat */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
-  text-overflow: ellipsis;
-  transition: opacity 0.2s;
+  /* Clave para el efecto de desplegar */
+  z-index: 10;
 }
 
+/* Hover general del contenedor */
 .mx_ThreadSummaryLine:hover {
-  opacity: 0.8;
+  background-color: #f8fafc;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-color: #d1d5db;
+  padding-right: 12px;
+  /* Dar espacio extra a la derecha al abrir */
+}
+
+/* --- PARTE VISIBLE (SIEMPRE) --- */
+.thread-always-visible {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.thread-icon-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.thread-notification-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 7px;
+  height: 7px;
+  background-color: #00a884;
+  border-radius: 50%;
+  border: 1px solid #fff;
 }
 
 .mx_ThreadCounter {
-  color: #00a884;
-  /* Verde WhatsApp para el contador */
-  fontWeight: 600;
+  color: #54656f;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* --- PARTE EXPANDIBLE (DETALLES) --- */
+.thread-expanded-details {
   display: flex;
   align-items: center;
-  gap: 4px;
+
+  /* ESTADO INICIAL: CERRADO */
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(-10px);
+
+  /* Animación suave */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ESTADO HOVER: ABIERTO */
+.mx_ThreadSummaryLine:hover .thread-expanded-details {
+  max-width: 200px;
+  /* Suficiente para mostrar el nombre */
+  opacity: 1;
+  transform: translateX(0);
+  margin-left: 8px;
+  /* Separación al abrirse */
+}
+
+/* Elementos internos */
+.thread-vertical-line {
+  width: 1px;
+  height: 12px;
+  background-color: #d1d5db;
+  margin-right: 8px;
+}
+
+.thread-last-user {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.thread-avatar-placeholder {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
 }
 
 .mx_ThreadLastReply {
-  color: #6b7280;
-  /* Gris secundario (estilo Matrix) */
-  font-style: italic;
+  font-size: 11px;
+  color: #374151;
+  font-weight: 500;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 150px;
-  /* Limita el ancho del nombre si es muy largo */
 }
 
-/* Separador pequeño */
-.mx_ThreadSeparator {
-  color: #9ca3af;
-  font-size: 10px;
+/* ============================================================
+   📍 POSICIONAMIENTO CORREGIDO
+   ============================================================ */
+
+/* REGLA: El contenedor padre (.message-main-content) es un flex-column.
+   Para alinear elementos hijos (como el hilo) usamos align-self.
+*/
+
+/* 1. Mensajes de OTROS (Izquierda) */
+.message-row:not(.is-own) .mx_ThreadSummaryLine {
+  align-self: flex-start;
+  /* Se pega a la izquierda */
+  border-top-left-radius: 4px;
+  /* Estilo visual: esquina conectada al chat */
+}
+
+/* 2. Mensajes PROPIOS (Derecha) */
+.message-row.is-own .mx_ThreadSummaryLine {
+  align-self: flex-end;
+  /* 🔥 SE PEGA A LA DERECHA (Debajo de tu burbuja verde) */
+  flex-direction: row;
+  /* Mantiene el orden: Icono -> Texto */
+  border-top-right-radius: 4px;
+  /* Estilo visual: esquina conectada a tu chat */
+  background-color: #f0f2f5;
+  /* Un gris muy sutil para diferenciar de tu burbuja verde */
+}
+
+/* Ajuste específico para cuando tus mensajes tienen el hilo abierto */
+.message-row.is-own .mx_ThreadSummaryLine:hover {
+  background-color: #ffffff;
 }
 
 /* Reacciones Compactas */
@@ -2058,4 +2172,277 @@
   font-weight: 600;
   color: #54656f;
   line-height: 1;
+}
+
+/* ============================================================
+   🔥 AVATARES DE HILO (CORRECCIÓN VISUAL)
+   ============================================================ */
+
+.thread-row-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  width: fit-content;
+  position: relative;
+  z-index: 5;
+}
+
+/* Zona de avatares */
+.thread-face-pile {
+  display: flex;
+  align-items: center;
+  flex-direction: row-reverse;
+  /* 🔥 FORZAR TAMAÑO: Asegura que el contenedor nunca mida 0 */
+  min-width: 26px;
+  min-height: 26px;
+  margin-left: 4px;
+  /* Separarlo un poco del botón */
+}
+
+/* El círculo del avatar */
+.thread-mini-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  background-color: #e2e8f0;
+  /* Color de fondo por si la imagen falla */
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+
+  /* Asegurar visibilidad */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+/* Estilo de la Inicial (Placeholder) */
+.thread-mini-avatar.placeholder {
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  /* El background lo maneja React dinámicamente, pero ponemos uno base por si acaso */
+  background: #667eea;
+}
+
+.thread-mini-avatar:first-child {
+  margin-left: 0;
+}
+
+/* ============================================================
+   🔥 AVATARES DE LECTURA (Clases corregidas)
+   ============================================================ */
+
+/* Contenedor Principal: Posicionado absoluto en la esquina del mensaje */
+.read-by-avatars-container {
+  position: absolute;
+  bottom: -10px;
+  /* Flota justo debajo del mensaje */
+  height: 14px;
+  z-index: 5;
+  user-select: none;
+}
+
+/* Zona Clickable (Donde están las bolitas) */
+.read-receipts-trigger {
+  position: relative;
+  height: 14px;
+  cursor: pointer;
+  pointer-events: auto;
+  /* Asegura que reciba el click */
+}
+
+/* La Bolita Individual (14px exactos) */
+.mini-read-avatar {
+  position: absolute;
+  top: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 0 0 1px #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 8px;
+  font-weight: bold;
+  transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* 2. CASO A: Mensajes de OTROS (Alineados a la Izquierda en pantalla) */
+/* Los avatares deben ir a la DERECHA de la burbuja */
+.message-row:not(.is-own) .read-by-avatars-container {
+  right: 0;
+  left: auto;
+}
+
+/* 3. CASO B: Mensajes PROPIOS (Alineados a la Derecha en pantalla) */
+/* Los avatares deben ir a la IZQUIERDA de la burbuja (lado interior) */
+.message-row.is-own .read-by-avatars-container {
+  left: 0;
+  /* 🔥 ESTO ES LO QUE FALTABA: Pegarse a la izquierda del contenedor del mensaje */
+  right: auto;
+  /* Anular la derecha */
+}
+
+/* Zona Clickable */
+.read-receipts-trigger {
+  position: relative;
+  height: 14px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* Efecto al pasar el mouse por una bolita */
+.mini-read-avatar:hover {
+  transform: scale(1.5);
+  z-index: 100 !important;
+  box-shadow: 0 0 0 1px #cbd5e1;
+}
+
+.read-receipts-popover {
+  position: absolute;
+  bottom: 24px;
+  /* Encima de las bolitas */
+  width: 240px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e5e7eb;
+  z-index: 9999;
+  padding: 8px 0;
+  text-align: left;
+  animation: fadeIn 0.15s ease-out;
+}
+
+/* Estilos internos del popover */
+.popover-header {
+  padding: 0 12px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.popover-list {
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.popover-item {
+  display: flex;
+  gap: 10px;
+  padding: 6px 12px;
+  align-items: center;
+  border-radius: 6px;
+  cursor: default;
+}
+
+.popover-item:hover {
+  background: #f9fafb;
+}
+
+.popover-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #eee;
+}
+
+.popover-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.popover-avatar-initial {
+  width: 100%;
+  height: 100%;
+  background: #667eea;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.popover-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.popover-status {
+  font-size: 11px;
+  color: #00a884;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Asegurar espacio en el mensaje */
+.message-row {
+  padding-right: 60px !important;
+  position: relative;
+}
+
+.read-receipts-popover {
+  position: absolute;
+  bottom: 22px;
+  /* Encima de las bolitas */
+  width: 240px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e5e7eb;
+  z-index: 9999;
+  padding: 8px 0;
+  text-align: left;
+  animation: fadeIn 0.15s ease-out;
+}
+
+/* Alineación del Popover para OTROS (Sale hacia la izquierda para no salirse) */
+.message-row:not(.is-own) .read-receipts-popover {
+  right: -10px;
+  left: auto;
+}
+
+.message-row.is-own .read-receipts-popover {
+  right: -5px;
+  /* Pegado al borde derecho (encima de las bolitas) */
+  left: auto;
+  /* Libera la izquierda para que crezca hacia allá */
+}
+
+/* 1. PARA MENSAJES DE OTROS (Alineados a la Izquierda) */
+/* El popover se ancla a la derecha del contenedor de avatares para no tapar el mensaje si es corto, 
+   o puedes usar left:0 si prefieres que salga hacia la derecha. 
+   Aquí usaremos right: -10px para que quede alineado con las bolitas. */
+.message-row:not(.is-own) .read-receipts-popover {
+  right: -10px;
+  left: auto;
 }

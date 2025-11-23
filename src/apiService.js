@@ -838,10 +838,16 @@ class ApiService {
   }
 
   // 🔥 NUEVO: Obtener mensajes entre usuarios ordenados por ID (para evitar problemas con sentAt corrupto)
-  async getUserMessagesOrderedById(from, to, limit = 10, offset = 0) {
+  async getUserMessagesOrderedById(from, to, limit = 10, offset = 0, isGroup = false, roomCode = null) {
     try {
+      let url = `${this.baseChatUrl}api/messages/user/${from}/${to}/by-id?limit=${limit}&offset=${offset}`;
+
+      // 🔥 Agregar parámetros de filtro si existen
+      if (isGroup !== undefined) url += `&isGroup=${isGroup}`;
+      if (roomCode) url += `&roomCode=${roomCode}`;
+
       const response = await this.fetchWithAuth(
-        `${this.baseChatUrl}api/messages/user/${from}/${to}/by-id?limit=${limit}&offset=${offset}`,
+        url,
         {
           method: "GET",
         }
@@ -898,10 +904,15 @@ class ApiService {
   }
 
   // 🔥 NUEVO: Obtener mensajes de una sala ordenados por ID (para evitar problemas con sentAt corrupto)
-  async getRoomMessagesOrderedById(roomCode, limit = 10, offset = 0) {
+  async getRoomMessagesOrderedById(roomCode, limit = 10, offset = 0, isGroup = true) {
     try {
+      let url = `${this.baseChatUrl}api/messages/room/${roomCode}/by-id?limit=${limit}&offset=${offset}`;
+
+      // 🔥 Agregar parámetros de filtro
+      if (isGroup !== undefined) url += `&isGroup=${isGroup}`;
+
       const response = await fetch(
-        `${this.baseChatUrl}api/messages/room/${roomCode}/by-id?limit=${limit}&offset=${offset}`,
+        url,
         {
           method: "GET",
           headers: {
@@ -977,10 +988,15 @@ class ApiService {
   }
 
   // 🔥 NUEVO: Obtener un mensaje específico por ID (para mensajes fijados antiguos)
-  async getMessageById(messageId) {
+  async getMessageById(messageId, roomCode = null) {
     try {
+      let url = `${this.baseChatUrl}api/messages/${messageId}`;
+      if (roomCode) {
+        url += `?roomCode=${roomCode}`;
+      }
+
       const response = await this.fetchWithAuth(
-        `${this.baseChatUrl}api/messages/${messageId}`,
+        url,
         {
           method: "GET",
         }
@@ -1147,7 +1163,6 @@ class ApiService {
       return []; // Retornar array vacío en caso de error
     }
   }
-
   // Obtener TODAS las conversaciones asignadas (solo para admin)
   async getAllAssignedConversations() {
     try {

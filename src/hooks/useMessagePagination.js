@@ -32,7 +32,8 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         historicalMessages = await apiService.getRoomMessagesOrderedById(
           roomCode,
           MESSAGES_PER_PAGE,
-          0
+          0,
+          isGroup // 🔥 Pasar isGroup
         );
       } else {
         // 🔥 Cargar mensajes entre usuarios ordenados por ID (para evitar problemas con sentAt corrupto)
@@ -40,7 +41,9 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
           username,
           to,
           MESSAGES_PER_PAGE,
-          0
+          0,
+          isGroup, // 🔥 Pasar isGroup
+          roomCode // 🔥 Pasar roomCode (aunque sea null/undefined)
         );
 
         // 🔥 NO marcar automáticamente como leída al cargar mensajes
@@ -146,7 +149,8 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         historicalMessages = await apiService.getRoomMessagesOrderedById(
           roomCode,
           MESSAGES_PER_PAGE,
-          currentOffset.current
+          currentOffset.current,
+          isGroup // 🔥 Pasar isGroup
         );
       } else {
         // 🔥 Cargar más mensajes entre usuarios ordenados por ID
@@ -154,7 +158,9 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
           username,
           to,
           MESSAGES_PER_PAGE,
-          currentOffset.current
+          currentOffset.current,
+          isGroup, // 🔥 Pasar isGroup
+          roomCode // 🔥 Pasar roomCode (aunque sea null/undefined)
         );
       }
 

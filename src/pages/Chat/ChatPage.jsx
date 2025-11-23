@@ -153,11 +153,17 @@ const ChatPage = () => {
         console.log(`📌 Mensaje fijado ${pinId} no está en lista. Buscando en API...`);
         try {
           const fetchedMsg = await apiService.getMessageById(pinId);
-          if (fetchedMsg) {
+
+          // 🔥 VALIDACIÓN DE SEGURIDAD: Verificar que el mensaje pertenezca a la sala actual
+          if (fetchedMsg && fetchedMsg.roomCode === chatState.currentRoomCodeRef.current) {
             setPinnedMessageObject(fetchedMsg);
+          } else {
+            console.warn(`⚠️ Mensaje fijado ${pinId} pertenece a otra sala (${fetchedMsg?.roomCode}). Ignorando.`);
+            setPinnedMessageObject(null);
           }
         } catch (err) {
           console.error("Error cargando mensaje fijado:", err);
+          setPinnedMessageObject(null);
         }
       }
     };
@@ -417,7 +423,8 @@ const ChatPage = () => {
     clearMessages(); // Limpiar mensajes primero
     setAdminViewConversation(null); // Limpiar vista de admin
     setReplyingTo(null); // 🔥 Limpiar estado de respuesta
-
+    setPinnedMessageId(group.pinnedMessageId || null);
+    setPinnedMessageObject(null); // 🔥 Limpiar objeto mensaje fijado
     // Establecer nuevo estado
     setTo(group.name);
     setIsGroup(true);
@@ -440,7 +447,8 @@ const ChatPage = () => {
     currentRoomCodeRef.current = null;
     setAdminViewConversation(null); // Limpiar vista de admin
     setReplyingTo(null); // 🔥 Limpiar estado de respuesta
-
+    setPinnedMessageId(null);
+    setPinnedMessageObject(null);
     setTo(username);
   };
 
@@ -477,7 +485,8 @@ const ChatPage = () => {
         chatState.setRoomUsers([]);
         chatState.setAdminViewConversation(null);
         chatState.setReplyingTo(null);
-
+        setPinnedMessageId(null);
+        setPinnedMessageObject(null);
         // Limpiar mensajes visualmente
         clearMessages();
 
