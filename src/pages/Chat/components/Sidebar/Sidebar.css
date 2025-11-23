@@ -40,9 +40,5 @@
   }
 }
 
-/* En 768px y menos: ocultar el contenedor desktop */
-@media (max-width: 768px) {
-  .sidebar-responsive-container {
-    display: none !important;
-  }
-}
+/* 🔥 ELIMINADO EL BLOQUE QUE OCULTABA TODO EN MOBILE */
+/* En mobile, el ancho se controla mediante clases de Tailwind (w-full) en Sidebar.jsx */

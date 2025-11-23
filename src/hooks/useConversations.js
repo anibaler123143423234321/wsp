@@ -347,30 +347,21 @@ export const useConversations = (
     );
 
     // Effect para cargar conversaciones asignadas
+    // Effect para cargar conversaciones asignadas
     useEffect(() => {
         if (!isAuthenticated || !username) {
             return;
         }
 
+        // ✅ FIX: Verificar si ya tenemos conversaciones cargadas para no repetir
+        if (chatState.assignedConversations.length > 0) return;
+
         const timeoutId = setTimeout(() => {
-            loadAssignedConversations();
+            loadAssignedConversations(1); // Cargar solo página 1
         }, 1000);
 
         return () => clearTimeout(timeoutId);
-    }, [isAuthenticated, username, loadAssignedConversations]);
-
-    // Effect para cargar conversaciones de monitoreo (solo ADMIN)
-    useEffect(() => {
-        if (!isAuthenticated || !username || user?.role !== 'ADMIN') {
-            return;
-        }
-
-        const timeoutId = setTimeout(() => {
-            loadMonitoringConversations(1);
-        }, 1500);
-
-        return () => clearTimeout(timeoutId);
-    }, [isAuthenticated, username, user?.role, loadMonitoringConversations]);
+    }, [isAuthenticated, username, loadAssignedConversations, chatState.assignedConversations.length]); // Agregamos length a dependencias
 
     return {
         loadAssignedConversations,

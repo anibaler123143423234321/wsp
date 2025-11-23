@@ -24,7 +24,7 @@ export const useSocketListeners = (
         loadAssignedConversations, loadMyActiveRooms, clearMessages
     } = messageFunctions;
 
-    const { username, user, isAdmin } = authData;
+    const { username, user } = authData;
 
     useEffect(() => {
         if (!socket) return;
@@ -80,82 +80,243 @@ export const useSocketListeners = (
         // =====================================================
         s.on("message", (data) => {
             let timeString = data.time || new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+            const messageText = data.text || data.message || (data.fileName ? "📎 Archivo" : "");
 
             const currentFullName = currentUserFullNameRef.current;
             const isOwnMessage = data.from === username || data.from === currentFullName;
 
-            // Filtro: ¿Pertenece al chat abierto?
-            let shouldAdd = false;
+            // ------------------------------------------------
+            // 🔥 LÓGICA DE NOTIFICACIONES Y SONIDO (RESTAURADA)
+            // ------------------------------------------------
+            if (!isOwnMessage) {
+                // 1. Reproducir sonido
+                playMessageSound(true);
+
+                // 2. Verificar Menciones (@)
+                const isMentioned = data.isGroup && data.hasMention;
+
+                if (isMentioned) {
+                    // Alerta especial para menciones
+                    Swal.fire({
+                        icon: "warning",
+                        title: "📢 ¡Te mencionaron!",
+                        html: `
+                          <strong>${data.from}</strong> te mencionó en <strong>${data.groupName || data.group || "un grupo"}</strong>
+                          <br><br>
+                          <em>"${messageText.substring(0, 100)}${messageText.length > 100 ? "..." : ""}"</em>
+                        `,
+                        showConfirmButton: true,
+                        confirmButtonText: "Ir al grupo",
+                        confirmButtonColor: "#dc2626",
+                        showCancelButton: true,
+                        cancelButtonText: "Cerrar",
+                        allowOutsideClick: false
+                    }).then((result) => {
+                        if (result.isConfirmed && data.roomCode) {
+                            window.dispatchEvent(new CustomEvent("navigateToMention", {
+                                detail: { roomCode: data.roomCode, messageId: data.id }
+                            }));
+                        }
+                    });
+                } else {
+                    // 3. Notificación Toast Normal (Bottom-Right)
+                    let messageOrigin = data.isGroup ? `📁 ${data.groupName || data.group || "Grupo"}` : "💬 Chat individual";
+                    let messageTitle = data.isGroup ? `${data.from} en ${data.groupName}` : `Nuevo mensaje de ${data.from}`;
+
+                    Swal.fire({
+                        toast: true,
+                        position: "bottom-end",
+                        icon: "info",
+                        title: messageTitle,
+                        html: `
+                          <div style="text-align: left; font-size: 13px; margin-bottom: 10px;">
+                            <div style="color: #666; margin-bottom: 4px;">${messageOrigin}</div>
+                            <div style="color: #333;">${messageText.substring(0, 60)}${messageText.length > 60 ? "..." : ""}</div>
+                          </div>
+                        `,
+                        showConfirmButton: true,
+                        confirmButtonText: "Ver",
+                        confirmButtonColor: "#dc2626",
+                        showCancelButton: true,
+                        cancelButtonText: "✕",
+                        timer: 5000,
+                        timerProgressBar: true
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            if (data.isGroup) {
+                                window.dispatchEvent(new CustomEvent("navigateToGroup", {
+                                    detail: { roomCode: data.roomCode, groupName: data.groupName }
+                                }));
+                            } else {
+                                window.dispatchEvent(new CustomEvent("navigateToChat", {
+                                    detail: { username: data.from }
+                                }));
+                            }
+                        }
+                    });
+                }
+            }
+
+            // ------------------------------------------------
+            // 🔥 LÓGICA DE ACTUALIZACIÓN DE UI Y LISTAS
+            // ------------------------------------------------
             const currentTo = toRef.current;
             const currentRoom = currentRoomCodeRef.current;
             const currentIsGroup = isGroupRef.current;
 
+            let isChatOpen = false;
+
+            // --- CASO A: GRUPOS ---
             if (data.isGroup) {
                 if (currentIsGroup && currentRoom === data.roomCode) {
-                    shouldAdd = true;
-                } else {
-                    // Notificación de fondo para grupos
-                    if (data.roomCode) {
-                        setUnreadMessages(prev => ({ ...prev, [data.roomCode]: (prev[data.roomCode] || 0) + 1 }));
-                        setMyActiveRooms(prev => prev.map(r => r.roomCode === data.roomCode ? {
-                            ...r, lastMessage: { text: data.message, from: data.from, time: timeString },
-                            lastMessageFrom: data.from, lastMessageTime: timeString
-                        } : r));
-                    }
-                    if (!isOwnMessage) playMessageSound(true);
+                    isChatOpen = true;
                 }
+
+                if (isChatOpen) {
+                    addNewMessage({
+                        ...data,
+                        id: data.id,
+                        sender: isOwnMessage ? "Tú" : data.from,
+                        realSender: data.from,
+                        isSent: isOwnMessage,
+                        isSelf: isOwnMessage,
+                        time: timeString,
+                        text: messageText,
+                        mediaType: data.mediaType,
+                        mediaData: data.mediaData,
+                        fileName: data.fileName,
+                        type: data.type,
+                        videoCallUrl: data.videoCallUrl,
+                        videoRoomID: data.videoRoomID,
+                        metadata: data.metadata
+                    });
+                } else {
+                    // Si NO está abierto y NO es mío, aumentar contador local
+                    if (!isOwnMessage && data.roomCode) {
+                        setUnreadMessages(prev => ({ ...prev, [data.roomCode]: (prev[data.roomCode] || 0) + 1 }));
+                    }
+                }
+
+                // ACTUALIZAR SIDEBAR (myActiveRooms)
+                if (data.roomCode) {
+                    setMyActiveRooms(prev => prev.map(r => {
+                        if (r.roomCode === data.roomCode) {
+                            return {
+                                ...r,
+                                lastMessage: {
+                                    text: messageText,
+                                    from: data.from,
+                                    time: timeString,
+                                    mediaType: data.mediaType,
+                                    fileName: data.fileName
+                                },
+                                lastMessageFrom: data.from,
+                                lastMessageTime: timeString
+                            };
+                        }
+                        return r;
+                    }));
+                }
+
+                // --- CASO B: CHATS INDIVIDUALES ---
             } else {
-                // Chat 1 a 1
                 const chatPartner = currentTo?.toLowerCase().trim();
                 const msgFrom = data.from?.toLowerCase().trim();
                 const msgTo = data.to?.toLowerCase().trim();
 
                 if (chatPartner && (chatPartner === msgFrom || chatPartner === msgTo)) {
-                    shouldAdd = true;
-                } else {
-                    // Actualizar preview en lista de asignados si no está abierto
-                    setAssignedConversations(prev => prev.map(conv => {
-                        const participants = conv.participants || [];
-                        const isThisConv = participants.some(p => p.toLowerCase() === msgFrom) &&
-                            participants.some(p => p.toLowerCase() === msgTo);
-                        if (isThisConv) {
-                            return { ...conv, lastMessage: data.message, lastMessageTime: data.sentAt, unreadCount: (conv.unreadCount || 0) + 1 };
-                        }
-                        return conv;
-                    }));
-                    if (!isOwnMessage) playMessageSound(true);
+                    isChatOpen = true;
                 }
-            }
 
-            if (shouldAdd) {
-                addNewMessage({
-                    ...data,
-                    id: data.id,
-                    sender: isOwnMessage ? "Tú" : data.from,
-                    realSender: data.from,
-                    isSent: isOwnMessage,
-                    isSelf: isOwnMessage,
-                    time: timeString,
-                    // 🔥 AQUÍ ESTÁ EL FIX: Asignar message a text
-                    text: data.text || data.message || "",
+                if (isChatOpen) {
+                    addNewMessage({
+                        ...data,
+                        id: data.id,
+                        sender: isOwnMessage ? "Tú" : data.from,
+                        realSender: data.from,
+                        isSent: isOwnMessage,
+                        isSelf: isOwnMessage,
+                        time: timeString,
+                        text: messageText,
+                        mediaType: data.mediaType,
+                        mediaData: data.mediaData,
+                        fileName: data.fileName,
+                        type: data.type,
+                        videoCallUrl: data.videoCallUrl,
+                        videoRoomID: data.videoRoomID,
+                        metadata: data.metadata
+                    });
+                }
 
-                    // Resto de propiedades igual...
-                    mediaType: data.mediaType,
-                    mediaData: data.mediaData,
-                    fileName: data.fileName,
-                    type: data.type,
-                    videoCallUrl: data.videoCallUrl,
-                    videoRoomID: data.videoRoomID,
-                    metadata: data.metadata
-                });
+                // Actualizar Sidebar (assignedConversations)
+                setAssignedConversations(prev => prev.map(conv => {
+                    const participants = conv.participants || [];
+                    const participantsLower = participants.map(p => p?.toLowerCase().trim());
+                    const isThisConv = participantsLower.includes(msgFrom) || participantsLower.includes(msgTo);
+
+                    if (isThisConv) {
+                        return {
+                            ...conv,
+                            lastMessage: messageText,
+                            lastMessageTime: data.sentAt || new Date().toISOString(),
+                            lastMessageFrom: data.from,
+                            lastMessageMediaType: data.mediaType,
+                            unreadCount: (!isChatOpen && !isOwnMessage) ? (conv.unreadCount || 0) + 1 : 0
+                        };
+                    }
+                    return conv;
+                }));
             }
         });
 
         // =====================================================
-        // 4. MONITOREO (ADMIN)
+        // 4. EVENTOS DE ACTUALIZACIÓN DE CONTADORES (BACKEND)
+        // =====================================================
+        s.on("unreadCountUpdate", (data) => {
+            // data = { roomCode, count, lastMessage }
+
+            // 1. Actualizar contador rojo
+            if (data.roomCode !== currentRoomCodeRef.current && data.count > 0) {
+                setUnreadMessages(prev => ({ ...prev, [data.roomCode]: (prev[data.roomCode] || 0) + data.count }));
+                // Reproducir sonido también aquí por si acaso (seguridad extra)
+                playMessageSound(true);
+            }
+
+            // 2. Actualizar Sidebar (Respaldo del backend)
+            if (data.lastMessage) {
+                setMyActiveRooms((prevRooms) =>
+                    prevRooms.map((room) =>
+                        room.roomCode === data.roomCode
+                            ? {
+                                ...room,
+                                lastMessage: {
+                                    text: data.lastMessage.text || "",
+                                    from: data.lastMessage.from,
+                                    time: data.lastMessage.time,
+                                    sentAt: data.lastMessage.sentAt,
+                                    mediaType: data.lastMessage.mediaType || null,
+                                    fileName: data.lastMessage.fileName || null,
+                                },
+                                lastMessageFrom: data.lastMessage.from,
+                                lastMessageTime: data.lastMessage.time,
+                                lastMessageAt: data.lastMessage.sentAt,
+                            }
+                            : room
+                    )
+                );
+            }
+        });
+
+        s.on("unreadCountReset", (data) => {
+            setUnreadMessages((prev) => ({ ...prev, [data.roomCode]: 0 }));
+        });
+
+        // =====================================================
+        // 5. MONITOREO (ADMIN)
         // =====================================================
         s.on("monitoringMessage", (data) => {
-            // Actualizar lista de monitoreo en tiempo real
+            const messageText = data.text || data.message || (data.fileName ? "📎 Archivo" : "");
+
             setMonitoringConversations((prevConversations) => {
                 let conversationFound = false;
                 const dateTimeString = data.sentAt || new Date().toISOString();
@@ -170,22 +331,23 @@ export const useSocketListeners = (
                         conversationFound = true;
                         return {
                             ...conv,
-                            lastMessage: data.message || "",
+                            lastMessage: messageText,
                             lastMessageTime: dateTimeString,
                             lastMessageFrom: data.from,
+                            lastMessageMediaType: data.mediaType
                         };
                     }
                     return conv;
                 });
 
                 if (!conversationFound) {
-                    // Si es nueva, agregarla (lógica simplificada)
                     return [{
                         id: data.id || `temp-${Date.now()}`,
                         name: `${data.from} • ${data.to}`,
                         participants: [data.from, data.to],
-                        lastMessage: data.message,
+                        lastMessage: messageText,
                         lastMessageTime: dateTimeString,
+                        lastMessageMediaType: data.mediaType,
                         isGroup: false,
                         unreadCount: 0
                     }, ...updatedConversations];
@@ -195,9 +357,8 @@ export const useSocketListeners = (
         });
 
         // =====================================================
-        // 5. EVENTOS DE GESTIÓN Y NOTIFICACIONES
+        // 6. RESTO DE EVENTOS
         // =====================================================
-
         s.on("messageDeleted", (data) => {
             updateMessage(data.messageId, {
                 isDeleted: true,
@@ -238,7 +399,7 @@ export const useSocketListeners = (
             if (currentRoomCodeRef.current !== data.roomCode) {
                 showSuccessAlert("Agregado a sala", data.message);
             }
-            loadMyActiveRooms(); // Recargar lista de salas
+            loadMyActiveRooms();
         });
 
         s.on("removedFromRoom", (data) => {
@@ -300,12 +461,6 @@ export const useSocketListeners = (
             }
         });
 
-        s.on("unreadCountUpdate", (data) => {
-            if (data.roomCode !== currentRoomCodeRef.current) {
-                setUnreadMessages(prev => ({ ...prev, [data.roomCode]: (prev[data.roomCode] || 0) + data.count }));
-            }
-        });
-
         s.on("videoCallEnded", (data) => {
             updateMessage(null, {
                 videoRoomID: data.roomID,
@@ -319,7 +474,7 @@ export const useSocketListeners = (
             s.off("userJoinedRoom"); s.off("message"); s.off("messageDeleted");
             s.off("messageEdited"); s.off("newConversationAssigned");
             s.off("userTyping"); s.off("roomTyping"); s.off("roomCreated");
-            s.off("conversationRead"); s.off("unreadCountUpdate");
+            s.off("conversationRead"); s.off("unreadCountUpdate"); s.off("unreadCountReset");
             s.off("videoCallEnded"); s.off("kicked"); s.off("roomDeactivated");
             s.off("addedToRoom"); s.off("removedFromRoom"); s.off("monitoringMessage");
             s.off("reactionUpdated"); s.off("threadCountUpdated");

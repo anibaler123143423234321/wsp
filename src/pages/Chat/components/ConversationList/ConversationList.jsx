@@ -219,13 +219,29 @@ const ConversationList = ({
   }, [userList]);
 
   useEffect(() => {
+    if (activeModule === 'monitoring' && onLoadMonitoringConversations) {
+      // Solo cargar si la lista está vacía o queremos refrescar al entrar
+      if (monitoringConversations.length === 0) {
+        onLoadMonitoringConversations(1);
+      }
+    }
+  }, [activeModule]); // Se ejecuta cada vez que cambias de pestaña
+
+  useEffect(() => {
     let isMounted = true;
     const loadFavorites = async () => {
       const displayName = getDisplayName();
+
+      // ✅ FIX: Si ya tenemos favoritos cargados y el usuario es el mismo, no recargar
       if (!displayName || !isMounted) return;
+
+      // Evitar llamada si ya se hizo recientemente (opcional, pero recomendado)
+      if (favoriteRoomCodes.length > 0 && favoriteConversationIds.length > 0) return;
+
       try {
         const roomCodes = await apiService.getUserFavoriteRoomCodes(displayName);
         if (isMounted) setFavoriteRoomCodes(roomCodes);
+
         const conversationIds = await apiService.getUserFavoriteConversationIds(displayName);
         if (isMounted) setFavoriteConversationIds(conversationIds);
       } catch (error) {
@@ -234,7 +250,7 @@ const ConversationList = ({
     };
     loadFavorites();
     return () => { isMounted = false; };
-  }, [user]);
+  }, [user?.id]); // 🔥 CAMBIO IMPORTANTE: Usar user.id en vez de todo el objeto user
 
   const handleToggleFavorite = async (room, e) => {
     e.stopPropagation();

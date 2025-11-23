@@ -1,6 +1,6 @@
 import { useRef, useEffect } from "react";
 import io from "socket.io-client";
-import apiService from "../apiService";
+import apiService from "../apiService"; // Asegúrate de que la ruta sea correcta
 
 export const useSocket = (isAuthenticated, username, user) => {
   const socket = useRef(null);
@@ -14,14 +14,17 @@ export const useSocket = (isAuthenticated, username, user) => {
       connectionTimeout.current = null;
     }
 
+    // Validaciones básicas antes de conectar
     if (!isAuthenticated || !username || !user) {
       return;
     }
 
+    // Si ya está conectado, no hacer nada
     if (socket.current?.connected) {
       return;
     }
 
+    // Evitar múltiples intentos simultáneos
     if (isConnecting.current) {
       return;
     }
@@ -30,50 +33,46 @@ export const useSocket = (isAuthenticated, username, user) => {
 
     const connectSocket = () => {
       try {
-        // Usar variable de entorno o fallback
+        // Usar variable de entorno o fallback a producción
         const socketUrl = import.meta.env.VITE_SOCKET_URL || "https://apisozarusac.com";
-        //const socketUrl = import.meta.env.VITE_SOCKET_URL || "http://localhost:8747";
 
         socket.current = io(socketUrl, {
           transports: ["websocket", "polling"],
           timeout: 10000,
-          //path: "/socket.io/",
-          path: "/BackendChat/socket.io/",
+          path: "/BackendChat/socket.io/", // Ruta específica de tu backend
           forceNew: true,
           reconnection: true,
-          reconnectionAttempts: Infinity, // Intentar reconectar indefinidamente
+          reconnectionAttempts: Infinity,
           reconnectionDelay: 1000,
           reconnectionDelayMax: 5000,
           randomizationFactor: 0.5,
           autoConnect: true,
         });
 
-        // Timeout para la conexión
+        // Timeout de seguridad por si la conexión se queda colgada
         connectionTimeout.current = setTimeout(() => {
           if (socket.current && !socket.current.connected) {
+            console.warn("⚠️ Timeout de conexión socket agotado, desconectando...");
             isConnecting.current = false;
             socket.current.disconnect();
           }
         }, 15000);
 
-        socket.current.on("connect", async () => {
+        // =================================================
+        // EVENTO: CONNECT
+        // =================================================
+        socket.current.on("connect", () => {
           clearTimeout(connectionTimeout.current);
           isConnecting.current = false;
+          console.log("✅ Socket conectado:", socket.current.id);
+
           const displayName =
             user.nombre && user.apellido
               ? `${user.nombre} ${user.apellido}`
               : user.username || user.email;
 
-          // 🔥 Obtener conversaciones asignadas antes de registrar
-          let assignedConversations = [];
-          try {
-            const result = await apiService.getAssignedConversationsPaginated(1, 100); // Obtener todas las conversaciones
-            assignedConversations = result.conversations || [];
-            // console.log(`✅ Conversaciones asignadas obtenidas: ${assignedConversations.length}`);
-          } catch (error) {
-            console.error("❌ Error al obtener conversaciones asignadas:", error);
-          }
-
+          // 🔥 OPTIMIZADO: Solo enviamos datos del usuario.
+          // Ya NO enviamos la lista gigante de conversaciones.
           socket.current.emit("register", {
             username: displayName,
             userData: {
@@ -88,10 +87,10 @@ export const useSocket = (isAuthenticated, username, user) => {
               picture: user.picture || null,
               numeroAgente: user.numeroAgente || null,
             },
-            assignedConversations, // 🔥 Enviar conversaciones asignadas
+            // assignedConversations: [] // Eliminado para evitar sobrecarga
           });
 
-          // Emitir evento personalizado para notificar la conexión
+          // Notificar a la app que el socket está listo
           window.dispatchEvent(
             new CustomEvent("socketConnected", {
               detail: { socket: socket.current },
@@ -99,43 +98,19 @@ export const useSocket = (isAuthenticated, username, user) => {
           );
         });
 
-        socket.current.on("disconnect", () => {
-          isConnecting.current = false;
-          clearTimeout(connectionTimeout.current);
-        });
-
-        socket.current.on("connect_error", (error) => {
-          console.error("Error de conexión Socket.IO:", error);
-          isConnecting.current = false;
-          clearTimeout(connectionTimeout.current);
-        });
-
-        socket.current.on("error", (error) => {
-          console.error("Error en Socket.IO:", error);
-          isConnecting.current = false;
-          clearTimeout(connectionTimeout.current);
-        });
-
-        socket.current.on("reconnect", async (attemptNumber) => {
-          // console.log(`✅ Socket reconectado después de ${attemptNumber} intentos`);
+        // =================================================
+        // EVENTO: RECONNECT
+        // =================================================
+        socket.current.on("reconnect", (attemptNumber) => {
+          console.log(`🔄 Socket reconectado (intento ${attemptNumber})`);
           isConnecting.current = false;
 
-          // Re-registrar usuario después de reconectar
           const displayName =
             user.nombre && user.apellido
               ? `${user.nombre} ${user.apellido}`
               : user.username || user.email;
 
-          // 🔥 Obtener conversaciones asignadas antes de re-registrar
-          let assignedConversations = [];
-          try {
-            const result = await apiService.getAssignedConversationsPaginated(1, 100); // Obtener todas las conversaciones
-            assignedConversations = result.conversations || [];
-            // console.log(`✅ Conversaciones asignadas obtenidas en reconexión: ${assignedConversations.length}`);
-          } catch (error) {
-            console.error("❌ Error al obtener conversaciones asignadas en reconexión:", error);
-          }
-
+          // Re-registrar usuario de forma ligera
           socket.current.emit("register", {
             username: displayName,
             userData: {
@@ -150,24 +125,31 @@ export const useSocket = (isAuthenticated, username, user) => {
               picture: user.picture || null,
               numeroAgente: user.numeroAgente || null,
             },
-            assignedConversations, // 🔥 Enviar conversaciones asignadas
           });
         });
 
-        socket.current.on("reconnect_attempt", (attemptNumber) => {
-          // console.log(`🔄 Intento de reconexión #${attemptNumber}`);
+        // =================================================
+        // OTROS EVENTOS DE ESTADO
+        // =================================================
+        socket.current.on("disconnect", (reason) => {
+          console.log("🔌 Socket desconectado:", reason);
+          isConnecting.current = false;
+          clearTimeout(connectionTimeout.current);
         });
 
-        socket.current.on("reconnect_error", (error) => {
-          console.error("Error de reconexión:", error);
+        socket.current.on("connect_error", (error) => {
+          console.error("❌ Error de conexión Socket.IO:", error.message);
+          isConnecting.current = false;
+          clearTimeout(connectionTimeout.current);
         });
 
-        socket.current.on("reconnect_failed", () => {
-          console.error("Falló la reconexión del socket");
+        socket.current.on("error", (error) => {
+          console.error("❌ Error genérico en Socket.IO:", error);
           isConnecting.current = false;
         });
+
       } catch (error) {
-        console.error("Error al conectar Socket.IO:", error);
+        console.error("❌ Error crítico al inicializar Socket.IO:", error);
         isConnecting.current = false;
         clearTimeout(connectionTimeout.current);
       }
@@ -178,35 +160,37 @@ export const useSocket = (isAuthenticated, username, user) => {
     // Manejar cierre de ventana/pestaña
     const handleBeforeUnload = () => {
       if (socket.current && socket.current.connected) {
-        // Desconectar el socket de forma síncrona
         socket.current.disconnect();
       }
     };
 
-    // Manejar visibilidad de la página (importante para mobile)
+    // Manejar visibilidad (re-conectar al volver a la pestaña)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         if (socket.current && !socket.current.connected) {
+          console.log("👀 Pestaña visible, intentando reconectar socket...");
           socket.current.connect();
         }
       }
     };
 
-    // Agregar listeners
     window.addEventListener('beforeunload', handleBeforeUnload);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
+    // Cleanup al desmontar el hook
     return () => {
       clearTimeout(connectionTimeout.current);
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+
       if (socket.current) {
+        console.log("🛑 Desmontando useSocket, desconectando...");
         socket.current.disconnect();
         socket.current = null;
       }
       isConnecting.current = false;
     };
-  }, [isAuthenticated, username, user]);
+  }, [isAuthenticated, username, user]); // Re-ejecutar solo si cambia el usuario
 
   return socket.current;
 };

@@ -4,20 +4,7 @@ import './Sidebar.css';
 
 /**
  * Sidebar - Componente principal del sidebar
- * 
- * Estructura simplificada y modular:
- * - LeftSidebar: Menú azul izquierdo (233.22px)
- *   - Chat corporativo (título)
- *   - Avatar y nombre de usuario
- *   - Botones de módulos (solo para ADMIN/JEFEPISO)
- *   - Footer (Configuración y Cerrar sesión)
- * 
- * - ConversationList: Lista de conversaciones derecha (436.63px)
- *   - Pestañas (Conversaciones, Salas Activas, Chats Asignados)
- *   - Barra de búsqueda
- *   - Lista de conversaciones/salas/chats asignados
- * 
- * Total width: 669.85px (233.22px + 436.63px)
+ * Unificado para evitar duplicidad de renderizado y llamadas a API.
  */
 const Sidebar = ({
   user,
@@ -51,8 +38,7 @@ const Sidebar = ({
   sidebarCollapsed,
   onToggleCollapse,
   roomTypingUsers = {},
-  showSidebar = false, // 🔥 NUEVO: Para controlar el overlay del LeftSidebar en mobile
-  // 🔥 NUEVOS PROPS para paginación real
+  showSidebar = false,
   assignedPage = 1,
   assignedTotal = 0,
   assignedTotalPages = 0,
@@ -69,113 +55,77 @@ const Sidebar = ({
 }) => {
   return (
     <>
-      {/* Desktop: Ambos sidebars juntos */}
+      {/* Contenedor Principal (Desktop & Mobile Container) */}
       <div
-        className={`flex flex-row h-screen overflow-hidden max-[768px]:hidden bg-white sidebar-responsive-container ${sidebarCollapsed ? 'collapsed' : ''}`}
+        className={`flex flex-row h-screen overflow-hidden bg-white sidebar-responsive-container ${sidebarCollapsed ? 'collapsed' : ''} ${
+          // En móvil, si hay chat seleccionado ('to' existe), ocultamos todo el sidebar container
+          to ? 'max-[768px]:hidden' : 'max-[768px]:w-full max-[768px]:flex'
+          }`}
         style={{
           borderRight: '1.3px solid #EEEEEE'
         }}
       >
 
-        {/* Sidebar izquierdo - Menú azul (233.22px) */}
-        <LeftSidebar
-          user={user}
-          onShowCreateRoom={onShowCreateRoom}
-          onShowJoinRoom={onShowJoinRoom}
-          onShowAdminRooms={onShowAdminRooms}
-          onShowCreateConversation={onShowCreateConversation}
-          onShowManageConversations={onShowManageConversations}
-          showAdminMenu={showAdminMenu}
-          setShowAdminMenu={setShowAdminMenu}
-          onLogout={onLogout}
-          onToggleSidebar={onToggleSidebar}
-          isCollapsed={sidebarCollapsed}
-          onToggleCollapse={onToggleCollapse}
-        />
+        {/* Sidebar izquierdo - Menú azul (Visible en Desktop, Oculto en Mobile) */}
+        <div className="max-[768px]:hidden h-full">
+          <LeftSidebar
+            user={user}
+            onShowCreateRoom={onShowCreateRoom}
+            onShowJoinRoom={onShowJoinRoom}
+            onShowAdminRooms={onShowAdminRooms}
+            onShowCreateConversation={onShowCreateConversation}
+            onShowManageConversations={onShowManageConversations}
+            showAdminMenu={showAdminMenu}
+            setShowAdminMenu={setShowAdminMenu}
+            onLogout={onLogout}
+            onToggleSidebar={onToggleSidebar}
+            isCollapsed={sidebarCollapsed}
+            onToggleCollapse={onToggleCollapse}
+          />
+        </div>
 
-        {/* Lista de conversaciones - Columna derecha (436.63px) */}
-        <ConversationList
-          user={user}
-          userList={userList}
-          assignedConversations={assignedConversations}
-          monitoringConversations={monitoringConversations}
-          monitoringPage={monitoringPage}
-          monitoringTotal={monitoringTotal}
-          monitoringTotalPages={monitoringTotalPages}
-          monitoringLoading={monitoringLoading}
-          onLoadMonitoringConversations={onLoadMonitoringConversations}
-          myActiveRooms={myActiveRooms}
-          currentRoomCode={currentRoomCode}
-          isGroup={isGroup}
-          onUserSelect={onUserSelect}
-          onRoomSelect={onRoomSelect}
-          unreadMessages={unreadMessages}
-          onToggleSidebar={onToggleSidebar}
-          userListHasMore={userListHasMore}
-          userListLoading={userListLoading}
-          onLoadMoreUsers={onLoadMoreUsers}
-          roomTypingUsers={roomTypingUsers}
-          assignedPage={assignedPage}
-          assignedTotal={assignedTotal}
-          assignedTotalPages={assignedTotalPages}
-          assignedLoading={assignedLoading}
-          onLoadAssignedConversations={onLoadAssignedConversations}
-          roomsPage={roomsPage}
-          roomsTotal={roomsTotal}
-          roomsTotalPages={roomsTotalPages}
-          roomsLoading={roomsLoading}
-          onLoadUserRooms={onLoadUserRooms}
-          roomsLimit={roomsLimit}
-          onRoomsLimitChange={onRoomsLimitChange}
-          onGoToRoomsPage={onGoToRoomsPage}
-        />
+        {/* Lista de conversaciones - (Visible siempre que el contenedor padre lo esté) */}
+        {/* 🔥 AL TENER SOLO UNA INSTANCIA AQUÍ, ELIMINAMOS LAS LLAMADAS DUPLICADAS */}
+        <div className="flex-1 h-full min-w-0">
+          <ConversationList
+            user={user}
+            userList={userList}
+            assignedConversations={assignedConversations}
+            monitoringConversations={monitoringConversations}
+            monitoringPage={monitoringPage}
+            monitoringTotal={monitoringTotal}
+            monitoringTotalPages={monitoringTotalPages}
+            monitoringLoading={monitoringLoading}
+            onLoadMonitoringConversations={onLoadMonitoringConversations}
+            myActiveRooms={myActiveRooms}
+            currentRoomCode={currentRoomCode}
+            isGroup={isGroup}
+            onUserSelect={onUserSelect}
+            onRoomSelect={onRoomSelect}
+            unreadMessages={unreadMessages}
+            onToggleSidebar={onToggleSidebar}
+            userListHasMore={userListHasMore}
+            userListLoading={userListLoading}
+            onLoadMoreUsers={onLoadMoreUsers}
+            roomTypingUsers={roomTypingUsers}
+            assignedPage={assignedPage}
+            assignedTotal={assignedTotal}
+            assignedTotalPages={assignedTotalPages}
+            assignedLoading={assignedLoading}
+            onLoadAssignedConversations={onLoadAssignedConversations}
+            roomsPage={roomsPage}
+            roomsTotal={roomsTotal}
+            roomsTotalPages={roomsTotalPages}
+            roomsLoading={roomsLoading}
+            onLoadUserRooms={onLoadUserRooms}
+            roomsLimit={roomsLimit}
+            onRoomsLimitChange={onRoomsLimitChange}
+            onGoToRoomsPage={onGoToRoomsPage}
+          />
+        </div>
       </div>
 
-      {/* Mobile: Solo ConversationList */}
-      {/* Se oculta cuando hay un chat seleccionado (to existe) */}
-      {!to && (
-        <div className="hidden max-[768px]:block fixed inset-0 overflow-hidden">
-          <div className="w-full h-screen bg-white">
-            <ConversationList
-              user={user}
-              userList={userList}
-              assignedConversations={assignedConversations}
-              monitoringConversations={monitoringConversations}
-              monitoringPage={monitoringPage}
-              monitoringTotal={monitoringTotal}
-              monitoringTotalPages={monitoringTotalPages}
-              monitoringLoading={monitoringLoading}
-              onLoadMonitoringConversations={onLoadMonitoringConversations}
-              myActiveRooms={myActiveRooms}
-              currentRoomCode={currentRoomCode}
-              isGroup={isGroup}
-              onUserSelect={onUserSelect}
-              onRoomSelect={onRoomSelect}
-              unreadMessages={unreadMessages}
-              onToggleSidebar={onToggleSidebar}
-              userListHasMore={userListHasMore}
-              userListLoading={userListLoading}
-              onLoadMoreUsers={onLoadMoreUsers}
-              roomTypingUsers={roomTypingUsers}
-              assignedPage={assignedPage}
-              assignedTotal={assignedTotal}
-              assignedTotalPages={assignedTotalPages}
-              assignedLoading={assignedLoading}
-              onLoadAssignedConversations={onLoadAssignedConversations}
-              roomsPage={roomsPage}
-              roomsTotal={roomsTotal}
-              roomsTotalPages={roomsTotalPages}
-              roomsLoading={roomsLoading}
-              onLoadUserRooms={onLoadUserRooms}
-              roomsLimit={roomsLimit}
-              onRoomsLimitChange={onRoomsLimitChange}
-              onGoToRoomsPage={onGoToRoomsPage}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* LeftSidebar overlay para mobile */}
+      {/* LeftSidebar overlay para mobile (Solo visible cuando se abre el menú en mobile) */}
       <div className={`hidden max-[768px]:block fixed left-0 top-0 h-full z-[101] transition-transform duration-300 ease-in-out ${showSidebar ? 'translate-x-0' : '-translate-x-full'}`}>
         <LeftSidebar
           user={user}
@@ -197,4 +147,3 @@ const Sidebar = ({
 };
 
 export default Sidebar;
-
