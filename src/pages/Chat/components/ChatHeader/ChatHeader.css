@@ -425,7 +425,7 @@
 .menu-toggle-btn:hover {
   background: rgba(0, 168, 132, 0.15);
   border-color: rgba(0, 168, 132, 0.5);
-  color: #008f6b;
+  color: #ff453a6b;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 168, 132, 0.2);
 }
@@ -726,7 +726,7 @@
 }
 
 .enable-sounds-btn:hover {
-  background: #008f73;
+  background: #ff453a73;
   transform: translateY(-1px);
 }
 

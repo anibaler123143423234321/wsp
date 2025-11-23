@@ -467,7 +467,7 @@ const ConversationList = ({
                 const conversationName = isGroupMsg ? msg.roomCode : msg.to;
                 const messagePreview = msg.message || (msg.fileName ? `📎 ${msg.fileName}` : 'Archivo');
                 return (
-                  <div key={msg.id} className="flex items-start gap-3 p-3 mb-2 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors" onClick={() => {
+                  <div key={msg.id} className="flex items-start gap-3 p-3 mb-2 bg-red-50 border border-red-200 rounded-lg cursor-pointer hover:bg-red-100 transition-colors" onClick={() => {
                     if (isGroupMsg) {
                       const room = myActiveRooms?.find(r => r.roomCode === msg.roomCode);
                       if (room && onRoomSelect) onRoomSelect(room, msg.id);
@@ -475,7 +475,7 @@ const ConversationList = ({
                       onUserSelect(msg.to, null, msg.id);
                     }
                   }}>
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-200 flex items-center justify-center text-lg">{isGroupMsg ? '👥' : '💬'}</div>
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-200 flex items-center justify-center text-lg">{isGroupMsg ? '👥' : '💬'}</div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1"><span className="font-semibold text-sm text-gray-800" style={{ fontFamily: 'Inter, sans-serif' }}>{conversationName}</span><span className="text-xs text-gray-500">{isGroupMsg ? 'Grupo' : 'Chat'}</span></div>
                       <p className="text-xs text-gray-700 truncate" style={{ fontFamily: 'Inter, sans-serif' }}>{messagePreview}</p>
@@ -538,11 +538,11 @@ const ConversationList = ({
                           <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px' }}>
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-2 flex-1 min-w-0">
-                                {isFavorite && <span className="flex-shrink-0 text-yellow-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '11px', fontFamily: 'Inter, sans-serif', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-yellow-500" /> Fijado</span>}
+                                {isFavorite && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '11px', fontFamily: 'Inter, sans-serif', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-red-500" /> Fijado</span>}
                                 <h3 className="font-semibold text-[#111] truncate flex-1" style={{ fontSize: '11.5px', lineHeight: '14px', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{room.name}</h3>
                                 {roomUnreadCount > 0 && <div className="flex-shrink-0 rounded-full bg-[#00a884] text-white flex items-center justify-center ml-2" style={{ minWidth: '18px', height: '18px', fontSize: '10px', fontWeight: 'bold', padding: roomUnreadCount > 99 ? '0 4px' : '0' }}>{roomUnreadCount > 99 ? '99+' : roomUnreadCount}</div>}
                               </div>
-                              <button onClick={(e) => handleToggleFavorite(room, e)} className="flex-shrink-0 p-1 hover:bg-gray-200 rounded-full transition-colors" style={{ color: isFavorite ? '#fbbf24' : '#9ca3af', fontSize: '16px' }}>{isFavorite ? <FaStar /> : <FaRegStar />}</button>
+                              <button onClick={(e) => handleToggleFavorite(room, e)} className="flex-shrink-0 p-1 hover:bg-gray-200 rounded-full transition-colors" style={{ color: isFavorite ? '#ff453a' : '#9ca3af', fontSize: '16px' }}>{isFavorite ? <FaStar /> : <FaRegStar />}</button>
                             </div>
                             <div className="flex items-center justify-between gap-2">
                               {isTypingInRoom ? (
@@ -648,10 +648,10 @@ const ConversationList = ({
                         <div className="flex-1 min-w-0 flex flex-col overflow-visible relative" style={{ gap: '4px', overflow: 'visible', position: 'relative' }}>
                           <div className="flex items-start justify-between gap-2 overflow-visible relative" style={{ overflow: 'visible', position: 'relative' }}>
                             <div className="flex flex-col gap-1 flex-1 min-w-0">
-                              {isFavorite && <span className="flex-shrink-0 text-yellow-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '11px', fontFamily: 'Inter, sans-serif', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-yellow-500" /> Fijado</span>}
+                              {isFavorite && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '11px', fontFamily: 'Inter, sans-serif', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-red-500" /> Fijado</span>}
                               <div className="flex items-center gap-2 w-full min-w-0">
                                 <h3 className="font-semibold text-[#111] flex-1 min-w-0 truncate" style={{ fontSize: '11.5px', lineHeight: '14px', fontFamily: 'Inter, sans-serif', fontWeight: 600, maxWidth: '100%' }} title={displayName}>{displayName}</h3>
-                                <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-1 rounded-full hover:bg-gray-200 transition-all duration-200 opacity-0 group-hover:opacity-100" style={{ opacity: isFavorite ? 1 : undefined }} title={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}>{isFavorite ? <FaStar className="text-yellow-500" size={14} /> : <FaRegStar className="text-gray-400" size={14} />}</button>
+                                <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-1 rounded-full hover:bg-gray-200 transition-all duration-200 opacity-0 group-hover:opacity-100" style={{ opacity: isFavorite ? 1 : undefined }} title={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}>{isFavorite ? <FaStar className="text-red-500" size={14} /> : <FaRegStar className="text-gray-400" size={14} />}</button>
                               </div>
                             </div>
                             {conv.lastMessageTime && <span className="conversation-timestamp">{(() => { const timeMatch = conv.lastMessageTime.match(/T(\d{2}):(\d{2})/); return timeMatch ? `${timeMatch[1]}:${timeMatch[2]}` : ''; })()}</span>}
@@ -691,8 +691,8 @@ const ConversationList = ({
                   const conversationName = isGroupMsg ? msg.roomCode : msg.to;
                   const messagePreview = msg.message || (msg.fileName ? `📎 ${msg.fileName}` : 'Archivo');
                   return (
-                    <div key={msg.id} className="flex items-start gap-3 p-3 mb-2 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors" onClick={() => { if (isGroupMsg) { const room = myActiveRooms?.find(r => r.roomCode === msg.roomCode); if (room && onRoomSelect) onRoomSelect(room, msg.id); } else { onUserSelect(msg.to, null, msg.id); } }}>
-                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-200 flex items-center justify-center text-lg">{isGroupMsg ? '👥' : '💬'}</div>
+                    <div key={msg.id} className="flex items-start gap-3 p-3 mb-2 bg-red-50 border border-red-200 rounded-lg cursor-pointer hover:bg-red-100 transition-colors" onClick={() => { if (isGroupMsg) { const room = myActiveRooms?.find(r => r.roomCode === msg.roomCode); if (room && onRoomSelect) onRoomSelect(room, msg.id); } else { onUserSelect(msg.to, null, msg.id); } }}>
+                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-200 flex items-center justify-center text-lg">{isGroupMsg ? '👥' : '💬'}</div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1"><span className="font-semibold text-sm text-gray-800" style={{ fontFamily: 'Inter, sans-serif' }}>{conversationName}</span><span className="text-xs text-gray-500">{isGroupMsg ? 'Grupo' : 'Chat'}</span></div>
                         <p className="text-xs text-gray-700 truncate" style={{ fontFamily: 'Inter, sans-serif' }}>{messagePreview}</p>
@@ -740,10 +740,10 @@ const ConversationList = ({
                         <div className="flex-1 min-w-0 flex flex-col relative" style={{ gap: '2px', position: 'relative' }}>
                           <div className="flex items-start justify-between gap-2 w-full min-w-0 relative" style={{ position: 'relative' }}>
                             <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                              {isFavorite && <span className="flex-shrink-0 text-yellow-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '10px', fontFamily: 'Inter, sans-serif', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-yellow-500" /> Fijado</span>}
+                              {isFavorite && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '10px', fontFamily: 'Inter, sans-serif', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-red-500" /> Fijado</span>}
                               <div className="flex items-center gap-1 w-full min-w-0">
                                 <div className="flex-1 min-w-0"><p className="font-semibold text-[#111]" style={{ fontSize: '11.5px', lineHeight: '14px', fontFamily: 'Inter, sans-serif', fontWeight: 600, width: '100%', minWidth: 0, maxWidth: '100%', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }} title={`${participant1Name} • ${participant2Name}`}>{participant1Name} • {participant2Name}</p></div>
-                                <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-0.5 rounded-full hover:bg-gray-200 transition-all duration-200 opacity-0 group-hover:opacity-100" style={{ opacity: isFavorite ? 1 : undefined, width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}>{isFavorite ? <FaStar className="text-yellow-500" size={10} /> : <FaRegStar className="text-gray-400" size={10} />}</button>
+                                <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-0.5 rounded-full hover:bg-gray-200 transition-all duration-200 opacity-0 group-hover:opacity-100" style={{ opacity: isFavorite ? 1 : undefined, width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}>{isFavorite ? <FaStar className="text-red-500" size={10} /> : <FaRegStar className="text-gray-400" size={10} />}</button>
                               </div>
                             </div>
                             {conv.lastMessageTimestamp && <span className="conversation-timestamp" style={{ fontSize: '10px' }}>{conv.lastMessageTimestamp}</span>}
@@ -790,8 +790,8 @@ const ConversationList = ({
                   const conversationName = isGroupMsg ? msg.roomCode : msg.to;
                   const messagePreview = msg.message || (msg.fileName ? `📎 ${msg.fileName}` : 'Archivo');
                   return (
-                    <div key={msg.id} className="flex items-start gap-3 p-3 mb-2 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors" onClick={() => { if (isGroupMsg) { const room = myActiveRooms?.find(r => r.roomCode === msg.roomCode); if (room && onRoomSelect) onRoomSelect(room, msg.id); } else { onUserSelect(msg.to, null, msg.id); } }}>
-                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-200 flex items-center justify-center text-lg">{isGroupMsg ? '👥' : '💬'}</div>
+                    <div key={msg.id} className="flex items-start gap-3 p-3 mb-2 bg-red-50 border border-red-200 rounded-lg cursor-pointer hover:bg-red-100 transition-colors" onClick={() => { if (isGroupMsg) { const room = myActiveRooms?.find(r => r.roomCode === msg.roomCode); if (room && onRoomSelect) onRoomSelect(room, msg.id); } else { onUserSelect(msg.to, null, msg.id); } }}>
+                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-200 flex items-center justify-center text-lg">{isGroupMsg ? '👥' : '💬'}</div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1"><span className="font-semibold text-sm text-gray-800" style={{ fontFamily: 'Inter, sans-serif' }}>{conversationName}</span><span className="text-xs text-gray-500">{isGroupMsg ? 'Grupo' : 'Chat'}</span></div>
                         <p className="text-xs text-gray-700 truncate" style={{ fontFamily: 'Inter, sans-serif' }}>{messagePreview}</p>

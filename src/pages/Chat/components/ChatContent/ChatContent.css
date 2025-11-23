@@ -1096,13 +1096,13 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 20px 0;
-  padding: 0 16px;
+  margin: 10px 0;
+  padding: 0 5px;
 }
 
 .date-separator-content {
   font-size: 12px !important;
-  padding: 4px 12px;
+  padding: 4px 5px;
 }
 
 /* Mensajes de información */

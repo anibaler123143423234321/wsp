@@ -1,7 +1,11 @@
-/* Banner de mensaje fijado */
+/* PinnedMessageBanner.css */
+
+/* Banner de mensaje fijado - Fondo Gris Claro #f0f2f5 */
 .pinned-message-banner {
-  background: linear-gradient(135deg, #fff9e6 0%, #fff4d6 100%);
-  border-bottom: 1px solid #f0e5c0;
+  background-color: #f0f2f5;
+  /* El color que pediste */
+  border-bottom: 1px solid #d1d7db;
+  /* Borde sutil para separar del chat */
   padding: 10px 16px;
   display: flex;
   align-items: center;
@@ -10,35 +14,34 @@
   transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .pinned-message-banner:hover {
-  background: linear-gradient(135deg, #fff4d6 0%, #ffefc0 100%);
+  background-color: #e9edef;
+  /* Un poco más oscuro al pasar el mouse */
 }
 
+/* ELIMINADO: Barra lateral de color */
 .pinned-message-banner::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+  display: none;
 }
 
+/* Ícono de la chincheta (Pin) */
 .pinned-icon {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: rgba(245, 158, 11, 0.15);
+  background: transparent;
+  /* Fondo invisible */
   border-radius: 50%;
-  color: #d97706;
-  font-size: 14px;
+  color: #54656f;
+  /* Gris oscuro para el ícono */
+  font-size: 16px;
   flex-shrink: 0;
-  margin-left: 4px;
+  margin-left: 0;
 }
 
 .pinned-content {
@@ -49,17 +52,20 @@
   gap: 2px;
 }
 
+/* Cabecera (Etiqueta + Nombre + Hora) */
 .pinned-header {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #92400e;
+  color: #54656f;
+  /* Gris medio */
   font-weight: 600;
 }
 
 .pinned-label {
-  color: #d97706;
+  color: #54656f;
+  /* Verde WhatsApp (o puedes usar gris oscuro #374151) */
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -67,49 +73,60 @@
 }
 
 .pinned-sender {
-  color: #92400e;
+  color: #111b21;
+  /* Negro suave para el nombre */
   font-weight: 600;
 }
 
 .pinned-time {
-  color: #b45309;
+  color: #667781;
+  /* Gris para la hora */
   font-weight: 500;
 }
 
+/* Texto del mensaje */
 .pinned-text {
-  color: #1f2937;
+  color: #3b4a54;
+  /* Gris oscuro para el texto */
   font-size: 14px;
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .pinned-file {
-  color: #3b82f6;
+  color: #54656f;
   font-weight: 600;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
+/* Botón de cerrar (X) */
 .pinned-unpin-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 28px;
   height: 28px;
-  background: rgba(239, 68, 68, 0.1);
+  background: transparent;
   border: none;
   border-radius: 50%;
-  color: #dc2626;
-  font-size: 12px;
+  color: #8696a0;
+  /* Gris claro */
+  font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
   flex-shrink: 0;
 }
 
 .pinned-unpin-btn:hover {
-  background: rgba(239, 68, 68, 0.2);
-  transform: scale(1.1);
+  background: rgba(0, 0, 0, 0.05);
+  /* Sombra suave al hover */
+  color: #374151;
 }
 
 .pinned-unpin-btn:active {
@@ -124,9 +141,9 @@
   }
 
   .pinned-icon {
-    width: 28px;
-    height: 28px;
-    font-size: 12px;
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
   }
 
   .pinned-header {
@@ -141,12 +158,6 @@
   .pinned-text {
     font-size: 13px;
   }
-
-  .pinned-unpin-btn {
-    width: 24px;
-    height: 24px;
-    font-size: 11px;
-  }
 }
 
 @media (max-width: 480px) {
@@ -155,30 +166,19 @@
     gap: 8px;
   }
 
-  .pinned-icon {
-    width: 24px;
-    height: 24px;
-    font-size: 11px;
-  }
-
   .pinned-header {
     font-size: 10px;
-    flex-wrap: wrap;
   }
 
-  .pinned-sender,
-  .pinned-time {
+  .pinned-label {
     display: none;
   }
 
-  .pinned-text {
-    font-size: 12px;
-  }
-
-  .pinned-unpin-btn {
-    width: 22px;
-    height: 22px;
-    font-size: 10px;
+  .pinned-sender::before {
+    content: "Fijado • ";
+    opacity: 0.8;
+    font-weight: 400;
+    color: #00a884;
   }
 }
 
@@ -188,6 +188,7 @@
     transform: translateY(-100%);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;

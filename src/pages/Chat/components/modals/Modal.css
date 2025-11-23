@@ -182,12 +182,12 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #00a884, #008f6b);
+  background: linear-gradient(135deg, #00a884, #ff453a6b);
   color: white;
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #008f6b, #007a5a);
+  background: linear-gradient(135deg, #ff453a6b, #007a5a);
   transform: translateY(-1px);
 }
 
@@ -600,6 +600,11 @@
 
 /* Spinner animation */
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }

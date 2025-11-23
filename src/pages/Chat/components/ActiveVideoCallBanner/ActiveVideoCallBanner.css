@@ -1,5 +1,5 @@
 .active-video-call-banner {
-  background: linear-gradient(135deg, #00a884 0%, #008f6f 100%);
+  background: linear-gradient(135deg, #ff453a 0%, #ff453a 100%);
   padding: 8px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   animation: slideDown 0.3s ease-out;

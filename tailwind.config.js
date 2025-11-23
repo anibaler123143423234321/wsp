@@ -6,7 +6,7 @@ export default {
       colors: {
         whatsapp: {
           green: "#00a884",
-          "dark-green": "#008f6b",
+          "dark-green": "#ff453a6b",
           bg: "#111b21",
           sidebar: "#202c33",
           "message-sent": "#005c4b",

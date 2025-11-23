@@ -1354,7 +1354,7 @@ const ChatContent = ({
 
     // Color consistente del usuario (Necesitas asegurarte que getUserColor exista o usar un default)
     // Si no tienes la función getUserColor definida fuera, usa esta línea temporal:
-    const userColor = "#00a884";
+    const userColor = "#ff453a";
 
     const isMenuOpen = showMessageMenu === message.id;
     const isHighlighted = highlightedMessageId === message.id;
@@ -1404,7 +1404,7 @@ const ChatContent = ({
                     // 🔥 CORRECCIÓN: Si es mensaje propio, usamos user.picture. Si no, message.senderPicture.
                     background: (isOwnMessage ? user?.picture : message.senderPicture)
                       ? `url(${isOwnMessage ? user.picture : message.senderPicture}) center/cover`
-                      : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                      : "linear-gradient(135deg, #dc2626 0%, #dc2626 100%)",
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: 'white', fontWeight: 'bold', fontSize: '14px'
                   }}
@@ -1470,8 +1470,18 @@ const ChatContent = ({
                   />
                 ) : message.mediaType === 'video' ? (
                   <video
-                    src={message.mediaData} controls
-                    style={{ maxWidth: '350px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                    src={message.mediaData}
+                    controls
+                    // 🔥 CAMBIO AQUÍ: Añadimos maxHeight y backgroundColor
+                    style={{
+                      maxWidth: '600px',     // Reduje un poco el ancho
+                      maxHeight: '300px',    // 🔥 ESTO EVITA QUE SEA GIGANTE VERTICALMENTE
+                      width: 'auto',         // Mantiene la proporción
+                      height: 'auto',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: '#000' // Fondo negro para que se vea prolijo
+                    }}
                   />
                 ) : message.mediaType === 'audio' ? (
                   <AudioPlayer src={message.mediaData} fileName={message.fileName} />
@@ -1796,7 +1806,7 @@ const ChatContent = ({
                       right: `${rightPos}px`,
                       zIndex: idx + 1, // Asegura el orden de superposición visual
                       ...(userPic && { backgroundImage: `url(${userPic})` }),
-                      ...(!userPic && { background: `linear-gradient(135deg, #667eea 0%, #764ba2 100%)` })
+                      ...(!userPic && { background: `linear-gradient(135deg, #ff453a 0%, #ff453a 100%)` })
                     }}
                   >
                     {!userPic && typeof readerName === 'string' && readerName.charAt(0).toUpperCase()}
