@@ -12,6 +12,7 @@ import {
   FaCopy,
   FaThumbtack,
   FaDownload,
+  FaChevronRight,
 } from "react-icons/fa";
 import EmojiPicker from "emoji-picker-react";
 import LoadMoreMessages from "../LoadMoreMessages/LoadMoreMessages";
@@ -1331,31 +1332,38 @@ const ChatContent = ({
     const isErrorMessage = message.type === "error";
 
     // ==========================================
-    // 2. LÓGICA DE AGRUPACIÓN
+    // 2. LÓGICA DE AGRUPACIÓN (NUEVA)
     // ==========================================
     const previousMessage = index > 0 ? messages[index - 1] : null;
-    const isGroupedWithPrevious =
-      previousMessage &&
+    const nextMessage = index < messages.length - 1 ? messages[index + 1] : null;
+
+    const isSameSenderAsPrevious = previousMessage &&
       previousMessage.type !== "info" &&
       previousMessage.type !== "error" &&
       !previousMessage.isDeleted &&
-      (previousMessage.isSelf !== undefined
-        ? previousMessage.isSelf
-        : previousMessage.sender === "Tú" ||
-        previousMessage.sender === currentUsername) === isOwnMessage &&
+      (previousMessage.isSelf !== undefined ? previousMessage.isSelf : previousMessage.sender === "Tú" || previousMessage.sender === currentUsername) === isOwnMessage &&
       (previousMessage.sender === message.sender);
 
-    const nextMessage = index < messages.length - 1 ? messages[index + 1] : null;
-    const isGroupedWithNext =
-      nextMessage &&
+    const isSameSenderAsNext = nextMessage &&
       nextMessage.type !== "info" &&
       nextMessage.type !== "error" &&
       !nextMessage.isDeleted &&
-      (nextMessage.isSelf !== undefined
-        ? nextMessage.isSelf
-        : nextMessage.sender === "Tú" ||
-        nextMessage.sender === currentUsername) === isOwnMessage &&
+      (nextMessage.isSelf !== undefined ? nextMessage.isSelf : nextMessage.sender === "Tú" || nextMessage.sender === currentUsername) === isOwnMessage &&
       (nextMessage.sender === message.sender);
+
+    // Determinar clases de agrupación
+    let groupingClass = "";
+    if (isSameSenderAsPrevious && isSameSenderAsNext) {
+      groupingClass = "grouped-middle";
+    } else if (isSameSenderAsPrevious && !isSameSenderAsNext) {
+      groupingClass = "grouped-bottom";
+    } else if (!isSameSenderAsPrevious && isSameSenderAsNext) {
+      groupingClass = "grouped-top";
+    }
+
+    // Mantener compatibilidad temporal para el siguiente paso
+    const isGroupedWithPrevious = isSameSenderAsPrevious;
+    const isGroupedWithNext = isSameSenderAsNext;
 
     // ==========================================
     // 3. RENDERIZADO DE MENSAJES DE SISTEMA
@@ -1392,27 +1400,19 @@ const ChatContent = ({
     // ==========================================
     // 4. ESTILOS DE BORDE Y MARGEN
     // ==========================================
-    const borderTopLeft = isOwnMessage ? "17.11px" : isGroupedWithPrevious ? "2px" : "17.11px";
-    const borderBottomLeft = isOwnMessage ? "17.11px" : isGroupedWithNext ? "2px" : "17.11px";
-    const borderTopRight = isOwnMessage ? isGroupedWithPrevious ? "2px" : "17.11px" : "17.11px";
-    const borderBottomRight = isOwnMessage ? isGroupedWithNext ? "2px" : "17.11px" : "17.11px";
-    const marginTop = isGroupedWithPrevious ? "1px" : "8px";
+    // ==========================================
+    // 4. ESTILOS DE BORDE Y MARGEN
+    // ==========================================
+    // ==========================================
+    // 4. ESTILOS DE BORDE Y MARGEN (Manejados por CSS)
+    // ==========================================
 
     return (
       <div
         key={index}
         id={`message-${message.id}`}
-        className={`message ${isOwnMessage ? "own-message" : "other-message"} ${isHighlighted ? "highlighted-message" : ""}`}
+        className={`message ${isOwnMessage ? "own-message" : "other-message"} ${groupingClass} ${isHighlighted ? "highlighted-message" : ""}`}
         style={{
-          display: "flex",
-          alignItems: "flex-start", // Avatar arriba
-          marginTop: marginTop,
-          marginBottom: "0px",
-          padding: "0 8px",
-          gap: "6px",
-          transition: "all 0.3s ease",
-          overflow: "visible",
-          position: "relative",
           zIndex: isMenuOpen ? 1000 : 1,
         }}
       >
@@ -1432,7 +1432,8 @@ const ChatContent = ({
               flexShrink: 0,
               visibility: !isGroupedWithPrevious ? "visible" : "hidden",
               opacity: !isGroupedWithPrevious ? 1 : 0,
-              marginTop: "0px",
+              marginRight: "8px",
+              alignSelf: "flex-start",
             }}
           >
             {message.sender?.charAt(0).toUpperCase() || "👤"}
@@ -1449,13 +1450,10 @@ const ChatContent = ({
               ? isOwnMessage ? "#c9e8ba" : "#d4d2e0"
               : isOwnMessage ? "#E1F4D6" : "#E8E6F0",
             color: "#1f2937",
-            padding: "4px 10px",
-            paddingRight: message.isDeleted ? "10px" : "30px",
+            padding: "4px 8px",
+            paddingRight: message.isDeleted ? "10px" : "26px",
 
-            borderTopLeftRadius: borderTopLeft,
-            borderTopRightRadius: borderTopRight,
-            borderBottomLeftRadius: borderBottomLeft,
-            borderBottomRightRadius: borderBottomRight,
+            // Border radius handled by CSS classes
 
             minWidth: "80px",
             width: "fit-content",
@@ -1463,7 +1461,7 @@ const ChatContent = ({
             position: "relative",
             display: "flex",
             flexDirection: "column",
-            gap: "4.28px",
+            gap: "2px", // 🔥 Gap reducido entre elementos internos
             boxShadow: (isGroupedWithNext || isGroupedWithPrevious) && !isHighlighted ? "none" : "0 1px 0.5px rgba(0,0,0,.13)",
             wordWrap: "break-word",
             overflowWrap: "break-word",
@@ -1571,6 +1569,7 @@ const ChatContent = ({
                     }}
                   >
                     <button onClick={() => { if (window.handleReplyMessage) window.handleReplyMessage(message); setShowMessageMenu(null); }} style={{ width: "100%", padding: "10px 16px", backgroundColor: "transparent", border: "none", textAlign: "left", cursor: "pointer", fontSize: "14px", color: "#111", display: "flex", alignItems: "center", gap: "12px", transition: "background 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}><FaReply style={{ color: "#8696a0" }} /> Responder</button>
+                    {onOpenThread && (<button onClick={() => { onOpenThread(message); setShowMessageMenu(null); }} style={{ width: "100%", padding: "10px 16px", backgroundColor: "transparent", border: "none", textAlign: "left", cursor: "pointer", fontSize: "14px", color: "#111", display: "flex", alignItems: "center", gap: "12px", transition: "background 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}><FaComments style={{ color: "#8696a0" }} /> Responder en hilo</button>)}
                     <button onClick={async () => { try { let textToCopy = message.text || message.caption || message.fileName || ""; if (textToCopy) await navigator.clipboard.writeText(textToCopy); } catch (err) { console.error(err); } setShowMessageMenu(null); }} style={{ width: "100%", padding: "10px 16px", backgroundColor: "transparent", border: "none", textAlign: "left", cursor: "pointer", fontSize: "14px", color: "#111", display: "flex", alignItems: "center", gap: "12px" }} onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}><FaCopy style={{ color: "#8696a0" }} /> Copiar</button>
                     {message.mediaData && (<button onClick={() => { handleDownload(message.mediaData, message.fileName || "archivo"); setShowMessageMenu(null); }} style={{ width: "100%", padding: "10px 16px", backgroundColor: "transparent", border: "none", textAlign: "left", cursor: "pointer", fontSize: "14px", color: "#111", display: "flex", alignItems: "center", gap: "12px" }} onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}><FaDownload style={{ color: "#8696a0" }} /> Descargar</button>)}
                     {isGroup && onPinMessage && (isAdmin || window.userRole === 'JEFEPISO' || window.userRole === 'PROGRAMADOR' || window.userRole === 'SUPERVISOR') && (<button onClick={() => { onPinMessage(message); setShowMessageMenu(null); }} style={{ width: "100%", padding: "10px 16px", backgroundColor: "transparent", border: "none", textAlign: "left", cursor: "pointer", fontSize: "14px", color: pinnedMessageId === message.id ? "#d97706" : "#111", display: "flex", alignItems: "center", gap: "12px", fontWeight: pinnedMessageId === message.id ? "600" : "normal" }} onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}><FaThumbtack style={{ color: pinnedMessageId === message.id ? "#d97706" : "#8696a0" }} /> {pinnedMessageId === message.id ? "Dejar de fijar" : "Fijar mensaje"}</button>)}
@@ -1779,15 +1778,18 @@ const ChatContent = ({
           )}
 
           {/* ==================== HILO (THREAD) ==================== */}
-          {onOpenThread && !message.isDeleted && (
-            <div className="mx_ThreadSummaryLine" onClick={() => onOpenThread(message)} title="Ver hilo de respuestas">
-              <span className="mx_ThreadCounter"><FaComments style={{ fontSize: "14px" }} /> {message.threadCount > 0 ? `${message.threadCount} respuestas` : "Responder en hilo"}</span>
-              {message.lastReplyFrom && message.threadCount > 0 && <><span className="mx_ThreadSeparator">•</span><span className="mx_ThreadLastReply">última de {message.lastReplyFrom}</span></>}
+          {onOpenThread && !message.isDeleted && message.threadCount > 0 && (
+            <div className="thread-pill-container">
+              <div className="thread-pill" onClick={() => onOpenThread(message)} title="Ver hilo de respuestas">
+                <FaComments className="thread-pill-icon" />
+                <span className="thread-pill-count">{message.threadCount} respuestas</span>
+                <FaChevronRight className="thread-pill-arrow" />
+              </div>
             </div>
           )}
 
         </div>
-      </div>
+      </div >
     );
   };
 

@@ -464,6 +464,21 @@
   box-sizing: border-box;
 }
 
+/* Reducir espacio entre mensajes del mismo usuario */
+.message.grouped-top {
+  margin-bottom: 2px;
+}
+
+.message.grouped-middle {
+  margin-bottom: 2px;
+  margin-top: 0;
+}
+
+.message.grouped-bottom {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
 @keyframes messageSlideIn {
   from {
     opacity: 0;
