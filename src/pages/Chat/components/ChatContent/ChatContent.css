@@ -497,22 +497,47 @@
   border-radius: 0;
 }
 
-/* 2. Menú Desplegable en Mensajes Propios -> ABRE HACIA LA IZQUIERDA */
-.message-row.is-own .slack-dropdown-menu {
-  right: 0 !important;
-  /* El borde derecho se pega al botón */
-  left: auto !important;
-  /* Crece hacia la izquierda */
-  text-align: left !important;
-  transform-origin: top right;
+/* Estilo específico para la bolita de contador (+3) */
+.mini-read-avatar.counter-bubble {
+  background-image: none !important;
+  /* Asegura que no busque imagen */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  box-shadow: 0 0 0 1px #ffffff;
+  /* Borde blanco para separar visualmente */
+  z-index: 20 !important;
+  /* Siempre encima */
+}
 
-  /* 🔥 AJUSTE DE ANCHO (Para que no sea gigante) */
+/* Ajuste al pasar el mouse por el contador */
+.mini-read-avatar.counter-bubble:hover {
+  background-color: #d1d5db !important;
+  /* Un poco más oscuro al hover */
+  color: #374151;
+}
+
+/* Ajuste general del menú para que sea compacto */
+.slack-dropdown-menu {
+  position: absolute;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  padding: 4px 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+
+  /* 🔥 CORRECCIÓN: Alinear siempre a la derecha para que no se salga de la pantalla */
+  right: 0 !important;
+  /* Antes era 'auto' */
+  left: auto !important;
+  /* Antes era '0' */
+
   min-width: 150px;
-  /* Mínimo razonable */
   width: max-content;
-  /* Se ajusta al texto (no ocupa todo el ancho) */
-  max-width: 250px;
-  /* Límite para que no sea eterno */
 }
 
 /* Asegurar que el Toolbar tenga z-index suficiente para flotar sobre todo */
@@ -1814,18 +1839,28 @@
 }
 
 /* ==============================================
-   🔥 ESTILOS MODO GRABACIÓN (Voice Recorder) - SOLUCIÓN FINAL
+   🔥 ESTILOS MODO GRABACIÓN - CORREGIDO Y LIMPIO
    ============================================== */
 
-/* 1. El contenedor padre se convierte en una caja simple para dejar espacio */
+/* 1. Contenedor principal en modo grabación */
 .input-group.recording-mode {
-  display: block !important;
-  /* Quitamos flex para evitar colisiones raras, o usamos flex simple */
-  padding: 0 !important;
-  background: transparent !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  /* Separa los elementos a los extremos */
+  padding: 0 16px !important;
+  background-color: #ffffff !important;
+  /* Fondo blanco solido */
+  width: 100% !important;
+  border-radius: 24px;
+  /* Mantiene la forma redondeada */
+  border: 1px solid #e5e7eb;
+  /* Borde sutil para definir el área */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
-/* 2. Ocultamos TODOS los elementos excepto la grabadora */
+/* 2. Ocultar elementos de texto normales */
 .input-group.recording-mode .btn-attach,
 .input-group.recording-mode .emoji-container,
 .input-group.recording-mode .text-input-container,
@@ -1833,18 +1868,24 @@
   display: none !important;
 }
 
-/* 3. Forzamos a la grabadora (y su contenedor activo) a ocupar todo */
-.input-group.recording-mode .voice-recorder-active {
+/* 3. Estilo para el componente VoiceRecorder (el div hijo #3) */
+.input-group.recording-mode>div:nth-child(3) {
   display: flex !important;
   width: 100% !important;
   height: 100% !important;
-  align-items: center;
-  justify-content: space-between;
-  background: #ffffff;
-  /* Fondo blanco para tapar cualquier cosa detrás */
-  border-radius: 24px;
-  padding: 4px 12px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  align-items: center !important;
+  justify-content: space-between !important;
+  /* Asegura que X y Enviar estén separados */
+  gap: 15px;
+  /* Espacio entre elementos */
+}
+
+/* 4. Asegurar que los textos dentro del grabador se vean bien */
+.input-group.recording-mode span,
+.input-group.recording-mode div {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 /* ==============================================

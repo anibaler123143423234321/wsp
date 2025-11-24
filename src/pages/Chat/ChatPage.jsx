@@ -849,66 +849,81 @@ const ChatPage = () => {
   }, [chatState]);
 
   // Función para enviar mensaje de voz
+  // Función para enviar mensaje de voz (CORREGIDA)
   const handleSendVoiceMessage = useCallback(async (audioFile) => {
     if (!audioFile || !chatState.to) return;
 
-    try {
-      // 1. Subir archivo
-      const uploadResult = await apiService.uploadFile(audioFile, "chat");
+    // 1. 🔥 CREAR URL LOCAL: Esto asegura que escuches TU propia grabación inmediatamente
+    const localAudioUrl = URL.createObjectURL(audioFile);
 
-      // 2. Preparar objeto (Usando la lógica de normalize para asignar si es necesario)
+    try {
+      // 2. Preparar datos básicos
       const currentUserNormalized = normalizeUsername(username);
       const assignedConv = chatState.assignedConversations?.find((conv) => {
-        // ... lógica de búsqueda simplificada ...
         return conv.participants?.some(p => normalizeUsername(p) === currentUserNormalized);
       });
 
       const effectiveIsGroup = assignedConv ? false : chatState.isGroup;
 
-      const messageObj = {
-        id: `msg_${Date.now()}`, // ID temporal
+      // 3. Crear objeto de mensaje PRELIMINAR (para mostrarlo ya)
+      const tempMessageObj = {
+        id: `msg_${Date.now()}`,
         to: chatState.to,
         isGroup: effectiveIsGroup,
         from: username,
         fromId: user.id,
         mediaType: "audio",
-        mediaData: uploadResult.fileUrl,
-        fileName: uploadResult.fileName,
-        fileSize: uploadResult.fileSize,
+        mediaData: localAudioUrl, // <--- 🔥 USAMOS EL AUDIO LOCAL AQUÍ
+        fileName: "audio-mensaje.webm",
+        fileSize: audioFile.size,
         message: "",
-        roomCode: effectiveIsGroup ? chatState.currentRoomCode : undefined
+        roomCode: effectiveIsGroup ? chatState.currentRoomCode : undefined,
+        isSent: false // Marcamos como enviando...
+      };
+
+      // 4. Agregar mensaje localmente (UI inmediata)
+      addNewMessage({
+        ...tempMessageObj,
+        sender: "Tú",
+        realSender: currentUserFullName,
+        isSelf: true,
+        time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+      });
+
+      // 5. 🚀 AHORA SUBIMOS EL ARCHIVO (Para el servidor/socket)
+      const uploadResult = await apiService.uploadFile(audioFile, "chat");
+
+      // 6. Preparar el objeto FINAL para el socket (con la URL de internet)
+      const socketMessageObj = {
+        ...tempMessageObj,
+        mediaData: uploadResult.fileUrl, // <--- URL REAL DEL SERVIDOR
+        fileName: uploadResult.fileName,
+        isSent: true
       };
 
       // Datos extra para asignados
       if (assignedConv) {
-        messageObj.isAssignedConversation = true;
-        messageObj.conversationId = assignedConv.id;
-        messageObj.participants = assignedConv.participants;
+        socketMessageObj.isAssignedConversation = true;
+        socketMessageObj.conversationId = assignedConv.id;
+        socketMessageObj.participants = assignedConv.participants;
         const other = assignedConv.participants.find(p => normalizeUsername(p) !== currentUserNormalized);
-        if (other) messageObj.actualRecipient = other;
+        if (other) socketMessageObj.actualRecipient = other;
       }
 
-      // 3. Emitir
-      socket.emit("message", messageObj);
-
-      // 4. Agregar localmente (Optimista)
-      addNewMessage({
-        ...messageObj,
-        sender: "Tú",
-        realSender: currentUserFullName,
-        isSent: true,
-        isSelf: true,
-        time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-      });
+      // 7. Emitir al socket
+      if (socket && socket.connected) {
+        socket.emit("message", socketMessageObj);
+      } else {
+        console.warn("Socket desconectado al enviar audio");
+      }
 
       playMessageSound(chatState.soundsEnabled);
 
     } catch (error) {
       console.error("Error enviando audio:", error);
-      showErrorAlert("Error", "No se pudo enviar el audio");
+      showErrorAlert("Error", "No se pudo subir el audio, pero se guardó localmente.");
     }
-  }, [chatState, username, user, socket, addNewMessage, playMessageSound, currentUserFullName]); // Agrega normalizeUsername a dependencias si está dentro del componente
-
+  }, [chatState, username, user, socket, addNewMessage, playMessageSound, currentUserFullName]);
   // Función para enviar mensaje en hilo
   const handleSendThreadMessage = useCallback(async (messageData) => {
     if (!user || !user.id) return;

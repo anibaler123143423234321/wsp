@@ -1,4 +1,4 @@
-/* Botón de micrófono normal */
+/* Botón de micrófono inactivo */
 .voice-recorder-btn {
   background: transparent;
   border: none;
@@ -7,174 +7,155 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
   border-radius: 50%;
+  transition: background 0.2s;
 }
 
-.voice-recorder-btn:hover:not(.disabled) {
-  background: rgba(0, 168, 132, 0.1);
-}
-
-.voice-recorder-btn:active:not(.disabled) {
-  transform: scale(0.95);
-}
-
-.voice-recorder-btn.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.voice-recorder-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .voice-recorder-icon-btn {
   width: 24px;
   height: 24px;
-  color: #8696a0;
-  transition: color 0.2s ease;
+  color: #54656f;
 }
 
-.voice-recorder-btn:hover:not(.disabled) .voice-recorder-icon-btn {
-  color: ff453a;
-}
-
-/* 🔥 Interfaz de grabación activa (EXPANDIDA) */
+/* --- MODO GRABACIÓN ACTIVO --- */
 .voice-recorder-active {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* Distribuye cancelar - info - enviar */
-  gap: 12px;
-  padding: 4px 8px;
-  background: transparent;
-  /* Transparente para integrarse */
   width: 100%;
-  /* Ocupa todo el espacio disponible */
   height: 100%;
-  animation: slideIn 0.2s ease;
+  gap: 12px;
+  animation: fadeIn 0.2s ease;
 }
 
-@keyframes slideIn {
+/* Botón Papelera */
+.voice-recorder-cancel {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  /* Rojo */
+  cursor: pointer;
+  font-size: 16px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  transition: transform 0.2s;
+}
+
+.voice-recorder-cancel:hover {
+  transform: scale(1.1);
+  color: #dc2626;
+}
+
+/* Zona Central (Tiempo + Ondas) */
+.voice-recorder-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  justify-content: center;
+  height: 100%;
+  overflow: hidden;
+}
+
+.voice-recorder-time {
+  font-family: monospace;
+  font-size: 15px;
+  color: #111b21;
+  font-weight: 600;
+  min-width: 45px;
+  color: #ef4444;
+  /* Rojo mientras graba */
+}
+
+/* 🔥 CONTENEDOR DE BARRAS DE ONDAS */
+.wave-bars-container {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 24px;
+  padding: 0 5px;
+}
+
+.wave-bar {
+  width: 3px;
+  background-color: #ef4444;
+  /* Rojo grabación */
+  border-radius: 2px;
+  transition: height 0.08s ease-in-out;
+  min-height: 15%;
+}
+
+/* 🔥 BOTÓN ENVIAR (Estilo Píldora Verde) */
+.voice-recorder-send {
+  background: #00a884;
+  /* 🔥 AQUI FALTABA EL # (Verde WhatsApp) */
+  color: white;
+  border: none;
+  border-radius: 24px;
+  /* Más redondeado para texto largo */
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.2s;
+  white-space: nowrap;
+  /* Evita que el texto baje de línea */
+}
+
+.voice-recorder-send:hover {
+  background: #008f6f;
+  /* Verde más oscuro al hover */
+}
+
+.voice-recorder-send:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+@keyframes fadeIn {
   from {
     opacity: 0;
-    transform: scale(0.95);
   }
 
   to {
     opacity: 1;
-    transform: scale(1);
   }
 }
 
-/* Botón Cancelar (X) */
-.voice-recorder-cancel {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
+.spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #fff;
+  border-top: 2px solid transparent;
   border-radius: 50%;
-  background: transparent;
-  border: none;
-  color: #8696a0;
-  /* Gris estilo WhatsApp */
-  cursor: pointer;
-  transition: all 0.2s ease;
+  animation: spin 1s linear infinite;
 }
 
-.voice-recorder-cancel:hover {
-  background: rgba(0, 0, 0, 0.05);
-  color: #ef4444;
-}
-
-/* Info central (Timer + Icono) */
-.voice-recorder-info {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  /* Alineado a la izquierda junto a cancelar */
-  gap: 12px;
-  flex: 1;
-  /* Toma el espacio central */
-  padding-left: 8px;
-}
-
-/* Icono pulsante rojo */
-.voice-recorder-pulse {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #ef4444;
-  animation: pulse 1s ease-in-out infinite;
-}
-
-/* Ocultamos el icono SVG dentro del punto rojo pulsante para hacerlo minimalista */
-.voice-recorder-pulse svg {
-  display: none;
-}
-
-@keyframes pulse {
+@keyframes spin {
   0% {
-    opacity: 1;
-    transform: scale(1);
-  }
-
-  50% {
-    opacity: 0.5;
-    transform: scale(1.2);
+    transform: rotate(0deg);
   }
 
   100% {
-    opacity: 1;
-    transform: scale(1);
+    transform: rotate(360deg);
   }
 }
 
-/* Icono estático (pausa) */
-.voice-recorder-icon {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: ff453a;
-}
+/* Ocultar texto en móviles muy pequeños si es necesario */
+@media (max-width: 400px) {
+  .voice-recorder-send span {
+    display: none;
+  }
 
-.voice-recorder-icon svg {
-  display: none;
-}
-
-/* Tiempo */
-.voice-recorder-time {
-  font-size: 18px;
-  font-weight: 500;
-  color: #111;
-  font-family: 'Segoe UI', sans-serif;
-  min-width: 50px;
-}
-
-/* Botones de acción derecha (Stop / Send) */
-.voice-recorder-stop,
-.voice-recorder-send {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: none;
-  color: white;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-.voice-recorder-stop {
-  background: #ef4444;
-}
-
-.voice-recorder-send {
-  background: ff453a;
-}
-
-.voice-recorder-send:hover {
-  background: #ff453a6d;
+  .voice-recorder-send {
+    padding: 10px;
+    border-radius: 50%;
+  }
 }

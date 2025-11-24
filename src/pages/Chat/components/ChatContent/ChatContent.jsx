@@ -1697,9 +1697,10 @@ const ChatContent = ({
                   className="slack-dropdown-menu"
                   style={{
                     position: 'absolute',
-                    right: 0,
+                    /* 🔥 ELIMINAMOS 'right: 0' de aquí para que use el CSS corregido */
                     top: menuPosition.openUp ? 'auto' : '100%',
                     bottom: menuPosition.openUp ? '100%' : 'auto',
+                    /* El resto de estilos se manejan en el CSS */
                     background: 'white',
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px',
@@ -1763,75 +1764,109 @@ const ChatContent = ({
           </div>
         )}
 
-        {/* === 🛡️ AVATARES DE LECTURA (MEJORADO & FINAL) 🛡️ === */}
+        {/* === 🛡️ AVATARES DE LECTURA (LÓGICA MODIFICADA: MÁXIMO 3 + CONTADOR) 🛡️ === */}
         {message.readBy && message.readBy.length > 0 && !isOwnMessage && (
           <div className="read-by-avatars-container">
 
             {/* 1. ZONA INTERACTIVA (BOLITAS) */}
             <div
               className="read-receipts-trigger"
-              // Calculamos el ancho exacto para que el área de click sea precisa
-              style={{ width: `${(Math.min(message.readBy.length, 5) * 10) + 6}px` }}
+              style={{
+                // Ajustamos el ancho dinámicamente:
+                // Si son más de 3, dejamos espacio fijo para 3 bolitas + el contador. 
+                // Si son menos, calculamos el espacio justo.
+                width: message.readBy.length > 3 ? '55px' : `${(message.readBy.length * 12) + 6}px`
+              }}
               onClick={(e) => {
-                e.stopPropagation(); // Evita abrir el mensaje o el teclado
-                // Toggle del popover
+                e.stopPropagation();
                 setOpenReadReceiptsId(openReadReceiptsId === message.id ? null : message.id);
               }}
               title="Ver quién lo ha leído"
             >
-              {message.readBy.slice(0, 5).map((readerName, idx) => {
-                // A. Buscar datos del usuario (Foto) de forma segura
-                let userPic = null;
-                const searchName = typeof readerName === 'string' ? readerName.toLowerCase().trim() : "";
+              {(() => {
+                // Configuración
+                const MAX_VISIBLE = 3;
+                const totalReaders = message.readBy.length;
+                const remainingCount = totalReaders - MAX_VISIBLE;
+                const showCounter = remainingCount > 0;
 
-                if (roomUsers && Array.isArray(roomUsers)) {
-                  const u = roomUsers.find(u => {
-                    const uName = (u.username || "").toLowerCase();
-                    const uFull = (u.nombre && u.apellido) ? `${u.nombre} ${u.apellido}`.toLowerCase() : "";
-                    return uName === searchName || uFull === searchName;
-                  });
-                  if (u) userPic = u.picture;
-                }
-
-                // B. Calcular posición (Stacking de derecha a izquierda)
-                // El último que leyó aparece "arriba" en la pila
-                const totalToShow = Math.min(message.readBy.length, 5);
-                const rightPos = (totalToShow - 1 - idx) * 10;
+                // Cortamos el array para mostrar solo los necesarios
+                // Si hay contador, mostramos MAX_VISIBLE. Si no, mostramos todos (que serán <= 3).
+                const visibleReaders = message.readBy.slice(0, MAX_VISIBLE);
 
                 return (
-                  <div
-                    key={idx}
-                    className="mini-read-avatar"
-                    style={{
-                      right: `${rightPos}px`,
-                      zIndex: idx + 1, // Asegura el orden de superposición visual
-                      ...(userPic && { backgroundImage: `url(${userPic})` }),
-                      ...(!userPic && { background: `linear-gradient(135deg, #ff453a 0%, #ff453a 100%)` })
-                    }}
-                  >
-                    {!userPic && typeof readerName === 'string' && readerName.charAt(0).toUpperCase()}
-                  </div>
+                  <>
+                    {/* A. BOLITA DE CONTADOR (+N) - Se muestra primero (arriba de la pila visualmente) */}
+                    {showCounter && (
+                      <div
+                        className="mini-read-avatar counter-bubble"
+                        style={{
+                          right: '0px', // En la cima de la pila (derecha)
+                          zIndex: 10,
+                          backgroundColor: '#e5e7eb', // Gris suave
+                          color: '#54656f',
+                          fontSize: '9px',
+                          border: '1px solid #fff'
+                        }}
+                      >
+                        +{remainingCount}
+                      </div>
+                    )}
+
+                    {/* B. AVATARES DE USUARIOS */}
+                    {visibleReaders.map((readerName, idx) => {
+                      // Búsqueda de foto (igual que antes)
+                      let userPic = null;
+                      const searchName = typeof readerName === 'string' ? readerName.toLowerCase().trim() : "";
+                      if (roomUsers && Array.isArray(roomUsers)) {
+                        const u = roomUsers.find(u => {
+                          const uName = (u.username || "").toLowerCase();
+                          const uFull = (u.nombre && u.apellido) ? `${u.nombre} ${u.apellido}`.toLowerCase() : "";
+                          return uName === searchName || uFull === searchName;
+                        });
+                        if (u) userPic = u.picture;
+                      }
+
+                      // Cálculo de posición:
+                      // Si hay contador, desplazamos los avatares a la izquierda (empiezan en 16px).
+                      // Si no hay contador, empiezan en 0px (el idx invertido maneja el stack).
+                      const shift = showCounter ? 16 : 0;
+                      // Stackeamos de derecha a izquierda
+                      const rightPos = shift + ((visibleReaders.length - 1 - idx) * 10);
+
+                      return (
+                        <div
+                          key={idx}
+                          className="mini-read-avatar"
+                          style={{
+                            right: `${rightPos}px`,
+                            zIndex: idx + 1,
+                            ...(userPic && { backgroundImage: `url(${userPic})` }),
+                            ...(!userPic && { background: `linear-gradient(135deg, #ff453a 0%, #ff453a 100%)` })
+                          }}
+                        >
+                          {!userPic && typeof readerName === 'string' && readerName.charAt(0).toUpperCase()}
+                        </div>
+                      );
+                    })}
+                  </>
                 );
-              })}
+              })()}
             </div>
 
-            {/* 2. VENTANA FLOTANTE (POPOVER DETALLADO) */}
+            {/* 2. VENTANA FLOTANTE (POPOVER DETALLADO) - SE MANTIENE IGUAL QUE ANTES */}
             {openReadReceiptsId === message.id && (
               <div className="read-receipts-popover" onClick={(e) => e.stopPropagation()}>
-
-                {/* Cabecera */}
+                {/* ... El contenido del popover se mantiene igual ... */}
                 <div className="popover-header">
                   {message.readBy.length} {message.readBy.length === 1 ? 'persona' : 'personas'}
                 </div>
-
-                {/* Lista con Scroll */}
                 <div className="popover-list">
                   {message.readBy.map((readerName, idx) => {
-                    // Lógica repetida para buscar datos completos en la lista
+                    // ... Lógica de renderizado de lista (mantener la existente) ...
                     let userPic = null;
                     let fullName = readerName;
                     const searchName = typeof readerName === 'string' ? readerName.toLowerCase().trim() : "";
-
                     if (roomUsers && Array.isArray(roomUsers)) {
                       const u = roomUsers.find(u => {
                         const uName = (u.username || "").toLowerCase();
@@ -1843,21 +1878,11 @@ const ChatContent = ({
                         fullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : u.username;
                       }
                     }
-
                     return (
                       <div key={idx} className="popover-item">
-                        {/* Avatar Grande */}
                         <div className="popover-avatar">
-                          {userPic ? (
-                            <img src={userPic} alt={fullName} />
-                          ) : (
-                            <span className="popover-avatar-initial">
-                              {typeof readerName === 'string' ? readerName.charAt(0).toUpperCase() : "?"}
-                            </span>
-                          )}
+                          {userPic ? <img src={userPic} alt={fullName} /> : <span className="popover-avatar-initial">{typeof readerName === 'string' ? readerName.charAt(0).toUpperCase() : "?"}</span>}
                         </div>
-
-                        {/* Texto */}
                         <div className="popover-info">
                           <div className="popover-name">{fullName}</div>
                           <div className="popover-status">Visto</div>

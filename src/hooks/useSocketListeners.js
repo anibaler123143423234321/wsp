@@ -33,18 +33,12 @@ export const useSocketListeners = (
 
         s.on('roomJoined', (data) => {
             console.log('🏠 Room Joined:', data);
-
-            // 1. Actualizar la lista de usuarios (ya lo haces probablemente)
             chatState.setRoomUsers(data.users);
-
-            // 2. 🔥 ESTO ES LO QUE FALTA: Actualizar el mensaje fijado inicial
-            // Si el backend manda null, se limpia. Si manda un ID, se fija.
             chatState.setPinnedMessageId(data.pinnedMessageId || null);
         });
 
         s.on('messagePinned', (data) => {
             console.log('📌 Message Pinned Event:', data);
-            // Actualizar estado en tiempo real cuando alguien fija algo
             chatState.setPinnedMessageId(data.messageId);
         });
 
@@ -103,25 +97,18 @@ export const useSocketListeners = (
             const isOwnMessage = data.from === username || data.from === currentFullName;
 
             // ------------------------------------------------
-            // 🔥 LÓGICA DE NOTIFICACIONES Y SONIDO (RESTAURADA)
+            // 🔥 LÓGICA DE NOTIFICACIONES Y SONIDO
             // ------------------------------------------------
             if (!isOwnMessage) {
-                // 1. Reproducir sonido
                 playMessageSound(true);
 
-                // 2. Verificar Menciones (@)
                 const isMentioned = data.isGroup && data.hasMention;
 
                 if (isMentioned) {
-                    // Alerta especial para menciones
                     Swal.fire({
                         icon: "warning",
                         title: "📢 ¡Te mencionaron!",
-                        html: `
-                          <strong>${data.from}</strong> te mencionó en <strong>${data.groupName || data.group || "un grupo"}</strong>
-                          <br><br>
-                          <em>"${messageText.substring(0, 100)}${messageText.length > 100 ? "..." : ""}"</em>
-                        `,
+                        html: `<strong>${data.from}</strong> te mencionó en <strong>${data.groupName || data.group || "un grupo"}</strong><br><br><em>"${messageText.substring(0, 100)}${messageText.length > 100 ? "..." : ""}"</em>`,
                         showConfirmButton: true,
                         confirmButtonText: "Ir al grupo",
                         confirmButtonColor: "#dc2626",
@@ -136,7 +123,6 @@ export const useSocketListeners = (
                         }
                     });
                 } else {
-                    // 3. Notificación Toast Normal (Bottom-Right)
                     let messageOrigin = data.isGroup ? `📁 ${data.groupName || data.group || "Grupo"}` : "💬 Chat individual";
                     let messageTitle = data.isGroup ? `${data.from} en ${data.groupName}` : `Nuevo mensaje de ${data.from}`;
 
@@ -145,12 +131,7 @@ export const useSocketListeners = (
                         position: "bottom-end",
                         icon: "info",
                         title: messageTitle,
-                        html: `
-                          <div style="text-align: left; font-size: 13px; margin-bottom: 10px;">
-                            <div style="color: #666; margin-bottom: 4px;">${messageOrigin}</div>
-                            <div style="color: #333;">${messageText.substring(0, 60)}${messageText.length > 60 ? "..." : ""}</div>
-                          </div>
-                        `,
+                        html: `<div style="text-align: left; font-size: 13px; margin-bottom: 10px;"><div style="color: #666; margin-bottom: 4px;">${messageOrigin}</div><div style="color: #333;">${messageText.substring(0, 60)}${messageText.length > 60 ? "..." : ""}</div></div>`,
                         showConfirmButton: true,
                         confirmButtonText: "Ver",
                         confirmButtonColor: "#dc2626",
@@ -208,13 +189,11 @@ export const useSocketListeners = (
                         metadata: data.metadata
                     });
                 } else {
-                    // Si NO está abierto y NO es mío, aumentar contador local
                     if (!isOwnMessage && data.roomCode) {
                         setUnreadMessages(prev => ({ ...prev, [data.roomCode]: (prev[data.roomCode] || 0) + 1 }));
                     }
                 }
 
-                // ACTUALIZAR SIDEBAR (myActiveRooms)
                 if (data.roomCode) {
                     setMyActiveRooms(prev => prev.map(r => {
                         if (r.roomCode === data.roomCode) {
@@ -267,11 +246,9 @@ export const useSocketListeners = (
 
                 // Actualizar Sidebar (assignedConversations)
                 setAssignedConversations(prev => prev.map(conv => {
-                    const participants = conv.participants || [];
-                    const participantsLower = participants.map(p => p?.toLowerCase().trim());
-                    const isThisConv = participantsLower.includes(msgFrom) || participantsLower.includes(msgTo);
-
-                    if (isThisConv) {
+                    // 🔥 NUEVO: Usar conversationId si está disponible (más preciso)
+                    // Usamos == para permitir coincidencia entre string y number por si acaso
+                    if (data.conversationId && conv.id == data.conversationId) {
                         return {
                             ...conv,
                             lastMessage: messageText,
@@ -281,6 +258,25 @@ export const useSocketListeners = (
                             unreadCount: (!isChatOpen && !isOwnMessage) ? (conv.unreadCount || 0) + 1 : 0
                         };
                     }
+
+                    // Fallback: Lógica antigua por participantes (solo si no hay conversationId)
+                    if (!data.conversationId) {
+                        const participants = conv.participants || [];
+                        const participantsLower = participants.map(p => p?.toLowerCase().trim());
+                        const isThisConv = participantsLower.includes(msgFrom) && participantsLower.includes(msgTo);
+
+                        if (isThisConv) {
+                            return {
+                                ...conv,
+                                lastMessage: messageText,
+                                lastMessageTime: data.sentAt || new Date().toISOString(),
+                                lastMessageFrom: data.from,
+                                lastMessageMediaType: data.mediaType,
+                                unreadCount: (!isChatOpen && !isOwnMessage) ? (conv.unreadCount || 0) + 1 : 0
+                            };
+                        }
+                    }
+
                     return conv;
                 }));
             }
@@ -290,16 +286,11 @@ export const useSocketListeners = (
         // 4. EVENTOS DE ACTUALIZACIÓN DE CONTADORES (BACKEND)
         // =====================================================
         s.on("unreadCountUpdate", (data) => {
-            // data = { roomCode, count, lastMessage }
-
-            // 1. Actualizar contador rojo
             if (data.roomCode !== currentRoomCodeRef.current && data.count > 0) {
                 setUnreadMessages(prev => ({ ...prev, [data.roomCode]: (prev[data.roomCode] || 0) + data.count }));
-                // Reproducir sonido también aquí por si acaso (seguridad extra)
                 playMessageSound(true);
             }
 
-            // 2. Actualizar Sidebar (Respaldo del backend)
             if (data.lastMessage) {
                 setMyActiveRooms((prevRooms) =>
                     prevRooms.map((room) =>
@@ -485,18 +476,8 @@ export const useSocketListeners = (
             });
         });
 
-        // Limpieza al desmontar
         return () => {
-            s.off("userList"); s.off("userListPage"); s.off("roomUsers");
-            s.off("userJoinedRoom"); s.off("message"); s.off("messageDeleted");
-            s.off("messageEdited"); s.off("newConversationAssigned");
-            s.off("userTyping"); s.off("roomTyping"); s.off("roomCreated");
-            s.off("conversationRead"); s.off("unreadCountUpdate"); s.off("unreadCountReset");
-            s.off("videoCallEnded"); s.off("kicked"); s.off("roomDeactivated");
-            s.off("addedToRoom"); s.off("removedFromRoom"); s.off("monitoringMessage");
-            s.off("reactionUpdated"); s.off("threadCountUpdated");
-            s.off("messagePinned"); s.off("roomJoined");
+            // Cleanup si es necesario
         };
-
-    }, [socket, username]);
+    }, [socket, username, user]);
 };
