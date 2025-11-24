@@ -1506,317 +1506,373 @@ const ChatContent = ({
           </div>
 
           {/* REACCIONES (Debajo del texto) */}
-          {message.reactions && message.reactions.length > 0 && (
-            <div className="reactions-row" style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
-              {Object.entries(message.reactions.reduce((acc, r) => {
-                if (!acc[r.emoji]) acc[r.emoji] = [];
-                acc[r.emoji].push(r.username); return acc;
-              }, {})).map(([emoji, users]) => (
-                <div key={emoji} className="reaction-pill" onClick={() => handleReaction(message, emoji)} title={users.join(', ')}>
-                  {emoji} <span style={{ fontSize: '10px', fontWeight: 'bold', marginLeft: '4px' }}>{users.length}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          {/* 🔥 HILO CON AVATARES (VERSIÓN FINAL A PRUEBA DE FALLOS) 🔥 */}
-          {message.threadCount > 0 && (
-            <div className="thread-row-container">
-
-              {/* --- DEBUG: ESTO TE AYUDARÁ A VER SI LLEGAN DATOS EN LA CONSOLA --- */}
-              {console.log(`Mensaje ${message.id} Hilo:`, {
-                count: message.threadCount,
-                quien: message.lastReplyFrom,
-                tieneFoto: roomUsers?.find(u => u.username === message.lastReplyFrom)?.picture
-              })}
-
-              {/* 1. EL BOTÓN DEL HILO */}
-              <div
-                className="mx_ThreadSummaryLine"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onOpenThread) onOpenThread(message);
-                }}
-                title="Ver hilo"
-              >
-                <div className="thread-icon-wrapper">
-                  <FaComments size={13} color="#54656f" />
-                </div>
-
-                <span className="mx_ThreadCounter">
-                  {message.threadCount} {message.threadCount === 1 ? 'respuesta' : 'respuestas'}
-                </span>
-
-                {/* 🔥 CAMBIO: Si hay nombre lo muestra, si no, muestra una flechita discreta */}
-                <div className="thread-vertical-line"></div>
-                <span className="mx_ThreadLastReply">
-                  {message.lastReplyFrom ? message.lastReplyFrom : "Ver"}
-                </span>
-                <FaChevronRight size={10} color="#8696a0" style={{ marginLeft: '4px' }} />
+          {
+            message.reactions && message.reactions.length > 0 && (
+              <div className="reactions-row" style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+                {Object.entries(message.reactions.reduce((acc, r) => {
+                  if (!acc[r.emoji]) acc[r.emoji] = [];
+                  acc[r.emoji].push(r.username); return acc;
+                }, {})).map(([emoji, users]) => (
+                  <div key={emoji} className="reaction-pill" onClick={() => handleReaction(message, emoji)} title={users.join(', ')}>
+                    {emoji} <span style={{ fontSize: '10px', fontWeight: 'bold', marginLeft: '4px' }}>{users.length}</span>
+                  </div>
+                ))}
               </div>
+            )
+          }
+          {/* 🔥 HILO CON AVATARES (VERSIÓN FINAL A PRUEBA DE FALLOS) 🔥 */}
+          {
+            message.threadCount > 0 && (
+              <div className="thread-row-container">
 
-              {/* 2. LOS AVATARES (Derecha) - VERSIÓN FORZADA */}
-              <div className="thread-face-pile">
-                {(() => {
-                  // 1. Obtener un nombre seguro (si viene null, usamos "Usuario")
-                  const rawName = message.lastReplyFrom;
-                  const displayName = rawName ? rawName.trim() : "?";
+                {/* --- DEBUG: ESTO TE AYUDARÁ A VER SI LLEGAN DATOS EN LA CONSOLA --- */}
+                {console.log(`Mensaje ${message.id} Hilo:`, {
+                  count: message.threadCount,
+                  quien: message.lastReplyFrom,
+                  tieneFoto: roomUsers?.find(u => u.username === message.lastReplyFrom)?.picture
+                })}
 
-                  // 2. Intentar buscar la foto en roomUsers (si hay lista)
-                  let foundUser = null;
-                  if (roomUsers && Array.isArray(roomUsers) && rawName) {
-                    const searchName = rawName.toLowerCase();
-                    foundUser = roomUsers.find(u => {
-                      const uName = (u.username || "").toLowerCase();
-                      const uFull = (u.nombre && u.apellido) ? `${u.nombre} ${u.apellido}`.toLowerCase() : "";
-                      return uName === searchName || uFull === searchName;
-                    });
-                  }
+                {/* 1. EL BOTÓN DEL HILO */}
+                <div
+                  className="mx_ThreadSummaryLine"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onOpenThread) onOpenThread(message);
+                  }}
+                  title="Ver hilo"
+                >
+                  <div className="thread-icon-wrapper">
+                    <FaComments size={13} color="#54656f" />
+                  </div>
 
-                  // 3. Intentar buscar foto en historial de mensajes (Plan B)
-                  let avatarUrl = foundUser?.picture;
-                  if (!avatarUrl && messages && rawName) {
-                    const msgMatch = messages.find(m =>
-                      (m.sender === rawName || m.realSender === rawName) && m.senderPicture
-                    );
-                    if (msgMatch) avatarUrl = msgMatch.senderPicture;
-                  }
+                  <span className="mx_ThreadCounter">
+                    {message.threadCount} {message.threadCount === 1 ? 'respuesta' : 'respuestas'}
+                  </span>
 
-                  // === RENDERIZADO (SIN EXCUSAS) ===
+                  {/* 🔥 CAMBIO: Si hay nombre lo muestra, si no, muestra una flechita discreta */}
+                  <div className="thread-vertical-line"></div>
+                  <span className="mx_ThreadLastReply">
+                    {message.lastReplyFrom ? message.lastReplyFrom : "Ver"}
+                  </span>
+                  <FaChevronRight size={10} color="#8696a0" style={{ marginLeft: '4px' }} />
+                </div>
 
-                  // CASO A: Tenemos foto -> La mostramos
-                  if (avatarUrl) {
+                {/* 2. LOS AVATARES (Derecha) - VERSIÓN FORZADA */}
+                <div className="thread-face-pile">
+                  {(() => {
+                    // 1. Obtener un nombre seguro (si viene null, usamos "Usuario")
+                    const rawName = message.lastReplyFrom;
+                    const displayName = rawName ? rawName.trim() : "?";
+
+                    // 2. Intentar buscar la foto en roomUsers (si hay lista)
+                    let foundUser = null;
+                    if (roomUsers && Array.isArray(roomUsers) && rawName) {
+                      const searchName = rawName.toLowerCase();
+                      foundUser = roomUsers.find(u => {
+                        const uName = (u.username || "").toLowerCase();
+                        const uFull = (u.nombre && u.apellido) ? `${u.nombre} ${u.apellido}`.toLowerCase() : "";
+                        return uName === searchName || uFull === searchName;
+                      });
+                    }
+
+                    // 3. Intentar buscar foto en historial de mensajes (Plan B)
+                    let avatarUrl = foundUser?.picture;
+                    if (!avatarUrl && messages && rawName) {
+                      const msgMatch = messages.find(m =>
+                        (m.sender === rawName || m.realSender === rawName) && m.senderPicture
+                      );
+                      if (msgMatch) avatarUrl = msgMatch.senderPicture;
+                    }
+
+                    // === RENDERIZADO (SIN EXCUSAS) ===
+
+                    // CASO A: Tenemos foto -> La mostramos
+                    if (avatarUrl) {
+                      return (
+                        <div
+                          className="thread-mini-avatar"
+                          style={{ backgroundImage: `url(${avatarUrl})` }}
+                          title={`Última respuesta de: ${displayName}`}
+                        />
+                      );
+                    }
+
+                    // CASO B: No hay foto (picture = null) -> Mostramos la INICIAL
+                    // Generamos un color consistente basado en el nombre
+                    const colors = ['#f56565', '#ed8936', '#ecc94b', '#48bb78', '#38b2ac', '#4299e1', '#667eea', '#9f7aea', '#ed64a6'];
+                    const charCode = displayName.charCodeAt(0) || 0;
+                    const colorIndex = charCode % colors.length;
+                    const bgColor = colors[colorIndex];
+
                     return (
                       <div
-                        className="thread-mini-avatar"
-                        style={{ backgroundImage: `url(${avatarUrl})` }}
+                        className="thread-mini-avatar placeholder"
+                        style={{ background: bgColor }}
                         title={`Última respuesta de: ${displayName}`}
-                      />
+                      >
+                        {displayName.charAt(0).toUpperCase()}
+                      </div>
                     );
-                  }
+                  })()}
+                </div>
 
-                  // CASO B: No hay foto (picture = null) -> Mostramos la INICIAL
-                  // Generamos un color consistente basado en el nombre
-                  const colors = ['#f56565', '#ed8936', '#ecc94b', '#48bb78', '#38b2ac', '#4299e1', '#667eea', '#9f7aea', '#ed64a6'];
-                  const charCode = displayName.charCodeAt(0) || 0;
-                  const colorIndex = charCode % colors.length;
-                  const bgColor = colors[colorIndex];
+              </div>
+            )
+          }
+        </div >
+
+        {/* === TOOLBAR FLOTANTE (DERECHA ARRIBA) - VISIBLE ON HOVER === */}
+        {
+          !message.isDeleted && (
+            <div className={`action-toolbar ${isMenuOpen || showReactionPicker === message.id ? 'active' : ''}`}>
+              {/* 1. BOTÓN REACCIONAR (Smile) */}
+              <div style={{ position: 'relative' }}> {/* Envolvemos en relative para posicionar el popup */}
+                <button className="toolbar-btn" title="Reaccionar" onClick={() => setShowReactionPicker(message.id)}>
+                  <FaSmile size={15} />
+                </button>
+
+                {/* 🔥🔥🔥 ESTO ES LO QUE FALTABA: EL POPUP DE EMOJIS 🔥🔥🔥 */}
+                {showReactionPicker === message.id && (
+                  <div
+                    ref={reactionPickerRef}
+                    className="reaction-picker-popup"
+                  >
+                    {["👍", "❤️", "😂", "😮", "😢", "🙏"].map((emoji) => (
+                      <button
+                        key={emoji}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleReaction(message, emoji);
+                        }}
+                        className="reaction-emoji-btn"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                    {/* Botón Más (+) */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowReactionPicker(null);
+                        setShowEmojiPicker(true);
+                        window.currentReactionMessage = message;
+                      }}
+                      className="reaction-emoji-btn plus-btn"
+                    >
+                      +
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* 2. Reply */}
+              <button className="toolbar-btn" title="Responder" onClick={() => window.handleReplyMessage && window.handleReplyMessage(message)}>
+                <FaReply size={15} />
+              </button>
+
+              {/* 3. Thread (Si aplica) */}
+              {onOpenThread && (
+                <button className="toolbar-btn" title="Responder en hilo" onClick={() => onOpenThread(message)}>
+                  <FaComments size={15} />
+                </button>
+              )}
+
+              {/* 4. MENÚ DESPLEGABLE (3 Puntos) */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  className="toolbar-btn"
+                  title="Más opciones"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Cálculo para saber si abrir arriba o abajo
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const spaceBelow = window.innerHeight - rect.bottom;
+                    setMenuPosition({ openUp: spaceBelow < 300 });
+                    setShowMessageMenu(isMenuOpen ? null : message.id);
+                  }}
+                >
+                  {/* Icono 3 puntos */}
+                  <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" /></svg>
+                </button>
+
+                {/* === CONTENIDO DEL DESPLEGADOR (COMPLETO CON TODOS LOS BOTONES) === */}
+                {isMenuOpen && (
+                  <div
+                    ref={messageMenuRef}
+                    className="slack-dropdown-menu"
+                    style={{
+                      position: 'absolute',
+                      /* 🔥 ELIMINAMOS 'right: 0' de aquí para que use el CSS corregido */
+                      top: menuPosition.openUp ? 'auto' : '100%',
+                      bottom: menuPosition.openUp ? '100%' : 'auto',
+                      /* El resto de estilos se manejan en el CSS */
+                      background: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                      zIndex: 9999,
+                      minWidth: '200px',
+                      padding: '6px 0',
+                      display: 'flex',
+                      flexDirection: 'column'
+                    }}
+                  >
+
+                    {onOpenThread && (
+                      <button className="menu-item" onClick={() => { onOpenThread(message); setShowMessageMenu(null); }}>
+                        <FaComments className="menu-icon" /> Crear Hilo
+                      </button>
+                    )}
+
+                    <button className="menu-item" onClick={async () => { try { let t = message.text || message.fileName || ""; if (t) await navigator.clipboard.writeText(t); } catch (e) { } setShowMessageMenu(null); }}>
+                      <FaCopy className="menu-icon" /> Copiar texto
+                    </button>
+
+                    {message.mediaData && (
+                      <button className="menu-item" onClick={() => { handleDownload(message.mediaData, message.fileName); setShowMessageMenu(null); }}>
+                        <FaDownload className="menu-icon" /> Descargar
+                      </button>
+                    )}
+
+                    {<button className="menu-item" onClick={() => { setShowMessageInfo(message); setShowMessageMenu(null); }}>
+                      <FaInfoCircle className="menu-icon" /> Info. Mensaje
+                    </button>}
+
+                    {/* FUNCIONES PRIVILEGIADAS */}
+                    {isGroup && onPinMessage && (isAdmin || (user?.role && ['JEFEPISO', 'PROGRAMADOR', 'SUPERVISOR'].includes(user.role.toUpperCase()))) && (
+                      <button className="menu-item" onClick={() => { onPinMessage(message); setShowMessageMenu(null); }}>
+                        <FaThumbtack className="menu-icon" style={{ color: pinnedMessageId === message.id ? "#d97706" : "inherit" }} />
+                        {pinnedMessageId === message.id ? "Desfijar mensaje" : "Fijar mensaje"}
+                      </button>
+                    )}
+
+                    {isOwnMessage && (
+                      <button className="menu-item" onClick={(e) => { e.stopPropagation(); handleStartEdit(message); setShowMessageMenu(null); }}>
+                        <FaEdit className="menu-icon" /> Editar mensaje
+                      </button>
+                    )}
+
+                    <div style={{ height: '1px', background: '#eee', margin: '4px 0' }}></div>
+
+                    {(isAdmin || isOwnMessage) && (
+                      <button
+                        className="menu-item"
+                        style={{ color: '#dc2626' }}
+                        onClick={(e) => { e.stopPropagation(); if (onDeleteMessage) onDeleteMessage(message.id, message.realSender || message.sender); setShowMessageMenu(null); }}
+                      >
+                        <FaTrash className="menu-icon" /> Eliminar mensaje
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        }
+
+        {/* === 🛡️ AVATARES DE LECTURA (LÓGICA MODIFICADA: MÁXIMO 3 + CONTADOR) 🛡️ === */}
+        {
+          message.readBy && message.readBy.length > 0 && !isOwnMessage && (
+            <div className="read-by-avatars-container">
+
+              {/* 1. ZONA INTERACTIVA (BOLITAS) */}
+              <div
+                className="read-receipts-trigger"
+                style={{
+                  // Ajustamos el ancho dinámicamente:
+                  // Si son más de 3, dejamos espacio fijo para 3 bolitas + el contador. 
+                  // Si son menos, calculamos el espacio justo.
+                  width: message.readBy.length > 3 ? '55px' : `${(message.readBy.length * 12) + 6}px`
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenReadReceiptsId(openReadReceiptsId === message.id ? null : message.id);
+                }}
+                title="Ver quién lo ha leído"
+              >
+                {(() => {
+                  // Configuración
+                  const MAX_VISIBLE = 3;
+                  const totalReaders = message.readBy.length;
+                  const remainingCount = totalReaders - MAX_VISIBLE;
+                  const showCounter = remainingCount > 0;
+
+                  // Cortamos el array para mostrar solo los necesarios
+                  // Si hay contador, mostramos MAX_VISIBLE. Si no, mostramos todos (que serán <= 3).
+                  const visibleReaders = message.readBy.slice(0, MAX_VISIBLE);
 
                   return (
-                    <div
-                      className="thread-mini-avatar placeholder"
-                      style={{ background: bgColor }}
-                      title={`Última respuesta de: ${displayName}`}
-                    >
-                      {displayName.charAt(0).toUpperCase()}
-                    </div>
+                    <>
+                      {/* A. BOLITA DE CONTADOR (+N) - Se muestra primero (arriba de la pila visualmente) */}
+                      {showCounter && (
+                        <div
+                          className="mini-read-avatar counter-bubble"
+                          style={{
+                            right: '0px', // En la cima de la pila (derecha)
+                            zIndex: 10,
+                            backgroundColor: '#e5e7eb', // Gris suave
+                            color: '#54656f',
+                            fontSize: '9px',
+                            border: '1px solid #fff'
+                          }}
+                        >
+                          +{remainingCount}
+                        </div>
+                      )}
+
+                      {/* B. AVATARES DE USUARIOS */}
+                      {visibleReaders.map((readerName, idx) => {
+                        // Búsqueda de foto (igual que antes)
+                        let userPic = null;
+                        const searchName = typeof readerName === 'string' ? readerName.toLowerCase().trim() : "";
+                        if (roomUsers && Array.isArray(roomUsers)) {
+                          const u = roomUsers.find(u => {
+                            const uName = (u.username || "").toLowerCase();
+                            const uFull = (u.nombre && u.apellido) ? `${u.nombre} ${u.apellido}`.toLowerCase() : "";
+                            return uName === searchName || uFull === searchName;
+                          });
+                          if (u) userPic = u.picture;
+                        }
+
+                        // Cálculo de posición:
+                        // Si hay contador, desplazamos los avatares a la izquierda (empiezan en 16px).
+                        // Si no hay contador, empiezan en 0px (el idx invertido maneja el stack).
+                        const shift = showCounter ? 16 : 0;
+                        // Stackeamos de derecha a izquierda
+                        const rightPos = shift + ((visibleReaders.length - 1 - idx) * 10);
+
+                        return (
+                          <div
+                            key={idx}
+                            className="mini-read-avatar"
+                            style={{
+                              right: `${rightPos}px`,
+                              zIndex: idx + 1,
+                              ...(userPic && { backgroundImage: `url(${userPic})` }),
+                              ...(!userPic && { background: `linear-gradient(135deg, #ff453a 0%, #ff453a 100%)` })
+                            }}
+                          >
+                            {!userPic && typeof readerName === 'string' && readerName.charAt(0).toUpperCase()}
+                          </div>
+                        );
+                      })}
+                    </>
                   );
                 })()}
               </div>
 
-            </div>
-          )}
-        </div>
-
-        {/* === TOOLBAR FLOTANTE (DERECHA ARRIBA) - VISIBLE ON HOVER === */}
-        {!message.isDeleted && (
-          <div className={`action-toolbar ${isMenuOpen || showReactionPicker === message.id ? 'active' : ''}`}>
-            {/* 1. BOTÓN REACCIONAR (Smile) */}
-            <div style={{ position: 'relative' }}> {/* Envolvemos en relative para posicionar el popup */}
-              <button className="toolbar-btn" title="Reaccionar" onClick={() => setShowReactionPicker(message.id)}>
-                <FaSmile size={15} />
-              </button>
-
-              {/* 🔥🔥🔥 ESTO ES LO QUE FALTABA: EL POPUP DE EMOJIS 🔥🔥🔥 */}
-              {showReactionPicker === message.id && (
-                <div
-                  ref={reactionPickerRef}
-                  className="reaction-picker-popup"
-                >
-                  {["👍", "❤️", "😂", "😮", "😢", "🙏"].map((emoji) => (
-                    <button
-                      key={emoji}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleReaction(message, emoji);
-                      }}
-                      className="reaction-emoji-btn"
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                  {/* Botón Más (+) */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowReactionPicker(null);
-                      setShowEmojiPicker(true);
-                      window.currentReactionMessage = message;
-                    }}
-                    className="reaction-emoji-btn plus-btn"
-                  >
-                    +
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* 2. Reply */}
-            <button className="toolbar-btn" title="Responder" onClick={() => window.handleReplyMessage && window.handleReplyMessage(message)}>
-              <FaReply size={15} />
-            </button>
-
-            {/* 3. Thread (Si aplica) */}
-            {onOpenThread && (
-              <button className="toolbar-btn" title="Responder en hilo" onClick={() => onOpenThread(message)}>
-                <FaComments size={15} />
-              </button>
-            )}
-
-            {/* 4. MENÚ DESPLEGABLE (3 Puntos) */}
-            <div style={{ position: 'relative' }}>
-              <button
-                className="toolbar-btn"
-                title="Más opciones"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // Cálculo para saber si abrir arriba o abajo
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const spaceBelow = window.innerHeight - rect.bottom;
-                  setMenuPosition({ openUp: spaceBelow < 300 });
-                  setShowMessageMenu(isMenuOpen ? null : message.id);
-                }}
-              >
-                {/* Icono 3 puntos */}
-                <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" /></svg>
-              </button>
-
-              {/* === CONTENIDO DEL DESPLEGADOR (COMPLETO CON TODOS LOS BOTONES) === */}
-              {isMenuOpen && (
-                <div
-                  ref={messageMenuRef}
-                  className="slack-dropdown-menu"
-                  style={{
-                    position: 'absolute',
-                    /* 🔥 ELIMINAMOS 'right: 0' de aquí para que use el CSS corregido */
-                    top: menuPosition.openUp ? 'auto' : '100%',
-                    bottom: menuPosition.openUp ? '100%' : 'auto',
-                    /* El resto de estilos se manejan en el CSS */
-                    background: 'white',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                    zIndex: 9999,
-                    minWidth: '200px',
-                    padding: '6px 0',
-                    display: 'flex',
-                    flexDirection: 'column'
-                  }}
-                >
-
-                  {onOpenThread && (
-                    <button className="menu-item" onClick={() => { onOpenThread(message); setShowMessageMenu(null); }}>
-                      <FaComments className="menu-icon" /> Crear Hilo
-                    </button>
-                  )}
-
-                  <button className="menu-item" onClick={async () => { try { let t = message.text || message.fileName || ""; if (t) await navigator.clipboard.writeText(t); } catch (e) { } setShowMessageMenu(null); }}>
-                    <FaCopy className="menu-icon" /> Copiar texto
-                  </button>
-
-                  {message.mediaData && (
-                    <button className="menu-item" onClick={() => { handleDownload(message.mediaData, message.fileName); setShowMessageMenu(null); }}>
-                      <FaDownload className="menu-icon" /> Descargar
-                    </button>
-                  )}
-
-                  {<button className="menu-item" onClick={() => { setShowMessageInfo(message); setShowMessageMenu(null); }}>
-                    <FaInfoCircle className="menu-icon" /> Info. Mensaje
-                  </button>}
-
-                  {/* FUNCIONES PRIVILEGIADAS */}
-                  {isGroup && onPinMessage && (isAdmin || (user?.role && ['JEFEPISO', 'PROGRAMADOR', 'SUPERVISOR'].includes(user.role.toUpperCase()))) && (
-                    <button className="menu-item" onClick={() => { onPinMessage(message); setShowMessageMenu(null); }}>
-                      <FaThumbtack className="menu-icon" style={{ color: pinnedMessageId === message.id ? "#d97706" : "inherit" }} />
-                      {pinnedMessageId === message.id ? "Desfijar mensaje" : "Fijar mensaje"}
-                    </button>
-                  )}
-
-                  {isOwnMessage && (
-                    <button className="menu-item" onClick={(e) => { e.stopPropagation(); handleStartEdit(message); setShowMessageMenu(null); }}>
-                      <FaEdit className="menu-icon" /> Editar mensaje
-                    </button>
-                  )}
-
-                  <div style={{ height: '1px', background: '#eee', margin: '4px 0' }}></div>
-
-                  {(isAdmin || isOwnMessage) && (
-                    <button
-                      className="menu-item"
-                      style={{ color: '#dc2626' }}
-                      onClick={(e) => { e.stopPropagation(); if (onDeleteMessage) onDeleteMessage(message.id, message.realSender || message.sender); setShowMessageMenu(null); }}
-                    >
-                      <FaTrash className="menu-icon" /> Eliminar mensaje
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* === 🛡️ AVATARES DE LECTURA (LÓGICA MODIFICADA: MÁXIMO 3 + CONTADOR) 🛡️ === */}
-        {message.readBy && message.readBy.length > 0 && !isOwnMessage && (
-          <div className="read-by-avatars-container">
-
-            {/* 1. ZONA INTERACTIVA (BOLITAS) */}
-            <div
-              className="read-receipts-trigger"
-              style={{
-                // Ajustamos el ancho dinámicamente:
-                // Si son más de 3, dejamos espacio fijo para 3 bolitas + el contador. 
-                // Si son menos, calculamos el espacio justo.
-                width: message.readBy.length > 3 ? '55px' : `${(message.readBy.length * 12) + 6}px`
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                setOpenReadReceiptsId(openReadReceiptsId === message.id ? null : message.id);
-              }}
-              title="Ver quién lo ha leído"
-            >
-              {(() => {
-                // Configuración
-                const MAX_VISIBLE = 3;
-                const totalReaders = message.readBy.length;
-                const remainingCount = totalReaders - MAX_VISIBLE;
-                const showCounter = remainingCount > 0;
-
-                // Cortamos el array para mostrar solo los necesarios
-                // Si hay contador, mostramos MAX_VISIBLE. Si no, mostramos todos (que serán <= 3).
-                const visibleReaders = message.readBy.slice(0, MAX_VISIBLE);
-
-                return (
-                  <>
-                    {/* A. BOLITA DE CONTADOR (+N) - Se muestra primero (arriba de la pila visualmente) */}
-                    {showCounter && (
-                      <div
-                        className="mini-read-avatar counter-bubble"
-                        style={{
-                          right: '0px', // En la cima de la pila (derecha)
-                          zIndex: 10,
-                          backgroundColor: '#e5e7eb', // Gris suave
-                          color: '#54656f',
-                          fontSize: '9px',
-                          border: '1px solid #fff'
-                        }}
-                      >
-                        +{remainingCount}
-                      </div>
-                    )}
-
-                    {/* B. AVATARES DE USUARIOS */}
-                    {visibleReaders.map((readerName, idx) => {
-                      // Búsqueda de foto (igual que antes)
+              {/* 2. VENTANA FLOTANTE (POPOVER DETALLADO) - SE MANTIENE IGUAL QUE ANTES */}
+              {openReadReceiptsId === message.id && (
+                <div className="read-receipts-popover" onClick={(e) => e.stopPropagation()}>
+                  {/* ... El contenido del popover se mantiene igual ... */}
+                  <div className="popover-header">
+                    {message.readBy.length} {message.readBy.length === 1 ? 'persona' : 'personas'}
+                  </div>
+                  <div className="popover-list">
+                    {message.readBy.map((readerName, idx) => {
+                      // ... Lógica de renderizado de lista (mantener la existente) ...
                       let userPic = null;
+                      let fullName = readerName;
                       const searchName = typeof readerName === 'string' ? readerName.toLowerCase().trim() : "";
                       if (roomUsers && Array.isArray(roomUsers)) {
                         const u = roomUsers.find(u => {
@@ -1824,78 +1880,30 @@ const ChatContent = ({
                           const uFull = (u.nombre && u.apellido) ? `${u.nombre} ${u.apellido}`.toLowerCase() : "";
                           return uName === searchName || uFull === searchName;
                         });
-                        if (u) userPic = u.picture;
+                        if (u) {
+                          userPic = u.picture;
+                          fullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : u.username;
+                        }
                       }
-
-                      // Cálculo de posición:
-                      // Si hay contador, desplazamos los avatares a la izquierda (empiezan en 16px).
-                      // Si no hay contador, empiezan en 0px (el idx invertido maneja el stack).
-                      const shift = showCounter ? 16 : 0;
-                      // Stackeamos de derecha a izquierda
-                      const rightPos = shift + ((visibleReaders.length - 1 - idx) * 10);
-
                       return (
-                        <div
-                          key={idx}
-                          className="mini-read-avatar"
-                          style={{
-                            right: `${rightPos}px`,
-                            zIndex: idx + 1,
-                            ...(userPic && { backgroundImage: `url(${userPic})` }),
-                            ...(!userPic && { background: `linear-gradient(135deg, #ff453a 0%, #ff453a 100%)` })
-                          }}
-                        >
-                          {!userPic && typeof readerName === 'string' && readerName.charAt(0).toUpperCase()}
+                        <div key={idx} className="popover-item">
+                          <div className="popover-avatar">
+                            {userPic ? <img src={userPic} alt={fullName} /> : <span className="popover-avatar-initial">{typeof readerName === 'string' ? readerName.charAt(0).toUpperCase() : "?"}</span>}
+                          </div>
+                          <div className="popover-info">
+                            <div className="popover-name">{fullName}</div>
+                            <div className="popover-status">Visto</div>
+                          </div>
                         </div>
                       );
                     })}
-                  </>
-                );
-              })()}
+                  </div>
+                </div>
+              )}
             </div>
-
-            {/* 2. VENTANA FLOTANTE (POPOVER DETALLADO) - SE MANTIENE IGUAL QUE ANTES */}
-            {openReadReceiptsId === message.id && (
-              <div className="read-receipts-popover" onClick={(e) => e.stopPropagation()}>
-                {/* ... El contenido del popover se mantiene igual ... */}
-                <div className="popover-header">
-                  {message.readBy.length} {message.readBy.length === 1 ? 'persona' : 'personas'}
-                </div>
-                <div className="popover-list">
-                  {message.readBy.map((readerName, idx) => {
-                    // ... Lógica de renderizado de lista (mantener la existente) ...
-                    let userPic = null;
-                    let fullName = readerName;
-                    const searchName = typeof readerName === 'string' ? readerName.toLowerCase().trim() : "";
-                    if (roomUsers && Array.isArray(roomUsers)) {
-                      const u = roomUsers.find(u => {
-                        const uName = (u.username || "").toLowerCase();
-                        const uFull = (u.nombre && u.apellido) ? `${u.nombre} ${u.apellido}`.toLowerCase() : "";
-                        return uName === searchName || uFull === searchName;
-                      });
-                      if (u) {
-                        userPic = u.picture;
-                        fullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : u.username;
-                      }
-                    }
-                    return (
-                      <div key={idx} className="popover-item">
-                        <div className="popover-avatar">
-                          {userPic ? <img src={userPic} alt={fullName} /> : <span className="popover-avatar-initial">{typeof readerName === 'string' ? readerName.charAt(0).toUpperCase() : "?"}</span>}
-                        </div>
-                        <div className="popover-info">
-                          <div className="popover-name">{fullName}</div>
-                          <div className="popover-status">Visto</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+          )
+        }
+      </div >
     );
   };
 

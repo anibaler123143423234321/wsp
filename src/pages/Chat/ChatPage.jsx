@@ -25,6 +25,7 @@ import { useRoomManagement } from '../../hooks/useRoomManagement';
 import { useConversations } from '../../hooks/useConversations';
 import { useSocketListeners } from '../../hooks/useSocketListeners';
 import { showSuccessAlert, showErrorAlert, showConfirmAlert } from '../../sweetalert2';
+import { faviconBadge } from '../../utils/faviconBadge'; // 🔥 NUEVO: Badge en el favicon
 
 const ChatPage = () => {
   // ===== HOOKS DE AUTENTICACIÓN Y SOCKET =====
@@ -196,7 +197,7 @@ const ChatPage = () => {
     resolvePinnedMessage();
   }, [chatState.pinnedMessageId, messages]);
 
-  // Efecto para título de pestaña
+  // Efecto para título de pestaña y favicon badge
   useEffect(() => {
     const myAssignedConversations = chatState.assignedConversations.filter((conv) => {
       const displayName =
@@ -218,11 +219,15 @@ const ChatPage = () => {
 
     const totalUnread = unreadAssignedCount + unreadRoomsCount;
 
+    // Actualizar título de la pestaña
     if (totalUnread > 0) {
       document.title = `(${totalUnread}) Chat +34`;
     } else {
       document.title = 'Chat +34';
     }
+
+    // 🔥 NUEVO: Actualizar badge del favicon
+    faviconBadge.update(totalUnread);
   }, [chatState.assignedConversations, chatState.myActiveRooms, chatState.unreadMessages, user]);
 
   // Efecto para estado del socket
@@ -848,40 +853,42 @@ const ChatPage = () => {
     chatState.setReplyingTo(null);
   }, [chatState]);
 
-  // Función para enviar mensaje de voz
-  // Función para enviar mensaje de voz (CORREGIDA)
   const handleSendVoiceMessage = useCallback(async (audioFile) => {
     if (!audioFile || !chatState.to) return;
 
-    // 1. 🔥 CREAR URL LOCAL: Esto asegura que escuches TU propia grabación inmediatamente
+    // 1. URL LOCAL: Para mostrarlo en tu chat inmediatamente sin esperar subida
     const localAudioUrl = URL.createObjectURL(audioFile);
 
     try {
-      // 2. Preparar datos básicos
-      const currentUserNormalized = normalizeUsername(username);
+      // 🔥 CORREGIDO: Determinar correctamente si estamos en grupo o chat asignado
+      const currentUserNormalized = normalizeUsername(currentUserFullName);
+
+      // Buscar si el chat actual es una conversación asignada
       const assignedConv = chatState.assignedConversations?.find((conv) => {
-        return conv.participants?.some(p => normalizeUsername(p) === currentUserNormalized);
+        const participants = conv.participants || [];
+        return participants.some(p => normalizeUsername(p) === normalizeUsername(chatState.to));
       });
 
-      const effectiveIsGroup = assignedConv ? false : chatState.isGroup;
+      // 🔥 Si es grupo, SIEMPRE es grupo (no importa si hay conversación asignada)
+      const effectiveIsGroup = chatState.isGroup;
 
-      // 3. Crear objeto de mensaje PRELIMINAR (para mostrarlo ya)
+      // 2. Objeto PRELIMINAR (UI inmediata)
       const tempMessageObj = {
         id: `msg_${Date.now()}`,
         to: chatState.to,
         isGroup: effectiveIsGroup,
-        from: username,
+        from: currentUserFullName,
         fromId: user.id,
         mediaType: "audio",
-        mediaData: localAudioUrl, // <--- 🔥 USAMOS EL AUDIO LOCAL AQUÍ
+        mediaData: localAudioUrl,
         fileName: "audio-mensaje.webm",
         fileSize: audioFile.size,
         message: "",
         roomCode: effectiveIsGroup ? chatState.currentRoomCode : undefined,
-        isSent: false // Marcamos como enviando...
+        isSent: false // Marcado como "enviando..."
       };
 
-      // 4. Agregar mensaje localmente (UI inmediata)
+      // Agregar visualmente al chat (feedback inmediato)
       addNewMessage({
         ...tempMessageObj,
         sender: "Tú",
@@ -890,40 +897,54 @@ const ChatPage = () => {
         time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
       });
 
-      // 5. 🚀 AHORA SUBIMOS EL ARCHIVO (Para el servidor/socket)
+      // 3. 🚀 SUBIR ARCHIVO AL SERVIDOR
       const uploadResult = await apiService.uploadFile(audioFile, "chat");
 
-      // 6. Preparar el objeto FINAL para el socket (con la URL de internet)
-      const socketMessageObj = {
+      // 4. Preparar objeto FINAL (con URL real del servidor)
+      const finalMessageData = {
         ...tempMessageObj,
-        mediaData: uploadResult.fileUrl, // <--- URL REAL DEL SERVIDOR
+        mediaData: uploadResult.fileUrl, // <--- URL REAL QUE VIENE DEL BACKEND
         fileName: uploadResult.fileName,
         isSent: true
       };
 
       // Datos extra para asignados
       if (assignedConv) {
-        socketMessageObj.isAssignedConversation = true;
-        socketMessageObj.conversationId = assignedConv.id;
-        socketMessageObj.participants = assignedConv.participants;
+        finalMessageData.isAssignedConversation = true;
+        finalMessageData.conversationId = assignedConv.id;
+        finalMessageData.participants = assignedConv.participants;
         const other = assignedConv.participants.find(p => normalizeUsername(p) !== currentUserNormalized);
-        if (other) socketMessageObj.actualRecipient = other;
+        if (other) finalMessageData.actualRecipient = other;
       }
 
-      // 7. Emitir al socket
+      // 5. 🔥🔥🔥 GUARDAR EN BASE DE DATOS (ESTO FALTABA) 🔥🔥🔥
+      // Sin esto, al dar F5 el mensaje desaparece.
+      const savedMessage = await apiService.createMessage({
+        ...finalMessageData,
+        // Aseguramos que el 'to' sea correcto para el backend
+        to: finalMessageData.actualRecipient || finalMessageData.to
+      });
+
+      // 6. Actualizar el ID temporal con el ID real de la base de datos
+      finalMessageData.id = savedMessage.id;
+      finalMessageData.sentAt = savedMessage.sentAt;
+
+      // 7. Emitir al socket (para que el otro lo vea en tiempo real)
       if (socket && socket.connected) {
-        socket.emit("message", socketMessageObj);
-      } else {
-        console.warn("Socket desconectado al enviar audio");
+        socket.emit("message", finalMessageData);
       }
 
       playMessageSound(chatState.soundsEnabled);
 
+      // Opcional: Actualizar el mensaje local con la URL real (para liberar memoria del blob local)
+      // updateMessage(`msg_${Date.now()}`, { mediaData: uploadResult.fileUrl });
+
     } catch (error) {
       console.error("Error enviando audio:", error);
-      showErrorAlert("Error", "No se pudo subir el audio, pero se guardó localmente.");
+      showErrorAlert("Error", "No se pudo enviar el audio.");
     }
   }, [chatState, username, user, socket, addNewMessage, playMessageSound, currentUserFullName]);
+
   // Función para enviar mensaje en hilo
   const handleSendThreadMessage = useCallback(async (messageData) => {
     if (!user || !user.id) return;

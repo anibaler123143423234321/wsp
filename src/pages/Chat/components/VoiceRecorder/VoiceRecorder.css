@@ -37,7 +37,6 @@
   background: transparent;
   border: none;
   color: #ef4444;
-  /* Rojo */
   cursor: pointer;
   font-size: 16px;
   padding: 8px;
@@ -68,8 +67,21 @@
   color: #111b21;
   font-weight: 600;
   min-width: 45px;
+}
+
+.voice-recorder-time.recording {
   color: #ef4444;
-  /* Rojo mientras graba */
+}
+
+.voice-recorder-time.paused {
+  color: #54656f;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* 🔥 CONTENEDOR DE BARRAS DE ONDAS */
@@ -84,20 +96,107 @@
 .wave-bar {
   width: 3px;
   background-color: #ef4444;
-  /* Rojo grabación */
   border-radius: 2px;
   transition: height 0.08s ease-in-out;
   min-height: 15%;
 }
 
+.wave-bar.paused {
+  background-color: #cbd5e1;
+}
+
+/* 🔥 CONTROLES DE GRABACIÓN (Pausa/Stop) */
+.voice-recorder-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.voice-recorder-control-btn,
+.voice-recorder-stop-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  color: #54656f;
+}
+
+.voice-recorder-control-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #111b21;
+}
+
+.voice-recorder-stop-btn {
+  color: #ef4444;
+  border: 1px solid #ef4444;
+  width: 32px;
+  height: 32px;
+}
+
+.voice-recorder-stop-btn:hover {
+  background: #fef2f2;
+}
+
+/* --- MODO PREVIEW --- */
+.voice-recorder-preview {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f0f2f5;
+  padding: 4px 12px;
+  border-radius: 20px;
+  height: 36px;
+}
+
+.preview-play-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #54656f;
+  display: flex;
+  align-items: center;
+  padding: 0;
+}
+
+.preview-play-btn:hover {
+  color: #111b21;
+}
+
+.preview-progress {
+  flex: 1;
+  height: 4px;
+  background: #d1d7db;
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.preview-progress-bar {
+  height: 100%;
+  background: #54656f;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.preview-time {
+  font-size: 12px;
+  color: #54656f;
+  font-family: monospace;
+}
+
 /* 🔥 BOTÓN ENVIAR (Estilo Píldora Verde) */
 .voice-recorder-send {
   background: #00a884;
-  /* 🔥 AQUI FALTABA EL # (Verde WhatsApp) */
   color: white;
   border: none;
   border-radius: 24px;
-  /* Más redondeado para texto largo */
   padding: 8px 16px;
   display: flex;
   align-items: center;
@@ -106,12 +205,10 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   transition: background-color 0.2s;
   white-space: nowrap;
-  /* Evita que el texto baje de línea */
 }
 
 .voice-recorder-send:hover {
   background: #008f6f;
-  /* Verde más oscuro al hover */
 }
 
 .voice-recorder-send:disabled {
