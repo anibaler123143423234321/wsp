@@ -131,14 +131,22 @@ export const useSocketListeners = (
                         position: "bottom-end",
                         icon: "info",
                         title: messageTitle,
-                        html: `<div style="text-align: left; font-size: 13px; margin-bottom: 10px;"><div style="color: #666; margin-bottom: 4px;">${messageOrigin}</div><div style="color: #333;">${messageText.substring(0, 60)}${messageText.length > 60 ? "..." : ""}</div></div>`,
+                        html: `<div style="text-align: left; font-size: 11px; line-height: 1.3; margin: 0;"><div style="color: #666; margin-bottom: 2px; font-size: 10px;">${messageOrigin}</div><div style="color: #333;">${messageText.substring(0, 50)}${messageText.length > 50 ? "..." : ""}</div></div>`,
                         showConfirmButton: true,
                         confirmButtonText: "Ver",
                         confirmButtonColor: "#dc2626",
                         showCancelButton: true,
                         cancelButtonText: "✕",
                         timer: 5000,
-                        timerProgressBar: true
+                        timerProgressBar: true,
+                        customClass: {
+                            popup: 'compact-toast',
+                            title: 'compact-toast-title',
+                            htmlContainer: 'compact-toast-html',
+                            actions: 'compact-toast-actions',
+                            confirmButton: 'compact-toast-btn',
+                            cancelButton: 'compact-toast-btn-cancel'
+                        }
                     }).then((result) => {
                         if (result.isConfirmed) {
                             if (data.isGroup) {
