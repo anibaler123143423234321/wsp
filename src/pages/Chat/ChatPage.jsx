@@ -111,6 +111,31 @@ const ChatPage = () => {
     }
   );
 
+  useEffect(() => {
+    const fetchUnreadCounts = async () => {
+      if (!username) return;
+      try {
+        // 1. Obtener conteos de mensajes no leídos globales
+        const counts = await apiService.getUnreadCounts();
+        console.log("🔢 Unread counts response:", counts); // 🔥 DEBUG REQUESTED BY USER
+
+        // 2. Si tienes una estructura específica, adáptala aquí. 
+        // Suponiendo que 'counts' es un objeto { "roomCode": 5, "userId": 2 }
+        if (counts) {
+          chatState.setUnreadMessages(counts);
+        }
+      } catch (error) {
+        console.error("Error cargando mensajes no leídos:", error);
+      }
+    };
+
+    fetchUnreadCounts();
+
+    // Opcional: Polling cada 60 segundos para asegurar sincronización
+    const interval = setInterval(fetchUnreadCounts, 60000);
+    return () => clearInterval(interval);
+  }, [username]);
+
   // ===== FUNCIONES QUE PERMANECEN AQUÍ =====
   // (Estas tienen dependencias muy específicas con el estado local)
 

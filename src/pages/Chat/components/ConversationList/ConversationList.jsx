@@ -60,6 +60,7 @@ const TabButton = ({ isActive, onClick, label, icon: Icon, notificationCount }) 
   );
 };
 
+// Componente colapsable optimizado para detección de scroll
 const CollapsibleList = ({ title, icon: Icon, children, isOpen, onToggle, onLoadMore, hasMore, isLoading, className, contentClassName, defaultHeight = 356 }) => {
   const [height, setHeight] = useState(defaultHeight);
   const listRef = useRef(null);
@@ -93,9 +94,12 @@ const CollapsibleList = ({ title, icon: Icon, children, isOpen, onToggle, onLoad
 
   const handleScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
-    // Cargar más si estamos cerca del final (50px)
-    if (scrollHeight - scrollTop <= clientHeight + 50 && hasMore && !isLoading && onLoadMore) {
-      onLoadMore();
+    // Detectar cuando estamos cerca del final del scroll (a 20px)
+    if (scrollHeight - scrollTop <= clientHeight + 20) {
+      if (hasMore && !isLoading && onLoadMore) {
+        // console.log("📜 Triggering load more for", title);
+        onLoadMore();
+      }
     }
   };
 
@@ -113,7 +117,7 @@ const CollapsibleList = ({ title, icon: Icon, children, isOpen, onToggle, onLoad
         <>
           <div className={`mx_RoomSublist_content mx_AutoHideScrollbar ${contentClassName || ''}`} onScroll={handleScroll}>
             {children}
-            {/* Spinner de carga discreto al final de la lista cuando se hace scroll */}
+            {/* Spinner de carga discreto al final de la lista */}
             {isLoading && (
               <div className="flex justify-center py-2">
                 <div className="animate-spin h-4 w-4 border-2 border-blue-500 rounded-full border-t-transparent"></div>
@@ -142,7 +146,7 @@ const ConversationList = ({
   isGroup,
   onUserSelect,
   onRoomSelect,
-  unreadMessages,
+  unreadMessages = {}, // Asegurar valor por defecto
   onToggleSidebar,
   onShowJoinRoom,
   userListHasMore,
@@ -159,7 +163,7 @@ const ConversationList = ({
   roomsTotalPages = 0,
   roomsLoading = false,
   onLoadUserRooms,
-  onGoToRoomsPage // Nota: Ya no se usa la paginación manual, pero mantenemos el prop por compatibilidad
+  onGoToRoomsPage
 }) => {
   const [activeModule, setActiveModule] = useState('chats');
   const [searchTerm, setSearchTerm] = useState('');
@@ -218,24 +222,22 @@ const ConversationList = ({
     });
   }, [userList]);
 
+  // Cargar monitoreo al cambiar de pestaña
   useEffect(() => {
     if (activeModule === 'monitoring' && onLoadMonitoringConversations) {
-      // Solo cargar si la lista está vacía o queremos refrescar al entrar
       if (monitoringConversations.length === 0) {
         onLoadMonitoringConversations(1);
       }
     }
-  }, [activeModule]); // Se ejecuta cada vez que cambias de pestaña
+  }, [activeModule]);
 
+  // Manejo de Favoritos
   useEffect(() => {
     let isMounted = true;
     const loadFavorites = async () => {
       const displayName = getDisplayName();
-
-      // ✅ FIX: Si ya tenemos favoritos cargados y el usuario es el mismo, no recargar
       if (!displayName || !isMounted) return;
 
-      // Evitar llamada si ya se hizo recientemente (opcional, pero recomendado)
       if (favoriteRoomCodes.length > 0 && favoriteConversationIds.length > 0) return;
 
       try {
@@ -250,7 +252,7 @@ const ConversationList = ({
     };
     loadFavorites();
     return () => { isMounted = false; };
-  }, [user?.id]); // 🔥 CAMBIO IMPORTANTE: Usar user.id en vez de todo el objeto user
+  }, [user?.id]);
 
   const handleToggleFavorite = async (room, e) => {
     e.stopPropagation();
@@ -287,8 +289,8 @@ const ConversationList = ({
   const handleScroll = useCallback((e) => {
     if (!onLoadMoreUsers || !userListHasMore || userListLoading) return;
     const { scrollTop, scrollHeight, clientHeight } = e.target;
-    const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
-    if (scrollPercentage > 0.8) {
+    // Umbral de 50px
+    if (scrollHeight - scrollTop <= clientHeight + 50) {
       onLoadMoreUsers();
     }
   }, [onLoadMoreUsers, userListHasMore, userListLoading]);
@@ -329,6 +331,7 @@ const ConversationList = ({
     };
   }, []);
 
+  // --- FILTRADO DE CONVERSACIONES DIRECTAS (USUARIOS) ---
   const filteredConversations = userList?.filter(conversation => {
     if (!searchTerm.trim()) return true;
     const searchLower = searchTerm.toLowerCase();
@@ -340,16 +343,32 @@ const ConversationList = ({
     );
   }) || [];
 
+  // --- LÓGICA DE CONTADORES CORREGIDA ---
+  // Filtramos las conversaciones asignadas que pertenecen al usuario actual
   const myAssignedConversations = assignedConversations.filter(conv => {
     const displayName = getDisplayName();
     return conv.participants?.includes(displayName);
   });
 
-  const unreadAssignedCount = myAssignedConversations.filter(conv => conv.unreadCount > 0).length;
+  // 🔥 CALCULO DE NO LEÍDOS PARA ASIGNADOS (Combinando prop interna + unreadMessages global)
+  const unreadAssignedCount = myAssignedConversations.reduce((acc, conv) => {
+    // Intentamos obtener el conteo real del socket (unreadMessages)
+    // Usamos conv.id (si es por ID) o tratamos de buscar por username del otro participante si fuera necesario
+    // Pero generalmente unreadMessages se indexa por ID de sala/conversación o username
+    const realTimeCount = unreadMessages?.[conv.id];
+    // Si existe en realtime, lo usamos. Si no, usamos el estático de la BD (conv.unreadCount)
+    const count = (realTimeCount !== undefined) ? realTimeCount : (conv.unreadCount || 0);
+    return acc + (count > 0 ? 1 : 0);
+  }, 0);
+
   const unreadMonitoringCount = monitoringConversations.filter(conv => conv.unreadCount > 0).length;
+
+  // 🔥 CALCULO DE NO LEÍDOS PARA GRUPOS
   const unreadRoomsCount = myActiveRooms?.filter(room => {
-    const roomUnread = unreadMessages?.[room.roomCode] || 0;
-    return roomUnread > 0;
+    const roomUnread = unreadMessages?.[room.roomCode];
+    // Si viene del socket, usarlo. Si no, fallback a propiedad del objeto si existiera (room.unreadCount)
+    const count = (roomUnread !== undefined) ? roomUnread : (room.unreadCount || 0);
+    return count > 0;
   }).length || 0;
 
   const tabs = isAdmin ? [
@@ -358,7 +377,7 @@ const ConversationList = ({
       label: 'Chats',
       shortLabel: 'Chats',
       icon: Home,
-      notificationCount: unreadAssignedCount + unreadRoomsCount,
+      notificationCount: unreadAssignedCount + unreadRoomsCount, // Suma correcta
       adminOnly: false,
     },
     {
@@ -375,7 +394,7 @@ const ConversationList = ({
       label: 'Chats',
       shortLabel: 'Chats',
       icon: Home,
-      notificationCount: unreadAssignedCount + unreadRoomsCount,
+      notificationCount: unreadAssignedCount + unreadRoomsCount, // Suma correcta
       adminOnly: false,
     },
   ];
@@ -398,8 +417,6 @@ const ConversationList = ({
       <div className="tabs-container bg-white flex items-center gap-2 flex-nowrap overflow-x-auto scrollbar-hide max-[1280px]:!py-1.5 max-[1280px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!px-1.5 max-[768px]:justify-center max-[768px]:!px-3 max-[768px]:!py-2" style={{ paddingLeft: '12px', paddingRight: '12px', paddingTop: '10px', paddingBottom: '4px', marginTop: '4px' }}>
         {tabs.filter(tab => {
           if (tab.adminOnly && !isAdmin) return false;
-          if (tab.showOnlyIfHasConversations && assignedConversations?.length === 0 && !isAdmin) return false;
-          if (tab.showOnlyIfHasRooms && myActiveRooms?.length === 0) return false;
           return true;
         }).map((tab) => (
           <TabButton key={tab.id} label={tab.label} shortLabel={tab.shortLabel} icon={tab.icon} notificationCount={tab.notificationCount} isActive={activeModule === tab.id} onClick={() => setActiveModule(tab.id)} />
@@ -497,7 +514,11 @@ const ConversationList = ({
               isOpen={showGroups}
               onToggle={() => setShowGroups(prev => !prev)}
               defaultHeight={300}
-              onLoadMore={() => onLoadUserRooms && onLoadUserRooms(roomsPage + 1)} // Llama a cargar más páginas automáticamente
+              onLoadMore={() => {
+                if (onLoadUserRooms && roomsPage < roomsTotalPages) {
+                  onLoadUserRooms(roomsPage + 1);
+                }
+              }}
               hasMore={roomsPage < roomsTotalPages}
               isLoading={roomsLoading}
             >
@@ -522,7 +543,9 @@ const ConversationList = ({
                       const typingUsers = roomTypingUsers[room.roomCode] || [];
                       const isTypingInRoom = typingUsers.length > 0;
                       const isFavorite = favoriteRoomCodes.includes(room.roomCode);
-                      const roomUnreadCount = unreadMessages?.[room.roomCode] || 0;
+                      // 🔥 Usar contador en tiempo real
+                      const roomUnreadCount = unreadMessages?.[room.roomCode] !== undefined ? unreadMessages[room.roomCode] : (room.unreadCount || 0);
+
                       return (
                         <div key={room.id} className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer max-[1280px]:!py-1.5 max-[1280px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!px-1.5 ${currentRoomCode === room.roomCode ? 'bg-[#e7f3f0]' : ''}`} style={{ padding: '6px 16px', gap: '8px', minHeight: '50px' }} onClick={() => onRoomSelect && onRoomSelect(room)}>
                           <div className="relative flex-shrink-0 max-[1280px]:!w-8 max-[1280px]:!h-8 max-[1024px]:!w-7 max-[1024px]:!h-7" style={{ width: '32px', height: '32px' }}>
@@ -540,7 +563,7 @@ const ConversationList = ({
                               <div className="flex items-center gap-2 flex-1 min-w-0">
                                 {isFavorite && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '11px', fontFamily: 'Inter, sans-serif', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-red-500" /> Fijado</span>}
                                 <h3 className="font-semibold text-[#111] truncate flex-1" style={{ fontSize: '11.5px', lineHeight: '14px', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{room.name}</h3>
-                                {roomUnreadCount > 0 && <div className="flex-shrink-0 rounded-full bg-[ff453a] text-white flex items-center justify-center ml-2" style={{ minWidth: '18px', height: '18px', fontSize: '10px', fontWeight: 'bold', padding: roomUnreadCount > 99 ? '0 4px' : '0' }}>{roomUnreadCount > 99 ? '99+' : roomUnreadCount}</div>}
+                                {roomUnreadCount > 0 && <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center ml-2" style={{ minWidth: '18px', height: '18px', fontSize: '10px', fontWeight: 'bold', padding: roomUnreadCount > 99 ? '0 4px' : '0' }}>{roomUnreadCount > 99 ? '99+' : roomUnreadCount}</div>}
                               </div>
                               <button onClick={(e) => handleToggleFavorite(room, e)} className="flex-shrink-0 p-1 hover:bg-gray-200 rounded-full transition-colors" style={{ color: isFavorite ? '#ff453a' : '#9ca3af', fontSize: '16px' }}>{isFavorite ? <FaStar /> : <FaRegStar />}</button>
                             </div>
@@ -574,7 +597,13 @@ const ConversationList = ({
             icon={CommunityIcon}
             isOpen={showAssigned}
             onToggle={() => setShowAssigned(prev => !prev)}
-            onLoadMore={() => onLoadAssignedConversations && onLoadAssignedConversations(assignedPage + 1)}
+            onLoadMore={() => {
+              // Verificamos si podemos cargar más páginas
+              if (onLoadAssignedConversations && assignedPage < assignedTotalPages) {
+                // console.log("📜 Loading next page of assigned:", assignedPage + 1);
+                onLoadAssignedConversations(assignedPage + 1);
+              }
+            }}
             hasMore={assignedPage < assignedTotalPages}
             isLoading={assignedLoading}
             defaultHeight={350}
@@ -637,6 +666,9 @@ const ConversationList = ({
                     const getInitials = (name) => { const parts = name.split(' '); if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase(); return name[0]?.toUpperCase() || 'U'; };
                     const isFavorite = favoriteConversationIds.includes(conv.id);
 
+                    // 🔥🔥 CALCULO INDIVIDUAL DE NO LEÍDOS PARA ESTE ITEM 🔥🔥
+                    const itemUnreadCount = unreadMessages?.[conv.id] !== undefined ? unreadMessages[conv.id] : (conv.unreadCount || 0);
+
                     return (
                       <div key={conv.id} className="flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group overflow-visible relative max-[1280px]:!py-1.5 max-[1280px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!px-1.5" style={{ padding: '6px 16px', gap: '8px', minHeight: '50px', display: 'flex', alignItems: 'flex-start', width: '100%', minWidth: 0, position: 'relative' }} onClick={() => { if (onUserSelect) onUserSelect(displayName, null, conv); }}>
                         <div className="relative flex-shrink-0 max-[1280px]:!w-9 max-[1280px]:!h-9 max-[1024px]:!w-8 max-[1024px]:!h-8" style={{ width: '32px', height: '32px' }}>
@@ -666,7 +698,7 @@ const ConversationList = ({
                               ) : <p className="text-gray-400 italic truncate" style={{ fontSize: '12px', lineHeight: '16px', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>Sin mensajes aún</p>}
                             </div>
                             {hasMentionToUser(conv.lastMessage) && <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', flexShrink: 0, marginRight: '4px' }}><svg viewBox="0 0 24 24" height="16" preserveAspectRatio="xMidYMid meet" fill="none"><path d="M12 21C10.75 21 9.6 20.75 8.5 20.3C7.4 19.8 6.5 19.2 5.6 18.4C4.8 17.5 4.2 16.6 3.7 15.5C3.2 14.4 3 13.2 3 12C3 10.7 3.2 9.6 3.7 8.5C4.2 7.4 4.8 6.5 5.6 5.6C6.5 4.8 7.4 4.2 8.5 3.7C9.6 3.2 10.8 3 12 3C13.2 3 14.4 3.2 15.5 3.7C16.6 4.2 17.5 4.8 18.4 5.6C19.2 6.5 19.8 7.4 20.3 8.5C20.8 9.6 21 10.7 21 12V13.3C21 14.2 20.7 14.9 20 15.5C19.4 16.2 18.6 16.5 17.7 16.5C17.2 16.5 16.7 16.3 16.3 16.1C15.8 15.8 15.4 15.5 15.1 15C14.8 15.5 14.3 15.8 13.7 16.1C13.2 16.3 12.6 16.5 12 16.5C10.8 16.5 9.7 16 8.8 15.2C7.9 14.3 7.5 13.2 7.5 12C7.5 10.7 7.9 9.7 8.8 8.8C9.7 7.9 10.8 7.5 12 7.5C13.2 7.5 14.3 7.9 15.2 8.8C16 9.7 16.5 10.8 16.5 12V13.2C16.5 13.6 16.6 13.9 16.8 14.1C17.1 14.4 17.4 14.5 17.7 14.5C18.1 14.5 18.4 14.4 18.6 14.1C18.9 13.9 19 13.6 19 13.2V12C19 10 18.3 8.4 16.9 7C15.6 5.7 13.9 5 12 5C10 5 8.4 5.7 7 7C5.7 8.4 5 10 5 12C5 13.9 5.7 15.6 7 16.9C8.4 18.3 10 19 12 19H15.3C15.6 19 15.8 19.1 16 19.3C16.2 19.5 16.3 19.7 16.3 20C16.3 20.3 16.2 20.5 16 20.7C15.8 20.9 15.6 21 15.3 21H12ZM12 14.5C12.7 14.5 13.3 14.2 13.8 13.8C14.2 13.3 14.5 12.7 14.5 12C14.5 11.3 14.2 10.7 13.8 10.2C13.3 9.8 12.7 9.5 12 9.5C11.3 9.5 10.7 9.8 10.2 10.2C9.8 10.7 9.5 11.3 9.5 12C9.5 12.7 9.8 13.3 10.2 13.8C10.7 14.2 11.3 14.5 12 14.5Z" fill="currentColor" style={{ color: 'ff453a' }}></path></svg></span>}
-                            {conv.unreadCount > 0 && <div className="flex-shrink-0 rounded-full bg-[ff453a] text-white flex items-center justify-center" style={{ minWidth: '18px', height: '18px', padding: '0 5px', fontSize: '10px', fontWeight: 600, fontFamily: 'Inter, sans-serif' }}>{conv.unreadCount > 99 ? '99+' : conv.unreadCount}</div>}
+                            {itemUnreadCount > 0 && <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '18px', height: '18px', padding: '0 5px', fontSize: '10px', fontWeight: 600, fontFamily: 'Inter, sans-serif' }}>{itemUnreadCount > 99 ? '99+' : itemUnreadCount}</div>}
                           </div>
                         </div>
                       </div>
@@ -758,7 +790,7 @@ const ConversationList = ({
                               ) : <p className="text-gray-400 italic truncate" style={{ fontSize: '11px', lineHeight: '14px', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>Sin mensajes aún</p>}
                             </div>
                             {hasMentionToUser(conv.lastMessage) && <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', flexShrink: 0, marginRight: '4px' }}><svg viewBox="0 0 24 24" height="16" preserveAspectRatio="xMidYMid meet" fill="none"><path d="M12 21C10.75 21 9.6 20.75 8.5 20.3C7.4 19.8 6.5 19.2 5.6 18.4C4.8 17.5 4.2 16.6 3.7 15.5C3.2 14.4 3 13.2 3 12C3 10.7 3.2 9.6 3.7 8.5C4.2 7.4 4.8 6.5 5.6 5.6C6.5 4.8 7.4 4.2 8.5 3.7C9.6 3.2 10.8 3 12 3C13.2 3 14.4 3.2 15.5 3.7C16.6 4.2 17.5 4.8 18.4 5.6C19.2 6.5 19.8 7.4 20.3 8.5C20.8 9.6 21 10.7 21 12V13.3C21 14.2 20.7 14.9 20 15.5C19.4 16.2 18.6 16.5 17.7 16.5C17.2 16.5 16.7 16.3 16.3 16.1C15.8 15.8 15.4 15.5 15.1 15C14.8 15.5 14.3 15.8 13.7 16.1C13.2 16.3 12.6 16.5 12 16.5C10.8 16.5 9.7 16 8.8 15.2C7.9 14.3 7.5 13.2 7.5 12C7.5 10.7 7.9 9.7 8.8 8.8C9.7 7.9 10.8 7.5 12 7.5C13.2 7.5 14.3 7.9 15.2 8.8C16 9.7 16.5 10.8 16.5 12V13.2C16.5 13.6 16.6 13.9 16.8 14.1C17.1 14.4 17.4 14.5 17.7 14.5C18.1 14.5 18.4 14.4 18.6 14.1C18.9 13.9 19 13.6 19 13.2V12C19 10 18.3 8.4 16.9 7C15.6 5.7 13.9 5 12 5C10 5 8.4 5.7 7 7C5.7 8.4 5 10 5 12C5 13.9 5.7 15.6 7 16.9C8.4 18.3 10 19 12 19H15.3C15.6 19 15.8 19.1 16 19.3C16.2 19.5 16.3 19.7 16.3 20C16.3 20.3 16.2 20.5 16 20.7C15.8 20.9 15.6 21 15.3 21H12ZM12 14.5C12.7 14.5 13.3 14.2 13.8 13.8C14.2 13.3 14.5 12.7 14.5 12C14.5 11.3 14.2 10.7 13.8 10.2C13.3 9.8 12.7 9.5 12 9.5C11.3 9.5 10.7 9.8 10.2 10.2C9.8 10.7 9.5 11.3 9.5 12C9.5 12.7 9.8 13.3 10.2 13.8C10.7 14.2 11.3 14.5 12 14.5Z" fill="currentColor" style={{ color: 'ff453a' }}></path></svg></span>}
-                            {conv.unreadCount > 0 && <div className="flex-shrink-0 rounded-full bg-[ff453a] text-white flex items-center justify-center" style={{ minWidth: '18px', height: '18px', padding: '0 5px', fontSize: '10px', fontWeight: 600, fontFamily: 'Inter, sans-serif' }}>{conv.unreadCount > 99 ? '99+' : conv.unreadCount}</div>}
+                            {conv.unreadCount > 0 && <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '18px', height: '18px', padding: '0 5px', fontSize: '10px', fontWeight: 600, fontFamily: 'Inter, sans-serif' }}>{conv.unreadCount > 99 ? '99+' : conv.unreadCount}</div>}
                           </div>
                         </div>
                       </div>
