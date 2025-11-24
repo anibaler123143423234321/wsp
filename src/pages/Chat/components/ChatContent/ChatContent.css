@@ -914,6 +914,8 @@
   /* CRITICAL: Permite que la reacción flote fuera */
   position: relative;
   /* Necesario para que el absolute funcione relativo a esto */
+  width: 100%;
+  /* 🔥 NUEVO: Asegura que el contenido ocupe todo el ancho disponible */
 }
 
 /* 2. Contenedor que posiciona la reacción ABAJO A LA DERECHA */
