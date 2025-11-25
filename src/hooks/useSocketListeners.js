@@ -123,29 +123,33 @@ export const useSocketListeners = (
                         }
                     });
                 } else {
-                    let messageOrigin = data.isGroup ? `📁 ${data.groupName || data.group || "Grupo"}` : "💬 Chat individual";
+                    // Título: "AGENTE 01 en DESARROLLADORES"
                     let messageTitle = data.isGroup ? `${data.from} en ${data.groupName}` : `Nuevo mensaje de ${data.from}`;
+                    // Subtítulo: "DESARROLLADORES"
+                    let messageSubtitle = data.isGroup ? (data.groupName || "Grupo") : "Chat individual";
 
                     Swal.fire({
                         toast: true,
                         position: "bottom-end",
                         icon: "info",
                         title: messageTitle,
-                        html: `<div style="text-align: left; font-size: 11px; line-height: 1.3; margin: 0;"><div style="color: #666; margin-bottom: 2px; font-size: 10px;">${messageOrigin}</div><div style="color: #333;">${messageText.substring(0, 50)}${messageText.length > 50 ? "..." : ""}</div></div>`,
+                        html: `
+                            <div class="toast-content">
+                                <div class="toast-subtitle">${messageSubtitle}</div>
+                                <div class="toast-message">${messageText.substring(0, 80)}${messageText.length > 80 ? "..." : ""}</div>
+                            </div>
+                        `,
                         showConfirmButton: true,
                         confirmButtonText: "Ver",
-                        confirmButtonColor: "#dc2626",
-                        showCancelButton: true,
-                        cancelButtonText: "✕",
-                        timer: 5000,
-                        timerProgressBar: true,
+                        showCloseButton: true,
+                        timer: 6000,
                         customClass: {
-                            popup: 'compact-toast',
-                            title: 'compact-toast-title',
-                            htmlContainer: 'compact-toast-html',
-                            actions: 'compact-toast-actions',
-                            confirmButton: 'compact-toast-btn',
-                            cancelButton: 'compact-toast-btn-cancel'
+                            popup: 'modern-toast',
+                            title: 'modern-toast-title',
+                            htmlContainer: 'modern-toast-html',
+                            confirmButton: 'modern-toast-btn',
+                            icon: 'modern-toast-icon',
+                            closeButton: 'modern-toast-close'
                         }
                     }).then((result) => {
                         if (result.isConfirmed) {
