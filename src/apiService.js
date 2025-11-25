@@ -559,11 +559,13 @@ class ApiService {
 
   async getAdminRooms(page = 1, limit = 10, search = '') {
     try {
-      // Obtener el usuario actual para incluir su displayName
+      // Obtener el usuario actual para incluir su displayName y role
       const user = this.getCurrentUser();
       const displayName = user?.nombre && user?.apellido
         ? `${user.nombre} ${user.apellido}`
         : (user?.username || user?.email);
+
+      const role = user?.role; // 👈 Obtener el rol
 
       // Construir query params
       const params = new URLSearchParams({
@@ -576,7 +578,11 @@ class ApiService {
       }
 
       if (displayName) {
-        params.append('username', displayName);
+        params.append('displayName', displayName);
+      }
+
+      if (role) {
+        params.append('role', role); // 👈 Enviar el rol
       }
 
       const response = await this.fetchWithAuth(

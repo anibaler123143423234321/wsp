@@ -59,9 +59,10 @@ export const useRoomManagement = (
                 const isPrivilegedUser =
                     user?.role === 'ADMIN' ||
                     user?.role === 'JEFEPISO' ||
-                    user?.role === 'PROGRAMADOR';
+                    user?.role === 'PROGRAMADOR' ||
+                    user?.role === 'SUPERADMIN';
 
-                // Si es ADMIN/JEFEPISO/PROGRAMADOR usar endpoint de admin
+                // Si es ADMIN/JEFEPISO/PROGRAMADOR/SUPERADMIN usar endpoint de admin
                 if (isPrivilegedUser) {
                     const response = await apiService.getAdminRooms(page, parsedLimit, '');
                     const activeRooms = response.data

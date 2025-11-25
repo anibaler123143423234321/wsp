@@ -179,7 +179,8 @@ const ConversationList = ({
   const [showAssigned, setShowAssigned] = useState(true);
   const searchTimeoutRef = useRef(null);
 
-  const isAdmin = user?.role === 'ADMIN' || user?.role === 'JEFEPISO';
+  const isAdmin = ['ADMIN', 'JEFEPISO'].includes(user?.role);
+  const canViewMonitoring = ['SUPERADMIN', 'PROGRAMADOR'].includes(user?.role);
 
   const getDisplayName = () => {
     if (!user) return '';
@@ -371,33 +372,29 @@ const ConversationList = ({
     return count > 0;
   }).length || 0;
 
-  const tabs = isAdmin ? [
+  // --- DEFINICIÓN DE PESTAÑAS (TABS) ---
+  const tabs = [
     {
       id: 'chats',
       label: 'Chats',
       shortLabel: 'Chats',
       icon: Home,
-      notificationCount: unreadAssignedCount + unreadRoomsCount, // Suma correcta
+      notificationCount: unreadAssignedCount + unreadRoomsCount,
       adminOnly: false,
-    },
-    {
+    }
+  ];
+
+  // Solo agregamos la pestaña de monitoreo si el usuario tiene permiso explícito
+  if (canViewMonitoring) {
+    tabs.push({
       id: 'monitoring',
       label: 'Monitoreo',
       shortLabel: 'Monitoreo',
       icon: MessageSquare,
       notificationCount: unreadMonitoringCount,
       adminOnly: true,
-    },
-  ] : [
-    {
-      id: 'chats',
-      label: 'Chats',
-      shortLabel: 'Chats',
-      icon: Home,
-      notificationCount: unreadAssignedCount + unreadRoomsCount, // Suma correcta
-      adminOnly: false,
-    },
-  ];
+    });
+  }
 
   return (
     <div
@@ -415,10 +412,7 @@ const ConversationList = ({
 
       {/* Pestañas de módulos */}
       <div className="tabs-container bg-white flex items-center gap-2 flex-nowrap overflow-x-auto scrollbar-hide max-[1280px]:!py-1.5 max-[1280px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!px-1.5 max-[768px]:justify-center max-[768px]:!px-3 max-[768px]:!py-2" style={{ paddingLeft: '12px', paddingRight: '12px', paddingTop: '10px', paddingBottom: '4px', marginTop: '4px' }}>
-        {tabs.filter(tab => {
-          if (tab.adminOnly && !isAdmin) return false;
-          return true;
-        }).map((tab) => (
+        {tabs.map((tab) => (
           <TabButton key={tab.id} label={tab.label} shortLabel={tab.shortLabel} icon={tab.icon} notificationCount={tab.notificationCount} isActive={activeModule === tab.id} onClick={() => setActiveModule(tab.id)} />
         ))}
       </div>
@@ -713,7 +707,7 @@ const ConversationList = ({
 
       {/* Módulo de Chats Monitoreo (solo para ADMIN) */}
       {
-        activeModule === 'monitoring' && isAdmin && (
+        activeModule === 'monitoring' && canViewMonitoring && (
           <div className="flex-1 overflow-y-auto bg-white px-4 w-full min-w-0">
             {assignedSearchTerm.trim() && messageSearchResults.length > 0 && (
               <div className="mb-4">

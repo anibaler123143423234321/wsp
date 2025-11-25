@@ -150,8 +150,6 @@ body {
 /* =========================================
    🔥 ESTILOS NOTIFICACIÓN TOAST MODERNA
    ========================================= */
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
-
 .modern-toast {
 	background: #ffffff !important;
 	box-shadow: 0 5px 25px rgba(0, 0, 0, 0.15) !important;

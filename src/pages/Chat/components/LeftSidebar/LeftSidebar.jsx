@@ -244,8 +244,8 @@ const LeftSidebar = ({
           </button>
         </div>
 
-        {/* Botones de acción - Solo para ADMIN y JEFEPISO */}
-        {(user?.role === 'ADMIN' || user?.role === 'JEFEPISO') && (
+        {/* Botones de acción - Para roles administrativos */}
+        {['ADMIN', 'JEFEPISO', 'SUPERADMIN', 'PROGRAMADOR'].includes(user?.role) && (
           <div
             className="flex flex-col items-center left-sidebar-button-container max-[1280px]:!px-3 max-[1280px]:!gap-2 max-[1024px]:!px-2 max-[1024px]:!gap-1.5 max-[768px]:!px-4 max-[768px]:!gap-2"
             style={{
