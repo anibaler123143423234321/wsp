@@ -4,8 +4,11 @@
   align-items: center;
   gap: 12px;
   padding: 4px 0;
-  width: 280px;
-  /* Ancho fijo similar a WA */
+  min-width: 280px;
+  max-width: 100%;
+  /* Se adapta al contenedor padre */
+  width: 100%;
+  /* Toma todo el ancho disponible */
   position: relative;
   /* No background color aquí, usa el de la burbuja padre */
 }
@@ -119,6 +122,7 @@
 
 .wa-seek-slider {
   -webkit-appearance: none;
+  appearance: none;
   width: 100%;
   height: 3px;
   /* Línea fina */

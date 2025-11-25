@@ -185,7 +185,21 @@ const ChatContent = ({
     const groups = [];
     let currentDateString = null;
 
-    messages.forEach((message, index) => {
+    // 🔥 FILTRAR DUPLICADOS POR ID
+    const uniqueMessages = [];
+    const seenIds = new Set();
+
+    messages.forEach(msg => {
+      // Si tiene ID y ya lo vimos, lo saltamos
+      if (msg.id && seenIds.has(msg.id)) return;
+
+      // Si tiene ID, lo agregamos al set
+      if (msg.id) seenIds.add(msg.id);
+
+      uniqueMessages.push(msg);
+    });
+
+    uniqueMessages.forEach((message, index) => {
       // Usar directamente el sentAt del backend
       const sentAt = message.sentAt;
 
@@ -1496,7 +1510,7 @@ const ChatContent = ({
                   </div>
                 ) : (
                   // TEXTO PLANO
-                  renderTextWithMentions(message.text || "")
+                  renderTextWithMentions(message.text || message.message || "")
                 )}
 
                 {/* EDICIÓN (Indicador) */}
