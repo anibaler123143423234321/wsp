@@ -82,7 +82,7 @@ class FaviconBadge {
             const displayCount = count > 99 ? '99+' : count.toString();
 
             // 🔥 Badge MÁS GRANDE con números más visibles
-            const badgeRadius = displayCount.length === 1 ? 20 : (displayCount.length === 2 ? 22 : 24);
+            const badgeRadius = displayCount.length === 1 ? 24 : (displayCount.length === 2 ? 26 : 28);
             const x = 64 - badgeRadius - 2; // Posición X (esquina derecha)
             const y = 64 - badgeRadius - 2; // Posición Y (esquina INFERIOR derecha)
 
@@ -99,7 +99,7 @@ class FaviconBadge {
 
             // Dibujar número con fuente MÁS GRANDE
             this.ctx.fillStyle = '#ffffff';
-            const fontSize = displayCount.length === 1 ? 20 : (displayCount.length === 2 ? 20 : 20);
+            const fontSize = displayCount.length === 1 ? 22 : (displayCount.length === 2 ? 22 : 22);
             this.ctx.font = `bold ${fontSize}px Arial`;
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
