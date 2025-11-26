@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import './ActiveVideoCallBanner.css';
 
-const ActiveVideoCallBanner = ({ messages = [], currentUsername, isGroup, currentRoomCode, to, socket, user }) => {
+const ActiveVideoCallBanner = ({ messages = [], currentUsername, isGroup, currentRoomCode, to, socket, user, stopRingtone }) => {
   const [activeCall, setActiveCall] = useState(null);
   const activeCallRef = useRef(null); // 🔥 NUEVO: Ref para mantener referencia actualizada
   const [participants, setParticipants] = useState([]); // 🔥 NUEVO: Lista de participantes conectados
@@ -191,6 +191,7 @@ const ActiveVideoCallBanner = ({ messages = [], currentUsername, isGroup, curren
   if (!activeCall) return null;
 
   const handleJoinCall = () => {
+    if (stopRingtone) stopRingtone(); // 🔥 Detener tono al unirse
     window.open(activeCall.url, '_blank', 'width=1280,height=720,menubar=no,toolbar=no');
   };
 

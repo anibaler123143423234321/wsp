@@ -43,7 +43,7 @@ const ChatLayout = ({
   unreadMessages,
 
   // Props del socket
-  soundsEnabled, onEnableSounds, socket, isTyping, typingUser,
+  soundsEnabled, onEnableSounds, socket, isTyping, typingUser, stopRingtone, // 🔥 Prop para detener tono
   // Props del usuario
   currentUsername,
 
@@ -301,6 +301,7 @@ const ChatLayout = ({
               to={to}
               socket={socket}
               user={user}
+              stopRingtone={stopRingtone} // 🔥 Pasar función
             />
           )}
 

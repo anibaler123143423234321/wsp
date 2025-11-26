@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import Swal from 'sweetalert2';
 import { showSuccessAlert, showErrorAlert } from '../sweetalert2';
 
@@ -21,10 +21,20 @@ export const useSocketListeners = (
     // Desestructurar funciones
     const {
         addNewMessage, updateMessage, playMessageSound,
+        playRingtone, stopRingtone, // 🔥 Funciones de tono
         loadAssignedConversations, loadMyActiveRooms, clearMessages
     } = messageFunctions;
 
-    const { username, user } = authData;
+    const { username, user, soundsEnabled } = authData;
+
+    // 🔥 CRÍTICO: Usar ref para tener siempre el valor actualizado
+    const soundsEnabledRef = useRef(soundsEnabled);
+
+    // Actualizar ref cuando cambie soundsEnabled
+    useEffect(() => {
+        soundsEnabledRef.current = soundsEnabled;
+        console.log('🔊 soundsEnabled actualizado a:', soundsEnabled);
+    }, [soundsEnabled]);
 
     useEffect(() => {
         if (!socket) return;
@@ -100,7 +110,16 @@ export const useSocketListeners = (
             // 🔥 LÓGICA DE NOTIFICACIONES Y SONIDO
             // ------------------------------------------------
             if (!isOwnMessage) {
-                playMessageSound(true);
+                // 🔥 Usar el ref que siempre tiene el valor actualizado
+                const currentSoundsEnabled = soundsEnabledRef.current;
+                console.log('🔊 Reproduciendo sonido. soundsEnabled:', currentSoundsEnabled);
+
+                // Si es una videollamada, reproducir tono de llamada
+                if (data.type === 'video_call') {
+                    playRingtone(currentSoundsEnabled);
+                } else {
+                    playMessageSound(currentSoundsEnabled);
+                }
 
                 const isMentioned = data.isGroup && data.hasMention;
 
@@ -300,7 +319,7 @@ export const useSocketListeners = (
         s.on("unreadCountUpdate", (data) => {
             if (data.roomCode !== currentRoomCodeRef.current && data.count > 0) {
                 setUnreadMessages(prev => ({ ...prev, [data.roomCode]: (prev[data.roomCode] || 0) + data.count }));
-                playMessageSound(true);
+                playMessageSound(soundsEnabledRef.current); // 🔥 Usar ref
             }
 
             if (data.lastMessage) {
@@ -482,6 +501,7 @@ export const useSocketListeners = (
         });
 
         s.on("videoCallEnded", (data) => {
+            stopRingtone(); // 🔥 Detener tono
             updateMessage(null, {
                 videoRoomID: data.roomID,
                 metadata: { isActive: false, closedBy: data.closedBy }
@@ -491,5 +511,5 @@ export const useSocketListeners = (
         return () => {
             // Cleanup si es necesario
         };
-    }, [socket, username, user]);
+    }, [socket, username, user]); // 🔥 NO incluir soundsEnabled aquí para evitar re-registrar todos los listeners
 };

@@ -26,6 +26,8 @@ import { useConversations } from '../../hooks/useConversations';
 import { useSocketListeners } from '../../hooks/useSocketListeners';
 import { showSuccessAlert, showErrorAlert, showConfirmAlert } from '../../sweetalert2';
 import { faviconBadge } from '../../utils/faviconBadge'; // 🔥 NUEVO: Badge en el favicon
+import whatsappSound from '../../assets/sonidos/whatsapp_pc.mp3';
+import ringtoneSoundFile from '../../assets/sonidos/llamada_wsp.mp3'; // 🔥 NUEVO: Tono de llamada
 
 const ChatPage = () => {
   // ===== HOOKS DE AUTENTICACIÓN Y SOCKET =====
@@ -57,6 +59,9 @@ const ChatPage = () => {
     setIsRecording,
     messageSound,
     playMessageSound,
+    ringtoneSound, // 🔥 Ref del tono
+    playRingtone,  // 🔥 Función play
+    stopRingtone,  // 🔥 Función stop
     handleFileSelect,
     handleRemoveMediaFile,
     cancelMediaUpload,
@@ -375,11 +380,13 @@ const ChatPage = () => {
       addNewMessage,
       updateMessage,
       playMessageSound,
+      playRingtone, // 🔥 Pasar función
+      stopRingtone, // 🔥 Pasar función
       loadAssignedConversations: conversations.loadAssignedConversations,
       loadMyActiveRooms: roomManagement.loadMyActiveRooms,
       clearMessages
     },
-    { user, username, isAdmin }
+    { user, username, isAdmin, soundsEnabled: chatState.soundsEnabled } // 🔥 Pasar soundsEnabled
   );
 
   const handleUserSelect = (
@@ -1304,8 +1311,9 @@ const ChatPage = () => {
       <audio
         ref={messageSound}
         preload="auto"
-        src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
+        src={whatsappSound}
       />
+      <audio ref={ringtoneSound} src={ringtoneSoundFile} loop /> {/* 🔥 Audio para llamadas (loop) */}
 
       {/* Layout principal */}
       <ChatLayout
@@ -1387,6 +1395,7 @@ const ChatPage = () => {
         socketConnected={chatState.socketConnected}
         soundsEnabled={chatState.soundsEnabled}
         onEnableSounds={handleEnableSounds}
+        stopRingtone={stopRingtone} // 🔥 Pasar función para detener tono
         currentUsername={username}
         onEditMessage={handleEditMessage}
         onDeleteMessage={handleDeleteMessage}
@@ -1434,7 +1443,7 @@ const ChatPage = () => {
       />
 
       {/* Contenedor de modales */}
-      <ChatModalsContainer
+      < ChatModalsContainer
         // Edit Room Modal
         showEditRoomModal={chatState.showEditRoomModal}
         setShowEditRoomModal={chatState.setShowEditRoomModal}
@@ -1473,7 +1482,7 @@ const ChatPage = () => {
       />
 
       {/* Panel de configuración */}
-      <SettingsPanel
+      < SettingsPanel
         isOpen={chatState.showAdminMenu}
         onClose={() => chatState.setShowAdminMenu(false)}
         user={user}

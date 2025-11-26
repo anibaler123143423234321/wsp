@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 export const useMessages = () => {
   const [messages, setMessages] = useState([]);
@@ -8,6 +8,7 @@ export const useMessages = () => {
   const [uploadedFiles, setUploadedFiles] = useState([]); // URLs de archivos subidos
   const [isRecording, setIsRecording] = useState(false);
   const messageSound = useRef(null);
+  const ringtoneSound = useRef(null); // 🔥 Referencia para el tono de llamada
 
   const playMessageSound = useCallback((soundsEnabled = true) => {
     // 🔥 Reproducir sonido solo si está habilitado
@@ -16,12 +17,38 @@ export const useMessages = () => {
     try {
       if (messageSound.current) {
         messageSound.current.currentTime = 0;
-        messageSound.current.play().catch(() => {
-          // Silenciar errores de autoplay - es normal
+        messageSound.current.play().catch((error) => {
+          // Silenciar errores de autoplay - es normal si no hay interacción previa
+          console.warn("Audio play failed:", error);
         });
       }
-    } catch {
-      // Silenciar errores de sonido
+    } catch (error) {
+      console.error("Error playing sound:", error);
+    }
+  }, []);
+
+  const playRingtone = useCallback((soundsEnabled = true) => {
+    if (!soundsEnabled) return;
+    try {
+      if (ringtoneSound.current) {
+        ringtoneSound.current.currentTime = 0;
+        ringtoneSound.current.play().catch((error) => {
+          console.warn("Ringtone play failed:", error);
+        });
+      }
+    } catch (error) {
+      console.error("Error playing ringtone:", error);
+    }
+  }, []);
+
+  const stopRingtone = useCallback(() => {
+    try {
+      if (ringtoneSound.current) {
+        ringtoneSound.current.pause();
+        ringtoneSound.current.currentTime = 0;
+      }
+    } catch (error) {
+      console.error("Error stopping ringtone:", error);
     }
   }, []);
 
@@ -147,6 +174,9 @@ export const useMessages = () => {
     setIsRecording,
     messageSound,
     playMessageSound,
+    ringtoneSound, // 🔥 Exportar ref
+    playRingtone,  // 🔥 Exportar función play
+    stopRingtone,  // 🔥 Exportar función stop
     handleFileSelect,
     handleRemoveMediaFile,
     cancelMediaUpload,
