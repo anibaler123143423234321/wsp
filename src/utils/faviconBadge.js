@@ -77,14 +77,14 @@ class FaviconBadge {
             this.ctx.fillText('💬', 32, 32);
         }
 
-        // Si hay mensajes, dibujar el badge (MUCHO MÁS GRANDE)
+        // Si hay mensajes, dibujar el badge (EXTRA GRANDE)
         if (count > 0) {
             const displayCount = count > 99 ? '99+' : count.toString();
 
-            // 🔥 Badge MUCHO más grande para mejor visibilidad
-            const badgeRadius = displayCount.length === 1 ? 14 : (displayCount.length === 2 ? 16 : 18);
-            const x = 64 - badgeRadius - 2; // Posición X (esquina superior derecha)
-            const y = badgeRadius + 2;      // Posición Y
+            // 🔥 Badge MÁS GRANDE con números más visibles
+            const badgeRadius = displayCount.length === 1 ? 20 : (displayCount.length === 2 ? 22 : 24);
+            const x = 64 - badgeRadius - 2; // Posición X (esquina derecha)
+            const y = 64 - badgeRadius - 2; // Posición Y (esquina INFERIOR derecha)
 
             // Dibujar círculo rojo para el badge
             this.ctx.fillStyle = '#ff3b30';
@@ -97,9 +97,9 @@ class FaviconBadge {
             this.ctx.lineWidth = 3;
             this.ctx.stroke();
 
-            // Dibujar número con fuente más grande
+            // Dibujar número con fuente MÁS GRANDE
             this.ctx.fillStyle = '#ffffff';
-            const fontSize = displayCount.length === 1 ? 16 : (displayCount.length === 2 ? 14 : 12);
+            const fontSize = displayCount.length === 1 ? 20 : (displayCount.length === 2 ? 20 : 20);
             this.ctx.font = `bold ${fontSize}px Arial`;
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
