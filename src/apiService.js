@@ -229,6 +229,8 @@ class ApiService {
     this._refreshPromise = (async () => {
       try {
         const currentToken = localStorage.getItem("token");
+        const currentUser = this.getCurrentUser();
+
         if (!currentToken) {
           console.error('❌ No hay token para renovar');
           throw new Error('No hay token para renovar');
@@ -236,11 +238,11 @@ class ApiService {
 
         console.log('🔄 Intentando renovar token...');
 
-        // Intentar renovar con el endpoint del backend de Java
-        const refreshResp = await fetch(
+        // ✅ PASO 1: Intentar renovar con el endpoint /refresh-token
+        let refreshResp = await fetch(
           `${this.baseUrl}api/authentication/refresh-token`,
           {
-            method: "GET",
+            method: "POST",
             headers: {
               Authorization: `Bearer ${currentToken}`,
               "Content-Type": "application/json",
@@ -250,7 +252,36 @@ class ApiService {
 
         console.log(`📡 Respuesta de refresh-token: ${refreshResp.status}`);
 
-        // 🔥 Si el refresh falla, verificar el tipo de error
+        // ✅ PASO 2: Si refresh-token falla (401/403), intentar con /renew-token
+        if (refreshResp.status === 401 || refreshResp.status === 403) {
+          console.warn('⚠️ refresh-token falló (token expirado). Intentando con renew-token...');
+
+          // Verificar que tengamos username para el renew
+          if (!currentUser?.username) {
+            console.error('❌ No hay username disponible para renovar token');
+            this.logout();
+            window.location.href = '/';
+            throw new Error('No se puede renovar token sin username');
+          }
+
+          // ✅ NUEVO: Llamar a /renew-token como fallback
+          refreshResp = await fetch(
+            `${this.baseUrl}api/authentication/renew-token`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                username: currentUser.username
+              }),
+            }
+          );
+
+          console.log(`📡 Respuesta de renew-token: ${refreshResp.status}`);
+        }
+
+        // ✅ PASO 3: Si aún falla, verificar el tipo de error
         if (!refreshResp.ok) {
           let errorData = null;
           try {
@@ -260,17 +291,18 @@ class ApiService {
             console.error(`❌ Error ${refreshResp.status} al renovar token:`, errorText);
           }
 
-          // Si el backend devuelve rpta: 0 con mensaje de token inválido, cerrar sesión
+          // Si el backend devuelve rpta: 0 con mensaje de error
           if (errorData?.rpta === 0) {
             const errorMsg = errorData.msg || '';
             console.error('❌ Error al renovar token:', errorMsg);
 
-            // Verificar si es un error de token inválido/expirado
+            // Verificar si es un error crítico
             if (
               errorMsg.includes('inválido') ||
               errorMsg.includes('invalido') ||
               errorMsg.includes('expirado') ||
               errorMsg.includes('Token') ||
+              errorMsg.includes('Usuario no encontrado') ||
               refreshResp.status === 400
             ) {
               console.error('❌ Token no se puede renovar. Cerrando sesión.');
@@ -280,9 +312,9 @@ class ApiService {
             }
           }
 
-          // Para otros errores (401, 403, 500, etc.), también cerrar sesión
+          // Para otros errores (401, 403 después de renew-token), cerrar sesión
           if (refreshResp.status === 401 || refreshResp.status === 403) {
-            console.error('❌ Token no se puede renovar (401/403). Cerrando sesión.');
+            console.error('❌ Token no se puede renovar después de intentar renew-token. Cerrando sesión.');
             this.logout();
             window.location.href = '/';
             throw new Error('Token no se puede renovar');
