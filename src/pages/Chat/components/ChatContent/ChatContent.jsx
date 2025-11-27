@@ -1465,12 +1465,64 @@ const ChatContent = ({
             ) : (
               <>
                 {/* PREVIEW DE RESPUESTA */}
+                {/* PREVIEW DE RESPUESTA ESTILO WHATSAPP */}
                 {message.replyToMessageId && (
-                  <div onClick={() => {
-                    const el = document.getElementById(`message-${message.replyToMessageId}`);
-                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  }} style={{ borderLeft: `3px solid #ccc`, background: 'rgba(0,0,0,0.03)', padding: '2px 6px', marginBottom: '4px', fontSize: '12px', cursor: 'pointer', borderRadius: '4px' }}>
-                    <strong>{message.replyToSender}</strong>: {message.replyToText || "Adjunto"}
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Intentar encontrar el mensaje en el DOM
+                      const el = document.getElementById(`message-${message.replyToMessageId}`);
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        // Efecto de resaltado temporal
+                        el.style.transition = 'background-color 0.5s';
+                        const originalBg = el.style.backgroundColor;
+                        el.style.backgroundColor = 'rgba(0, 168, 132, 0.2)';
+                        setTimeout(() => {
+                          el.style.backgroundColor = originalBg;
+                        }, 1000);
+                      } else {
+                        // Si no está en el DOM, intentar cargarlo (Lógica pendiente de conectar con hook de paginación)
+                        console.log(`Mensaje ${message.replyToMessageId} no encontrado en vista actual. Se requiere búsqueda en historial.`);
+                        if (onMessageHighlighted) {
+                          // Usamos el prop existente para intentar navegar/cargar
+                          // Esto asume que el padre manejará la lógica de buscar si no está cargado
+                          onMessageHighlighted(message.replyToMessageId);
+                        }
+                      }
+                    }}
+                    style={{
+                      backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                      borderRadius: '8px',
+                      padding: '6px 10px',
+                      marginBottom: '6px',
+                      cursor: 'pointer',
+                      borderLeft: '4px solid #00a884', // Color verde WhatsApp
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '2px',
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <span style={{
+                      color: '#00a884', // Mismo color del borde
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      lineHeight: '1.2'
+                    }}>
+                      {message.replyToSender || "Usuario"}
+                    </span>
+                    <span style={{
+                      color: '#54656f',
+                      fontSize: '12px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      lineHeight: '1.2'
+                    }}>
+                      {message.replyToText || "Mensaje original"}
+                    </span>
                   </div>
                 )}
 

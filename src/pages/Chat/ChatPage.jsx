@@ -658,7 +658,12 @@ const ChatPage = () => {
         message: input,
         isGroup: effectiveIsGroup,
         roomCode: effectiveIsGroup ? chatState.currentRoomCode : undefined,
-        ...attachmentData
+        ...attachmentData,
+        // 🔥 DATOS DE RESPUESTA
+        replyToMessageId: chatState.replyingTo?.id || null,
+        replyToSender: chatState.replyingTo?.sender || null,
+        replyToText: chatState.replyingTo?.text || chatState.replyingTo?.fileName || "Archivo adjunto",
+        replyToSenderNumeroAgente: chatState.replyingTo?.senderNumeroAgente || null
       };
 
       // Datos extra si es asignado
