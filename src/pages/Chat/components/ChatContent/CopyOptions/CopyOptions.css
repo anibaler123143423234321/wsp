@@ -1,0 +1,130 @@
+.copy-options-container {
+  position: relative;
+  width: 100%;
+}
+
+.copy-main-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  padding: 10px 16px !important;
+  /* Mismo padding que otros menu-items */
+}
+
+.copy-main-item span {
+  flex: 1;
+}
+
+.submenu-toggle-btn {
+  background: transparent;
+  border: none;
+  padding: 4px 8px;
+  /* Padding más compacto */
+  margin: -4px -8px -4px 0;
+  /* Ajuste de margen para alineación */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-left: 1px solid #e5e7eb;
+  transition: background-color 0.15s ease;
+}
+
+.submenu-toggle-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.submenu-arrow {
+  font-size: 12px;
+  opacity: 0.6;
+  transition: all 0.2s ease;
+  color: #6b7280;
+}
+
+.submenu-toggle-btn:hover .submenu-arrow {
+  opacity: 1;
+  transform: translateX(2px);
+  color: #ff453a;
+}
+
+/* Submenú - POSICIONADO ARRIBA del botón */
+.copy-submenu {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  right: -12px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 180px;
+  padding: 6px 0;
+  z-index: 10001;
+  animation: slideDown 0.15s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.submenu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  color: #374151;
+  transition: background-color 0.15s ease;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.submenu-item:hover {
+  background-color: #f3f4f6;
+}
+
+.submenu-item .menu-icon {
+  font-size: 14px;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.submenu-item:hover .menu-icon {
+  color: #ff453a;
+}
+
+/* Responsive para móvil */
+@media (max-width: 768px) {
+  .copy-submenu {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    bottom: auto;
+    right: auto;
+    transform: translate(-50%, -50%);
+    max-width: 90vw;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+
+  .submenu-item {
+    padding: 12px 20px;
+    font-size: 15px;
+  }
+
+  .submenu-toggle-btn {
+    padding: 10px 14px;
+  }
+}

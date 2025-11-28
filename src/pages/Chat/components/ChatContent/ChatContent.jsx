@@ -21,6 +21,8 @@ import AudioPlayer from "../AudioPlayer/AudioPlayer";
 import ImageViewer from "./ImageViewer";
 import VoiceRecorder from "../VoiceRecorder/VoiceRecorder";
 import PollMessage from "../PollMessage/PollMessage";
+import CopyOptions from "./CopyOptions/CopyOptions";
+import MessageSelectionManager from "./MessageSelectionManager/MessageSelectionManager";
 
 import "./ChatContent.css";
 
@@ -142,6 +144,41 @@ const ChatContent = ({
   const [mentionCursorPosition, setMentionCursorPosition] = useState(0);
   const inputRef = useRef(null);
   const [isRecordingLocal, setIsRecordingLocal] = useState(false);
+
+  // Estados para selección múltiple
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedMessages, setSelectedMessages] = useState([]);
+
+  // Busca esto DUPLICADO y elimínalo si está
+  useEffect(() => {
+    setImagePreview(null);
+  }, [to, currentRoomCode, isGroup]);
+
+  const handleEnterSelectionMode = () => {
+    console.log('🔥 handleEnterSelectionMode ejecutado');
+    setIsSelectionMode(true);
+    setSelectedMessages([]);
+    setShowMessageMenu(null);
+    console.log('✅ isSelectionMode ahora debería ser true');
+  };
+
+  const handleToggleMessageSelection = (messageId) => {
+    setSelectedMessages(prev =>
+      prev.includes(messageId)
+        ? prev.filter(id => id !== messageId)
+        : [...prev, messageId]
+    );
+  };
+
+  const handleCancelSelection = () => {
+    setIsSelectionMode(false);
+    setSelectedMessages([]);
+  };
+
+  const handleCopyList = () => {
+    setIsSelectionMode(false);
+    setSelectedMessages([]);
+  };
 
   // Limpiar vista previa de imagen cuando se cambia de chat
   useEffect(() => {
@@ -1409,9 +1446,28 @@ const ChatContent = ({
         id={`message-${message.id}`}
         onMouseLeave={() => { if (isMenuOpen) return; setShowMessageMenu(null); }}
         style={{
-          backgroundColor: isHighlighted ? 'rgba(0, 168, 132, 0.1)' : 'transparent'
+          backgroundColor: isHighlighted ? 'rgba(0, 168, 132, 0.1)' : 'transparent',
+          position: 'relative'
         }}
       >
+        {/* Checkbox de selección */}
+        {isSelectionMode && (
+          <div
+            className="message-checkbox-wrapper"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleToggleMessageSelection(message.id);
+            }}
+          >
+            <input
+              type="checkbox"
+              className="message-checkbox"
+              checked={selectedMessages.includes(message.id)}
+              onChange={() => { }}
+            />
+          </div>
+        )}
+
         {/* === COLUMNA IZQUIERDA (GUTTER): AVATAR O HORA === */}
         <div className="message-gutter">
           {isGroupStart ? (
@@ -1807,9 +1863,11 @@ const ChatContent = ({
                       </button>
                     )}
 
-                    <button className="menu-item" onClick={async () => { try { let t = message.text || message.fileName || ""; if (t) await navigator.clipboard.writeText(t); } catch (e) { } setShowMessageMenu(null); }}>
-                      <FaCopy className="menu-icon" /> Copiar texto
-                    </button>
+                    <CopyOptions
+                      message={message}
+                      onClose={() => setShowMessageMenu(null)}
+                      onEnterSelectionMode={handleEnterSelectionMode}
+                    />
 
                     {message.mediaData && (
                       <button className="menu-item" onClick={() => { handleDownload(message.mediaData, message.fileName); setShowMessageMenu(null); }}>
@@ -3074,7 +3132,20 @@ const ChatContent = ({
         onClose={() => setImagePreview(null)}
         onDownload={handleDownload}
       />
+      {/* Toolbar de selección múltiple */}
+      {console.log('🔍 Checking toolbar:', { isSelectionMode, selectedMessages })}
+      {
+        isSelectionMode && (
+          <MessageSelectionManager
+            selectedMessages={selectedMessages}
+            allMessages={messages}
+            onCopyList={handleCopyList}
+            onCancel={handleCancelSelection}
+          />
+        )
+      }
     </div>
+
   );
 };
 

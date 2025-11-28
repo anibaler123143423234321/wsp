@@ -2485,7 +2485,219 @@
 /* El popover se ancla a la derecha del contenedor de avatares para no tapar el mensaje si es corto, 
    o puedes usar left:0 si prefieres que salga hacia la derecha. 
    Aquí usaremos right: -10px para que quede alineado con las bolitas. */
+
+
+/* Zona Clickable (Donde están las bolitas) */
+.read-receipts-trigger {
+  position: relative;
+  height: 14px;
+  cursor: pointer;
+  pointer-events: auto;
+  /* Asegura que reciba el click */
+}
+
+/* La Bolita Individual (14px exactos) */
+.mini-read-avatar {
+  position: absolute;
+  top: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 0 0 1px #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 8px;
+  font-weight: bold;
+  transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* 2. CASO A: Mensajes de OTROS (Alineados a la Izquierda en pantalla) */
+/* Los avatares deben ir a la DERECHA de la burbuja */
+.message-row:not(.is-own) .read-by-avatars-container {
+  right: 0;
+  left: auto;
+}
+
+/* 3. CASO B: Mensajes PROPIOS (Alineados a la Derecha en pantalla) */
+/* Los avatares deben ir a la IZQUIERDA de la burbuja (lado interior) */
+.message-row.is-own .read-by-avatars-container {
+  left: 0;
+  /* 🔥 ESTO ES LO QUE FALTABA: Pegarse a la izquierda del contenedor del mensaje */
+  right: auto;
+  /* Anular la derecha */
+}
+
+/* Zona Clickable */
+.read-receipts-trigger {
+  position: relative;
+  height: 14px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* Efecto al pasar el mouse por una bolita */
+.mini-read-avatar:hover {
+  transform: scale(1.5);
+  z-index: 100 !important;
+  box-shadow: 0 0 0 1px #cbd5e1;
+}
+
+.read-receipts-popover {
+  position: absolute;
+  bottom: 24px;
+  /* Encima de las bolitas */
+  width: 240px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e5e7eb;
+  z-index: 9999;
+  padding: 8px 0;
+  text-align: left;
+  animation: fadeIn 0.15s ease-out;
+}
+
+/* Estilos internos del popover */
+.popover-header {
+  padding: 0 12px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.popover-list {
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.popover-item {
+  display: flex;
+  gap: 10px;
+  padding: 6px 12px;
+  align-items: center;
+  border-radius: 6px;
+  cursor: default;
+}
+
+.popover-item:hover {
+  background: #f9fafb;
+}
+
+.popover-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #eee;
+}
+
+.popover-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.popover-avatar-initial {
+  width: 100%;
+  height: 100%;
+  background: #667eea;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.popover-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.popover-status {
+  font-size: 11px;
+  color: ff453a;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Asegurar espacio en el mensaje */
+.message-row {
+  padding-right: 60px !important;
+  position: relative;
+}
+
+.read-receipts-popover {
+  position: absolute;
+  bottom: 22px;
+  /* Encima de las bolitas */
+  width: 240px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e5e7eb;
+  z-index: 9999;
+  padding: 8px 0;
+  text-align: left;
+  animation: fadeIn 0.15s ease-out;
+}
+
+/* Alineación del Popover para OTROS (Sale hacia la izquierda para no salirse) */
 .message-row:not(.is-own) .read-receipts-popover {
   right: -10px;
   left: auto;
+}
+
+.message-row.is-own .read-receipts-popover {
+  right: -5px;
+  /* Pegado al borde derecho (encima de las bolitas) */
+  left: auto;
+  /* Libera la izquierda para que crezca hacia allá */
+}
+
+/* 1. PARA MENSAJES DE OTROS (Alineados a la Izquierda) */
+/* El popover se ancla a la derecha del contenedor de avatares para no tapar el mensaje si es corto, 
+   o puedes usar left:0 si prefieres que salga hacia la derecha. 
+   Aquí usaremos right: -10px para que quede alineado con las bolitas. */
+.message-row:not(.is-own) .read-receipts-popover {
+  right: -10px;
+  left: auto;
+}
+
+.message-checkbox-wrapper {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  padding: 4px;
+  z-index: 10;
+}
+
+.message-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #075e54;
 }
