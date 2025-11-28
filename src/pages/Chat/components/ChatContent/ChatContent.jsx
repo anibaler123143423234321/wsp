@@ -1290,10 +1290,10 @@ const ChatContent = ({
       })
       : [];
 
-    // Regex mejorado: @ seguido de 1-3 palabras (nombre y apellido)
-    // Solo captura hasta 3 palabras para evitar capturar frases completas
+    // Regex mejorado: @ seguido de 1-4 palabras (nombre y apellidos)
+    // Captura hasta 4 palabras para nombres completos con múltiples apellidos
     const mentionRegex =
-      /@([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ]+){0,2})(?=\s|$|[.,!?;:]|\n)/g;
+      /@([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
     const parts = [];
     let lastIndex = 0;
     let match;
