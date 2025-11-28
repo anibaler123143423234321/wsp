@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import Swal from 'sweetalert2';
 import { showSuccessAlert, showErrorAlert } from '../sweetalert2';
+import { systemNotifications } from '../utils/systemNotifications';
+
 
 export const useSocketListeners = (
     socket,
@@ -142,47 +144,74 @@ export const useSocketListeners = (
                         }
                     });
                 } else {
-                    // Título: "AGENTE 01 en DESARROLLADORES"
-                    let messageTitle = data.isGroup ? `${data.from} en ${data.groupName}` : `Nuevo mensaje de ${data.from}`;
-                    // Subtítulo: "DESARROLLADORES"
-                    let messageSubtitle = data.isGroup ? (data.groupName || "Grupo") : "Chat individual";
-
-                    Swal.fire({
-                        toast: true,
-                        position: "bottom-end",
-                        icon: "info",
-                        title: messageTitle,
-                        html: `
-                            <div class="toast-content">
-                                <div class="toast-subtitle">${messageSubtitle}</div>
-                                <div class="toast-message">${messageText.substring(0, 80)}${messageText.length > 80 ? "..." : ""}</div>
-                            </div>
-                        `,
-                        showConfirmButton: true,
-                        confirmButtonText: "Ver",
-                        showCloseButton: true,
-                        timer: 6000,
-                        customClass: {
-                            popup: 'modern-toast',
-                            title: 'modern-toast-title',
-                            htmlContainer: 'modern-toast-html',
-                            confirmButton: 'modern-toast-btn',
-                            icon: 'modern-toast-icon',
-                            closeButton: 'modern-toast-close'
-                        }
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            if (data.isGroup) {
-                                window.dispatchEvent(new CustomEvent("navigateToGroup", {
-                                    detail: { roomCode: data.roomCode, groupName: data.groupName }
-                                }));
-                            } else {
-                                window.dispatchEvent(new CustomEvent("navigateToChat", {
-                                    detail: { username: data.from }
-                                }));
+                    // Título: "AGENTE 01 en DESARROLLADORES" (grupo) o "AGENTE 01 en Chat Directo" (individual)
+                    let messageTitle = data.isGroup ? `${data.from} en ${data.groupName}` : `${data.from} en Chat Directo`;
+                    // Subtítulo: "DESARROLLADORES" (grupo) o nombre del remitente (individual)
+                    let messageSubtitle = data.isGroup ? (data.groupName || "Grupo") : data.from;
+                    // 🔔 Si la ventana NO está enfocada (estás en otra app), mostrar notificación del sistema
+                    if (systemNotifications.canShow()) {
+                        const notificationBody = messageText.length > 100
+                            ? messageText.substring(0, 100) + "..."
+                            : messageText;
+                        systemNotifications.show(
+                            messageTitle,
+                            notificationBody,
+                            {
+                                tag: data.isGroup ? `group-${data.roomCode}` : `chat-${data.from}`,
+                                silent: !currentSoundsEnabled
+                            },
+                            () => {
+                                // Al hacer clic en la notificación del sistema
+                                if (data.isGroup) {
+                                    window.dispatchEvent(new CustomEvent("navigateToGroup", {
+                                        detail: { roomCode: data.roomCode, groupName: data.groupName }
+                                    }));
+                                } else {
+                                    window.dispatchEvent(new CustomEvent("navigateToChat", {
+                                        detail: { username: data.from }
+                                    }));
+                                }
                             }
-                        }
-                    });
+                        );
+                    } else {
+                        // 🔔 Si la ventana SÍ está enfocada, mostrar toast de SweetAlert (como antes)
+                        Swal.fire({
+                            toast: true,
+                            position: "bottom-end",
+                            icon: "info",
+                            title: messageTitle,
+                            html: `
+                <div class="toast-content">
+                    <div class="toast-subtitle">${messageSubtitle}</div>
+                    <div class="toast-message">${messageText.substring(0, 80)}${messageText.length > 80 ? "..." : ""}</div>
+                </div>
+            `,
+                            showConfirmButton: true,
+                            confirmButtonText: "Ver",
+                            showCloseButton: true,
+                            timer: 6000,
+                            customClass: {
+                                popup: 'modern-toast',
+                                title: 'modern-toast-title',
+                                htmlContainer: 'modern-toast-html',
+                                confirmButton: 'modern-toast-btn',
+                                icon: 'modern-toast-icon',
+                                closeButton: 'modern-toast-close'
+                            }
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                if (data.isGroup) {
+                                    window.dispatchEvent(new CustomEvent("navigateToGroup", {
+                                        detail: { roomCode: data.roomCode, groupName: data.groupName }
+                                    }));
+                                } else {
+                                    window.dispatchEvent(new CustomEvent("navigateToChat", {
+                                        detail: { username: data.from }
+                                    }));
+                                }
+                            }
+                        });
+                    }
                 }
             }
 

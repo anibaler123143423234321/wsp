@@ -643,6 +643,10 @@
   line-height: 1.4;
   /* Un poco más ajustado */
   color: #1d1c1d;
+  white-space: pre-wrap;
+  /* 🔥 Preservar saltos de línea */
+  word-wrap: break-word;
+  /* 🔥 Evitar desbordamiento */
 }
 
 .read-by-avatars-container,
@@ -654,6 +658,7 @@
 /* --- 4. TOOLBAR FLOTANTE (Acciones) --- */
 .action-toolbar {
   position: absolute;
+
   top: -28px !important;
   right: 12px !important;
   /* Flota un poco sobre el borde superior */
