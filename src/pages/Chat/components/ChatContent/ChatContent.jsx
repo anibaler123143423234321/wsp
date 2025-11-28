@@ -18,6 +18,7 @@ import EmojiPicker from "emoji-picker-react";
 import LoadMoreMessages from "../LoadMoreMessages/LoadMoreMessages";
 import WelcomeScreen from "../WelcomeScreen/WelcomeScreen";
 import AudioPlayer from "../AudioPlayer/AudioPlayer";
+import ImageViewer from "./ImageViewer";
 import VoiceRecorder from "../VoiceRecorder/VoiceRecorder";
 import PollMessage from "../PollMessage/PollMessage";
 
@@ -141,6 +142,12 @@ const ChatContent = ({
   const [mentionCursorPosition, setMentionCursorPosition] = useState(0);
   const inputRef = useRef(null);
   const [isRecordingLocal, setIsRecordingLocal] = useState(false);
+
+  // Limpiar vista previa de imagen cuando se cambia de chat
+  useEffect(() => {
+    setImagePreview(null);
+  }, [to, currentRoomCode, isGroup]);
+
   // Función simple que usa directamente el displayDate del backend
   const formatDateFromBackend = (messageOrDate) => {
     // Si es un objeto mensaje con displayDate, usarlo directamente
@@ -1531,7 +1538,17 @@ const ChatContent = ({
                   <img
                     src={message.mediaData}
                     alt="imagen"
-                    style={{ maxWidth: '350px', borderRadius: '8px', border: '1px solid #e5e7eb', cursor: 'pointer', display: 'block' }}
+                    style={{
+                      maxWidth: '450px',
+                      maxHeight: '400px',
+                      width: 'auto',
+                      height: 'auto',
+                      objectFit: 'contain',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb',
+                      cursor: 'pointer',
+                      display: 'block'
+                    }}
                     onClick={() => setImagePreview({ url: message.mediaData, fileName: message.fileName })}
                   />
                 ) : message.mediaType === 'video' ? (
@@ -3052,115 +3069,11 @@ const ChatContent = ({
       )}
 
       {/* Modal de vista previa de imagen en pantalla completa */}
-      {imagePreview && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.95)",
-            zIndex: 9999,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "20px",
-          }}
-          onClick={() => setImagePreview(null)}
-        >
-          {/* Botón de cerrar */}
-          <button
-            onClick={() => setImagePreview(null)}
-            style={{
-              position: "absolute",
-              top: "20px",
-              right: "20px",
-              backgroundColor: "rgba(255, 255, 255, 0.1)",
-              border: "none",
-              color: "#fff",
-              fontSize: "24px",
-              width: "40px",
-              height: "40px",
-              borderRadius: "50%",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "background-color 0.2s",
-            }}
-            onMouseEnter={(e) =>
-              (e.target.style.backgroundColor = "rgba(255, 255, 255, 0.2)")
-            }
-            onMouseLeave={(e) =>
-              (e.target.style.backgroundColor = "rgba(255, 255, 255, 0.1)")
-            }
-          >
-            ✕
-          </button>
-
-          {/* Botón de descargar */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDownload(imagePreview.url, imagePreview.fileName);
-            }}
-            style={{
-              position: "absolute",
-              top: "20px",
-              right: "80px",
-              backgroundColor: "rgba(255, 255, 255, 0.1)",
-              border: "none",
-              color: "#fff",
-              fontSize: "16px",
-              padding: "10px 20px",
-              borderRadius: "20px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              transition: "background-color 0.2s",
-            }}
-            onMouseEnter={(e) =>
-              (e.target.style.backgroundColor = "rgba(255, 255, 255, 0.2)")
-            }
-            onMouseLeave={(e) =>
-              (e.target.style.backgroundColor = "rgba(255, 255, 255, 0.1)")
-            }
-          >
-            ⬇️ Descargar
-          </button>
-
-          {/* Imagen */}
-          <img
-            src={imagePreview.url}
-            alt={imagePreview.fileName}
-            style={{
-              maxWidth: "90%",
-              maxHeight: "90%",
-              objectFit: "contain",
-              borderRadius: "8px",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          />
-
-          {/* Nombre del archivo */}
-          <p
-            style={{
-              position: "absolute",
-              bottom: "20px",
-              color: "#fff",
-              fontSize: "14px",
-              backgroundColor: "rgba(0, 0, 0, 0.5)",
-              padding: "8px 16px",
-              borderRadius: "20px",
-            }}
-          >
-            {imagePreview.fileName}
-          </p>
-        </div>
-      )}
+      <ImageViewer
+        imagePreview={imagePreview}
+        onClose={() => setImagePreview(null)}
+        onDownload={handleDownload}
+      />
     </div>
   );
 };
