@@ -64,9 +64,11 @@ const TabButton = ({ isActive, onClick, label, icon: Icon, notificationCount }) 
 const CollapsibleList = ({ title, icon: Icon, children, isOpen, onToggle, onLoadMore, hasMore, isLoading, className, contentClassName, defaultHeight = 356 }) => {
   const [height, setHeight] = useState(defaultHeight);
   const listRef = useRef(null);
+  const contentRef = useRef(null);
   const isResizing = useRef(false);
   const startY = useRef(0);
   const startHeight = useRef(0);
+  const lastCheckTime = useRef(0); // 🔥 Prevenir checks múltiples
 
   const startResizing = useCallback((e) => {
     e.preventDefault();
@@ -76,6 +78,24 @@ const CollapsibleList = ({ title, icon: Icon, children, isOpen, onToggle, onLoad
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', stopResizing);
   }, [height]);
+
+  // 🔥 FUNCIÓN PARA VERIFICAR SI NECESITAMOS CARGAR MÁS DATOS (solo después de resize)
+  const checkIfNeedsMoreData = useCallback(() => {
+    if (!contentRef.current || !hasMore || isLoading || !onLoadMore) return;
+
+    // 🔥 Prevenir llamadas múltiples en corto tiempo (debounce manual)
+    const now = Date.now();
+    if (now - lastCheckTime.current < 500) return; // No llamar más de una vez cada 500ms
+
+    const { scrollTop, scrollHeight, clientHeight } = contentRef.current;
+
+    // Solo cargar si el contenido no llena el contenedor completamente
+    if (scrollHeight <= clientHeight + 10) {
+      console.log(`🔄 Auto-loading more data for "${title}" after resize (content doesn't fill container)`);
+      lastCheckTime.current = now;
+      onLoadMore();
+    }
+  }, [hasMore, isLoading, onLoadMore, title]);
 
   const handleMouseMove = useCallback((e) => {
     if (!isResizing.current) return;
@@ -90,18 +110,26 @@ const CollapsibleList = ({ title, icon: Icon, children, isOpen, onToggle, onLoad
     isResizing.current = false;
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', stopResizing);
-  }, [handleMouseMove]);
 
-  const handleScroll = (e) => {
+    // 🔥 SOLO verificar después de redimensionar manualmente
+    setTimeout(() => {
+      checkIfNeedsMoreData();
+    }, 150);
+  }, [handleMouseMove, checkIfNeedsMoreData]);
+
+  const handleScroll = useCallback((e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
     // Detectar cuando estamos cerca del final del scroll (a 20px)
     if (scrollHeight - scrollTop <= clientHeight + 20) {
       if (hasMore && !isLoading && onLoadMore) {
-        // console.log("📜 Triggering load more for", title);
+        console.log("📜 Triggering load more for", title);
         onLoadMore();
       }
     }
-  };
+  }, [hasMore, isLoading, onLoadMore, title]);
+
+  // 🔥 ELIMINADO: Los useEffect que causaban carga excesiva
+  // Solo mantenemos el comportamiento de scroll manual y resize manual
 
   return (
     <div className={`mx_RoomSublist ${className || ''}`} style={{ height: isOpen ? `${height}px` : 'auto' }} ref={listRef}>
@@ -115,7 +143,11 @@ const CollapsibleList = ({ title, icon: Icon, children, isOpen, onToggle, onLoad
 
       {isOpen && (
         <>
-          <div className={`mx_RoomSublist_content mx_AutoHideScrollbar ${contentClassName || ''}`} onScroll={handleScroll}>
+          <div
+            ref={contentRef}
+            className={`mx_RoomSublist_content mx_AutoHideScrollbar ${contentClassName || ''}`}
+            onScroll={handleScroll}
+          >
             {children}
             {/* Spinner de carga discreto al final de la lista */}
             {isLoading && (
