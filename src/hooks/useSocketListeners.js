@@ -184,80 +184,100 @@ export const useSocketListeners = (
                     isChatOpen = true;
                 }
             }
+            // CASO A: GRUPOS
+            if (data.isGroup) {
+                // 🔥 SIEMPRE agregar mensaje al chat si está abierto (propio o no)
+                if (isChatOpen) {
+                    addNewMessage({
+                        ...data,
+                        id: data.id,
+                        sender: isOwnMessage ? "Tú" : data.from,
+                        realSender: data.from,
+                        isSent: isOwnMessage,
+                        isSelf: isOwnMessage,
+                        time: timeString,
+                        text: messageText,
+                        mediaType: data.mediaType,
+                        mediaData: data.mediaData,
+                        fileName: data.fileName,
+                        type: data.type,
+                        videoCallUrl: data.videoCallUrl,
+                        videoRoomID: data.videoRoomID,
+                        metadata: data.metadata
+                    });
+                }
 
-            if (!isOwnMessage) {
-                const currentSoundsEnabled = soundsEnabledRef.current;
+                // 🔥 SOLO incrementar contador si NO es propio y el chat NO está abierto
+                if (!isOwnMessage && !isChatOpen && data.roomCode) {
+                    setUnreadMessages(prev => ({ ...prev, [data.roomCode]: (prev[data.roomCode] || 0) + 1 }));
+                }
 
-                // CASO A: GRUPOS
-                if (data.isGroup) {
-                    if (isChatOpen) {
-                        addNewMessage({
-                            ...data,
-                            id: data.id,
-                            sender: isOwnMessage ? "Tú" : data.from,
-                            realSender: data.from,
-                            isSent: isOwnMessage,
-                            isSelf: isOwnMessage,
-                            time: timeString,
-                            text: messageText,
-                            mediaType: data.mediaType,
-                            mediaData: data.mediaData,
-                            fileName: data.fileName,
-                            type: data.type,
-                            videoCallUrl: data.videoCallUrl,
-                            videoRoomID: data.videoRoomID,
-                            metadata: data.metadata
+                // 🔥 SIEMPRE actualizar la lista de conversaciones
+                if (data.roomCode) {
+                    setMyActiveRooms(prev => {
+                        const updated = prev.map(r => {
+                            if (r.roomCode === data.roomCode) {
+                                return {
+                                    ...r,
+                                    lastMessage: {
+                                        text: messageText,
+                                        from: data.from,
+                                        time: timeString,
+                                        sentAt: data.sentAt || new Date().toISOString(),
+                                        mediaType: data.mediaType,
+                                        fileName: data.fileName
+                                    }
+                                };
+                            }
+                            return r;
                         });
-                    } else {
-                        if (!isOwnMessage && data.roomCode) {
-                            setUnreadMessages(prev => ({ ...prev, [data.roomCode]: (prev[data.roomCode] || 0) + 1 }));
-                        }
+                        return sortRoomsByBackendLogic(updated, favoriteRoomCodes);
+                    });
+                }
+
+                // CASO B: CHATS INDIVIDUALES
+            } else {
+                // 🔥 SIEMPRE agregar mensaje al chat si está abierto
+                if (isChatOpen) {
+                    addNewMessage({
+                        ...data,
+                        id: data.id,
+                        sender: isOwnMessage ? "Tú" : data.from,
+                        realSender: data.from,
+                        isSent: isOwnMessage,
+                        isSelf: isOwnMessage,
+                        time: timeString,
+                        text: messageText,
+                        mediaType: data.mediaType,
+                        mediaData: data.mediaData,
+                        fileName: data.fileName,
+                        type: data.type,
+                        videoCallUrl: data.videoCallUrl,
+                        videoRoomID: data.videoRoomID,
+                        metadata: data.metadata
+                    });
+                }
+
+                // 🔥 Actualizar conversaciones asignadas
+                setAssignedConversations(prev => prev.map(conv => {
+                    if (data.conversationId && conv.id == data.conversationId) {
+                        return {
+                            ...conv,
+                            lastMessage: messageText,
+                            lastMessageTime: data.sentAt || new Date().toISOString(),
+                            lastMessageFrom: data.from,
+                            lastMessageMediaType: data.mediaType,
+                            unreadCount: (!isChatOpen && !isOwnMessage) ? (conv.unreadCount || 0) + 1 : 0
+                        };
                     }
 
-                    if (data.roomCode) {
-                        setMyActiveRooms(prev => {
-                            const updated = prev.map(r => {
-                                if (r.roomCode === data.roomCode) {
-                                    return {
-                                        ...r,
-                                        lastMessage: messageText,
-                                        lastMessageFrom: data.from,
-                                        lastMessageTime: timeString,
-                                        lastMessageAt: data.sentAt || new Date().toISOString(),
-                                        lastMessageMediaType: data.mediaType,
-                                        lastMessageFileName: data.fileName
-                                    };
-                                }
-                                return r;
-                            });
-                            return sortRoomsByBackendLogic(updated, favoriteRoomCodes);
-                        });
-                    }
+                    if (!data.conversationId) {
+                        const participants = conv.participants || [];
+                        const participantsLower = participants.map(p => p?.toLowerCase().trim());
+                        const isThisConv = participantsLower.includes(data.from?.toLowerCase().trim()) &&
+                            participantsLower.includes(data.to?.toLowerCase().trim());
 
-                    // CASO B: CHATS INDIVIDUALES
-                } else {
-                    if (isChatOpen) {
-                        addNewMessage({
-                            ...data,
-                            id: data.id,
-                            sender: isOwnMessage ? "Tú" : data.from,
-                            realSender: data.from,
-                            isSent: isOwnMessage,
-                            isSelf: isOwnMessage,
-                            time: timeString,
-                            text: messageText,
-                            mediaType: data.mediaType,
-                            mediaData: data.mediaData,
-                            fileName: data.fileName,
-                            type: data.type,
-                            videoCallUrl: data.videoCallUrl,
-                            videoRoomID: data.videoRoomID,
-                            metadata: data.metadata
-                        });
-                    }
-
-                    setAssignedConversations(prev => prev.map(conv => {
-                        if (data.conversationId && conv.id == data.conversationId) {
+                        if (isThisConv) {
                             return {
                                 ...conv,
                                 lastMessage: messageText,
@@ -267,75 +287,58 @@ export const useSocketListeners = (
                                 unreadCount: (!isChatOpen && !isOwnMessage) ? (conv.unreadCount || 0) + 1 : 0
                             };
                         }
+                    }
+                    return conv;
+                }));
 
-                        if (!data.conversationId) {
-                            const participants = conv.participants || [];
-                            const participantsLower = participants.map(p => p?.toLowerCase().trim());
-                            const isThisConv = participantsLower.includes(data.from?.toLowerCase().trim()) &&
-                                participantsLower.includes(data.to?.toLowerCase().trim());
+                // 🔥 NOTIFICACIONES SOLO si NO es mensaje propio
+                if (!isOwnMessage && (!isChatOpen || systemNotifications.canShow())) {
+                    playMessageSound(soundsEnabledRef.current);
 
-                            if (isThisConv) {
-                                return {
-                                    ...conv,
-                                    lastMessage: messageText,
-                                    lastMessageTime: data.sentAt || new Date().toISOString(),
-                                    lastMessageFrom: data.from,
-                                    lastMessageMediaType: data.mediaType,
-                                    unreadCount: (!isChatOpen && !isOwnMessage) ? (conv.unreadCount || 0) + 1 : 0
-                                };
-                            }
-                        }
-                        return conv;
-                    }));
-
-                    // 🔥 NOTIFICACIONES PARA CHATS INDIVIDUALES
-                    if (!isChatOpen || systemNotifications.canShow()) {
-                        playMessageSound(soundsEnabledRef.current);
-
-                        if (systemNotifications.canShow()) {
-                            systemNotifications.show(
-                                `Nuevo mensaje de ${data.from}`,
-                                messageText,
-                                { tag: `chat-${data.from}`, silent: !soundsEnabledRef.current },
-                                () => {
-                                    window.dispatchEvent(new CustomEvent("navigateToChat", {
-                                        detail: { to: data.from }
-                                    }));
-                                }
-                            );
-                        }
-
-                        Swal.fire({
-                            toast: true,
-                            position: "bottom-end",
-                            icon: "info",
-                            title: `Mensaje de ${data.from}`,
-                            html: `
-                                <div class="toast-content">
-                                    <div class="toast-message">${messageText.substring(0, 80)}${messageText.length > 80 ? "..." : ""}</div>
-                                </div>
-                            `,
-                            showConfirmButton: true,
-                            confirmButtonText: "Ver",
-                            showCloseButton: true,
-                            timer: 6000,
-                            customClass: {
-                                popup: 'modern-toast',
-                                title: 'modern-toast-title',
-                                htmlContainer: 'modern-toast-html',
-                                confirmButton: 'modern-toast-btn',
-                                icon: 'modern-toast-icon',
-                                closeButton: 'modern-toast-close'
-                            }
-                        }).then((result) => {
-                            if (result.isConfirmed) {
+                    if (systemNotifications.canShow()) {
+                        systemNotifications.show(
+                            `Nuevo mensaje de ${data.from}`,
+                            messageText,
+                            { tag: `chat-${data.from}`, silent: !soundsEnabledRef.current },
+                            () => {
                                 window.dispatchEvent(new CustomEvent("navigateToChat", {
                                     detail: { to: data.from }
                                 }));
                             }
-                        });
+                        );
                     }
+
+                    Swal.fire({
+                        toast: true,
+                        position: "bottom-end",
+                        icon: "info",
+                        title: `Mensaje de ${data.from}`,
+                        html: `
+                            <div class="toast-content">
+                                <div class="toast-message">${messageText.substring(0, 80)}${messageText.length > 80 ? "..." : ""}</div>
+                            </div>
+                        `,
+                        showConfirmButton: true,
+                        confirmButtonText: "Ver",
+                        showCloseButton: true,
+                        timer: 6000,
+                        customClass: {
+                            popup: 'modern-toast',
+                            title: 'modern-toast-title',
+                            htmlContainer: 'modern-toast-html',
+                            confirmButton: 'modern-toast-btn',
+                            icon: 'modern-toast-icon',
+                            closeButton: 'modern-toast-close'
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.dispatchEvent(new CustomEvent("navigateToChat", {
+                                detail: { to: data.from }
+                            }));
+                        }
+                    });
                 }
+
             }
         });
 
@@ -420,12 +423,14 @@ export const useSocketListeners = (
                         room.roomCode === data.roomCode
                             ? {
                                 ...room,
-                                lastMessage: data.lastMessage.text || "", // 🔥 String
-                                lastMessageFrom: data.lastMessage.from,
-                                lastMessageTime: data.lastMessage.time,
-                                lastMessageAt: data.lastMessage.sentAt,
-                                lastMessageMediaType: data.lastMessage.mediaType || null, // 🔥 Propiedad directa
-                                lastMessageFileName: data.lastMessage.fileName || null,
+                                lastMessage: {
+                                    text: data.lastMessage.text || "",
+                                    from: data.lastMessage.from,
+                                    time: data.lastMessage.time,
+                                    sentAt: data.lastMessage.sentAt,
+                                    mediaType: data.lastMessage.mediaType || null,
+                                    fileName: data.lastMessage.fileName || null
+                                }
                             }
                             : room
                     )
