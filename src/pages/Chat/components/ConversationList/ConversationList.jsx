@@ -560,9 +560,33 @@ const ConversationList = ({
               const filteredRooms = myActiveRooms
                 .filter(room => assignedSearchTerm.trim() === '' || room.name.toLowerCase().includes(assignedSearchTerm.toLowerCase()) || room.roomCode.toLowerCase().includes(assignedSearchTerm.toLowerCase()));
 
+              // 🔥 LÓGICA DE ORDENAMIENTO PARA GRUPOS
+              const sortedRooms = filteredRooms.sort((a, b) => {
+                const aIsFavorite = favoriteRoomCodes.includes(a.roomCode);
+                const bIsFavorite = favoriteRoomCodes.includes(b.roomCode);
+
+                // 1. Fijados (Favoritos) Primero
+                if (aIsFavorite && !bIsFavorite) return -1;
+                if (!aIsFavorite && bIsFavorite) return 1;
+
+                // 2. Ordenar por Preferencia de Usuario
+                if (sortBy === 'newest') {
+                  const dateA = new Date(a.lastMessage?.sentAt || a.updatedAt || a.createdAt || 0);
+                  const dateB = new Date(b.lastMessage?.sentAt || b.updatedAt || b.createdAt || 0);
+                  return dateB - dateA;
+                } else if (sortBy === 'oldest') {
+                  const dateA = new Date(a.lastMessage?.sentAt || a.updatedAt || a.createdAt || 0);
+                  const dateB = new Date(b.lastMessage?.sentAt || b.updatedAt || b.createdAt || 0);
+                  return dateA - dateB;
+                } else if (sortBy === 'name') {
+                  return (a.name || '').localeCompare(b.name || '');
+                }
+                return 0;
+              });
+
               return (
                 <>
-                  {filteredRooms.map((room) => {
+                  {sortedRooms.map((room) => {
                     const typingUsers = roomTypingUsers[room.roomCode] || [];
                     const isTypingInRoom = typingUsers.length > 0;
                     const isFavorite = favoriteRoomCodes.includes(room.roomCode);

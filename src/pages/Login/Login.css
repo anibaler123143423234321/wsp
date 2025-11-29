@@ -257,9 +257,220 @@
   }
 
   .error-message {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.error-message {
+  background-color: rgba(241, 92, 109, 0.1);
+  border: 1px solid rgba(241, 92, 109, 0.3);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: #f15c6d;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Botón de login */
+.login-button {
+  height: 48px !important;
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+
+  background: #c62d42;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.login-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.button-content {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  width: auto !important;
+}
+
+.loading-spinner {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
+
+  border: 2px solid rgba(255, 255, 255, 0.3) !important;
+  border-top: 2px solid #666 !important;
+  border-radius: 50% !important;
+  margin-right: 10px !important;
+  margin-left: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  box-sizing: border-box !important;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.login-button:hover:not(:disabled) {
+  background: #a8253a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(198, 45, 66, 0.3);
+}
+
+/* Estilos para el selector de sede */
+.sede-buttons-group {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 0.5rem;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.sede-button {
+  flex: 1 1 48% !important;
+  min-width: 120px !important;
+  padding: 0.7rem 1rem;
+  background: white !important;
+  border: 2px solid #c62d42 !important;
+  border-radius: 6px;
+  color: #c62d42 !important;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.sede-button:hover:not(.active) {
+  border-color: #a02436 !important;
+  background: #fff0f2 !important;
+  color: #a02436 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(198, 45, 66, 0.15);
+}
+
+.sede-button.active {
+  background: #c62d42 !important;
+  border-color: #c62d42 !important;
+  color: white !important;
+  box-shadow: 0 2px 6px rgba(198, 45, 66, 0.3);
+}
+
+.sede-button:focus {
+  outline: none;
+}
+
+.forgot-password {
+  text-align: center;
+}
+
+.forgot-password a {
+  color: #666;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.2s;
+}
+
+.forgot-password a:hover {
+  color: #c62d42;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .login-card {
+    padding: 2rem 1.5rem;
+    margin: 1rem;
+    max-width: calc(100vw - 2rem);
+    min-width: 280px;
+    border-radius: 16px;
+  }
+
+  .welcome-title {
+    font-size: 1.75rem;
+  }
+
+  .welcome-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .login-button {
+    padding: 0.875rem 1.5rem;
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: 1.5rem 1rem;
+    margin: 1rem;
+    max-width: calc(100vw - 2rem);
+    min-width: 260px;
+    border-radius: 14px;
+  }
+
+  .login-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .welcome-title {
+    font-size: 1.5rem;
+  }
+
+  .welcome-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .login-button {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+  }
+
+  .error-message {
     padding: 0.625rem 0.875rem;
     font-size: 13px;
   }
+}
+
+/* Forzar fondo blanco en inputs del login (anular dark mode) */
+.login-card input {
+  background-color: white !important;
+  color: #1a1a1a !important;
+}
+
+.login-card input::placeholder {
+  color: #9ca3af !important;
+}
+
+.login-card input:disabled {
+  background-color: #f3f4f6 !important;
+  color: #6b7280 !important;
 }
 
 /* Override autofill background */
