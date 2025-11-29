@@ -76,90 +76,142 @@ const EmojiIcon = ({ className, style }) => (
   </svg>
 );
 
+// Función para determinar el sufijo (Número de Agente o Rol)
+// Se asume que el objeto 'message' tiene las propiedades 'senderNumeroAgente' y 'senderRole'.
+const getSenderSuffix = (message) => {
+  // Buscar el número de agente en diferentes propiedades posibles
+  const agentNumber = message.senderNumeroAgente || message.agentNumber;
+  const role = message.senderRole;
+
+  // Construir el sufijo con role y número de agente
+  const parts = [];
+
+  if (role && String(role).trim()) {
+    parts.push(String(role).trim());
+  }
+
+  if (agentNumber && String(agentNumber).trim()) {
+    parts.push(`N.º ${String(agentNumber).trim()}`);
+  }
+
+  // Si hay partes, unirlas con " • "
+  if (parts.length > 0) {
+    return ` • ${parts.join(" • ")}`;
+  }
+
+  // Predeterminado: Ninguno
+  return "";
+};
 const ChatContent = ({
+  // Props de mensajes
   messages,
+  highlightMessageId,
+  onMessageHighlighted,
+  replyingTo,
+  onCancelReply,
+  onOpenThread,
+  onEditMessage,
+  onDeleteMessage,
+  onPinMessage,
+  pinnedMessageId,
+  pinnedMessage,
+
+  // Props de input/envío
   input,
   setInput,
   onSendMessage,
   onFileSelect,
-  isRecording,
+  onSendVoiceMessage,
   mediaFiles,
   mediaPreviews,
   onCancelMediaUpload,
   onRemoveMediaFile,
+
+  // Props de estado de carga/envío
+  isRecording,
+  isLoadingMessages,
+  isLoadingMore,
+  isUploadingFile,
+  isSending,
+  hasMoreMessages,
+  onLoadMoreMessages,
+
+  // Props de usuario/sala
   to,
   isGroup,
   currentRoomCode,
   roomUsers,
-  hasMoreMessages,
-  isLoadingMore,
-  isLoadingMessages, // 🔥 Estado de carga inicial de mensajes
-  onLoadMoreMessages,
   currentUsername,
   user,
-  onEditMessage,
-  onDeleteMessage,
   socket,
-  highlightMessageId,
-  onMessageHighlighted,
   canSendMessages = true,
-  replyingTo,
-  onCancelReply,
-  onOpenThread,
-  onSendVoiceMessage,
   isAdmin = false,
+
+  // Props de typing
   isOtherUserTyping,
   typingUser,
   roomTypingUsers,
-  isUploadingFile, // 🔥 Prop para estado de carga de archivos
-  isSending, // 🔥 NUEVO: Estado de envío para prevenir duplicados
-  onPinMessage, // 🔥 NUEVO: Función para fijar mensajes
-  pinnedMessageId, // 🔥 NUEVO: ID del mensaje fijado actual
-  pinnedMessage
 }) => {
+  // ============================================================
+  // REFS
+  // ============================================================
   const chatHistoryRef = useRef(null);
   const isUserScrollingRef = useRef(false);
   const lastMessageCountRef = useRef(0);
-  const [editingMessageId, setEditingMessageId] = useState(null);
-  const [editText, setEditText] = useState("");
-  const [editFile, setEditFile] = useState(null); // 🔥 Archivo para editar multimedia
-  const [isEditingLoading, setIsEditingLoading] = useState(false); // 🔥 Loading para edición
+  const previousScrollHeightRef = useRef(0);
   const typingTimeoutRef = useRef(null);
-  const [highlightedMessageId, setHighlightedMessageId] = useState(null);
-  const [expandedMessages, setExpandedMessages] = useState(new Set());
-  const [isDragging, setIsDragging] = useState(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showMessageInfo, setShowMessageInfo] = useState(null); // Mensaje seleccionado para ver info
-  const [showReactionPicker, setShowReactionPicker] = useState(null); // ID del mensaje para mostrar selector de reacciones
-  const [imagePreview, setImagePreview] = useState(null); // Estado para vista previa de imagen en pantalla completa
-  const [showMessageMenu, setShowMessageMenu] = useState(null); // ID del mensaje para mostrar menú desplegable
-  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const emojiPickerRef = useRef(null);
   const reactionPickerRef = useRef(null);
   const messageMenuRef = useRef(null);
+  const inputRef = useRef(null);
+
+  // ============================================================
+  // ESTADOS - Edición de mensajes
+  // ============================================================
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editText, setEditText] = useState("");
+  const [editFile, setEditFile] = useState(null);
+  const [isEditingLoading, setIsEditingLoading] = useState(false);
+
+  // ============================================================
+  // ESTADOS - UI/Interacción
+  // ============================================================
+  const [highlightedMessageId, setHighlightedMessageId] = useState(null);
+  const [expandedMessages, setExpandedMessages] = useState(new Set());
+  const [isDragging, setIsDragging] = useState(false);
+  const [isRecordingLocal, setIsRecordingLocal] = useState(false);
+
+  // ============================================================
+  // ESTADOS - Pickers y menús
+  // ============================================================
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showReactionPicker, setShowReactionPicker] = useState(null);
+  const [showMessageMenu, setShowMessageMenu] = useState(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const [showMessageInfo, setShowMessageInfo] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [openReadReceiptsId, setOpenReadReceiptsId] = useState(null);
-  // Estados para menciones (@)
+
+  // ============================================================
+  // ESTADOS - Menciones (@)
+  // ============================================================
   const [showMentionSuggestions, setShowMentionSuggestions] = useState(false);
   const [mentionSearch, setMentionSearch] = useState("");
   const [mentionCursorPosition, setMentionCursorPosition] = useState(0);
-  const inputRef = useRef(null);
-  const [isRecordingLocal, setIsRecordingLocal] = useState(false);
 
-  // Estados para selección múltiple
+  // ============================================================
+  // ESTADOS - Selección múltiple
+  // ============================================================
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedMessages, setSelectedMessages] = useState([]);
 
-  // Busca esto DUPLICADO y elimínalo si está
-  useEffect(() => {
-    setImagePreview(null);
-  }, [to, currentRoomCode, isGroup]);
-
+  // ============================================================
+  // HANDLERS - Selección múltiple de mensajes
+  // ============================================================
   const handleEnterSelectionMode = () => {
-    console.log('🔥 handleEnterSelectionMode ejecutado');
     setIsSelectionMode(true);
     setSelectedMessages([]);
     setShowMessageMenu(null);
-    console.log('✅ isSelectionMode ahora debería ser true');
   };
 
   const handleToggleMessageSelection = (messageId) => {
@@ -180,12 +232,16 @@ const ChatContent = ({
     setSelectedMessages([]);
   };
 
-  // Limpiar vista previa de imagen cuando se cambia de chat
+  // ============================================================
+  // EFFECT - Limpiar vista previa al cambiar de chat
+  // ============================================================
   useEffect(() => {
     setImagePreview(null);
   }, [to, currentRoomCode, isGroup]);
 
-  // Función simple que usa directamente el displayDate del backend
+  // ============================================================
+  // FUNCIONES AUXILIARES - Formateo de fechas
+  // ============================================================
   const formatDateFromBackend = (messageOrDate) => {
     // Si es un objeto mensaje con displayDate, usarlo directamente
     if (typeof messageOrDate === 'object' && messageOrDate.displayDate) {
@@ -272,7 +328,9 @@ const ChatContent = ({
     return groups;
   };
 
-  // Función para descargar archivos
+  // ============================================================
+  // HANDLER - Descarga de archivos
+  // ============================================================
   const handleDownload = async (url, fileName) => {
     if (!url) return;
 
@@ -305,7 +363,9 @@ const ChatContent = ({
     }
   };
 
-  // 🔥 Manejar drag & drop de archivos
+  // ============================================================
+  // HANDLERS - Drag & Drop de archivos
+  // ============================================================
   const handleDragEnter = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -334,18 +394,16 @@ const ChatContent = ({
 
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
-      // Crear un evento sintético para onFileSelect
       const syntheticEvent = {
-        target: {
-          files: files,
-          value: "",
-        },
+        target: { files, value: "" },
       };
       onFileSelect(syntheticEvent);
     }
   };
 
-  // 🔥 Manejar paste de archivos/imágenes
+  // ============================================================
+  // HANDLER - Paste de archivos/imágenes
+  // ============================================================
   const handlePaste = (e) => {
     if (!canSendMessages) return;
 
@@ -357,47 +415,41 @@ const ChatContent = ({
       const item = items[i];
       if (item.kind === "file") {
         const file = item.getAsFile();
-        if (file) {
-          files.push(file);
-        }
+        if (file) files.push(file);
       }
     }
 
     if (files.length > 0) {
       e.preventDefault();
-      // Crear un evento sintético para onFileSelect
       const syntheticEvent = {
-        target: {
-          files: files,
-          value: "",
-        },
+        target: { files, value: "" },
       };
       onFileSelect(syntheticEvent);
     }
   };
 
-  // Iniciar edición de mensaje
+  // ============================================================
+  // HANDLERS - Edición de mensajes
+  // ============================================================
   const handleStartEdit = (message) => {
     setEditingMessageId(message.id);
     setEditText(message.text);
-    setEditFile(null); // Limpiar archivo anterior
+    setEditFile(null);
   };
 
-  // Cancelar edición
   const handleCancelEdit = () => {
     setEditingMessageId(null);
     setEditText("");
     setEditFile(null);
   };
 
-  // Guardar edición
   const handleSaveEdit = async () => {
     if ((editText.trim() || editFile) && editingMessageId) {
-      setIsEditingLoading(true); // 🔥 Mostrar loading
+      setIsEditingLoading(true);
       try {
         await onEditMessage(editingMessageId, editText, editFile);
       } finally {
-        setIsEditingLoading(false); // 🔥 Ocultar loading
+        setIsEditingLoading(false);
         setEditingMessageId(null);
         setEditText("");
         setEditFile(null);
@@ -405,7 +457,9 @@ const ChatContent = ({
     }
   };
 
-  // Manejar cambio de input
+  // ============================================================
+  // HANDLER - Input de texto y menciones
+  // ============================================================
   const handleInputChange = (e) => {
     const value = e.target.value;
     const cursorPos = e.target.selectionStart;
@@ -477,7 +531,6 @@ const ChatContent = ({
     }
   };
 
-  // Manejar tecla Enter
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -485,51 +538,39 @@ const ChatContent = ({
     }
   };
 
-  // Manejar selección de mención
   const handleMentionSelect = (user) => {
-    const username =
-      typeof user === "string" ? user : user.username || user.nombre || user;
+    const username = typeof user === "string" ? user : user.username || user.nombre || user;
     const beforeMention = input.substring(0, mentionCursorPosition);
-    const afterMention = input.substring(
-      mentionCursorPosition + mentionSearch.length + 1
-    );
+    const afterMention = input.substring(mentionCursorPosition + mentionSearch.length + 1);
     const newInput = `${beforeMention}@${username} ${afterMention}`;
     setInput(newInput);
     setShowMentionSuggestions(false);
     setMentionSearch("");
-
-    // Enfocar el input después de seleccionar
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
+    inputRef.current?.focus();
   };
 
-  // Manejar selección de emoji
+  // ============================================================
+  // HANDLER - Emojis y reacciones
+  // ============================================================
   const handleEmojiClick = (emojiData) => {
-    // Si hay un mensaje guardado para reaccionar, usar el emoji como reacción
     if (window.currentReactionMessage) {
       handleReaction(window.currentReactionMessage, emojiData.emoji);
-      window.currentReactionMessage = null; // Limpiar el mensaje guardado
+      window.currentReactionMessage = null;
     } else {
-      // Si no, agregar el emoji al input de texto
       setInput((prevInput) => prevInput + emojiData.emoji);
     }
     setShowEmojiPicker(false);
   };
 
-  // Cerrar emoji picker al hacer click fuera
+  // ============================================================
+  // EFFECT - Cerrar pickers al hacer click fuera
+  // ============================================================
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (
-        emojiPickerRef.current &&
-        !emojiPickerRef.current.contains(event.target)
-      ) {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
         setShowEmojiPicker(false);
       }
-      if (
-        reactionPickerRef.current &&
-        !reactionPickerRef.current.contains(event.target)
-      ) {
+      if (reactionPickerRef.current && !reactionPickerRef.current.contains(event.target)) {
         setShowReactionPicker(null);
       }
     };
@@ -543,7 +584,9 @@ const ChatContent = ({
     };
   }, [showEmojiPicker, showReactionPicker]);
 
-  // Manejar reacción a mensaje
+  // ============================================================
+  // HANDLER - Reacciones a mensajes
+  // ============================================================
   const handleReaction = (message, emoji) => {
     if (!socket || !socket.connected || !currentUsername) return;
 
@@ -568,37 +611,29 @@ const ChatContent = ({
     setShowReactionPicker(null);
   };
 
+  // ============================================================
+  // EFFECTS - Scroll y navegación
+  // ============================================================
+
   // Scroll al mensaje resaltado cuando se selecciona desde la búsqueda
   useEffect(() => {
     if (highlightMessageId && messages.length > 0) {
-      // Esperar a que los mensajes se rendericen
       setTimeout(() => {
-        const messageElement = document.getElementById(
-          `message-${highlightMessageId}`
-        );
+        const messageElement = document.getElementById(`message-${highlightMessageId}`);
         if (messageElement) {
-          // Hacer scroll al mensaje
-          messageElement.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-          });
-
-          // Resaltar el mensaje
+          messageElement.scrollIntoView({ behavior: "smooth", block: "center" });
           setHighlightedMessageId(highlightMessageId);
 
-          // Quitar el resaltado después de 3 segundos
           setTimeout(() => {
             setHighlightedMessageId(null);
-            if (onMessageHighlighted) {
-              onMessageHighlighted();
-            }
+            onMessageHighlighted?.();
           }, 3000);
         }
       }, 500);
     }
   }, [highlightMessageId, messages, onMessageHighlighted]);
 
-  // Cerrar el popover de leídos al hacer click en cualquier otro lado
+  // Cerrar el popover de leídos al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (!event.target.closest('.mx_ReadReceiptGroup_container')) {
@@ -609,20 +644,14 @@ const ChatContent = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Scroll automático al final para mensajes nuevos (estilo WhatsApp)
+  // Scroll automático al final para mensajes nuevos
   useEffect(() => {
     if (!chatHistoryRef.current) return;
 
     const chatHistory = chatHistoryRef.current;
-    const isAtBottom =
-      chatHistory.scrollHeight - chatHistory.scrollTop <=
-      chatHistory.clientHeight + 100;
+    const isAtBottom = chatHistory.scrollHeight - chatHistory.scrollTop <= chatHistory.clientHeight + 100;
 
-    // Si hay nuevos mensajes y el usuario está cerca del final, hacer scroll automático
-    if (
-      messages.length > lastMessageCountRef.current &&
-      (isAtBottom || !isUserScrollingRef.current)
-    ) {
+    if (messages.length > lastMessageCountRef.current && (isAtBottom || !isUserScrollingRef.current)) {
       setTimeout(() => {
         chatHistory.scrollTop = chatHistory.scrollHeight;
         isUserScrollingRef.current = false;
@@ -632,62 +661,37 @@ const ChatContent = ({
     lastMessageCountRef.current = messages.length;
   }, [messages]);
 
-  // 🔥 Scroll automático cuando aparece/desaparece el indicador de "está escribiendo"
+  // Scroll automático cuando aparece el indicador de "está escribiendo"
   useEffect(() => {
     if (!chatHistoryRef.current) return;
 
     const chatHistory = chatHistoryRef.current;
-    const isAtBottom =
-      chatHistory.scrollHeight - chatHistory.scrollTop <=
-      chatHistory.clientHeight + 150;
+    const isAtBottom = chatHistory.scrollHeight - chatHistory.scrollTop <= chatHistory.clientHeight + 150;
 
-    // Determinar si hay alguien escribiendo
     const someoneIsTyping =
       (!isGroup && isOtherUserTyping && typingUser) ||
-      (isGroup &&
-        currentRoomCode &&
-        roomTypingUsers &&
-        roomTypingUsers[currentRoomCode] &&
-        roomTypingUsers[currentRoomCode].length > 0);
+      (isGroup && currentRoomCode && roomTypingUsers?.[currentRoomCode]?.length > 0);
 
-    // Si alguien está escribiendo y el usuario está cerca del final, hacer scroll suave
     if (someoneIsTyping && (isAtBottom || !isUserScrollingRef.current)) {
       setTimeout(() => {
-        chatHistory.scrollTo({
-          top: chatHistory.scrollHeight,
-          behavior: "smooth",
-        });
+        chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: "smooth" });
       }, 100);
     }
-  }, [
-    isOtherUserTyping,
-    typingUser,
-    roomTypingUsers,
-    currentRoomCode,
-    isGroup,
-  ]);
+  }, [isOtherUserTyping, typingUser, roomTypingUsers, currentRoomCode, isGroup]);
 
-  // Marcar mensajes de sala como leídos cuando se visualizan
+  // ============================================================
+  // EFFECTS - Marcar mensajes como leídos
+  // ============================================================
+
+  // Marcar mensajes de sala como leídos
   useEffect(() => {
-    if (
-      !socket ||
-      !socket.connected ||
-      !isGroup ||
-      !currentRoomCode ||
-      !currentUsername
-    )
-      return;
+    if (!socket?.connected || !isGroup || !currentRoomCode || !currentUsername) return;
 
-    // Filtrar mensajes no leídos que no son del usuario actual
     const unreadMessages = messages.filter(
-      (msg) =>
-        msg.id &&
-        msg.sender !== currentUsername &&
-        msg.sender !== "Tú" &&
+      (msg) => msg.id && msg.sender !== currentUsername && msg.sender !== "Tú" &&
         (!msg.readBy || !msg.readBy.includes(currentUsername))
     );
 
-    // Marcar cada mensaje como leído
     unreadMessages.forEach((msg) => {
       socket.emit("markRoomMessageAsRead", {
         messageId: msg.id,
@@ -697,39 +701,26 @@ const ChatContent = ({
     });
   }, [messages, socket, isGroup, currentRoomCode, currentUsername]);
 
-  // 🔥 NUEVO: Marcar mensajes de conversaciones individuales como leídos
+  // Marcar mensajes de conversaciones individuales como leídos
   useEffect(() => {
-    if (!socket || !socket.connected || isGroup || !to || !currentUsername)
-      return;
+    if (!socket?.connected || isGroup || !to || !currentUsername) return;
 
-    // Filtrar mensajes no leídos que no son del usuario actual
     const unreadMessages = messages.filter(
-      (msg) =>
-        msg.id &&
-        msg.sender !== currentUsername &&
-        msg.sender !== "Tú" &&
-        !msg.isRead
+      (msg) => msg.id && msg.sender !== currentUsername && msg.sender !== "Tú" && !msg.isRead
     );
 
     if (unreadMessages.length === 0) return;
 
-    // // console.log(`📖 Marcando ${unreadMessages.length} mensajes como leídos en conversación con ${to}`);
-
-    // Marcar toda la conversación como leída
     socket.emit("markConversationAsRead", {
-      from: to, // El remitente de los mensajes
-      to: currentUsername, // El usuario actual que está leyendo
+      from: to,
+      to: currentUsername,
     });
   }, [messages, socket, isGroup, to, currentUsername]);
 
-  // Detectar cuando el usuario está haciendo scroll manual
-  // 🔥 Cerrar menú desplegable al hacer clic fuera
+  // Cerrar menú desplegable al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (
-        messageMenuRef.current &&
-        !messageMenuRef.current.contains(event.target)
-      ) {
+      if (messageMenuRef.current && !messageMenuRef.current.contains(event.target)) {
         setShowMessageMenu(null);
       }
     };
@@ -743,232 +734,88 @@ const ChatContent = ({
     };
   }, [showMessageMenu]);
 
-  const previousScrollHeightRef = useRef(0);
-
+  // ============================================================
+  // HANDLER - Scroll y carga de mensajes antiguos
+  // ============================================================
   const handleScroll = () => {
     if (!chatHistoryRef.current) return;
 
     const chatHistory = chatHistoryRef.current;
-    const isAtBottom =
-      chatHistory.scrollHeight - chatHistory.scrollTop <=
-      chatHistory.clientHeight + 50;
+    const isAtBottom = chatHistory.scrollHeight - chatHistory.scrollTop <= chatHistory.clientHeight + 50;
 
-    if (!isAtBottom) {
-      isUserScrollingRef.current = true;
-    } else {
-      isUserScrollingRef.current = false;
-    }
+    isUserScrollingRef.current = !isAtBottom;
 
-    // 🔥 Detectar scroll hacia arriba para cargar más mensajes
-    if (chatHistory.scrollTop === 0 && hasMoreMessages && !isLoadingMore) {
-      if (onLoadMoreMessages) {
-        // Guardar altura actual antes de cargar
-        previousScrollHeightRef.current = chatHistory.scrollHeight;
-        onLoadMoreMessages();
-      }
+    if (chatHistory.scrollTop === 0 && hasMoreMessages && !isLoadingMore && onLoadMoreMessages) {
+      previousScrollHeightRef.current = chatHistory.scrollHeight;
+      onLoadMoreMessages();
     }
   };
 
-  // 🔥 Preservar posición del scroll al cargar mensajes antiguos
+  // Preservar posición del scroll al cargar mensajes antiguos
   useLayoutEffect(() => {
     if (chatHistoryRef.current && previousScrollHeightRef.current > 0) {
       const chatHistory = chatHistoryRef.current;
-      const newScrollHeight = chatHistory.scrollHeight;
-      const scrollDiff = newScrollHeight - previousScrollHeightRef.current;
-
-      // Ajustar el scroll para mantener la posición visual
+      const scrollDiff = chatHistory.scrollHeight - previousScrollHeightRef.current;
       chatHistory.scrollTop = scrollDiff;
-
-      // Resetear ref
       previousScrollHeightRef.current = 0;
     }
   }, [messages]);
 
-  // 🔥 NUEVO: Función para obtener el ícono y color según el tipo de archivo
+  // ============================================================
+  // FUNCIONES AUXILIARES - Íconos de archivos
+  // ============================================================
   const getFileIcon = (fileName) => {
-    if (!fileName)
-      return { icon: "default", color: "#4A90E2", bgColor: "#E3F2FD" };
+    if (!fileName) return { icon: "default", color: "#4A90E2", bgColor: "#E3F2FD" };
 
     const extension = fileName.split(".").pop().toLowerCase();
 
     const fileTypes = {
       // Excel
-      xlsx: {
-        icon: "excel",
-        color: "#217346",
-        bgColor: "#E7F4EC",
-        name: "Excel",
-      },
-      xls: {
-        icon: "excel",
-        color: "#217346",
-        bgColor: "#E7F4EC",
-        name: "Excel",
-      },
-      xlsm: {
-        icon: "excel",
-        color: "#217346",
-        bgColor: "#E7F4EC",
-        name: "Excel",
-      },
+      xlsx: { icon: "excel", color: "#217346", bgColor: "#E7F4EC", name: "Excel" },
+      xls: { icon: "excel", color: "#217346", bgColor: "#E7F4EC", name: "Excel" },
+      xlsm: { icon: "excel", color: "#217346", bgColor: "#E7F4EC", name: "Excel" },
       csv: { icon: "excel", color: "#217346", bgColor: "#E7F4EC", name: "CSV" },
-
       // Word
-      docx: {
-        icon: "word",
-        color: "#2B579A",
-        bgColor: "#E7F0FF",
-        name: "Word",
-      },
+      docx: { icon: "word", color: "#2B579A", bgColor: "#E7F0FF", name: "Word" },
       doc: { icon: "word", color: "#2B579A", bgColor: "#E7F0FF", name: "Word" },
-
       // PowerPoint
-      pptx: {
-        icon: "powerpoint",
-        color: "#D24726",
-        bgColor: "#FCE8E3",
-        name: "PowerPoint",
-      },
-      ppt: {
-        icon: "powerpoint",
-        color: "#D24726",
-        bgColor: "#FCE8E3",
-        name: "PowerPoint",
-      },
-
+      pptx: { icon: "powerpoint", color: "#D24726", bgColor: "#FCE8E3", name: "PowerPoint" },
+      ppt: { icon: "powerpoint", color: "#D24726", bgColor: "#FCE8E3", name: "PowerPoint" },
       // PDF
       pdf: { icon: "pdf", color: "#F40F02", bgColor: "#FFE7E5", name: "PDF" },
-
       // Imágenes
-      jpg: {
-        icon: "image",
-        color: "#FF6B6B",
-        bgColor: "#FFE8E8",
-        name: "Imagen",
-      },
-      jpeg: {
-        icon: "image",
-        color: "#FF6B6B",
-        bgColor: "#FFE8E8",
-        name: "Imagen",
-      },
-      png: {
-        icon: "image",
-        color: "#FF6B6B",
-        bgColor: "#FFE8E8",
-        name: "Imagen",
-      },
+      jpg: { icon: "image", color: "#FF6B6B", bgColor: "#FFE8E8", name: "Imagen" },
+      jpeg: { icon: "image", color: "#FF6B6B", bgColor: "#FFE8E8", name: "Imagen" },
+      png: { icon: "image", color: "#FF6B6B", bgColor: "#FFE8E8", name: "Imagen" },
       gif: { icon: "image", color: "#FF6B6B", bgColor: "#FFE8E8", name: "GIF" },
       svg: { icon: "image", color: "#FF6B6B", bgColor: "#FFE8E8", name: "SVG" },
-
       // Comprimidos
       zip: { icon: "zip", color: "#FFA500", bgColor: "#FFF3E0", name: "ZIP" },
       rar: { icon: "zip", color: "#FFA500", bgColor: "#FFF3E0", name: "RAR" },
       "7z": { icon: "zip", color: "#FFA500", bgColor: "#FFF3E0", name: "7Z" },
-
       // Texto
-      txt: {
-        icon: "text",
-        color: "#607D8B",
-        bgColor: "#ECEFF1",
-        name: "Texto",
-      },
-
+      txt: { icon: "text", color: "#607D8B", bgColor: "#ECEFF1", name: "Texto" },
       // Código
-      js: {
-        icon: "code",
-        color: "#F7DF1E",
-        bgColor: "#FFFDE7",
-        name: "JavaScript",
-      },
-      jsx: {
-        icon: "code",
-        color: "#61DAFB",
-        bgColor: "#E1F5FE",
-        name: "React",
-      },
-      ts: {
-        icon: "code",
-        color: "#3178C6",
-        bgColor: "#E3F2FD",
-        name: "TypeScript",
-      },
-      tsx: {
-        icon: "code",
-        color: "#3178C6",
-        bgColor: "#E3F2FD",
-        name: "TypeScript",
-      },
-      html: {
-        icon: "code",
-        color: "#E34F26",
-        bgColor: "#FFE8E1",
-        name: "HTML",
-      },
+      js: { icon: "code", color: "#F7DF1E", bgColor: "#FFFDE7", name: "JavaScript" },
+      jsx: { icon: "code", color: "#61DAFB", bgColor: "#E1F5FE", name: "React" },
+      ts: { icon: "code", color: "#3178C6", bgColor: "#E3F2FD", name: "TypeScript" },
+      tsx: { icon: "code", color: "#3178C6", bgColor: "#E3F2FD", name: "TypeScript" },
+      html: { icon: "code", color: "#E34F26", bgColor: "#FFE8E1", name: "HTML" },
       css: { icon: "code", color: "#1572B6", bgColor: "#E1F5FE", name: "CSS" },
-      json: {
-        icon: "code",
-        color: "#000000",
-        bgColor: "#F5F5F5",
-        name: "JSON",
-      },
+      json: { icon: "code", color: "#000000", bgColor: "#F5F5F5", name: "JSON" },
       xml: { icon: "code", color: "#FF6600", bgColor: "#FFF3E0", name: "XML" },
-
       // Video
-      mp4: {
-        icon: "video",
-        color: "#9C27B0",
-        bgColor: "#F3E5F5",
-        name: "Video",
-      },
-      avi: {
-        icon: "video",
-        color: "#9C27B0",
-        bgColor: "#F3E5F5",
-        name: "Video",
-      },
-      mov: {
-        icon: "video",
-        color: "#9C27B0",
-        bgColor: "#F3E5F5",
-        name: "Video",
-      },
-      wmv: {
-        icon: "video",
-        color: "#9C27B0",
-        bgColor: "#F3E5F5",
-        name: "Video",
-      },
-
+      mp4: { icon: "video", color: "#9C27B0", bgColor: "#F3E5F5", name: "Video" },
+      avi: { icon: "video", color: "#9C27B0", bgColor: "#F3E5F5", name: "Video" },
+      mov: { icon: "video", color: "#9C27B0", bgColor: "#F3E5F5", name: "Video" },
+      wmv: { icon: "video", color: "#9C27B0", bgColor: "#F3E5F5", name: "Video" },
       // Audio
-      mp3: {
-        icon: "audio",
-        color: "#00BCD4",
-        bgColor: "#E0F7FA",
-        name: "Audio",
-      },
-      wav: {
-        icon: "audio",
-        color: "#00BCD4",
-        bgColor: "#E0F7FA",
-        name: "Audio",
-      },
-      ogg: {
-        icon: "audio",
-        color: "#00BCD4",
-        bgColor: "#E0F7FA",
-        name: "Audio",
-      },
+      mp3: { icon: "audio", color: "#00BCD4", bgColor: "#E0F7FA", name: "Audio" },
+      wav: { icon: "audio", color: "#00BCD4", bgColor: "#E0F7FA", name: "Audio" },
+      ogg: { icon: "audio", color: "#00BCD4", bgColor: "#E0F7FA", name: "Audio" },
     };
 
-    return (
-      fileTypes[extension] || {
-        icon: "default",
-        color: "#4A90E2",
-        bgColor: "#E3F2FD",
-        name: "Archivo",
-      }
-    );
+    return fileTypes[extension] || { icon: "default", color: "#4A90E2", bgColor: "#E3F2FD", name: "Archivo" };
   };
 
   // 🔥 NUEVO: Función para renderizar el ícono SVG según el tipo de archivo
@@ -1278,7 +1125,9 @@ const ChatContent = ({
     return icons[fileInfo.icon] || icons.default;
   };
 
-  // Función para renderizar texto con menciones resaltadas
+  // ============================================================
+  // FUNCIÓN AUXILIAR - Renderizar texto con menciones resaltadas
+  // ============================================================
   const renderTextWithMentions = (text) => {
     if (!text) return text;
 
@@ -1389,10 +1238,11 @@ const ChatContent = ({
     return parts.length > 0 ? parts : text;
   };
 
+  // ============================================================
+  // FUNCIÓN DE RENDERIZADO - Mensaje individual
+  // ============================================================
   const renderMessage = (message, index) => {
-    // ============================================================
-    // 1. PREPARACIÓN DE DATOS Y LÓGICA
-    // ============================================================
+    // --- Preparación de datos ---
     const isOwnMessage = message.isSelf !== undefined
       ? message.isSelf
       : message.sender === "Tú" || message.sender === currentUsername;
@@ -3145,37 +2995,7 @@ const ChatContent = ({
         )
       }
     </div>
-
   );
 };
-
-
-// Función para determinar el sufijo (Número de Agente o Rol)
-// Se asume que el objeto 'message' tiene las propiedades 'senderNumeroAgente' y 'senderRole'.
-const getSenderSuffix = (message) => {
-  // Buscar el número de agente en diferentes propiedades posibles
-  const agentNumber = message.senderNumeroAgente || message.agentNumber;
-  const role = message.senderRole;
-
-  // Construir el sufijo con role y número de agente
-  const parts = [];
-
-  if (role && String(role).trim()) {
-    parts.push(String(role).trim());
-  }
-
-  if (agentNumber && String(agentNumber).trim()) {
-    parts.push(`N.º ${String(agentNumber).trim()}`);
-  }
-
-  // Si hay partes, unirlas con " • "
-  if (parts.length > 0) {
-    return ` • ${parts.join(" • ")}`;
-  }
-
-  // Predeterminado: Ninguno
-  return "";
-};
-
 
 export default ChatContent;
