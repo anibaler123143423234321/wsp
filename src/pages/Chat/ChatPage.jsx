@@ -386,7 +386,7 @@ const ChatPage = () => {
       loadMyActiveRooms: roomManagement.loadMyActiveRooms,
       clearMessages
     },
-    { user, username, isAdmin, soundsEnabled: chatState.soundsEnabled } // 🔥 Pasar soundsEnabled
+    { user, username, isAdmin, soundsEnabled: chatState.soundsEnabled, favoriteRoomCodes: [] } // 🔥 Pasar soundsEnabled
   );
 
   const handleUserSelect = (

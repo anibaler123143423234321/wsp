@@ -27,7 +27,7 @@ export const useSocketListeners = (
         loadAssignedConversations, loadMyActiveRooms, clearMessages
     } = messageFunctions;
 
-    const { username, user, soundsEnabled } = authData;
+    const { username, user, soundsEnabled, favoriteRoomCodes = [] } = authData; // Agregar favoriteRoomCodes con valor por defecto []
 
     // 🔥 CRÍTICO: Usar ref para tener siempre el valor actualizado
     const soundsEnabledRef = useRef(soundsEnabled);
@@ -37,6 +37,41 @@ export const useSocketListeners = (
         soundsEnabledRef.current = soundsEnabled;
         console.log('🔊 soundsEnabled actualizado a:', soundsEnabled);
     }, [soundsEnabled]);
+
+    // 🔥 FUNCIÓN DE ORDENAMIENTO IDÉNTICA AL BACKEND
+    const sortRoomsByBackendLogic = (rooms, favoriteRoomCodes) => {
+        // Separar favoritas y no favoritas
+        const favorites = rooms.filter(r => favoriteRoomCodes.includes(r.roomCode));
+        const nonFavorites = rooms.filter(r => !favoriteRoomCodes.includes(r.roomCode));
+
+        // Función para ordenar un grupo (CON mensajes primero, SIN mensajes después)
+        const sortGroup = (group) => {
+            const withMessages = group.filter(r => r.lastMessage?.sentAt);
+            const withoutMessages = group.filter(r => !r.lastMessage?.sentAt);
+
+            // Ordenar CON mensajes por sentAt DESC
+            withMessages.sort((a, b) => {
+                const aDate = new Date(a.lastMessage.sentAt).getTime();
+                const bDate = new Date(b.lastMessage.sentAt).getTime();
+                return bDate - aDate;
+            });
+
+            // Ordenar SIN mensajes por createdAt DESC
+            withoutMessages.sort((a, b) => {
+                const aDate = new Date(a.createdAt).getTime();
+                const bDate = new Date(b.createdAt).getTime();
+                return bDate - aDate;
+            });
+
+            return [...withMessages, ...withoutMessages];
+        };
+
+        // Ordenar cada grupo y combinar
+        const sortedFavorites = sortGroup(favorites);
+        const sortedNonFavorites = sortGroup(nonFavorites);
+
+        return [...sortedFavorites, ...sortedNonFavorites];
+    };
 
     useEffect(() => {
         if (!socket) return;
@@ -255,23 +290,29 @@ export const useSocketListeners = (
                 }
 
                 if (data.roomCode) {
-                    setMyActiveRooms(prev => prev.map(r => {
-                        if (r.roomCode === data.roomCode) {
-                            return {
-                                ...r,
-                                lastMessage: {
-                                    text: messageText,
-                                    from: data.from,
-                                    time: timeString,
-                                    mediaType: data.mediaType,
-                                    fileName: data.fileName
-                                },
-                                lastMessageFrom: data.from,
-                                lastMessageTime: timeString
-                            };
-                        }
-                        return r;
-                    }));
+                    setMyActiveRooms(prev => {
+                        // Actualizar el lastMessage del grupo
+                        const updated = prev.map(r => {
+                            if (r.roomCode === data.roomCode) {
+                                return {
+                                    ...r,
+                                    lastMessage: {
+                                        text: messageText,
+                                        from: data.from,
+                                        sentAt: data.sentAt || new Date().toISOString(),
+                                        time: timeString,
+                                        mediaType: data.mediaType,
+                                        fileName: data.fileName
+                                    }
+                                };
+                            }
+                            return r;
+                        });
+
+                        // 🔥 RE-ORDENAR usando la misma lógica del backend
+                        // Necesitas pasar favoriteRoomCodes desde ChatPage
+                        return sortRoomsByBackendLogic(updated, favoriteRoomCodes);
+                    });
                 }
 
                 // --- CASO B: CHATS INDIVIDUALES ---

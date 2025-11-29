@@ -557,20 +557,8 @@ const ConversationList = ({
                   </div>
                 );
               }
-
               const filteredRooms = myActiveRooms
-                .filter(room => assignedSearchTerm.trim() === '' || room.name.toLowerCase().includes(assignedSearchTerm.toLowerCase()) || room.roomCode.toLowerCase().includes(assignedSearchTerm.toLowerCase()))
-                .sort((a, b) => {
-                  const aHasMention = hasMentionToUser(a.lastMessage?.text);
-                  const bHasMention = hasMentionToUser(b.lastMessage?.text);
-                  if (aHasMention && !bHasMention) return -1;
-                  if (!aHasMention && bHasMention) return 1;
-                  const aIsFavorite = favoriteRoomCodes.includes(a.roomCode);
-                  const bIsFavorite = favoriteRoomCodes.includes(b.roomCode);
-                  if (aIsFavorite && !bIsFavorite) return -1;
-                  if (!aIsFavorite && bIsFavorite) return 1;
-                  return new Date(b.createdAt) - new Date(a.createdAt);
-                });
+                .filter(room => assignedSearchTerm.trim() === '' || room.name.toLowerCase().includes(assignedSearchTerm.toLowerCase()) || room.roomCode.toLowerCase().includes(assignedSearchTerm.toLowerCase()));
 
               return (
                 <>
