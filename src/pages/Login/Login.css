@@ -18,6 +18,7 @@
     min-width: 200px;
     padding: 1.5rem;
   }
+
   .welcome-title {
     font-size: 1.3rem;
   }
@@ -30,9 +31,11 @@
     padding: 0.7rem;
     border-radius: 12px;
   }
+
   .welcome-title {
     font-size: 1rem;
   }
+
   .welcome-subtitle {
     font-size: 0.8rem;
   }
@@ -61,180 +64,6 @@
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-}
-
-.form-group {
-  position: relative;
-}
-
-.input-wrapper {
-  display: flex;
-  align-items: stretch;
-  background: #f8f9fa;
-  border-radius: 12px;
-  border: 2px solid #e0e0e0;
-  transition: all 0.3s ease;
-  overflow: hidden;
-  position: relative;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.input-wrapper:focus-within {
-  border-color: #c62d42;
-  box-shadow: 0 0 0 3px rgba(198, 45, 66, 0.1), 0 2px 8px rgba(198, 45, 66, 0.15);
-}
-
-.password-toggle {
-  background: none;
-  border: none;
-  padding: 0 1rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
-  transition: color 0.2s ease;
-  flex-shrink: 0;
-  outline: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.password-toggle:hover {
-  color: #c62d42;
-}
-
-.password-toggle:focus {
-  outline: none;
-}
-
-.icon-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 50px;
-  min-height: 56px;
-  pointer-events: none;
-  flex-shrink: 0;
-  background: #f8f9fa;
-  border: none;
-  margin: 0;
-  padding: 0;
-  border-right: none;
-  box-shadow: none;
-  outline: none;
-}
-
-.icon-container svg {
-  transition: all 0.2s;
-}
-
-.input-wrapper:focus-within .icon-container svg {
-  stroke: #c62d42;
-}
-
-.input-container {
-  flex: 1;
-  display: flex;
-  background: #f8f9fa;
-  border: none;
-  margin: 0;
-  padding: 0;
-  border-left: none;
-  box-shadow: none;
-}
-
-/* Eliminar completamente cualquier separación visual */
-.icon-container,
-.input-container,
-.form-input {
-  border: none !important;
-  border-left: none !important;
-  border-right: none !important;
-  box-shadow: none !important;
-  outline: none !important;
-  margin: 0 !important;
-}
-
-.icon-container + .input-container {
-  border-left: none !important;
-  margin-left: 0 !important;
-  box-shadow: none !important;
-}
-
-.icon-container + .input-container .form-input {
-  border-left: none !important;
-  margin-left: 0 !important;
-  padding-left: 0.5rem;
-  box-shadow: none !important;
-}
-
-/* Forzar que todo tenga el mismo fondo */
-.input-wrapper,
-.icon-container,
-.input-container,
-.form-input {
-  background: #f8f9fa !important;
-}
-
-.form-input {
-  width: 100%;
-  padding: 1rem;
-  background: #f8f9fa !important;
-  border: none;
-  border-radius: 0;
-  color: #333 !important;
-  font-size: 1rem;
-  outline: none;
-  box-sizing: border-box;
-  text-indent: 0;
-  margin: 0;
-  box-shadow: none;
-}
-
-.form-input::placeholder {
-  color: #999 !important;
-  font-weight: 400;
-}
-
-.form-input:focus::placeholder {
-  color: #bbb !important;
-}
-
-/* Regla adicional para eliminar cualquier línea residual */
-.input-wrapper * {
-  border: none !important;
-  box-shadow: none !important;
-  outline: none !important;
-}
-
-.input-wrapper::before,
-.input-wrapper::after,
-.icon-container::before,
-.icon-container::after,
-.input-container::before,
-.input-container::after,
-.form-input::before,
-.form-input::after {
-  display: none !important;
-  content: none !important;
-}
-
-.form-input:focus {
-  background: #f8f9fa !important;
-  color: #333 !important;
-}
-
-/* Estilos para autocompletado del navegador */
-.form-input:-webkit-autofill,
-.form-input:-webkit-autofill:hover,
-.form-input:-webkit-autofill:focus,
-.form-input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 30px #f8f9fa inset !important;
-  -webkit-text-fill-color: #333 !important;
-  background-color: #f8f9fa !important;
-  transition: background-color 5000s ease-in-out 0s;
-  border: none !important;
 }
 
 .error-message {
@@ -247,17 +76,16 @@
   text-align: center;
 }
 
-/* 1. El botón: Caja inflexible */
+/* Botón de login */
 .login-button {
-  height: 48px !important;        /* Altura fija obligatoria */
+  height: 48px !important;
   width: 100% !important;
-  display: flex !important;       /* Flexbox obligatorio */
-  align-items: center !important; /* Centrado vertical */
-  justify-content: center !important; /* Centrado horizontal */
-  padding: 0 !important;          /* Sin relleno que deforme */
-  overflow: hidden !important;    /* Si algo sobra, que lo corte */
-  
-  /* Tus estilos visuales */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+
   background: #c62d42;
   color: white;
   border: none;
@@ -265,7 +93,6 @@
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  margin-top: 0.25rem;
   text-transform: uppercase;
 }
 
@@ -274,29 +101,26 @@
   cursor: not-allowed;
 }
 
-/* 2. El contenedor interno: Alineación estricta */
 .button-content {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  line-height: 1 !important;      /* Evita alturas de línea extrañas */
-  width: auto !important;         /* Que ocupe solo lo necesario */
+  line-height: 1 !important;
+  width: auto !important;
 }
 
-/* 3. El culpable (Spinner): Tamaño minúsculo forzado */
 .loading-spinner {
-  width: 20px !important;         /* ANCHO FIJO */
-  height: 20px !important;        /* ALTO FIJO */
-  min-width: 20px !important;     /* No te encojas */
-  min-height: 20px !important;    /* No te encojas */
-  max-width: 20px !important;     /* No crezcas JAMÁS */
-  max-height: 20px !important;    /* No crezcas JAMÁS */
-  
-  /* Diseño */
-  border: 2px solid rgba(255,255,255, 0.3) !important;
-  border-top: 2px solid #666 !important; /* Color del giro */
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
+
+  border: 2px solid rgba(255, 255, 255, 0.3) !important;
+  border-top: 2px solid #666 !important;
   border-radius: 50% !important;
-  margin-right: 10px !important;  /* Espacio a la derecha del texto */
+  margin-right: 10px !important;
   margin-left: 0 !important;
   margin-top: 0 !important;
   margin-bottom: 0 !important;
@@ -305,8 +129,13 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .login-button:hover:not(:disabled) {
@@ -321,7 +150,6 @@
   flex-direction: row !important;
   gap: 0.5rem;
   width: 100%;
-  margin-bottom: 1rem;
   justify-content: space-between;
 }
 
@@ -365,7 +193,6 @@
 
 .forgot-password {
   text-align: center;
-  margin-top: 0.75rem;
 }
 
 .forgot-password a {
@@ -397,16 +224,6 @@
     font-size: 0.9rem;
   }
 
-  .form-input {
-    font-size: 16px; /* Evita zoom en iOS */
-    padding: 0.875rem;
-  }
-
-  .icon-container {
-    width: 45px;
-    min-height: 52px;
-  }
-
   .login-button {
     padding: 0.875rem 1.5rem;
     font-size: 0.95rem;
@@ -434,25 +251,6 @@
     font-size: 0.85rem;
   }
 
-  .login-form {
-    gap: 1.25rem;
-  }
-
-  .form-input {
-    padding: 0.75rem;
-    font-size: 15px;
-  }
-
-  .icon-container {
-    width: 40px;
-    min-height: 48px;
-  }
-
-  .icon-container svg {
-    width: 16px;
-    height: 16px;
-  }
-
   .login-button {
     padding: 0.75rem 1.25rem;
     font-size: 0.875rem;
@@ -463,5 +261,3 @@
     font-size: 13px;
   }
 }
-
-

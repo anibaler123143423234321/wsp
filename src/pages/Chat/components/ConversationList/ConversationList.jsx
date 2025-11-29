@@ -428,9 +428,9 @@ const ConversationList = ({
           </span>
           <input
             type="text"
-            placeholder={`${activeModule === 'monitoring' ? 'Buscar en monitoreo' : 'Buscar un chat o iniciar uno nuevo'}`}
+            placeholder="Buscar en chats"
             className="flex-1 bg-transparent border-none text-gray-800 outline-none placeholder:text-gray-400 max-[1280px]:!text-sm max-[1280px]:placeholder:!text-xs max-[1024px]:!text-xs max-[1024px]:placeholder:!text-[11px] max-[768px]:!text-sm max-[768px]:placeholder:!text-xs"
-            style={{ fontSize: '13px', lineHeight: '16px', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
+            style={{ fontSize: '14px', lineHeight: '16px', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
             value={activeModule === 'chats' || activeModule === 'monitoring' ? assignedSearchTerm : searchTerm}
             onChange={(e) => {
               const value = e.target.value;

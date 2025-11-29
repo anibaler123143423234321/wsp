@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { FaUser, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import apiService from '../../apiService';
+import Label from '../../components/form/Label';
+import Input from '../../components/form/Input';
+import Button from '../../components/form/Button';
 import './Login.css';
 
 const Login = ({ onLoginSuccess }) => {
@@ -50,100 +53,100 @@ const Login = ({ onLoginSuccess }) => {
       </div>
 
       <form onSubmit={handleSubmit} className="login-form">
-        <div className="form-group">
-          <div className="input-wrapper">
-            <div className="icon-container">
-              <FaUser size={18} color="#666" />
-            </div>
-            <div className="input-container">
-              <input
-                type="text"
-                id="username"
-                name="username"
-                value={credentials.username}
-                onChange={handleInputChange}
-                required
-                className="form-input"
-                placeholder="Usuario"
-              />
-            </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div>
+            <Label>
+              Usuario <span className="text-error-500">*</span>{" "}
+            </Label>
+            <Input
+              type="text"
+              id="username"
+              name="username"
+              value={credentials.username}
+              onChange={handleInputChange}
+              required
+              placeholder="Ingrese su usuario"
+              className="pl-5"
+              style={{ paddingLeft: '1.5rem' }}
+            />
           </div>
-        </div>
 
-        <div className="form-group">
-          <div className="input-wrapper">
-            <div className="icon-container">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="4" y="11" width="16" height="9" rx="2" stroke="#666" strokeWidth="1.5" />
-                <path d="M8 11V8a4 4 0 1 1 8 0v3" stroke="#666" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </div>
-            <div className="input-container">
-              <input
+          <div>
+            <Label>
+              Contraseña <span className="text-error-500">*</span>{" "}
+            </Label>
+            <div className="relative">
+              <Input
                 type={showPassword ? "text" : "password"}
                 id="password"
                 name="password"
                 value={credentials.password}
                 onChange={handleInputChange}
                 required
-                className="form-input"
-                placeholder="contraseña"
+                placeholder="Ingrese su contraseña"
+                className="pl-5"
+                style={{ paddingLeft: '1.5rem' }}
               />
+              <span
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
+              >
+                {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+              </span>
             </div>
-            <button
-              type="button"
-              className="password-toggle"
-              onClick={() => setShowPassword(!showPassword)}
-              tabIndex="-1"
+          </div>
+
+          <div className="flex items-center justify-center w-full mb-4">
+            <div
+              className="relative flex items-center w-70 h-8 bg-gray-200 rounded-full cursor-pointer p-1"
+              onClick={() => setSelectedSede(selectedSede === 'CHICLAYO_PIURA' ? 'LIMA' : 'CHICLAYO_PIURA')}
             >
-              {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
-            </button>
+              {/* Toggle Background/Slider */}
+              <div
+                className={`absolute left-1 top-1 bottom-1 w-[calc(50%-4px)] bg-red-600 rounded-full shadow-md transition-all duration-300 ease-in-out ${selectedSede === 'LIMA' ? 'translate-x-full' : 'translate-x-0'
+                  }`}
+              ></div>
+
+              {/* Text Labels */}
+              <div className={`z-10 flex-1 text-center text-xs font-bold transition-colors duration-300 ${selectedSede === 'CHICLAYO_PIURA' ? 'text-white' : 'text-gray-500'}`}>
+                CHICLAYO / PIURA
+              </div>
+              <div className={`z-10 flex-1 text-center text-xs font-bold transition-colors duration-300 ${selectedSede === 'LIMA' ? 'text-white' : 'text-gray-500'}`}>
+                LIMA
+              </div>
+            </div>
           </div>
-        </div>
 
-        <div className="sede-buttons-group">
-          <button
-            type="button"
-            className={`sede-button ${selectedSede === 'CHICLAYO_PIURA' ? 'active' : ''}`}
-            onClick={() => setSelectedSede('CHICLAYO_PIURA')}
-          >
-            CHICLAYO / PIURA
-          </button>
-          <button
-            type="button"
-            className={`sede-button ${selectedSede === 'LIMA' ? 'active' : ''}`}
-            onClick={() => setSelectedSede('LIMA')}
-          >
-            LIMA
-          </button>
-        </div>
 
-        {error && (
-          <div className="error-message">
-            <span>{error}</span>
-          </div>
-        )}
-
-        <button
-          type="submit"
-          className="login-button"
-          disabled={loading}
-        >
-          {loading ? (
-            <span className="button-content">
-              <div className="loading-spinner"></div>
-              INGRESANDO...
-            </span>
-          ) : (
-            'INGRESAR'
+          {error && (
+            <div className="error-message">
+              <span>{error}</span>
+            </div>
           )}
-        </button>
 
-        <div className="forgot-password">
-          <a href="#" onClick={(e) => e.preventDefault()}>¿Olvidaste tu contraseña?</a>
+          <div>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full h-12 text-sm font-bold uppercase bg-red-600 hover:bg-red-700 text-white"
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  INGRESANDO...
+                </span>
+              ) : (
+                'INGRESAR'
+              )}
+            </Button>
+          </div>
+
+          <div className="forgot-password">
+            <a href="#" onClick={(e) => e.preventDefault()}>¿Olvidaste tu contraseña?</a>
+          </div>
         </div>
-      </form>
-    </div>
+      </form >
+    </div >
   );
 };
 
