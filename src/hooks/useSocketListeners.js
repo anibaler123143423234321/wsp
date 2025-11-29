@@ -13,7 +13,7 @@ export const useSocketListeners = (
     // Desestructurar estado
     const {
         setUserList, setUserListPage, setUserListHasMore, setUserListLoading,
-        setRoomUsers, setMyActiveRooms, setAssignedConversations,
+        setRoomUsers, setMyActiveRooms, myActiveRooms, setAssignedConversations, // 🔥 Agregado myActiveRooms
         setMonitoringConversations, setUnreadMessages, setPendingMentions,
         setTypingUser, setRoomTypingUsers, setPinnedMessageId,
         // Refs vitales
@@ -23,20 +23,25 @@ export const useSocketListeners = (
     // Desestructurar funciones
     const {
         addNewMessage, updateMessage, playMessageSound,
-        playRingtone, stopRingtone, // 🔥 Funciones de tono
+        playRingtone, stopRingtone,
         loadAssignedConversations, loadMyActiveRooms, clearMessages
     } = messageFunctions;
 
-    const { username, user, soundsEnabled, favoriteRoomCodes = [] } = authData; // Agregar favoriteRoomCodes con valor por defecto []
+    const { username, user, soundsEnabled, favoriteRoomCodes = [] } = authData;
 
     // 🔥 CRÍTICO: Usar ref para tener siempre el valor actualizado
     const soundsEnabledRef = useRef(soundsEnabled);
+    const myActiveRoomsRef = useRef(myActiveRooms || []); // 🔥 Nuevo Ref
 
     // Actualizar ref cuando cambie soundsEnabled
     useEffect(() => {
         soundsEnabledRef.current = soundsEnabled;
-        console.log('🔊 soundsEnabled actualizado a:', soundsEnabled);
     }, [soundsEnabled]);
+
+    // 🔥 Actualizar ref cuando cambie myActiveRooms
+    useEffect(() => {
+        myActiveRoomsRef.current = myActiveRooms || [];
+    }, [myActiveRooms]);
 
     // 🔥 FUNCIÓN DE ORDENAMIENTO IDÉNTICA AL BACKEND
     const sortRoomsByBackendLogic = (rooms, favoriteRoomCodes) => {
@@ -137,90 +142,179 @@ export const useSocketListeners = (
         // 3. MENSAJERÍA (CORE)
         // =====================================================
         s.on("message", (data) => {
+            console.log("📩 Mensaje recibido en frontend:", data);
+
+            // Si es un mensaje de monitoreo, ignorarlo aquí
+            if (data.isMonitoring) return;
+
             let timeString = data.time || new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
-            const messageText = data.text || data.message || (data.fileName ? "📎 Archivo" : "");
+
+            // Derivar texto del mensaje
+            let messageText = data.text || data.message || "";
+            if (!messageText && data.mediaType) {
+                if (data.mediaType === 'image') messageText = "📷 Imagen";
+                else if (data.mediaType === 'video') messageText = "🎥 Video";
+                else if (data.mediaType === 'audio') messageText = "🎵 Audio";
+                else if (data.mediaType === 'document') messageText = "📄 Documento";
+                else messageText = "📎 Archivo";
+            } else if (!messageText && data.fileName) {
+                messageText = "📎 Archivo";
+            }
 
             const currentFullName = currentUserFullNameRef.current;
             const isOwnMessage = data.from === username || data.from === currentFullName;
 
             // ------------------------------------------------
-            // 🔥 LÓGICA DE NOTIFICACIONES Y SONIDO
+            // 🔥 CÁLCULO DE ESTADO DE CHAT ABIERTO
             // ------------------------------------------------
-            if (!isOwnMessage) {
-                // 🔥 Usar el ref que siempre tiene el valor actualizado
-                const currentSoundsEnabled = soundsEnabledRef.current;
-                console.log('🔊 Reproduciendo sonido. soundsEnabled:', currentSoundsEnabled);
+            const currentTo = toRef.current;
+            const currentRoom = currentRoomCodeRef.current;
+            const currentIsGroup = isGroupRef.current;
+            let isChatOpen = false;
 
-                // Si es una videollamada, reproducir tono de llamada
-                if (data.type === 'video_call') {
-                    playRingtone(currentSoundsEnabled);
-                } else {
-                    playMessageSound(currentSoundsEnabled);
+            if (data.isGroup) {
+                if (currentIsGroup && currentRoom === data.roomCode) {
+                    isChatOpen = true;
                 }
+            } else {
+                const chatPartner = currentTo?.toLowerCase().trim();
+                const msgFrom = data.from?.toLowerCase().trim();
+                const msgTo = data.to?.toLowerCase().trim();
+                if (chatPartner && (chatPartner === msgFrom || chatPartner === msgTo)) {
+                    isChatOpen = true;
+                }
+            }
 
-                const isMentioned = data.isGroup && data.hasMention;
+            if (!isOwnMessage) {
+                const currentSoundsEnabled = soundsEnabledRef.current;
 
-                if (isMentioned) {
-                    Swal.fire({
-                        icon: "warning",
-                        title: "📢 ¡Te mencionaron!",
-                        html: `<strong>${data.from}</strong> te mencionó en <strong>${data.groupName || data.group || "un grupo"}</strong><br><br><em>"${messageText.substring(0, 100)}${messageText.length > 100 ? "..." : ""}"</em>`,
-                        showConfirmButton: true,
-                        confirmButtonText: "Ir al grupo",
-                        confirmButtonColor: "#dc2626",
-                        showCancelButton: true,
-                        cancelButtonText: "Cerrar",
-                        allowOutsideClick: false
-                    }).then((result) => {
-                        if (result.isConfirmed && data.roomCode) {
-                            window.dispatchEvent(new CustomEvent("navigateToMention", {
-                                detail: { roomCode: data.roomCode, messageId: data.id }
-                            }));
+                // CASO A: GRUPOS
+                if (data.isGroup) {
+                    if (isChatOpen) {
+                        addNewMessage({
+                            ...data,
+                            id: data.id,
+                            sender: isOwnMessage ? "Tú" : data.from,
+                            realSender: data.from,
+                            isSent: isOwnMessage,
+                            isSelf: isOwnMessage,
+                            time: timeString,
+                            text: messageText,
+                            mediaType: data.mediaType,
+                            mediaData: data.mediaData,
+                            fileName: data.fileName,
+                            type: data.type,
+                            videoCallUrl: data.videoCallUrl,
+                            videoRoomID: data.videoRoomID,
+                            metadata: data.metadata
+                        });
+                    } else {
+                        if (!isOwnMessage && data.roomCode) {
+                            setUnreadMessages(prev => ({ ...prev, [data.roomCode]: (prev[data.roomCode] || 0) + 1 }));
                         }
-                    });
+                    }
+
+                    if (data.roomCode) {
+                        setMyActiveRooms(prev => {
+                            const updated = prev.map(r => {
+                                if (r.roomCode === data.roomCode) {
+                                    return {
+                                        ...r,
+                                        lastMessage: messageText,
+                                        lastMessageFrom: data.from,
+                                        lastMessageTime: timeString,
+                                        lastMessageAt: data.sentAt || new Date().toISOString(),
+                                        lastMessageMediaType: data.mediaType,
+                                        lastMessageFileName: data.fileName
+                                    };
+                                }
+                                return r;
+                            });
+                            return sortRoomsByBackendLogic(updated, favoriteRoomCodes);
+                        });
+                    }
+
+                    // CASO B: CHATS INDIVIDUALES
                 } else {
-                    // Título: "AGENTE 01 en DESARROLLADORES" (grupo) o "AGENTE 01 en Chat Directo" (individual)
-                    let messageTitle = data.isGroup ? `${data.from} en ${data.groupName}` : `${data.from} en Chat Directo`;
-                    // Subtítulo: "DESARROLLADORES" (grupo) o nombre del remitente (individual)
-                    let messageSubtitle = data.isGroup ? (data.groupName || "Grupo") : data.from;
-                    // 🔔 Si la ventana NO está enfocada (estás en otra app), mostrar notificación del sistema
-                    if (systemNotifications.canShow()) {
-                        const notificationBody = messageText.length > 100
-                            ? messageText.substring(0, 100) + "..."
-                            : messageText;
-                        systemNotifications.show(
-                            messageTitle,
-                            notificationBody,
-                            {
-                                tag: data.isGroup ? `group-${data.roomCode}` : `chat-${data.from}`,
-                                silent: !currentSoundsEnabled
-                            },
-                            () => {
-                                // Al hacer clic en la notificación del sistema
-                                if (data.isGroup) {
-                                    window.dispatchEvent(new CustomEvent("navigateToGroup", {
-                                        detail: { roomCode: data.roomCode, groupName: data.groupName }
-                                    }));
-                                } else {
+                    if (isChatOpen) {
+                        addNewMessage({
+                            ...data,
+                            id: data.id,
+                            sender: isOwnMessage ? "Tú" : data.from,
+                            realSender: data.from,
+                            isSent: isOwnMessage,
+                            isSelf: isOwnMessage,
+                            time: timeString,
+                            text: messageText,
+                            mediaType: data.mediaType,
+                            mediaData: data.mediaData,
+                            fileName: data.fileName,
+                            type: data.type,
+                            videoCallUrl: data.videoCallUrl,
+                            videoRoomID: data.videoRoomID,
+                            metadata: data.metadata
+                        });
+                    }
+
+                    setAssignedConversations(prev => prev.map(conv => {
+                        if (data.conversationId && conv.id == data.conversationId) {
+                            return {
+                                ...conv,
+                                lastMessage: messageText,
+                                lastMessageTime: data.sentAt || new Date().toISOString(),
+                                lastMessageFrom: data.from,
+                                lastMessageMediaType: data.mediaType,
+                                unreadCount: (!isChatOpen && !isOwnMessage) ? (conv.unreadCount || 0) + 1 : 0
+                            };
+                        }
+
+                        if (!data.conversationId) {
+                            const participants = conv.participants || [];
+                            const participantsLower = participants.map(p => p?.toLowerCase().trim());
+                            const isThisConv = participantsLower.includes(data.from?.toLowerCase().trim()) &&
+                                participantsLower.includes(data.to?.toLowerCase().trim());
+
+                            if (isThisConv) {
+                                return {
+                                    ...conv,
+                                    lastMessage: messageText,
+                                    lastMessageTime: data.sentAt || new Date().toISOString(),
+                                    lastMessageFrom: data.from,
+                                    lastMessageMediaType: data.mediaType,
+                                    unreadCount: (!isChatOpen && !isOwnMessage) ? (conv.unreadCount || 0) + 1 : 0
+                                };
+                            }
+                        }
+                        return conv;
+                    }));
+
+                    // 🔥 NOTIFICACIONES PARA CHATS INDIVIDUALES
+                    if (!isChatOpen || systemNotifications.canShow()) {
+                        playMessageSound(soundsEnabledRef.current);
+
+                        if (systemNotifications.canShow()) {
+                            systemNotifications.show(
+                                `Nuevo mensaje de ${data.from}`,
+                                messageText,
+                                { tag: `chat-${data.from}`, silent: !soundsEnabledRef.current },
+                                () => {
                                     window.dispatchEvent(new CustomEvent("navigateToChat", {
-                                        detail: { username: data.from }
+                                        detail: { to: data.from }
                                     }));
                                 }
-                            }
-                        );
-                    } else {
-                        // 🔔 Si la ventana SÍ está enfocada, mostrar toast de SweetAlert (como antes)
+                            );
+                        }
+
                         Swal.fire({
                             toast: true,
                             position: "bottom-end",
                             icon: "info",
-                            title: messageTitle,
+                            title: `Mensaje de ${data.from}`,
                             html: `
-                <div class="toast-content">
-                    <div class="toast-subtitle">${messageSubtitle}</div>
-                    <div class="toast-message">${messageText.substring(0, 80)}${messageText.length > 80 ? "..." : ""}</div>
-                </div>
-            `,
+                                <div class="toast-content">
+                                    <div class="toast-message">${messageText.substring(0, 80)}${messageText.length > 80 ? "..." : ""}</div>
+                                </div>
+                            `,
                             showConfirmButton: true,
                             confirmButtonText: "Ver",
                             showCloseButton: true,
@@ -235,151 +329,13 @@ export const useSocketListeners = (
                             }
                         }).then((result) => {
                             if (result.isConfirmed) {
-                                if (data.isGroup) {
-                                    window.dispatchEvent(new CustomEvent("navigateToGroup", {
-                                        detail: { roomCode: data.roomCode, groupName: data.groupName }
-                                    }));
-                                } else {
-                                    window.dispatchEvent(new CustomEvent("navigateToChat", {
-                                        detail: { username: data.from }
-                                    }));
-                                }
+                                window.dispatchEvent(new CustomEvent("navigateToChat", {
+                                    detail: { to: data.from }
+                                }));
                             }
                         });
                     }
                 }
-            }
-
-            // ------------------------------------------------
-            // 🔥 LÓGICA DE ACTUALIZACIÓN DE UI Y LISTAS
-            // ------------------------------------------------
-            const currentTo = toRef.current;
-            const currentRoom = currentRoomCodeRef.current;
-            const currentIsGroup = isGroupRef.current;
-
-            let isChatOpen = false;
-
-            // --- CASO A: GRUPOS ---
-            if (data.isGroup) {
-                if (currentIsGroup && currentRoom === data.roomCode) {
-                    isChatOpen = true;
-                }
-
-                if (isChatOpen) {
-                    addNewMessage({
-                        ...data,
-                        id: data.id,
-                        sender: isOwnMessage ? "Tú" : data.from,
-                        realSender: data.from,
-                        isSent: isOwnMessage,
-                        isSelf: isOwnMessage,
-                        time: timeString,
-                        text: messageText,
-                        mediaType: data.mediaType,
-                        mediaData: data.mediaData,
-                        fileName: data.fileName,
-                        type: data.type,
-                        videoCallUrl: data.videoCallUrl,
-                        videoRoomID: data.videoRoomID,
-                        metadata: data.metadata
-                    });
-                } else {
-                    if (!isOwnMessage && data.roomCode) {
-                        setUnreadMessages(prev => ({ ...prev, [data.roomCode]: (prev[data.roomCode] || 0) + 1 }));
-                    }
-                }
-
-                if (data.roomCode) {
-                    setMyActiveRooms(prev => {
-                        // Actualizar el lastMessage del grupo
-                        const updated = prev.map(r => {
-                            if (r.roomCode === data.roomCode) {
-                                return {
-                                    ...r,
-                                    lastMessage: {
-                                        text: messageText,
-                                        from: data.from,
-                                        sentAt: data.sentAt || new Date().toISOString(),
-                                        time: timeString,
-                                        mediaType: data.mediaType,
-                                        fileName: data.fileName
-                                    }
-                                };
-                            }
-                            return r;
-                        });
-
-                        // 🔥 RE-ORDENAR usando la misma lógica del backend
-                        // Necesitas pasar favoriteRoomCodes desde ChatPage
-                        return sortRoomsByBackendLogic(updated, favoriteRoomCodes);
-                    });
-                }
-
-                // --- CASO B: CHATS INDIVIDUALES ---
-            } else {
-                const chatPartner = currentTo?.toLowerCase().trim();
-                const msgFrom = data.from?.toLowerCase().trim();
-                const msgTo = data.to?.toLowerCase().trim();
-
-                if (chatPartner && (chatPartner === msgFrom || chatPartner === msgTo)) {
-                    isChatOpen = true;
-                }
-
-                if (isChatOpen) {
-                    addNewMessage({
-                        ...data,
-                        id: data.id,
-                        sender: isOwnMessage ? "Tú" : data.from,
-                        realSender: data.from,
-                        isSent: isOwnMessage,
-                        isSelf: isOwnMessage,
-                        time: timeString,
-                        text: messageText,
-                        mediaType: data.mediaType,
-                        mediaData: data.mediaData,
-                        fileName: data.fileName,
-                        type: data.type,
-                        videoCallUrl: data.videoCallUrl,
-                        videoRoomID: data.videoRoomID,
-                        metadata: data.metadata
-                    });
-                }
-
-                // Actualizar Sidebar (assignedConversations)
-                setAssignedConversations(prev => prev.map(conv => {
-                    // 🔥 NUEVO: Usar conversationId si está disponible (más preciso)
-                    // Usamos == para permitir coincidencia entre string y number por si acaso
-                    if (data.conversationId && conv.id == data.conversationId) {
-                        return {
-                            ...conv,
-                            lastMessage: messageText,
-                            lastMessageTime: data.sentAt || new Date().toISOString(),
-                            lastMessageFrom: data.from,
-                            lastMessageMediaType: data.mediaType,
-                            unreadCount: (!isChatOpen && !isOwnMessage) ? (conv.unreadCount || 0) + 1 : 0
-                        };
-                    }
-
-                    // Fallback: Lógica antigua por participantes (solo si no hay conversationId)
-                    if (!data.conversationId) {
-                        const participants = conv.participants || [];
-                        const participantsLower = participants.map(p => p?.toLowerCase().trim());
-                        const isThisConv = participantsLower.includes(msgFrom) && participantsLower.includes(msgTo);
-
-                        if (isThisConv) {
-                            return {
-                                ...conv,
-                                lastMessage: messageText,
-                                lastMessageTime: data.sentAt || new Date().toISOString(),
-                                lastMessageFrom: data.from,
-                                lastMessageMediaType: data.mediaType,
-                                unreadCount: (!isChatOpen && !isOwnMessage) ? (conv.unreadCount || 0) + 1 : 0
-                            };
-                        }
-                    }
-
-                    return conv;
-                }));
             }
         });
 
@@ -387,9 +343,75 @@ export const useSocketListeners = (
         // 4. EVENTOS DE ACTUALIZACIÓN DE CONTADORES (BACKEND)
         // =====================================================
         s.on("unreadCountUpdate", (data) => {
-            if (data.roomCode !== currentRoomCodeRef.current && data.count > 0) {
+            if ((data.roomCode !== currentRoomCodeRef.current || systemNotifications.canShow()) && data.count > 0) {
                 setUnreadMessages(prev => ({ ...prev, [data.roomCode]: (prev[data.roomCode] || 0) + data.count }));
-                playMessageSound(soundsEnabledRef.current); // 🔥 Usar ref
+                playMessageSound(soundsEnabledRef.current);
+
+                // 🔥 NUEVO: Mostrar notificación visual (Toast)
+                let messageText = data.lastMessage?.text || "";
+                if (!messageText && data.lastMessage?.mediaType) {
+                    if (data.lastMessage.mediaType === 'image') messageText = "📷 Imagen";
+                    else if (data.lastMessage.mediaType === 'video') messageText = "🎥 Video";
+                    else if (data.lastMessage.mediaType === 'audio') messageText = "🎵 Audio";
+                    else if (data.lastMessage.mediaType === 'document') messageText = "📄 Documento";
+                    else messageText = "📎 Archivo";
+                } else if (!messageText) {
+                    messageText = "Nuevo mensaje";
+                }
+
+                const sender = data.lastMessage?.from || "Usuario";
+
+                // Buscar nombre del grupo usando REF y múltiples propiedades posibles
+                const rooms = myActiveRoomsRef.current;
+                const foundRoom = rooms.find(r => r.roomCode === data.roomCode);
+                const groupName = foundRoom?.roomName || foundRoom?.name || foundRoom?.groupName || data.groupName || data.roomName || "Grupo";
+
+                const notificationTitle = `${sender} en ${groupName}`;
+
+                // Intentar mostrar notificación del sistema primero
+                if (systemNotifications.canShow()) {
+                    systemNotifications.show(
+                        notificationTitle,
+                        messageText,
+                        { tag: `room-${data.roomCode}`, silent: !soundsEnabledRef.current },
+                        () => {
+                            window.dispatchEvent(new CustomEvent("navigateToGroup", {
+                                detail: { roomCode: data.roomCode }
+                            }));
+                        }
+                    );
+                }
+
+                // SIEMPRE mostrar SweetAlert Toast
+                Swal.fire({
+                    toast: true,
+                    position: "bottom-end",
+                    icon: "info",
+                    title: notificationTitle,
+                    html: `
+                        <div class="toast-content">
+                            <div class="toast-message">${messageText.substring(0, 80)}${messageText.length > 80 ? "..." : ""}</div>
+                        </div>
+                    `,
+                    showConfirmButton: true,
+                    confirmButtonText: "Ver",
+                    showCloseButton: true,
+                    timer: 6000,
+                    customClass: {
+                        popup: 'modern-toast',
+                        title: 'modern-toast-title',
+                        htmlContainer: 'modern-toast-html',
+                        confirmButton: 'modern-toast-btn',
+                        icon: 'modern-toast-icon',
+                        closeButton: 'modern-toast-close'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.dispatchEvent(new CustomEvent("navigateToGroup", {
+                            detail: { roomCode: data.roomCode }
+                        }));
+                    }
+                });
             }
 
             if (data.lastMessage) {
@@ -398,17 +420,12 @@ export const useSocketListeners = (
                         room.roomCode === data.roomCode
                             ? {
                                 ...room,
-                                lastMessage: {
-                                    text: data.lastMessage.text || "",
-                                    from: data.lastMessage.from,
-                                    time: data.lastMessage.time,
-                                    sentAt: data.lastMessage.sentAt,
-                                    mediaType: data.lastMessage.mediaType || null,
-                                    fileName: data.lastMessage.fileName || null,
-                                },
+                                lastMessage: data.lastMessage.text || "", // 🔥 String
                                 lastMessageFrom: data.lastMessage.from,
                                 lastMessageTime: data.lastMessage.time,
                                 lastMessageAt: data.lastMessage.sentAt,
+                                lastMessageMediaType: data.lastMessage.mediaType || null, // 🔥 Propiedad directa
+                                lastMessageFileName: data.lastMessage.fileName || null,
                             }
                             : room
                     )
@@ -567,6 +584,25 @@ export const useSocketListeners = (
         s.on("conversationRead", (data) => {
             if (data.messageIds) {
                 data.messageIds.forEach(id => updateMessage(id, { isRead: true, readBy: [data.readBy] }));
+            }
+        });
+
+        // 🔥 NUEVO: Manejo de errores genéricos del socket
+        s.on("error", (data) => {
+            console.error("❌ Socket Error:", data);
+            showErrorAlert("Error", data.message || "Ocurrió un error en la conexión");
+        });
+
+        // 🔥 NUEVO: Manejo de error al unirse a sala
+        s.on("joinRoomError", (data) => {
+            console.error("❌ Error al unirse a sala:", data);
+            showErrorAlert("Error al unirse", data.message || "No se pudo unir a la sala");
+
+            // Limpiar estado si falló la unión
+            if (currentRoomCodeRef.current === data.roomCode) {
+                chatState.setCurrentRoomCode(null);
+                currentRoomCodeRef.current = null;
+                chatState.setIsGroup(false);
             }
         });
 

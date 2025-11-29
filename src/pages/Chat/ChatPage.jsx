@@ -315,6 +315,7 @@ const ChatPage = () => {
   const markedRoomsRef = useRef(new Set());
 
   useEffect(() => {
+    // A. Lógica para GRUPOS
     if (chatState.isGroup && chatState.currentRoomCode && messages.length > 0) {
       if (!markedRoomsRef.current.has(chatState.currentRoomCode)) {
         markedRoomsRef.current.add(chatState.currentRoomCode);
@@ -327,10 +328,70 @@ const ChatPage = () => {
       }
     }
 
-    if (!chatState.isGroup || !chatState.currentRoomCode) {
-      markedRoomsRef.current.clear();
+    // B. 🔥 Lógica para CHATS INDIVIDUALES (Asignados)
+    if (!chatState.isGroup && chatState.to && messages.length > 0 && !chatState.adminViewConversation) {
+      const conversationKey = `user:${chatState.to}`;
+
+      if (!markedRoomsRef.current.has(conversationKey)) {
+        markedRoomsRef.current.add(conversationKey);
+
+        const timer = setTimeout(async () => {
+          try {
+            // 1. Marcar en Backend
+            await apiService.markConversationAsRead(username, chatState.to);
+
+            // 2. Emitir Socket
+            if (socket && socket.connected) {
+              socket.emit('markConversationAsRead', {
+                from: username,
+                to: chatState.to
+              });
+            }
+
+            // 3. 🔥 RESETEAR CONTADOR LOCAL (CRÍTICO)
+            const conversation = chatState.assignedConversations.find(c =>
+              c.participants && c.participants.some(p =>
+                p?.toLowerCase().trim() === chatState.to?.toLowerCase().trim()
+              )
+            );
+
+            if (conversation) {
+              // Resetear estado de tiempo real
+              chatState.setUnreadMessages(prev => ({
+                ...prev,
+                [conversation.id]: 0
+              }));
+
+              // Resetear lista estática
+              chatState.setAssignedConversations(prev => prev.map(c =>
+                c.id === conversation.id ? { ...c, unreadCount: 0 } : c
+              ));
+            }
+
+          } catch (error) {
+            console.error("Error marking chat as read:", error);
+          }
+        }, 500);
+
+        return () => clearTimeout(timer);
+      }
     }
-  }, [chatState.isGroup, chatState.currentRoomCode, messages.length, markRoomMessagesAsRead]);
+  }, [
+    chatState.isGroup,
+    chatState.currentRoomCode,
+    chatState.to,
+    messages.length,
+    markRoomMessagesAsRead,
+    username,
+    socket,
+    chatState.assignedConversations, // Necesario para encontrar la conversación
+    chatState.adminViewConversation
+  ]);
+
+  // Limpiar caché de marcados cuando cambiamos de chat
+  useEffect(() => {
+    markedRoomsRef.current.clear();
+  }, [chatState.to, chatState.currentRoomCode]);
 
   // Cargar mensajes cuando cambie 'to'
   useEffect(() => {

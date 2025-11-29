@@ -52,18 +52,24 @@ class SystemNotifications {
         // 1. Tenemos permiso
         // 2. La ventana NO está enfocada (estás en otra app)
         if (Notification.permission !== "granted" || this.isWindowFocused) {
+            console.log('🔔 systemNotifications.show blocked:', { permission: Notification.permission, isWindowFocused: this.isWindowFocused });
             return null;
         }
 
+        console.log('🔔 systemNotifications.show executing:', { title, body, options });
+
         const notification = new Notification(title, {
             body: body,
-            icon: '/logo.png', // Cambia por tu logo si existe
-            badge: '/logo.png',
+            icon: '/assets/login.png', // Cambia por tu logo si existe
+            badge: '/assets/login.png',
             tag: options.tag || 'chat-notification',
+            renotify: true,
             requireInteraction: false,
             silent: options.silent || false,
             ...options
         });
+
+        console.log('🔔 systemNotifications.show created:', notification);
 
         // Al hacer clic en la notificación
         notification.onclick = () => {
@@ -71,6 +77,11 @@ class SystemNotifications {
             notification.close();
             if (onClick) onClick();
         };
+
+        // Cerrar automáticamente después de 5 segundos
+        setTimeout(() => {
+            notification.close();
+        }, 5000);
 
         return notification;
     }
@@ -80,9 +91,12 @@ class SystemNotifications {
      */
     canShow() {
         const hasPermission = Notification.permission === "granted";
-        const isNotFocused = !this.isWindowFocused;
-        console.log('🔔 canShow() - hasPermission:', hasPermission, 'isWindowFocused:', this.isWindowFocused, 'canShow:', hasPermission && isNotFocused);
-        return hasPermission && isNotFocused;
+        // Mostrar solo si la pestaña está oculta (minimizada o en otra pestaña)
+        // Esto evita que salga la notificación nativa si el usuario tiene la ventana visible pero desenfocada (ej. DevTools)
+        const isHidden = document.visibilityState === 'hidden';
+
+        console.log('🔔 canShow() - hasPermission:', hasPermission, 'isHidden:', isHidden, 'canShow:', hasPermission && isHidden);
+        return hasPermission && isHidden;
     }
 }
 
