@@ -5,11 +5,16 @@ import {
   FaPaperclip,
   FaSmile,
   FaSpinner,
+  FaEllipsisV, // 🔥 NUEVO: Menú de opciones
+  FaShare, // 🔥 NUEVO: Ícono de reenviar
+  FaCopy, // 🔥 NUEVO: Ícono de copiar
+  FaReply, // 🔥 NUEVO: Ícono de responder
 } from "react-icons/fa";
 import EmojiPicker from "emoji-picker-react";
 import apiService from "../../../../apiService";
 import AudioPlayer from "../AudioPlayer/AudioPlayer";
 import VoiceRecorder from "../VoiceRecorder/VoiceRecorder";
+import ForwardMessageModal from "../ChatContent/ForwardMessageModal"; // 🔥 NUEVO: Modal de reenvío
 
 import "./ThreadPanel.css";
 
@@ -22,8 +27,12 @@ const ThreadPanel = ({
   onSendMessage,
   currentRoomCode, // 🔥 NUEVO: RoomCode actual de la sesión
   roomUsers = [], // 🔥 NUEVO: Lista de usuarios en la sala para menciones
+  // 🔥 NUEVO: Props para modal de reenvío
+  myActiveRooms = [],
+  assignedConversations = [],
+  user,
 }) => {
-  if (!isOpen) return null;
+  // if (!isOpen) return null; // 🔥 MOVIDO AL FINAL PARA RESPETAR REGLAS DE HOOKS
   const [threadMessages, setThreadMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -44,6 +53,15 @@ const ThreadPanel = ({
   const fileInputRef = useRef(null);
   const inputRef = useRef(null);
   const mentionDropdownRef = useRef(null);
+  const messageMenuRef = useRef(null); // 🔥 NUEVO: Ref para menú de opciones
+  const reactionPickerRef = useRef(null); // 🔥 NUEVO: Ref para picker de reacciones
+
+  // 🔥 NUEVOS ESTADOS - Menú de opciones y reenvío
+  const [showMessageMenu, setShowMessageMenu] = useState(null); // ID del mensaje con menú abierto
+  const [showForwardModal, setShowForwardModal] = useState(false);
+  const [messageToForward, setMessageToForward] = useState(null);
+  const [showReactionPicker, setShowReactionPicker] = useState(null); // ID del mensaje con picker abierto
+  const [replyingTo, setReplyingTo] = useState(null); // Mensaje al que se responde
 
 
 
@@ -133,6 +151,7 @@ const ThreadPanel = ({
 
 
   const loadThreadMessages = useCallback(async () => {
+    if (!message?.id) return;
     setLoading(true);
     try {
       const data = await apiService.getThreadMessages(message.id);
@@ -144,7 +163,7 @@ const ThreadPanel = ({
     } finally {
       setLoading(false);
     }
-  }, [message.id]);
+  }, [message?.id]);
 
   // useEffect para cargar mensajes cuando se abre el hilo
   useEffect(() => {
@@ -311,6 +330,9 @@ const ThreadPanel = ({
 
     setIsSending(true);
     try {
+      // 🔥 DEBUG: Ver estado de replyingTo
+      console.log('🔍 handleSend - replyingTo:', replyingTo);
+
       // Helper para determinar tipo de medio
       const getMediaType = (file) => {
         if (file.type.startsWith('image/')) return 'image';
@@ -320,17 +342,20 @@ const ThreadPanel = ({
         return 'file'; // Fallback genérico para todo lo demás
       };
 
+      // Construir datos de respuesta si existen
+      const replyData = replyingTo ? {
+        replyToMessageId: replyingTo.id,
+        replyToSender: replyingTo.from || replyingTo.sender,
+        replyToText: replyingTo.message || replyingTo.text || replyingTo.fileName || "Archivo adjunto",
+      } : {};
+
       // 1. Si hay archivos, enviarlos uno por uno
       if (mediaFiles.length > 0) {
         for (let i = 0; i < mediaFiles.length; i++) {
           const file = mediaFiles[i];
 
-          console.log(`📤 Subiendo archivo ${i + 1}/${mediaFiles.length}: ${file.name}`);
-
           // Subir archivo
           const uploadResult = await apiService.uploadFile(file, "chat");
-
-          console.log('✅ Archivo subido:', uploadResult);
 
           const mediaType = getMediaType(file);
 
@@ -349,9 +374,9 @@ const ThreadPanel = ({
             mediaData: uploadResult.fileUrl,
             fileName: uploadResult.fileName,
             fileSize: uploadResult.fileSize,
+            ...replyData, // 🔥 Incluir datos de respuesta
           };
 
-          console.log('📨 Enviando mensaje de hilo:', messageData);
           await onSendMessage(messageData);
         }
       } else {
@@ -365,6 +390,7 @@ const ThreadPanel = ({
             : (message.realSender === currentUsername ? message.receiver : message.realSender),
           isGroup: message.isGroup,
           roomCode: message.isGroup ? currentRoomCode : undefined,
+          ...replyData, // 🔥 Incluir datos de respuesta
         };
 
         await onSendMessage(messageData);
@@ -374,6 +400,7 @@ const ThreadPanel = ({
       setInput("");
       setMediaFiles([]);
       setMediaPreviews([]);
+      setReplyingTo(null); // 🔥 NUEVO: Limpiar respuesta
 
       // Resetear input de archivo
       if (fileInputRef.current) {
@@ -453,6 +480,23 @@ const ThreadPanel = ({
     }
   };
 
+  // 🔥 NUEVO: Handler de paste para imágenes
+  const handlePaste = async (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          processFiles([file]);
+        }
+        break;
+      }
+    }
+  };
+
   // 🔥 NUEVO: Insertar mención seleccionada
   const insertMention = (user) => {
     const username = user.username || user.nombre || '';
@@ -477,6 +521,34 @@ const ThreadPanel = ({
 
     setShowMentionSuggestions(false);
   };
+
+
+  // 🔥 NUEVO: Listener global para pegar imágenes (evitando duplicados en input)
+  useEffect(() => {
+    const handleGlobalPaste = (e) => {
+      const target = e.target;
+      const isInInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
+
+      // Si es el textarea del thread, permitimos que handlePaste decida si interceptar (imágenes) o dejar pasar (texto)
+      // if (isInInput && target === inputRef.current) {
+      //   return;
+      // }
+
+      // Manejar el pegado globalmente
+      handlePaste(e);
+    };
+
+    const panel = document.querySelector('.thread-panel-container');
+    if (panel) {
+      panel.addEventListener('paste', handleGlobalPaste);
+    }
+
+    return () => {
+      if (panel) {
+        panel.removeEventListener('paste', handleGlobalPaste);
+      }
+    };
+  }, []);
 
   const handleKeyDown = (e) => {
     // 🔥 NUEVO: Navegación en dropdown de menciones
@@ -519,6 +591,69 @@ const ThreadPanel = ({
     setShowEmojiPicker(false);
   };
 
+  // 🔥 NUEVOS HANDLERS - Forward Modal
+  const handleOpenForwardModal = (message) => {
+    setMessageToForward(message);
+    setShowForwardModal(true);
+    setShowMessageMenu(null);
+  };
+
+  const handleCloseForwardModal = () => {
+    setShowForwardModal(false);
+    setMessageToForward(null);
+  };
+
+  // 🔥 NUEVO: Copiar texto del mensaje
+  const handleCopyText = async (message) => {
+    const text = message.message || message.text || message.fileName || '';
+    if (text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        setShowMessageMenu(null);
+      } catch (error) {
+        console.error('Error al copiar:', error);
+      }
+    }
+  };
+
+  // 🔥 NUEVO: Abrir picker de reacciones
+  const handleOpenReactionPicker = (messageId) => {
+    setShowReactionPicker(messageId);
+    setShowMessageMenu(null);
+  };
+
+  // 🔥 NUEVO: Reaccionar a mensaje
+  const handleReaction = async (messageId, emoji) => {
+    try {
+      if (!socket || !socket.connected) {
+        console.warn('Socket no conectado');
+        return;
+      }
+
+      socket.emit('addReaction', {
+        messageId,
+        emoji,
+        username: currentUsername,
+      });
+
+      setShowReactionPicker(null);
+    } catch (error) {
+      console.error('Error al agregar reacción:', error);
+    }
+  };
+
+  // 🔥 NUEVO: Responder a mensaje
+  const handleReplyTo = (message) => {
+    setReplyingTo(message);
+    setShowMessageMenu(null);
+    inputRef.current?.focus();
+  };
+
+  // 🔥 NUEVO: Cancelar respuesta
+  const handleCancelReply = () => {
+    setReplyingTo(null);
+  };
+
   const formatTime = (msg) => {
     if (!msg) return "";
 
@@ -536,7 +671,47 @@ const ThreadPanel = ({
     return "";
   };
 
-  if (!message) return null;
+  // 🔥 NUEVO: Cerrar menú y picker de reacciones al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (messageMenuRef.current && !messageMenuRef.current.contains(event.target)) {
+        setShowMessageMenu(null);
+      }
+      if (reactionPickerRef.current && !reactionPickerRef.current.contains(event.target)) {
+        setShowReactionPicker(null);
+      }
+    };
+
+    if (showMessageMenu || showReactionPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showMessageMenu, showReactionPicker]);
+
+  // 🔥 NUEVO: Handler de paste para el contenedor (reemplaza al useEffect)
+  const handleContainerPaste = (e) => {
+    const target = e.target;
+    const isInInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
+
+    // Si estamos en un input/textarea, NO hacer nada aquí (ya tienen su propio comportamiento)
+    if (isInInput) return;
+
+    handlePaste(e);
+  };
+
+  // 🔥 Limpiar estado al cerrar el panel
+  useEffect(() => {
+    if (!isOpen) {
+      setInput("");
+      setMediaFiles([]);
+      setMediaPreviews([]);
+      setReplyingTo(null);
+      setMessageToForward(null);
+      setShowForwardModal(false);
+    }
+  }, [isOpen]);
+
+  if (!isOpen || !message) return null;
 
   return (
     <div
@@ -545,6 +720,7 @@ const ThreadPanel = ({
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
+      onPaste={handleContainerPaste} // 🔥 NUEVO: Paste handler en el div
     >
       {isDragging && (
         <div className="thread-drag-overlay">
@@ -673,6 +849,17 @@ const ThreadPanel = ({
                 <strong>{msg.from}</strong>
                 <span className="thread-message-time">{formatTime(msg)}</span>
               </div>
+
+              {/* 🔥 NUEVO: Mostrar referencia de respuesta si existe */}
+              {msg.replyToMessageId && msg.replyToSender && (
+                <div className="thread-reply-reference">
+                  <FaReply className="reply-ref-icon" />
+                  <div className="reply-ref-content">
+                    <span className="reply-ref-sender">{msg.replyToSender}</span>
+                    <span className="reply-ref-text">{msg.replyToText || "Mensaje"}</span>
+                  </div>
+                </div>
+              )}
 
               {/* Mostrar contenido multimedia si existe */}
               {msg.mediaType === "audio" && msg.mediaData ? (
@@ -806,6 +993,66 @@ const ThreadPanel = ({
                   </div>
                 </div>
               )}
+
+              {/* 🔥 NUEVO: Botón de menú de opciones */}
+              <div className="thread-message-actions">
+                <button
+                  className="thread-message-menu-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowMessageMenu(showMessageMenu === msg.id ? null : msg.id);
+                  }}
+                  title="Opciones"
+                >
+                  <FaEllipsisV size={12} />
+                </button>
+
+                {/* Menú de opciones */}
+                {showMessageMenu === msg.id && (
+                  <div className="thread-message-menu" ref={messageMenuRef}>
+                    <button
+                      className="menu-item"
+                      onClick={() => handleCopyText(msg)}
+                    >
+                      <FaCopy className="menu-icon" /> Copiar texto
+                    </button>
+                    <button
+                      className="menu-item"
+                      onClick={() => handleReplyTo(msg)}
+                    >
+                      <FaReply className="menu-icon" /> Responder
+                    </button>
+                    <button
+                      className="menu-item"
+                      onClick={() => handleOpenReactionPicker(msg.id)}
+                    >
+                      <FaSmile className="menu-icon" /> Reaccionar
+                    </button>
+                    <div style={{ height: '1px', background: '#eee', margin: '4px 0' }}></div>
+                    <button
+                      className="menu-item"
+                      onClick={() => handleOpenForwardModal(msg)}
+                    >
+                      <FaShare className="menu-icon" /> Reenviar
+                    </button>
+                  </div>
+                )}
+
+                {/* 🔥 NUEVO: Picker de reacciones */}
+                {showReactionPicker === msg.id && (
+                  <div className="thread-reaction-picker" ref={reactionPickerRef}>
+                    {['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji) => (
+                      <button
+                        key={emoji}
+                        className="reaction-emoji-btn"
+                        onClick={() => handleReaction(msg.id, emoji)}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           ))
         )}
@@ -813,6 +1060,23 @@ const ThreadPanel = ({
       </div>
 
       <div className="thread-input-container">
+        {/* 🔥 NUEVO: Vista previa de respuesta */}
+        {replyingTo && (
+          <div className="thread-reply-preview">
+            <div className="reply-preview-content">
+              <div className="reply-preview-header">
+                <FaReply className="reply-icon" />
+                <span>Respondiendo a {replyingTo.from || replyingTo.sender}</span>
+              </div>
+              <div className="reply-preview-text">
+                {replyingTo.message || replyingTo.text || replyingTo.fileName || "Archivo adjunto"}
+              </div>
+            </div>
+            <button className="reply-close-btn" onClick={handleCancelReply}>
+              <FaTimes />
+            </button>
+          </div>
+        )}
         {/* Vista previa de archivos */}
         {mediaFiles.length > 0 && (
           <div className="thread-media-preview">
@@ -957,6 +1221,8 @@ const ThreadPanel = ({
             value={input}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+
             placeholder="Escribe un mensaje"
             rows={1}
             disabled={isSending}
@@ -982,6 +1248,17 @@ const ThreadPanel = ({
           </button>
         </div>
       </div>
+
+      {/* 🔥 NUEVO: Modal de reenvío */}
+      <ForwardMessageModal
+        isOpen={showForwardModal}
+        onClose={handleCloseForwardModal}
+        message={messageToForward}
+        myActiveRooms={myActiveRooms}
+        assignedConversations={assignedConversations}
+        user={user}
+        socket={socket}
+      />
     </div>
   );
 };

@@ -367,6 +367,9 @@ const ChatLayout = ({
               picture: isGroup ? null : getUserPicture(),
               isOnline: isGroup ? false : getTargetUser()?.isOnline
             }}
+            user={user} // 🔥 NUEVO: Usuario para modal de reenvío
+            myActiveRooms={myActiveRooms} // 🔥 NUEVO: Grupos para modal de reenvío
+            assignedConversations={assignedConversations} // 🔥 NUEVO: Chats asignados para modal de reenvío
           />
         </div>
         {/* Thread Panel (Displacement Layout) */}
@@ -379,6 +382,9 @@ const ChatLayout = ({
           onSendMessage={onSendThreadMessage}
           currentRoomCode={currentRoomCode}
           roomUsers={roomUsers}
+          myActiveRooms={myActiveRooms} // 🔥 NUEVO: Para modal de reenvío
+          assignedConversations={assignedConversations} // 🔥 NUEVO: Para modal de reenvío
+          user={user} // 🔥 NUEVO: Para modal de reenvío
         />
 
         {/* Members Panel (Displacement Layout) */}

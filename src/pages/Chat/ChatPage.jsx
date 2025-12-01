@@ -1031,6 +1031,10 @@ const ChatPage = () => {
         roomCode: messageData.roomCode || null,
         threadId: messageData.threadId,
         fromId: user.id,
+        // 🔥 NUEVO: Incluir datos de respuesta
+        replyToMessageId: messageData.replyToMessageId || null,
+        replyToSender: messageData.replyToSender || null,
+        replyToText: messageData.replyToText || null,
       };
 
       if (messageData.mediaType) {

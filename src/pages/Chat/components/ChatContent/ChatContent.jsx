@@ -13,6 +13,7 @@ import {
   FaThumbtack,
   FaDownload,
   FaChevronRight,
+  FaShare, // 🔥 NUEVO: Ícono para reenviar
 } from "react-icons/fa";
 import EmojiPicker from "emoji-picker-react";
 import LoadMoreMessages from "../LoadMoreMessages/LoadMoreMessages";
@@ -23,6 +24,7 @@ import VoiceRecorder from "../VoiceRecorder/VoiceRecorder";
 import PollMessage from "../PollMessage/PollMessage";
 import CopyOptions from "./CopyOptions/CopyOptions";
 import MessageSelectionManager from "./MessageSelectionManager/MessageSelectionManager";
+import ForwardMessageModal from "./ForwardMessageModal"; // 🔥 NUEVO: Modal de reenvío
 
 import "./ChatContent.css";
 
@@ -151,6 +153,10 @@ const ChatContent = ({
   isOtherUserTyping,
   typingUser,
   roomTypingUsers,
+
+  // 🔥 NUEVO: Props para modal de reenvío
+  myActiveRooms = [],
+  assignedConversations = [],
 }) => {
   // ============================================================
   // REFS
@@ -205,6 +211,10 @@ const ChatContent = ({
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedMessages, setSelectedMessages] = useState([]);
 
+  // 🔥 NUEVOS ESTADOS - Modal de reenvío
+  const [showForwardModal, setShowForwardModal] = useState(false);
+  const [messageToForward, setMessageToForward] = useState(null);
+
   // ============================================================
   // HANDLERS - Selección múltiple de mensajes
   // ============================================================
@@ -230,6 +240,19 @@ const ChatContent = ({
   const handleCopyList = () => {
     setIsSelectionMode(false);
     setSelectedMessages([]);
+  };
+
+  // 🔥 NUEVO HANDLER - Abrir modal de reenvío
+  const handleOpenForwardModal = (message) => {
+    setMessageToForward(message);
+    setShowForwardModal(true);
+    setShowMessageMenu(null);
+  };
+
+  // 🔥 NUEVO HANDLER - Cerrar modal de reenvío
+  const handleCloseForwardModal = () => {
+    setShowForwardModal(false);
+    setMessageToForward(null);
   };
 
   // ============================================================
@@ -1729,6 +1752,11 @@ const ChatContent = ({
                       <FaInfoCircle className="menu-icon" /> Info. Mensaje
                     </button>}
 
+                    {/* 🔥 NUEVO: Botón de Reenviar */}
+                    <button className="menu-item" onClick={() => handleOpenForwardModal(message)}>
+                      <FaShare className="menu-icon" /> Reenviar
+                    </button>
+
                     {/* FUNCIONES PRIVILEGIADAS */}
                     {isGroup && onPinMessage && (isAdmin || (user?.role && ['JEFEPISO', 'PROGRAMADOR', 'SUPERVISOR'].includes(user.role.toUpperCase()))) && (
                       <button className="menu-item" onClick={() => { onPinMessage(message); setShowMessageMenu(null); }}>
@@ -2994,6 +3022,17 @@ const ChatContent = ({
           />
         )
       }
+
+      {/* 🔥 NUEVO: Modal de reenvío de mensajes */}
+      <ForwardMessageModal
+        isOpen={showForwardModal}
+        onClose={handleCloseForwardModal}
+        message={messageToForward}
+        myActiveRooms={myActiveRooms}
+        assignedConversations={assignedConversations}
+        user={user}
+        socket={socket}
+      />
     </div>
   );
 };
