@@ -65,10 +65,16 @@ const CollapsibleList = ({ title, icon: Icon, children, isOpen, onToggle, onLoad
   const [height, setHeight] = useState(defaultHeight);
   const listRef = useRef(null);
   const contentRef = useRef(null);
+  const innerContentRef = useRef(null);
   const isResizing = useRef(false);
   const startY = useRef(0);
   const startHeight = useRef(0);
   const lastCheckTime = useRef(0); // 🔥 Prevenir checks múltiples
+  const hasMoreRef = useRef(hasMore);
+
+  useEffect(() => {
+    hasMoreRef.current = hasMore;
+  }, [hasMore]);
 
   const startResizing = useCallback((e) => {
     e.preventDefault();
@@ -100,7 +106,20 @@ const CollapsibleList = ({ title, icon: Icon, children, isOpen, onToggle, onLoad
   const handleMouseMove = useCallback((e) => {
     if (!isResizing.current) return;
     const deltaY = e.clientY - startY.current;
-    const newHeight = startHeight.current + deltaY;
+    let newHeight = startHeight.current + deltaY;
+
+    // 🔥 SIEMPRE limitamos la altura al contenido real para evitar espacios en blanco
+    if (innerContentRef.current && listRef.current) {
+      const contentHeight = innerContentRef.current.offsetHeight;
+      const header = listRef.current.querySelector('.mx_RoomSublist_header');
+      const headerHeight = header ? header.offsetHeight : 36; // 36px fallback
+      const maxAllowedHeight = contentHeight + headerHeight; // 🔥 Sin buffer extra para ser estrictos
+
+      if (newHeight > maxAllowedHeight) {
+        newHeight = maxAllowedHeight;
+      }
+    }
+
     if (newHeight > 76 && newHeight < 800) {
       setHeight(newHeight);
     }
@@ -128,9 +147,6 @@ const CollapsibleList = ({ title, icon: Icon, children, isOpen, onToggle, onLoad
     }
   }, [hasMore, isLoading, onLoadMore, title]);
 
-  // 🔥 ELIMINADO: Los useEffect que causaban carga excesiva
-  // Solo mantenemos el comportamiento de scroll manual y resize manual
-
   return (
     <div className={`mx_RoomSublist ${className || ''}`} style={{ height: isOpen ? `${height}px` : 'auto' }} ref={listRef}>
       <div className="mx_RoomSublist_header" onClick={onToggle}>
@@ -148,13 +164,15 @@ const CollapsibleList = ({ title, icon: Icon, children, isOpen, onToggle, onLoad
             className={`mx_RoomSublist_content mx_AutoHideScrollbar ${contentClassName || ''}`}
             onScroll={handleScroll}
           >
-            {children}
-            {/* Spinner de carga discreto al final de la lista */}
-            {isLoading && (
-              <div className="flex justify-center py-2">
-                <div className="animate-spin h-4 w-4 border-2 border-blue-500 rounded-full border-t-transparent"></div>
-              </div>
-            )}
+            <div ref={innerContentRef}>
+              {children}
+              {/* Spinner de carga discreto al final de la lista */}
+              {isLoading && (
+                <div className="flex justify-center py-2">
+                  <div className="animate-spin h-4 w-4 border-2 border-blue-500 rounded-full border-t-transparent"></div>
+                </div>
+              )}
+            </div>
           </div>
           <div className="mx_RoomSublist_resizerHandle" onMouseDown={startResizing}></div>
         </>
