@@ -61,45 +61,85 @@ class ApiService {
   // Método para subir archivos al servidor
   async uploadFile(file, category = 'chat') {
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('category', category);
+      const getFormData = () => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('category', category);
+        return formData;
+      };
 
       const token = localStorage.getItem('token');
 
-      // Para FormData, no podemos usar fetchWithAuth directamente porque necesita headers especiales
-      // Pero podemos manejar el refresh manualmente
-      let response = await fetch(`${this.baseUrl}api/files/upload`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
-      });
+      // Función helper para realizar la petición
+      const doUpload = async (authToken) => {
+        return await fetch(`${this.baseUrl}api/files/upload`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+          },
+          body: getFormData(), // Crear nuevo FormData para cada intento
+        });
+      };
 
-      // Si falla con 401 o 403, intentar renovar token
-      if (response.status === 401 || response.status === 403) {
-        try {
-          const newToken = await this.refreshToken();
+      let response = await doUpload(token);
 
-          // Reintentar con el nuevo token
-          response = await fetch(`${this.baseUrl}api/files/upload`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${newToken}`,
-            },
-            body: formData,
-          });
-        } catch (refreshError) {
-          console.error('❌ Error al renovar token para subir archivo:', refreshError);
-          this.logout();
-          window.location.href = '/';
-          throw new Error('Sesión expirada');
+      // 🔥 Manejo de errores 400, 401 y 403 (similar a fetchWithAuth)
+      if (response.status === 401 || response.status === 403 || response.status === 400) {
+        let shouldRetry = false;
+
+        // Si es 400, verificar si es por token inválido
+        if (response.status === 400) {
+          try {
+            const errorData = await response.clone().json();
+            if (errorData?.rpta === 0) {
+              const errorMsg = errorData.msg || '';
+              if (
+                errorMsg.includes('inválido') ||
+                errorMsg.includes('invalido') ||
+                errorMsg.includes('expirado') ||
+                errorMsg.includes('Token')
+              ) {
+                shouldRetry = true;
+              }
+            }
+          } catch (e) {
+            // Ignorar error de parseo
+          }
+        } else {
+          // 401 o 403 siempre intentan refresh
+          shouldRetry = true;
+        }
+
+        if (shouldRetry) {
+          console.log(`⚠️ Error ${response.status} en upload, intentando renovar token...`);
+          try {
+            const newToken = await this.refreshToken();
+
+            // Reintentar con el nuevo token
+            response = await doUpload(newToken);
+
+            if (response.status === 401 || response.status === 403) {
+              console.error('❌ Error al subir archivo tras renovar token.');
+              this.logout();
+              window.location.href = '/';
+              throw new Error('Sesión expirada');
+            }
+          } catch (refreshError) {
+            console.error('❌ Error al renovar token para subir archivo:', refreshError);
+            this.logout();
+            window.location.href = '/';
+            throw new Error('Sesión expirada');
+          }
         }
       }
 
       if (!response.ok) {
-        throw new Error('Error al subir archivo');
+        let errorMessage = 'Error al subir archivo';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.msg || errorMessage;
+        } catch { }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -399,79 +439,59 @@ class ApiService {
     let response = await doRequest(headers);
 
     // 🔥 Manejo de errores 400, 401 y 403
-    if (response.status === 400) {
-      // 400 = Verificar si es un error de token inválido del backend
-      try {
-        const errorData = await response.clone().json();
-        if (errorData?.rpta === 0) {
-          const errorMsg = errorData.msg || '';
+    if (response.status === 400 || response.status === 401 || response.status === 403) {
+      let shouldRetry = false;
 
-          // Si el mensaje indica token inválido/expirado, intentar renovar
-          if (
-            errorMsg.includes('inválido') ||
-            errorMsg.includes('invalido') ||
-            errorMsg.includes('expirado') ||
-            errorMsg.includes('Token')
-          ) {
-            console.log('⚠️ Error 400 con token inválido detectado, intentando renovar...');
-            try {
-              const newToken = await this.refreshToken();
+      if (response.status === 400) {
+        // 400 = Verificar si es un error de token inválido del backend
+        try {
+          const errorData = await response.clone().json();
+          if (errorData?.rpta === 0) {
+            const errorMsg = errorData.msg || '';
 
-              // Reintentar la petición original con el nuevo token
-              const retryHeaders = {
-                ...headers,
-                Authorization: `Bearer ${newToken}`,
-              };
-
-              response = await doRequest(retryHeaders);
-
-              // Si aún falla después del refresh, cerrar sesión
-              if (response.status === 401 || response.status === 403 || response.status === 400) {
-                console.error('❌ Error después de renovar token. Cerrando sesión.');
-                this.logout();
-                window.location.href = '/';
-              }
-            } catch (error) {
-              console.error('❌ Error al renovar token:', error);
-              this.logout();
-              window.location.href = '/';
+            // Si el mensaje indica token inválido/expirado, intentar renovar
+            if (
+              errorMsg.includes('inválido') ||
+              errorMsg.includes('invalido') ||
+              errorMsg.includes('expirado') ||
+              errorMsg.includes('Token')
+            ) {
+              shouldRetry = true;
             }
           }
+        } catch (e) {
+          // Si no se puede parsear el JSON, continuar normalmente
         }
-      } catch (e) {
-        // Si no se puede parsear el JSON, continuar normalmente
+      } else {
+        // 401 y 403 siempre intentan refresh
+        shouldRetry = true;
       }
-    } else if (response.status === 401) {
-      // 401 = Token expirado o inválido → Intentar renovar
-      console.log('⚠️ Error 401 detectado, intentando renovar token...');
-      try {
-        const newToken = await this.refreshToken();
 
-        // Reintentar la petición original con el nuevo token
-        const retryHeaders = {
-          ...headers,
-          Authorization: `Bearer ${newToken}`,
-        };
+      if (shouldRetry) {
+        console.log(`⚠️ Error ${response.status} detectado, intentando renovar token...`);
+        try {
+          const newToken = await this.refreshToken();
 
-        response = await doRequest(retryHeaders);
+          // Reintentar la petición original con el nuevo token
+          const retryHeaders = {
+            ...headers,
+            Authorization: `Bearer ${newToken}`,
+          };
 
-        // Si aún falla después del refresh, cerrar sesión
-        if (response.status === 401 || response.status === 403) {
-          console.error('❌ Error 401/403 después de renovar token. Cerrando sesión.');
+          response = await doRequest(retryHeaders);
+
+          // Si aún falla después del refresh, cerrar sesión
+          if (response.status === 401 || response.status === 403 || response.status === 400) {
+            console.error('❌ Error después de renovar token. Cerrando sesión.');
+            this.logout();
+            window.location.href = '/';
+          }
+        } catch (error) {
+          console.error('❌ Error al renovar token:', error);
           this.logout();
           window.location.href = '/';
         }
-      } catch (error) {
-        console.error('❌ Error al renovar token:', error);
-        // Si falla el refresh, limpiar sesión
-        this.logout();
-        window.location.href = '/';
       }
-    } else if (response.status === 403) {
-      // 403 = Sin permisos o token expirado definitivamente → Cerrar sesión directamente
-      console.error('❌ Error 403: Acceso denegado. Cerrando sesión.');
-      this.logout();
-      window.location.href = '/';
     }
 
     return response;

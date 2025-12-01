@@ -1041,13 +1041,21 @@ const ChatPage = () => {
       }
 
       // 1. Guardar en BD
+      console.log('🔍 DEBUG - Guardando mensaje en BD:', messageObj);
       const savedMessage = await apiService.createMessage(messageObj);
+      console.log('✅ DEBUG - Mensaje guardado:', {
+        id: savedMessage.id,
+        from: savedMessage.from,
+        mediaType: savedMessage.mediaType,
+        fileName: savedMessage.fileName,
+      });
 
       // 2. Incrementar contador en BD
       await apiService.incrementThreadCount(messageData.threadId);
 
       // 3. Emitir por socket (Esto hará que 'useSocketListeners' reciba el evento y actualice la UI)
       if (socket && socket.connected) {
+        console.log('📡 DEBUG - Emitiendo threadMessage con id:', savedMessage.id);
         socket.emit("threadMessage", {
           ...savedMessage,
           threadId: messageData.threadId,

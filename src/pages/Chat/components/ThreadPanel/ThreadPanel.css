@@ -460,3 +460,177 @@
     transform: rotate(360deg);
   }
 }
+
+/* Estilos para Drag & Drop */
+.thread-panel-container {
+  position: relative;
+}
+
+.thread-panel-dragging {
+  border: 2px dashed #00a884;
+}
+
+.thread-drag-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.9);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+}
+
+.thread-drag-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: #00a884;
+  pointer-events: none;
+}
+
+/* 🔥 Mention Dropdown */
+.thread-mention-dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  margin-bottom: 8px;
+}
+
+.thread-mention-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.thread-mention-suggestion:hover,
+.thread-mention-suggestion.selected {
+  background-color: #f0f7ff;
+}
+
+.mention-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.mention-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mention-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.mention-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mention-name {
+  font-weight: 500;
+  font-size: 14px;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mention-role {
+  font-size: 12px;
+  color: #666;
+  margin-top: 2px;
+}
+
+/* 🔥 Read Receipts en Mensajes de Hilo */
+.thread-read-receipts {
+  margin-top: 4px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.thread-read-avatars {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.thread-read-avatar {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid white;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.thread-read-avatar:hover {
+  transform: scale(1.2);
+  z-index: 1;
+}
+
+.thread-read-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thread-read-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 8px;
+}
+
+.thread-read-more {
+  font-size: 10px;
+  color: #666;
+  margin-left: 4px;
+}
+
+/* 🔥 Highlight de menciones en el texto */
+.thread-message-text {
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.thread-message-text .mention {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-weight: 500;
+}

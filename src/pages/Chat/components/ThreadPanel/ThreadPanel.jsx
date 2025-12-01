@@ -21,6 +21,7 @@ const ThreadPanel = ({
   socket,
   onSendMessage,
   currentRoomCode, // 🔥 NUEVO: RoomCode actual de la sesión
+  roomUsers = [], // 🔥 NUEVO: Lista de usuarios en la sala para menciones
 }) => {
   if (!isOpen) return null;
   const [threadMessages, setThreadMessages] = useState([]);
@@ -33,9 +34,16 @@ const ThreadPanel = ({
   const [mediaFiles, setMediaFiles] = useState([]);
   const [mediaPreviews, setMediaPreviews] = useState([]);
   const [isSending, setIsSending] = useState(false);
+  // 🔥 NUEVO: Estado para menciones
+  const [showMentionSuggestions, setShowMentionSuggestions] = useState(false);
+  const [mentionSearchTerm, setMentionSearchTerm] = useState("");
+  const [filteredMembers, setFilteredMembers] = useState([]);
+  const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
   const messagesEndRef = useRef(null);
   const emojiPickerRef = useRef(null);
   const fileInputRef = useRef(null);
+  const inputRef = useRef(null);
+  const mentionDropdownRef = useRef(null);
 
 
 
@@ -69,40 +77,43 @@ const ThreadPanel = ({
 
   // Escuchar nuevos mensajes del hilo
   useEffect(() => {
-    if (!socket) return;
+    if (!socket) {
+      console.warn("⚠️ ThreadPanel: Socket no disponible");
+      return;
+    }
+
+    console.log("🔌 ThreadPanel: Escuchando eventos de socket para hilo", message?.id);
 
     const handleThreadMessage = (newMessage) => {
-      // // console.log('🧵 ThreadPanel recibió threadMessage:', newMessage);
-      // // console.log('  - threadId del mensaje:', newMessage.threadId);
-      // // console.log('  - threadId esperado:', message?.id);
-      // // console.log('  - ¿Coinciden?:', newMessage.threadId === message?.id);
+      console.log('🧵 ThreadPanel recibió threadMessage:', newMessage);
+      console.log('  - threadId del mensaje:', newMessage.threadId);
+      console.log('  - threadId esperado:', message?.id);
 
-      if (newMessage.threadId === message?.id) {
-        // // console.log('✅ ThreadId coincide, procesando mensaje...');
-        // 🔥 CONFIAR EN EL BACKEND - Agregar el mensaje sin verificar duplicados
+      // Asegurar comparación laxa por si uno es string y otro number
+      if (String(newMessage.threadId) === String(message?.id)) {
+        console.log('✅ ThreadId coincide, procesando mensaje...');
+
         setThreadMessages((prev) => {
-          // // console.log('📋 Mensajes actuales en el hilo:', prev.length);
-
           // Verificar duplicados solo por ID real
           const messageExists = prev.some((msg) => msg.id === newMessage.id);
 
           if (messageExists) {
-            // // console.log('⏭️ Mensaje ya existe (mismo ID), ignorando');
+            console.log('⏭️ Mensaje ya existe (mismo ID), ignorando');
             return prev;
           }
 
-          // // console.log('✅ Agregando nuevo mensaje al hilo:', newMessage);
+          console.log('✅ Agregando nuevo mensaje al hilo:', newMessage);
           return [...prev, newMessage];
         });
-
-        // 🔥 CONFIAR EN EL BACKEND - NO incrementar contador localmente
-        // El contador se actualizará via threadCountUpdated desde el backend
+      } else {
+        console.log('❌ ThreadId NO coincide');
       }
     };
 
     const handleThreadCountUpdated = (data) => {
+      console.log('🔢 ThreadPanel evento threadCountUpdated:', data);
       // Solo actualizar si es para este hilo específico
-      if (data.messageId === message?.id) {
+      if (String(data.messageId) === String(message?.id)) {
         console.log(
           `🔢 ThreadPanel actualizando contador para hilo ${data.messageId}`
         );
@@ -146,6 +157,20 @@ const ThreadPanel = ({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // 🔥 NUEVO: Marcar mensajes como leídos al cargar el hilo
+  useEffect(() => {
+    if (threadMessages.length > 0) {
+      const unreadMessageIds = threadMessages
+        .filter(msg => msg.from !== currentUsername && (!msg.readBy || !msg.readBy.includes(currentUsername)))
+        .map(msg => msg.id);
+
+      if (unreadMessageIds.length > 0) {
+        apiService.markMultipleMessagesAsRead(unreadMessageIds, currentUsername)
+          .catch(error => console.error('Error marking thread messages as read:', error));
+      }
+    }
+  }, [threadMessages, currentUsername]);
+
   // Función para convertir archivo a base64
   const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
@@ -164,35 +189,36 @@ const ThreadPanel = ({
     });
   };
 
-  const handleFileSelect = (e) => {
-    const files = Array.from(e.target.files);
+  // Estado para Drag & Drop
+  const [isDragging, setIsDragging] = useState(false);
+
+  const processFiles = (files) => {
     if (files.length === 0) return;
 
-    // ✅ Permitir todos los tipos de archivos (imágenes, PDFs, documentos, etc.)
-    // Ya no hay restricción de tipo de archivo
+    // Validar límite total de archivos (máximo 5)
+    if (mediaFiles.length + files.length > 5) {
+      alert(`❌ Máximo 5 archivos en total. Ya tienes ${mediaFiles.length} y estás intentando agregar ${files.length}.`);
+      return;
+    }
 
-    // 🔥 Validar tamaño de cada archivo (70MB máximo) - ACTUALIZADO
+    // Validar tamaño de cada archivo (70MB máximo)
     const MAX_FILE_SIZE = 70 * 1024 * 1024; // 70MB
-
     const oversizedFiles = files.filter(file => file.size > MAX_FILE_SIZE);
+
     if (oversizedFiles.length > 0) {
       alert(`❌ Algunos archivos superan el límite de 70MB:\n${oversizedFiles.map(f => `- ${f.name} (${(f.size / 1024 / 1024).toFixed(2)}MB)`).join('\n')}`);
-      e.target.value = ''; // Limpiar el input
       return;
     }
 
-    if (files.length > 5) {
-      alert("❌ Máximo 5 archivos a la vez");
-      e.target.value = ''; // Limpiar el input
-      return;
-    }
+    // Agregar nuevos archivos a los existentes
+    const updatedFiles = [...mediaFiles, ...files];
+    setMediaFiles(updatedFiles);
 
-    setMediaFiles(files);
-
+    // Generar previews para los nuevos archivos
     const previewPromises = files.map((file) => fileToBase64(file));
     Promise.all(previewPromises)
       .then((results) => {
-        const previews = results.map((data, index) => {
+        const newPreviews = results.map((data, index) => {
           const file = files[index];
           const fileType = file.type;
 
@@ -220,13 +246,51 @@ const ThreadPanel = ({
             size: file.size,
           };
         });
-        setMediaPreviews(previews);
+
+        // Concatenar previews nuevos a los existentes
+        setMediaPreviews(prev => [...prev, ...newPreviews]);
       })
       .catch((error) => {
         console.error("Error al procesar archivos:", error);
         alert("Error al procesar archivos: " + error.message);
-        e.target.value = ''; // Limpiar el input
       });
+  };
+
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    processFiles(files);
+    e.target.value = ''; // Limpiar el input
+  };
+
+  // Manejadores de Drag & Drop
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Solo desactivar si realmente salimos del contenedor (no si entramos a un hijo)
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    processFiles(files);
   };
   // Remover archivo de la lista
   const handleRemoveMediaFile = (index) => {
@@ -243,56 +307,81 @@ const ThreadPanel = ({
   };
 
   const handleSend = async () => {
-    if (!input.trim() && mediaFiles.length === 0) return;
-    if (isSending) return;
+    if ((!input.trim() && mediaFiles.length === 0) || isSending) return;
 
     setIsSending(true);
     try {
-      // 🔥 DEBUG: Verificar qué contiene el mensaje original
-      console.log('🔍 DEBUG ThreadPanel - message object:', {
-        id: message.id,
-        from: message.from,
-        to: message.to,
-        isGroup: message.isGroup,
-        roomCode: message.roomCode,
-        receiver: message.receiver,
-        sender: message.sender,
-        realSender: message.realSender,
-      });
-
-      const messageData = {
-        text: input,
-        threadId: message.id,
-        from: currentUsername,
-        // 🔥 CORREGIDO: Para mensajes de grupo, usar message.receiver (nombre de sala)
-        // Para mensajes 1-a-1, determinar el destinatario correcto  
-        to: message.isGroup
-          ? message.receiver  // Para grupos, usar receiver (nombre de la sala)
-          : (message.realSender === currentUsername ? message.receiver : message.realSender),
-        isGroup: message.isGroup,
-        // 🔥 CORREGIDO: Usar currentRoomCode de la sesión actual (prop) en lugar de message.roomCode (undefined)
-        roomCode: message.isGroup ? currentRoomCode : undefined,
+      // Helper para determinar tipo de medio
+      const getMediaType = (file) => {
+        if (file.type.startsWith('image/')) return 'image';
+        if (file.type.startsWith('video/')) return 'video';
+        if (file.type.startsWith('audio/')) return 'audio';
+        if (file.type === 'application/pdf') return 'pdf';
+        return 'file'; // Fallback genérico para todo lo demás
       };
 
-      // Si hay archivos, subirlos primero
+      // 1. Si hay archivos, enviarlos uno por uno
       if (mediaFiles.length > 0) {
-        const file = mediaFiles[0]; // Por ahora solo soportamos un archivo a la vez en hilos
-        const uploadResult = await apiService.uploadFile(file, "chat");
+        for (let i = 0; i < mediaFiles.length; i++) {
+          const file = mediaFiles[i];
 
-        messageData.mediaType = file.type.split("/")[0];
-        messageData.mediaData = uploadResult.fileUrl;
-        messageData.fileName = uploadResult.fileName;
-        messageData.fileSize = uploadResult.fileSize;
+          console.log(`📤 Subiendo archivo ${i + 1}/${mediaFiles.length}: ${file.name}`);
+
+          // Subir archivo
+          const uploadResult = await apiService.uploadFile(file, "chat");
+
+          console.log('✅ Archivo subido:', uploadResult);
+
+          const mediaType = getMediaType(file);
+
+          // Construir mensaje
+          const messageData = {
+            // Solo adjuntar el texto al primer archivo
+            text: i === 0 ? input : "",
+            threadId: message.id,
+            from: currentUsername,
+            to: message.isGroup
+              ? message.receiver
+              : (message.realSender === currentUsername ? message.receiver : message.realSender),
+            isGroup: message.isGroup,
+            roomCode: message.isGroup ? currentRoomCode : undefined,
+            mediaType: mediaType,
+            mediaData: uploadResult.fileUrl,
+            fileName: uploadResult.fileName,
+            fileSize: uploadResult.fileSize,
+          };
+
+          console.log('📨 Enviando mensaje de hilo:', messageData);
+          await onSendMessage(messageData);
+        }
+      } else {
+        // 2. Si solo es texto
+        const messageData = {
+          text: input,
+          threadId: message.id,
+          from: currentUsername,
+          to: message.isGroup
+            ? message.receiver
+            : (message.realSender === currentUsername ? message.receiver : message.realSender),
+          isGroup: message.isGroup,
+          roomCode: message.isGroup ? currentRoomCode : undefined,
+        };
+
+        await onSendMessage(messageData);
       }
 
-      // 🔥 CONFIAR EN EL BACKEND - NO agregar nada localmente
-      // El socket devolverá el mensaje con threadMessage
-
-      await onSendMessage(messageData);
+      // Limpiar estado
       setInput("");
-      cancelMediaUpload();
+      setMediaFiles([]);
+      setMediaPreviews([]);
+
+      // Resetear input de archivo
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+
     } catch (error) {
-      console.error("Error al enviar mensaje en hilo:", error);
+      console.error("Error al enviar respuesta en hilo:", error);
       alert("Error al enviar el mensaje. Inténtalo de nuevo.");
     } finally {
       setIsSending(false);
@@ -336,7 +425,89 @@ const ThreadPanel = ({
     }
   };
 
+  // 🔥 NUEVO: Handler para detectar menciones en el input
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setInput(value);
+
+    // Detectar @ en la posición del cursor
+    const cursorPos = e.target.selectionStart;
+    const textBeforeCursor = value.substring(0, cursorPos);
+    const atMatch = textBeforeCursor.match(/@(\w*)$/);
+
+    if (atMatch && roomUsers && roomUsers.length > 0) {
+      const searchTerm = atMatch[1].toLowerCase();
+      setMentionSearchTerm(searchTerm);
+
+      // Filtrar miembros basado en el término de búsqueda
+      const filtered = roomUsers.filter(user => {
+        const username = user.username || user.nombre || '';
+        return username.toLowerCase().includes(searchTerm) && username !== currentUsername;
+      });
+
+      setFilteredMembers(filtered);
+      setShowMentionSuggestions(filtered.length > 0);
+      setSelectedMentionIndex(0);
+    } else {
+      setShowMentionSuggestions(false);
+    }
+  };
+
+  // 🔥 NUEVO: Insertar mención seleccionada
+  const insertMention = (user) => {
+    const username = user.username || user.nombre || '';
+    const cursorPos = inputRef.current?.selectionStart || input.length;
+    const textBeforeCursor = input.substring(0, cursorPos);
+    const textAfterCursor = input.substring(cursorPos);
+
+    // Encontrar dónde comienza el @ actual
+    const atMatch = textBeforeCursor.match(/@(\w*)$/);
+    if (atMatch) {
+      const atPosition = textBeforeCursor.lastIndexOf('@');
+      const newText = input.substring(0, atPosition) + `@${username} ` + textAfterCursor;
+      setInput(newText);
+
+      // Mover cursor después de la mención
+      setTimeout(() => {
+        const newCursorPos = atPosition + username.length + 2; // +2 para @ y espacio
+        inputRef.current?.setSelectionRange(newCursorPos, newCursorPos);
+        inputRef.current?.focus();
+      }, 0);
+    }
+
+    setShowMentionSuggestions(false);
+  };
+
   const handleKeyDown = (e) => {
+    // 🔥 NUEVO: Navegación en dropdown de menciones
+    if (showMentionSuggestions) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedMentionIndex((prev) =>
+          prev < filteredMembers.length - 1 ? prev + 1 : prev
+        );
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedMentionIndex((prev) => prev > 0 ? prev - 1 : 0);
+        return;
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (filteredMembers[selectedMentionIndex]) {
+          insertMention(filteredMembers[selectedMentionIndex]);
+        }
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowMentionSuggestions(false);
+        return;
+      }
+    }
+
+    // Comportamiento normal de Enter
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -368,7 +539,21 @@ const ThreadPanel = ({
   if (!message) return null;
 
   return (
-    <div className="thread-panel-container">
+    <div
+      className={`thread-panel-container ${isDragging ? 'thread-panel-dragging' : ''}`}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {isDragging && (
+        <div className="thread-drag-overlay">
+          <div className="thread-drag-content">
+            <FaPaperclip size={50} />
+            <h3>Suelta los archivos aquí</h3>
+          </div>
+        </div>
+      )}
       <div className="thread-panel-header">
         <div className="thread-panel-title">
           <span>Hilo</span>
@@ -549,7 +734,8 @@ const ThreadPanel = ({
                     </div>
                   )}
                 </div>
-              ) : msg.mediaType && msg.mediaData ? (
+              ) : (msg.mediaType && msg.mediaData) || (msg.fileName && msg.mediaData) ? (
+                // 🔥 FALLBACK GENÉRICO MEJORADO: Si tiene mediaData, mostrar como archivo
                 <div className="thread-message-media">
                   <div
                     style={{
@@ -565,7 +751,7 @@ const ThreadPanel = ({
                   >
                     <span>📎</span>
                     <span style={{ fontSize: "13px" }}>
-                      {msg.fileName || "Archivo"}
+                      {msg.fileName || "Archivo adjunto"}
                     </span>
                   </div>
                   {msg.message && (
@@ -576,7 +762,48 @@ const ThreadPanel = ({
                 </div>
               ) : (
                 <div className="thread-message-text">
-                  {msg.message || msg.text}
+                  {msg.message || msg.text || (
+                    <span style={{ fontStyle: 'italic', color: '#888' }}>
+                      (Mensaje vacío o archivo no soportado)
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* 🔥 Read Receipts */}
+              {msg.from === currentUsername && msg.readBy && msg.readBy.length > 0 && (
+                <div className="thread-read-receipts">
+                  <div className="thread-read-avatars">
+                    {msg.readBy.slice(0, 3).map((reader, idx) => {
+                      const readerUser = roomUsers.find(u =>
+                        (u.username || u.nombre) === reader
+                      );
+                      const readerName = readerUser
+                        ? (readerUser.nombre && readerUser.apellido
+                          ? `${readerUser.nombre} ${readerUser.apellido}`
+                          : readerUser.username || reader)
+                        : reader;
+
+                      return (
+                        <div
+                          key={idx}
+                          className="thread-read-avatar"
+                          title={`Leído por ${readerName}`}
+                        >
+                          {readerUser?.picture ? (
+                            <img src={readerUser.picture} alt={readerName} />
+                          ) : (
+                            <div className="thread-read-avatar-placeholder">
+                              {readerName.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {msg.readBy.length > 3 && (
+                      <span className="thread-read-more">+{msg.readBy.length - 3}</span>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -659,6 +886,43 @@ const ThreadPanel = ({
           </div>
         )}
 
+        {/* 🔥 NUEVO: Dropdown de sugerencias de menciones */}
+        {showMentionSuggestions && filteredMembers.length > 0 && (
+          <div className="thread-mention-dropdown" ref={mentionDropdownRef}>
+            {filteredMembers.map((user, index) => {
+              const username = user.username || user.nombre || '';
+              const displayName = user.nombre && user.apellido
+                ? `${user.nombre} ${user.apellido}`
+                : username;
+
+              return (
+                <div
+                  key={index}
+                  className={`thread-mention-suggestion ${index === selectedMentionIndex ? 'selected' : ''}`}
+                  onClick={() => insertMention(user)}
+                  onMouseEnter={() => setSelectedMentionIndex(index)}
+                >
+                  <div className="mention-avatar">
+                    {user.picture ? (
+                      <img src={user.picture} alt={displayName} />
+                    ) : (
+                      <div className="mention-avatar-placeholder">
+                        {displayName.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div className="mention-info">
+                    <div className="mention-name">{displayName}</div>
+                    {user.role && (
+                      <div className="mention-role">{user.role}</div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         <div className="thread-input-wrapper">
           {/* Botón de adjuntar archivos */}
           <label
@@ -688,11 +952,12 @@ const ThreadPanel = ({
           </button>
 
           <textarea
+            ref={inputRef}
             className="thread-input"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            placeholder="Responder en hilo..."
+            placeholder="Escribe un mensaje"
             rows={1}
             disabled={isSending}
           />
