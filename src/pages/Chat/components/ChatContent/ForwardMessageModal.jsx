@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { FaTimes, FaSearch, FaShare } from 'react-icons/fa';
 import { Users, MessageSquare } from 'lucide-react';
 import apiService from '../../../../apiService';
@@ -12,11 +12,24 @@ const ForwardMessageModal = ({
     assignedConversations = [],
     user,
     socket,
-    onForward
+    onForward,
+    // 🔥 NUEVO: Props para paginación de grupos
+    roomsPage = 1,
+    roomsTotalPages = 1,
+    roomsLoading = false,
+    onLoadMoreRooms, // Función callback para cargar más grupos
+    // 🔥 NUEVO: Props para paginación de conversaciones
+    convsPage = 1,
+    convsTotalPages = 1,
+    convsLoading = false,
+    onLoadMoreConvs // Función callback para cargar más conversaciones
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedDestination, setSelectedDestination] = useState(null);
     const [isSending, setIsSending] = useState(false);
+
+    // 🔥 NUEVO: Ref para la lista scrolleable
+    const destinationsListRef = useRef(null);
 
     // Filtrar chats disponibles por búsqueda
     const filteredRooms = useMemo(() => {
@@ -36,6 +49,58 @@ const ForwardMessageModal = ({
             conv.participants?.some(p => p.toLowerCase().includes(search))
         );
     }, [assignedConversations, searchTerm]);
+
+    // 🔥 NUEVO: Handler para scroll infinito
+    const handleScroll = useCallback(() => {
+        if (!destinationsListRef.current || roomsLoading || !onLoadMoreRooms) return;
+
+        const { scrollTop, scrollHeight, clientHeight } = destinationsListRef.current;
+        // Si llegamos al final (con 50px de margen) y hay más páginas
+        if (scrollHeight - scrollTop - clientHeight < 50) {
+            if (roomsPage < roomsTotalPages) {
+                console.log('📜 Cargando más grupos...', { currentPage: roomsPage, totalPages: roomsTotalPages });
+                onLoadMoreRooms();
+            }
+        }
+    }, [roomsLoading, roomsPage, roomsTotalPages, onLoadMoreRooms]);
+
+    // 🔥 NUEVO: Agregar event listener al scroll
+    useEffect(() => {
+        const listElement = destinationsListRef.current;
+        if (listElement) {
+            listElement.addEventListener('scroll', handleScroll);
+            return () => listElement.removeEventListener('scroll', handleScroll);
+        }
+    }, [handleScroll]);
+
+    // 🔥 NUEVO: Handler para scroll infinito de conversaciones
+    const handleConvsScroll = useCallback(() => {
+        if (!destinationsListRef.current || convsLoading || !onLoadMoreConvs) return;
+
+        const { scrollTop, scrollHeight, clientHeight } = destinationsListRef.current;
+        // Si llegamos al final (con 50px de margen) y hay más páginas
+        if (scrollHeight - scrollTop - clientHeight < 50) {
+            if (convsPage < convsTotalPages) {
+                console.log('📧 Cargando más conversaciones...', { currentPage: convsPage, totalPages: convsTotalPages });
+                onLoadMoreConvs();
+            }
+        }
+    }, [convsLoading, convsPage, convsTotalPages, onLoadMoreConvs]);
+
+    // 🔥 NUEVO: Combinar ambos handlers en uno solo
+    const handleCombinedScroll = useCallback(() => {
+        handleScroll();      // Para grupos
+        handleConvsScroll(); // Para conversaciones
+    }, [handleScroll, handleConvsScroll]);
+
+    // 🔥 Actualizar event listener para usar handler combinado
+    useEffect(() => {
+        const listElement = destinationsListRef.current;
+        if (listElement) {
+            listElement.addEventListener('scroll', handleCombinedScroll);
+            return () => listElement.removeEventListener('scroll', handleCombinedScroll);
+        }
+    }, [handleCombinedScroll]);
 
     // Obtener preview del mensaje
     const getMessagePreview = () => {
@@ -140,7 +205,7 @@ const ForwardMessageModal = ({
                 </div>
 
                 {/* Lista de destinos */}
-                <div className="forward-destinations-list">
+                <div className="forward-destinations-list" ref={destinationsListRef}>
                     {/* Grupos */}
                     {filteredRooms.length > 0 && (
                         <div className="destination-section">
@@ -198,6 +263,13 @@ const ForwardMessageModal = ({
                                     </div>
                                 );
                             })}
+                        </div>
+                    )}
+
+                    {/* Indicador de carga para conversaciones */}
+                    {convsLoading && filteredConversations.length > 0 && (
+                        <div style={{ padding: '12px', textAlign: 'center', color: '#999', fontSize: '12px' }}>
+                            Cargando más conversaciones...
                         </div>
                     )}
 

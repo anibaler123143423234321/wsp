@@ -111,6 +111,8 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         videoCallUrl: msg.videoCallUrl || null,
         videoRoomID: msg.videoRoomID || null,
         metadata: msg.metadata || null,
+        // 🔥 NUEVO: Campo de reenvío
+        isForwarded: msg.isForwarded || false,
       }));
 
       // Los mensajes ya vienen en orden cronológico correcto del backend
@@ -182,7 +184,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
 
       // Convertir mensajes de BD al formato del frontend
       const formattedMessages = historicalMessages.map((msg) => ({
-        sender: msg.from === username ? "Tú" : msg.from,
+        sender: msg.from === username ? " Tú" : msg.from,
         realSender: msg.from, // 🔥 Nombre real del remitente (sin convertir a "Tú")
         senderRole: msg.senderRole || null, // 🔥 Incluir role del remitente
         senderNumeroAgente: msg.senderNumeroAgente || null, // 🔥 Incluir numeroAgente del remitente
@@ -228,6 +230,8 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         videoCallUrl: msg.videoCallUrl || null,
         videoRoomID: msg.videoRoomID || null,
         metadata: msg.metadata || null,
+        // 🔥 NUEVO: Campo de reenvío
+        isForwarded: msg.isForwarded || false,
       }));
 
       // Agregar mensajes más antiguos al inicio (estilo WhatsApp)

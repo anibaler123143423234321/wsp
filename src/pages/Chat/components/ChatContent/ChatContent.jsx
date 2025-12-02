@@ -26,6 +26,7 @@ import CopyOptions from "./CopyOptions/CopyOptions";
 import MessageSelectionManager from "./MessageSelectionManager/MessageSelectionManager";
 import ForwardMessageModal from "./ForwardMessageModal"; // 🔥 NUEVO: Modal de reenvío
 import PDFViewer from '../../../../components/PDFViewer/PDFViewer'; // Importar el visor de PDF
+import apiService from '../../../../apiService'; // 🔥 NUEVO: Para cargar datos de paginación
 
 import "./ChatContent.css";
 
@@ -218,6 +219,16 @@ const ChatContent = ({
   const [showPdfViewer, setShowPdfViewer] = useState(false);
   const [pdfData, setPdfData] = useState(null); // Cambiar a pdfData (ArrayBuffer)
 
+  // 🔥 PAGINACIÓN - Modal de reenvío
+  const [forwardRoomsPage, setForwardRoomsPage] = useState(1);
+  const [forwardRoomsTotalPages, setForwardRoomsTotalPages] = useState(1);
+  const [forwardRoomsLoading, setForwardRoomsLoading] = useState(false);
+  const [forwardConvsPage, setForwardConvsPage] = useState(1);
+  const [forwardConvsTotalPages, setForwardConvsTotalPages] = useState(1);
+  const [forwardConvsLoading, setForwardConvsLoading] = useState(false);
+  const [extendedRooms, setExtendedRooms] = useState([]);
+  const [extendedConvs, setExtendedConvs] = useState([]);
+
   // ============================================================
   // HANDLERS - Selección múltiple de mensajes
   // ============================================================
@@ -246,16 +257,118 @@ const ChatContent = ({
   };
 
   // 🔥 NUEVO HANDLER - Abrir modal de reenvío
-  const handleOpenForwardModal = (message) => {
+  const handleOpenForwardModal = async (message) => {
     setMessageToForward(message);
     setShowForwardModal(true);
     setShowMessageMenu(null);
+
+    // Inicializar listas extendidas con los datos actuales
+    setExtendedRooms(myActiveRooms);
+    setExtendedConvs(assignedConversations);
+    setForwardRoomsPage(1);
+    setForwardConvsPage(1);
+
+    // 🔥 NUEVO: Obtener totales reales del backend
+    try {
+      const isPrivileged = user?.role === 'ADMIN' || user?.role === 'JEFEPISO' ||
+        user?.role === 'PROGRAMADOR' || user?.role === 'SUPERADMIN';
+
+      // Obtener total de grupos
+      if (isPrivileged) {
+        const roomsResult = await apiService.getAdminRooms(1, 50, '');
+        setForwardRoomsTotalPages(roomsResult.totalPages || 1);
+        console.log('📊 Total páginas de grupos:', roomsResult.totalPages);
+      } else {
+        const roomsResult = await apiService.getUserRoomsPaginated(1, 50);
+        setForwardRoomsTotalPages(roomsResult.totalPages || 1);
+        console.log('📊 Total páginas de grupos:', roomsResult.totalPages);
+      }
+
+      // Obtener total de conversaciones
+      const convsResult = await apiService.getAssignedConversationsPaginated(1, 50);
+      setForwardConvsTotalPages(convsResult.totalPages || 1);
+      console.log('📊 Total páginas de conversaciones:', convsResult.totalPages);
+    } catch (error) {
+      console.error('Error al obtener totales de paginación:', error);
+    }
   };
 
   // 🔥 NUEVO HANDLER - Cerrar modal de reenvío
   const handleCloseForwardModal = () => {
     setShowForwardModal(false);
     setMessageToForward(null);
+    // Limpiar estados de paginación
+    setExtendedRooms([]);
+    setExtendedConvs([]);
+    setForwardRoomsPage(1);
+    setForwardConvsPage(1);
+  };
+
+  // 🔥 NUEVO - Cargar más grupos para modal de reenvío
+  const handleLoadMoreForwardRooms = async () => {
+    if (forwardRoomsLoading || forwardRoomsPage >= forwardRoomsTotalPages) return;
+
+    setForwardRoomsLoading(true);
+    try {
+      const nextPage = forwardRoomsPage + 1;
+      const isPrivileged = user?.role === 'ADMIN' || user?.role === 'JEFEPISO' ||
+        user?.role === 'PROGRAMADOR' || user?.role === 'SUPERADMIN';
+
+      let result;
+      if (isPrivileged) {
+        result = await apiService.getAdminRooms(nextPage, 10, '');
+        const activeRooms = result.data ? result.data.filter(room => room.isActive) : [];
+
+        // Agregar nuevos grupos evitando duplicados
+        setExtendedRooms(prev => {
+          const existingCodes = new Set(prev.map(r => r.roomCode));
+          const newRooms = activeRooms.filter(r => !existingCodes.has(r.roomCode));
+          return [...prev, ...newRooms];
+        });
+
+        setForwardRoomsTotalPages(result.totalPages || 1);
+      } else {
+        result = await apiService.getUserRoomsPaginated(nextPage, 10);
+
+        setExtendedRooms(prev => {
+          const existingCodes = new Set(prev.map(r => r.roomCode));
+          const newRooms = (result.rooms || []).filter(r => !existingCodes.has(r.roomCode));
+          return [...prev, ...newRooms];
+        });
+
+        setForwardRoomsTotalPages(result.totalPages || 1);
+      }
+
+      setForwardRoomsPage(nextPage);
+    } catch (error) {
+      console.error('Error al cargar más grupos:', error);
+    } finally {
+      setForwardRoomsLoading(false);
+    }
+  };
+
+  // 🔥 NUEVO - Cargar más conversaciones asignadas para modal de reenvío  
+  const handleLoadMoreForwardConvs = async () => {
+    if (forwardConvsLoading || forwardConvsPage >= forwardConvsTotalPages) return;
+
+    setForwardConvsLoading(true);
+    try {
+      const nextPage = forwardConvsPage + 1;
+      const result = await apiService.getAssignedConversationsPaginated(nextPage, 10);
+
+      setExtendedConvs(prev => {
+        const existingIds = new Set(prev.map(c => c.id));
+        const newConvs = (result.conversations || []).filter(c => !existingIds.has(c.id));
+        return [...prev, ...newConvs];
+      });
+
+      setForwardConvsTotalPages(result.totalPages || 1);
+      setForwardConvsPage(nextPage);
+    } catch (error) {
+      console.error('Error al cargar más conversaciones:', error);
+    } finally {
+      setForwardConvsLoading(false);
+    }
   };
 
   // ============================================================
@@ -1413,6 +1526,43 @@ const ChatContent = ({
               <span className="mx_RedactedBody">Mensaje eliminado</span>
             ) : (
               <>
+                {/* DEBUG: Verificar isForwarded */}
+                {/* {console.log('🔍 Message:', message.id, 'isForwarded:', message.isForwarded, 'Type:', typeof message.isForwarded)} */}
+
+                {/* INDICADOR DE MENSAJE REENVIADO */}
+                {message.isForwarded && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      marginBottom: '4px',
+                      fontSize: '11px',
+                      color: '#54656f',
+                      fontStyle: 'italic',
+                      fontWeight: '500',
+                    }}
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{ flexShrink: 0 }}
+                    >
+                      <polyline points="17 1 21 5 17 9" />
+                      <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                      <polyline points="7 23 3 19 7 15" />
+                      <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                    </svg>
+                    <span>Reenviado</span>
+                  </div>
+                )}
+
                 {/* PREVIEW DE RESPUESTA */}
                 {/* PREVIEW DE RESPUESTA ESTILO WHATSAPP */}
                 {message.replyToMessageId && (
@@ -3068,10 +3218,20 @@ const ChatContent = ({
         isOpen={showForwardModal}
         onClose={handleCloseForwardModal}
         message={messageToForward}
-        myActiveRooms={myActiveRooms}
-        assignedConversations={assignedConversations}
+        myActiveRooms={extendedRooms.length > 0 ? extendedRooms : myActiveRooms}
+        assignedConversations={extendedConvs.length > 0 ? extendedConvs : assignedConversations}
         user={user}
         socket={socket}
+        // 🔥 Props de paginación para grupos
+        roomsPage={forwardRoomsPage}
+        roomsTotalPages={forwardRoomsTotalPages}
+        roomsLoading={forwardRoomsLoading}
+        onLoadMoreRooms={handleLoadMoreForwardRooms}
+        // 🔥 Props de paginación para conversaciones
+        convsPage={forwardConvsPage}
+        convsTotalPages={forwardConvsTotalPages}
+        convsLoading={forwardConvsLoading}
+        onLoadMoreConvs={handleLoadMoreForwardConvs}
       />
       {/* VISOR DE PDF */}
       {showPdfViewer && pdfData && (

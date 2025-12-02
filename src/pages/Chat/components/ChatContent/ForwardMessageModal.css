@@ -18,6 +18,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -25,13 +26,13 @@
 
 .forward-modal-content {
   background: white;
-  border-radius: 12px;
+  border-radius: 10px;
   width: 90%;
-  max-width: 500px;
-  max-height: 80vh;
+  max-width: 450px;
+  max-height: 75vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
   animation: slideUp 0.3s ease-out;
 }
 
@@ -40,6 +41,7 @@
     transform: translateY(20px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -50,24 +52,24 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px;
+  padding: 12px 16px;
   border-bottom: 1px solid #eee;
 }
 
 .forward-modal-title {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .forward-icon {
   color: #ff453a;
-  font-size: 20px;
+  font-size: 16px;
 }
 
 .forward-modal-title h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 600;
   color: #1a1a1a;
 }
@@ -76,13 +78,14 @@
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px;
+  padding: 6px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #666;
   transition: all 0.2s;
+  font-size: 14px;
 }
 
 .forward-modal-close:hover {
@@ -92,40 +95,40 @@
 
 /* Message Preview */
 .forward-message-preview {
-  padding: 16px 20px;
+  padding: 10px 16px;
   background-color: #f8f9fa;
   border-bottom: 1px solid #eee;
 }
 
 .preview-label {
-  font-size: 12px;
+  font-size: 11px;
   color: #666;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   font-weight: 500;
 }
 
 .preview-content {
-  font-size: 14px;
+  font-size: 13px;
   color: #333;
-  padding: 8px 12px;
+  padding: 6px 10px;
   background: white;
-  border-radius: 8px;
+  border-radius: 6px;
   border-left: 3px solid #ff453a;
 }
 
 /* Search Container */
 .forward-search-container {
-  padding: 16px 20px;
+  padding: 10px 16px;
   position: relative;
   border-bottom: 1px solid #eee;
 }
 
 .forward-search-input {
   width: 100%;
-  padding: 10px 12px 10px 40px;
+  padding: 8px 10px 8px 32px;
   border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 6px;
+  font-size: 13px;
   font-family: 'Inter', sans-serif;
   transition: all 0.2s;
 }
@@ -138,30 +141,30 @@
 
 .forward-search-container .search-icon {
   position: absolute;
-  left: 32px;
+  left: 26px;
   top: 50%;
   transform: translateY(-50%);
   color: #999;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 /* Destinations List */
 .forward-destinations-list {
   flex: 1;
   overflow-y: auto;
-  padding: 12px 0;
+  padding: 8px 0;
 }
 
 .destination-section {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .section-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 20px;
-  font-size: 12px;
+  gap: 6px;
+  padding: 6px 16px;
+  font-size: 10px;
   font-weight: 600;
   color: #666;
   text-transform: uppercase;
@@ -171,8 +174,8 @@
 .destination-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
+  gap: 10px;
+  padding: 8px 16px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -192,14 +195,14 @@
 
 .group-avatar,
 .user-avatar {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: 18px;
+  font-size: 14px;
   color: white;
 }
 
@@ -209,7 +212,7 @@
 
 .user-avatar {
   background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-  font-size: 16px;
+  font-size: 13px;
 }
 
 .destination-info {
@@ -218,41 +221,41 @@
 }
 
 .destination-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #333;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .destination-details {
-  font-size: 12px;
+  font-size: 11px;
   color: #999;
 }
 
 .no-results {
-  padding: 40px 20px;
+  padding: 30px 16px;
   text-align: center;
   color: #999;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 /* Footer */
 .forward-modal-footer {
   display: flex;
-  gap: 12px;
-  padding: 16px 20px;
+  gap: 10px;
+  padding: 12px 16px;
   border-top: 1px solid #eee;
 }
 
 .forward-btn-cancel,
 .forward-btn-send {
   flex: 1;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
