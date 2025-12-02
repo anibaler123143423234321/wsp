@@ -683,7 +683,11 @@ const ChatContent = ({
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      onSendMessage();
+      if (editingMessageId) {
+        handleSaveEdit();
+      } else {
+        onSendMessage();
+      }
     }
   };
 
@@ -2725,6 +2729,65 @@ const ChatContent = ({
           </div>
         )}
 
+        {/* 🔥 NUEVO: Banner de edición de mensaje */}
+        {editingMessageId && (
+          <div
+            style={{
+              backgroundColor: "#fff3cd",
+              borderLeft: "3px solid #ffc107",
+              padding: "8px 12px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "8px",
+            }}
+          >
+            <div style={{ flex: 1 }}>
+              <div
+                style={{
+                  color: "#856404",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  marginBottom: "2px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <FaEdit size={12} />
+                Editando mensaje
+              </div>
+              <div
+                style={{
+                  color: "#6c757d",
+                  fontSize: "13px",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {editText || "Mensaje original"}
+              </div>
+            </div>
+            <button
+              onClick={handleCancelEdit}
+              style={{
+                backgroundColor: "transparent",
+                border: "none",
+                color: "#856404",
+                cursor: "pointer",
+                fontSize: "18px",
+                padding: "4px 8px",
+                display: "flex",
+                alignItems: "center",
+              }}
+              title="Cancelar edición"
+            >
+              <FaTimes />
+            </button>
+          </div>
+        )}
+
         <div className={`input-group ${isRecordingLocal ? "recording-mode" : ""}`}>
 
           {/* 1. BOTÓN ADJUNTAR */}
@@ -2836,14 +2899,22 @@ const ChatContent = ({
 
             <textarea
               ref={inputRef}
-              value={input}
-              onChange={handleInputChange}
+              value={editingMessageId ? editText : input}
+              onChange={(e) => {
+                if (editingMessageId) {
+                  setEditText(e.target.value);
+                } else {
+                  handleInputChange(e);
+                }
+              }}
               onKeyDown={handleKeyPress}
               placeholder={
                 isUploadingFile
                   ? "Subiendo archivo..."
                   : canSendMessages
-                    ? "Escribe un mensaje"
+                    ? editingMessageId
+                      ? "Edita tu mensaje..."
+                      : "Escribe un mensaje"
                     : "Solo puedes monitorear esta conversación"
               }
               className="message-input"
@@ -2898,27 +2969,40 @@ const ChatContent = ({
             )}
           </div>
 
-          {/* 5. BOTÓN ENVIAR (COMPLETO) */}
+          {/* 5. BOTÓN ENVIAR/GUARDAR (COMPLETO) */}
           <button
-            onClick={onSendMessage}
+            onClick={editingMessageId ? handleSaveEdit : onSendMessage}
             className="btn-send"
             disabled={
-              (!input.trim() && mediaFiles.length === 0) ||
-              !canSendMessages ||
-              isUploadingFile ||
-              isSending
+              editingMessageId
+                ? !editText.trim() || isEditingLoading
+                : ((!input.trim() && mediaFiles.length === 0) ||
+                  !canSendMessages ||
+                  isUploadingFile ||
+                  isSending)
             }
             title={
-              isSending
-                ? "Enviando..."
-                : isUploadingFile
-                  ? "Subiendo archivo..."
-                  : !canSendMessages
-                    ? "Solo lectura"
-                    : "Enviar mensaje"
+              editingMessageId
+                ? isEditingLoading
+                  ? "Guardando..."
+                  : "Guardar cambios"
+                : isSending
+                  ? "Enviando..."
+                  : isUploadingFile
+                    ? "Subiendo archivo..."
+                    : !canSendMessages
+                      ? "Solo lectura"
+                      : "Enviar mensaje"
             }
           >
-            {isUploadingFile || isSending ? (
+            {editingMessageId ? (
+              <>
+                <span className="send-text">
+                  {isEditingLoading ? "Guardando..." : "Guardar cambios"}
+                </span>
+                <FaEdit className="send-icon" />
+              </>
+            ) : isUploadingFile || isSending ? (
               <>
                 <span className="send-text">{isUploadingFile ? "Subiendo..." : "Enviando..."}</span>
                 <div className="send-icon" style={{ animation: "pulse 1s infinite", opacity: 0.7 }}>

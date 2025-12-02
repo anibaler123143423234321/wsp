@@ -828,9 +828,9 @@ const ChatPage = () => {
           mediaData,
           fileName,
           fileSize,
-          to,
-          isGroup,
-          roomCode: currentRoomCode,
+          to: chatState.to,
+          isGroup: chatState.isGroup,
+          roomCode: chatState.currentRoomCode,
         });
       }
 
@@ -882,9 +882,9 @@ const ChatPage = () => {
         socket.emit("deleteMessage", {
           messageId,
           username,
-          to,
-          isGroup,
-          roomCode: currentRoomCode,
+          to: chatState.to,
+          isGroup: chatState.isGroup,
+          roomCode: chatState.currentRoomCode,
           isAdmin,
           deletedBy: currentUserFullName,
         });

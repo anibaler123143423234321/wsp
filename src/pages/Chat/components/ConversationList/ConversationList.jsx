@@ -39,10 +39,10 @@ const TabButton = ({ isActive, onClick, label, icon: Icon, notificationCount }) 
       style={{
         fontFamily: 'Inter, sans-serif',
         fontSize: '13px',
-        borderRadius: '10px',
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-        height: '40px',
-        padding: '8px 12px',
+        borderRadius: '12px',
+        boxShadow: isActive ? '0 4px 8px rgba(220, 38, 38, 0.25)' : '0 2px 6px rgba(0, 0, 0, 0.08)',
+        height: '42px',
+        padding: '8px 16px',
         gap: '8px',
         minWidth: 'fit-content'
       }}
@@ -473,7 +473,7 @@ const ConversationList = ({
 
       {/* --- RENDERIZADO DE LAS PESTAÑAS (TABS) --- */}
       {!isCompact && tabs.length > 1 && (
-        <div className="flex items-center gap-2 p-3 pb-0 overflow-x-auto mx_AutoHideScrollbar">
+        <div className="tabs-container flex items-center justify-center gap-3 px-4 py-3 overflow-x-auto mx_AutoHideScrollbar max-[768px]:px-3 max-[768px]:gap-2">
           {tabs.map((tab) => (
             <TabButton
               key={tab.id}
@@ -486,7 +486,7 @@ const ConversationList = ({
           ))}
         </div>
       )}
-      {!isCompact && <div className="border-b border-gray-200 mb-2 mt-2"></div>}
+      {!isCompact && <div className="border-b border-gray-200 mx-4"></div>}
 
       {/* =========================================================================
          MÓDULO: CHATS / CONVERSACIONES (Grupos + Asignados + Usuarios)

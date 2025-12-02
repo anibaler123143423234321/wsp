@@ -28,6 +28,22 @@
   }
 }
 
+/* Contenedor de tabs mejorado */
+.tabs-container {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  margin-bottom: 0.1rem;
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+}
+
+@media (max-width: 768px) {
+  .tabs-container {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+}
+
+
 .tab-button:hover::before {
   opacity: 1;
 }
