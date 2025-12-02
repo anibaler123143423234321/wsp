@@ -552,7 +552,7 @@
 .conversation-timestamp {
   font-size: 10px;
   line-height: 13px;
-  font-family: "Inter, sans-serif";
+
   font-weight: 400;
   color: #9ca3af !important;
   flex-shrink: 0 !important;
@@ -677,7 +677,7 @@
   padding: 8px 16px;
   cursor: pointer;
   user-select: none;
-  font-family: 'Inter', sans-serif;
+
   font-size: 11px;
   font-weight: 700;
   color: #6b7280;

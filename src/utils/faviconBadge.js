@@ -81,8 +81,8 @@ class FaviconBadge {
         if (count > 0) {
             const displayCount = count > 99 ? '99+' : count.toString();
 
-            // 🔥 Badge MÁS GRANDE con números más visibles
-            const badgeRadius = displayCount.length === 1 ? 24 : (displayCount.length === 2 ? 26 : 28);
+            // 🔥 Badge ajustado: Número GRANDE en círculo pequeño
+            const badgeRadius = displayCount.length === 1 ? 20 : (displayCount.length === 2 ? 22 : 22);
             const x = 64 - badgeRadius - 2; // Posición X (esquina derecha)
             const y = 64 - badgeRadius - 2; // Posición Y (esquina INFERIOR derecha)
 
@@ -97,13 +97,15 @@ class FaviconBadge {
             this.ctx.lineWidth = 3;
             this.ctx.stroke();
 
-            // Dibujar número con fuente MÁS GRANDE
+            // Dibujar número con fuente MUY GRANDE
             this.ctx.fillStyle = '#ffffff';
-            const fontSize = displayCount.length === 1 ? 22 : (displayCount.length === 2 ? 22 : 22);
+            // Aumentamos significativamente el tamaño de fuente para que llene el círculo
+            const fontSize = displayCount.length === 1 ? 34 : (displayCount.length === 2 ? 28 : 24);
             this.ctx.font = `bold ${fontSize}px Arial`;
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
-            this.ctx.fillText(displayCount, x, y);
+            // Ajuste vertical para centrar visualmente la fuente grande
+            this.ctx.fillText(displayCount, x, y + 3);
         }
 
         // Actualizar el favicon

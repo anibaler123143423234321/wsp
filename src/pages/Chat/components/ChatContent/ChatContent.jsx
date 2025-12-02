@@ -25,6 +25,7 @@ import PollMessage from "../PollMessage/PollMessage";
 import CopyOptions from "./CopyOptions/CopyOptions";
 import MessageSelectionManager from "./MessageSelectionManager/MessageSelectionManager";
 import ForwardMessageModal from "./ForwardMessageModal"; // 🔥 NUEVO: Modal de reenvío
+import PDFViewer from '../../../../components/PDFViewer/PDFViewer'; // Importar el visor de PDF
 
 import "./ChatContent.css";
 
@@ -214,6 +215,8 @@ const ChatContent = ({
   // 🔥 NUEVOS ESTADOS - Modal de reenvío
   const [showForwardModal, setShowForwardModal] = useState(false);
   const [messageToForward, setMessageToForward] = useState(null);
+  const [showPdfViewer, setShowPdfViewer] = useState(false);
+  const [pdfData, setPdfData] = useState(null); // Cambiar a pdfData (ArrayBuffer)
 
   // ============================================================
   // HANDLERS - Selección múltiple de mensajes
@@ -1499,13 +1502,40 @@ const ChatContent = ({
                   <AudioPlayer src={message.mediaData} fileName={message.fileName} />
                 ) : message.mediaType && message.mediaData ? (
                   // ARCHIVOS GENÉRICOS
-                  <div className="wa-file-card" onClick={() => handleDownload(message.mediaData, message.fileName)}>
-                    <div className="wa-file-icon">{renderFileIcon(message.fileName)}</div>
-                    <div className="wa-file-info">
-                      <div className="wa-file-name">{message.fileName}</div>
-                      <div className="wa-file-meta">Click para descargar</div>
-                    </div>
-                  </div>
+                  (() => {
+                    const isPdf = message.fileName?.toLowerCase().endsWith('.pdf') || message.mediaData?.toLowerCase().includes('application/pdf');
+
+                    return (
+                      <div className="wa-file-card" onClick={() => {
+                        if (isPdf) {
+                          // Descargar PDF y convertir a ArrayBuffer
+                          console.log("📥 Descargando PDF:", message.mediaData);
+                          fetch(message.mediaData)
+                            .then(res => {
+                              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                              return res.arrayBuffer();
+                            })
+                            .then(arrayBuffer => {
+                              console.log("✅ PDF descargado, tamaño:", arrayBuffer.byteLength);
+                              setPdfData(arrayBuffer);
+                              setShowPdfViewer(true);
+                            })
+                            .catch(err => {
+                              console.error("❌ Error descargando PDF:", err);
+                              alert("Error al cargar el PDF");
+                            });
+                        } else {
+                          handleDownload(message.mediaData, message.fileName);
+                        }
+                      }}>
+                        <div className="wa-file-icon">{renderFileIcon(message.fileName)}</div>
+                        <div className="wa-file-info">
+                          <div className="wa-file-name">{message.fileName}</div>
+                          <div className="wa-file-meta">{isPdf ? 'Click para ver PDF' : 'Click para descargar'}</div>
+                        </div>
+                      </div>
+                    );
+                  })()
                 ) : (
                   // TEXTO PLANO
                   renderTextWithMentions(message.text || message.message || "")
@@ -3033,6 +3063,16 @@ const ChatContent = ({
         user={user}
         socket={socket}
       />
+      {/* VISOR DE PDF */}
+      {showPdfViewer && pdfData && (
+        <PDFViewer
+          pdfData={pdfData}
+          onClose={() => {
+            setShowPdfViewer(false);
+            setPdfData(null);
+          }}
+        />
+      )}
     </div>
   );
 };
