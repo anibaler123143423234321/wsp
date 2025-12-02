@@ -1,3 +1,4 @@
+import { useState, useRef, useCallback, useEffect } from 'react';
 import LeftSidebar from '../LeftSidebar/LeftSidebar';
 import ConversationList from '../ConversationList/ConversationList';
 import './Sidebar.css';
@@ -53,19 +54,64 @@ const Sidebar = ({
   onRoomsLimitChange,
   onGoToRoomsPage
 }) => {
+
+  // Estado y refs para el redimensionamiento
+  const [sidebarWidth, setSidebarWidth] = useState(sidebarCollapsed ? 450 : 580);
+
+  // Forzar ancho fijo en modo compacto
+  useEffect(() => {
+    if (sidebarWidth <= 300 && sidebarWidth !== 130) {
+      setSidebarWidth(130); // LeftSidebar (50px) + ConversationList (80px)
+    }
+  }, [sidebarWidth]);
+
+  const isResizing = useRef(false);
+  const startX = useRef(0);
+  const startWidth = useRef(0);
+
+  // Iniciar el redimensionamiento
+  const startResizing = useCallback((e) => {
+    e.preventDefault();
+    isResizing.current = true;
+    startX.current = e.clientX;
+    startWidth.current = sidebarWidth;
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', stopResizing);
+  }, [sidebarWidth]);
+
+  // Manejar el movimiento del mouse
+  const handleMouseMove = useCallback((e) => {
+    if (!isResizing.current) return;
+    const deltaX = e.clientX - startX.current;
+    const newWidth = startWidth.current + deltaX;
+    // Aplicar límites: mínimo 340px, máximo 800px
+    if (newWidth >= 200 && newWidth <= 800) {
+      setSidebarWidth(newWidth);
+    }
+  }, []);
+
+  // Detener el redimensionamiento
+  const stopResizing = useCallback(() => {
+    isResizing.current = false;
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', stopResizing);
+  }, [handleMouseMove]);
+
   return (
     <>
       {/* Contenedor Principal (Desktop & Mobile Container) */}
       <div
-        className={`flex flex-row h-screen overflow-hidden bg-white sidebar-responsive-container ${sidebarCollapsed ? 'collapsed' : ''} ${
-          // En móvil, si hay chat seleccionado ('to' existe), ocultamos todo el sidebar container
-          to ? 'max-[768px]:hidden' : 'max-[768px]:w-full max-[768px]:flex'
+        className={`flex flex-row h-screen overflow-hidden bg-white sidebar-responsive-container ${sidebarCollapsed ? 'collapsed' : ''} ${sidebarWidth <= 300 ? 'compact-mode' : ''} ${to ? 'max-[768px]:hidden' : 'max-[768px]:w-full max-[768px]:flex'
           }`}
         style={{
+          width: `${sidebarWidth}px`,  /* <- Volver a usar sidebarWidth siempre */
+          minWidth: '130px',  /* <- Mínimo absoluto */
+          maxWidth: '800px',
+          position: 'relative',
+          transition: 'none',
           borderRight: '1.3px solid #EEEEEE'
         }}
       >
-
         {/* Sidebar izquierdo - Menú azul (Visible en Desktop, Oculto en Mobile) */}
         <div className="max-[768px]:hidden h-full">
           <LeftSidebar
@@ -85,8 +131,7 @@ const Sidebar = ({
         </div>
 
         {/* Lista de conversaciones - (Visible siempre que el contenedor padre lo esté) */}
-        {/* 🔥 AL TENER SOLO UNA INSTANCIA AQUÍ, ELIMINAMOS LAS LLAMADAS DUPLICADAS */}
-        <div className="flex-1 h-full min-w-0">
+        <div className={`h-full min-w-0 ${sidebarWidth <= 300 ? '' : 'flex-1'}`}>
           <ConversationList
             user={user}
             userList={userList}
@@ -121,8 +166,15 @@ const Sidebar = ({
             roomsLimit={roomsLimit}
             onRoomsLimitChange={onRoomsLimitChange}
             onGoToRoomsPage={onGoToRoomsPage}
+            isCompact={sidebarWidth <= 300}
           />
         </div>
+
+        {/* Barra de redimensionamiento */}
+        <div
+          className="sidebar-resize-handle max-[768px]:hidden"
+          onMouseDown={startResizing}
+        />
       </div>
 
       {/* LeftSidebar overlay para mobile (Solo visible cuando se abre el menú en mobile) */}

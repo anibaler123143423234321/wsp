@@ -42,3 +42,37 @@
 
 /* 🔥 ELIMINADO EL BLOQUE QUE OCULTABA TODO EN MOBILE */
 /* En mobile, el ancho se controla mediante clases de Tailwind (w-full) en Sidebar.jsx */
+/* Barra de redimensionamiento */
+.sidebar-resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 4px;
+  height: 100%;
+  cursor: col-resize;
+  background-color: transparent;
+  transition: background-color 0.2s ease;
+  z-index: 10;
+}
+
+.sidebar-resize-handle:hover {
+  background-color: rgba(239, 68, 68, 0.3);
+}
+
+.sidebar-resize-handle:active {
+  background-color: rgba(239, 68, 68, 0.5);
+}
+
+/* Ocultar en mobile */
+@media (max-width: 768px) {
+  .sidebar-resize-handle {
+    display: none;
+  }
+}
+
+/* Modo compacto: Forzar anchos pequeños y sobrescribir media queries */
+.sidebar-responsive-container.compact-mode {
+  width: 130px !important;
+  min-width: 130px !important;
+  max-width: 130px !important;
+}

@@ -690,3 +690,76 @@
   color: #374151;
   background-color: #f9fafb;
 }
+
+/* Modo compacto - versión agresiva */
+@media (min-width: 769px) {
+
+  /* Contenedor principal sin overflow */
+  .compact-mode {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Forzar que TODO respete el ancho máximo */
+  .compact-mode *,
+  .compact-mode *::before,
+  .compact-mode *::after {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* FORZAR layout vertical en TODO */
+  .compact-mode .mx_RoomSublist_content,
+  .compact-mode .mx_RoomSublist_content>div,
+  .compact-mode .mx_RoomSublist_content>div>* {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    /* <- De center a flex-start */
+    width: 100% !important;
+  }
+
+  /* Pero los items individuales sí se centran en su espacio */
+  .compact-mode .mx_RoomSublist_content>div {
+    justify-content: center !important;
+  }
+
+  /* Solo el contenedor directo del avatar puede ser auto */
+  .compact-mode .mx_RoomSublist_content>div>div {
+    width: auto !important;
+    max-width: 60px !important;
+    padding: 6px !important;
+    min-height: auto !important;
+  }
+
+  /* Ocultar todo excepto el primer hijo (avatar) */
+  .compact-mode .mx_RoomSublist_content>div>div>div:not(:first-child) {
+    display: none !important;
+  }
+
+  /* Headers centrados */
+  .compact-mode .mx_RoomSublist_header {
+    justify-content: center !important;
+    padding: 6px !important;
+  }
+
+  .compact-mode .mx_RoomSublist_header>div:first-child {
+    display: none !important;
+  }
+
+  /* Input sin placeholder */
+  .compact-mode input::placeholder {
+    opacity: 0 !important;
+  }
+
+  /* Tabs sin texto */
+  .compact-mode .tabs-container button>span:not([class*="absolute"]) {
+    display: none !important;
+  }
+
+  /* Ocultar "Ordenar por" */
+  .compact-mode>div>div:nth-child(2)>div:last-child {
+    display: none !important;
+  }
+}
