@@ -79,7 +79,8 @@ export const useRoomManagement = (
                     setRoomsTotal(totalRooms);
                     setRoomsTotalPages(totalPages);
 
-                    if (append && page > 1) {
+                    // Si append=true, SIEMPRE hacer append (no importa la página)
+                    if (append) {
                         setMyActiveRooms((prev) => {
                             const existingCodes = new Set(prev.map((room) => room.roomCode));
                             const newRooms = activeRooms.filter(
@@ -106,7 +107,8 @@ export const useRoomManagement = (
                     setRoomsTotal(totalRooms);
                     setRoomsTotalPages(totalPages);
 
-                    if (append && page > 1) {
+                    // Si append=true, SIEMPRE hacer append (no importa la página)
+                    if (append) {
                         setMyActiveRooms((prev) => {
                             const existingCodes = new Set(prev.map((room) => room.roomCode));
                             const newRooms = (result.rooms || []).filter(
@@ -117,6 +119,16 @@ export const useRoomManagement = (
                     } else {
                         setMyActiveRooms(result.rooms || []);
                     }
+                }
+
+                // Actualizar contadores después de cargar/agregar salas
+                try {
+                    const counts = await apiService.getUnreadCounts();
+                    if (counts) {
+                        setUnreadMessages(counts);
+                    }
+                } catch (countError) {
+                    console.warn('⚠️ No se pudieron actualizar contadores:', countError);
                 }
             } catch (error) {
                 console.error('❌ Error al cargar salas activas:', error);

@@ -647,6 +647,12 @@
   /* 🔥 Preservar saltos de línea */
   word-wrap: break-word;
   /* 🔥 Evitar desbordamiento */
+  word-break: break-word;
+  /* 🔥 Romper palabras largas (URLs) */
+  overflow-wrap: break-word;
+  /* 🔥 Para navegadores modernos */
+  max-width: 100%;
+  /* 🔥 No exceder el contenedor */
 }
 
 .read-by-avatars-container,
@@ -660,6 +666,7 @@
   position: absolute;
 
   top: -28px !important;
+
   right: 12px !important;
   /* Flota un poco sobre el borde superior */
   background-color: #ffffff;
