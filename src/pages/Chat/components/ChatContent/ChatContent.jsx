@@ -521,11 +521,21 @@ const ChatContent = ({
 
     // Emitir evento "typing" si hay un destinatario y socket conectado
     if (socket && socket.connected && to && currentUsername) {
+      // Buscar conversationId si es un chat asignado
+      let conversationId = null;
+      if (!isGroup && assignedConversations) {
+        const conv = assignedConversations.find(c =>
+          c.participants?.some(p => p?.toLowerCase().trim() === to?.toLowerCase().trim())
+        );
+        if (conv) conversationId = conv.id;
+      }
+
       // Si es una sala, incluir roomCode en el evento
       const typingData = {
         from: currentUsername,
         to: to,
         isTyping: true,
+        conversationId: conversationId // 🔥 Enviar ID para filtrado preciso
       };
 
       if (isGroup && currentRoomCode) {
@@ -2078,7 +2088,7 @@ const ChatContent = ({
                           borderRadius: "50%",
                           background: typingUser?.picture
                             ? `url(${typingUser.picture}) center/cover no-repeat`
-                            : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                            : "#A50104",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -2261,7 +2271,7 @@ const ChatContent = ({
                               borderRadius: "50%",
                               background: typingUserInRoom?.picture
                                 ? `url(${typingUserInRoom.picture}) center/cover no-repeat`
-                                : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                                : "#A50104",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
@@ -2944,7 +2954,7 @@ const ChatContent = ({
                               // 🔥 AQUÍ ESTÁ EL CAMBIO CLAVE: Usamos la foto si existe
                               background: avatarUrl
                                 ? `url(${avatarUrl}) center/cover no-repeat`
-                                : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                                : "#A50104",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",

@@ -113,23 +113,23 @@
 
 /* Avatar with different colors based on data-color */
 .mx_BaseAvatar[data-color="1"] {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #A50104;
 }
 
 .mx_BaseAvatar[data-color="2"] {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    background: #A50104;
 }
 
 .mx_BaseAvatar[data-color="3"] {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    background: #A50104;
 }
 
 .mx_BaseAvatar[data-color="4"] {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    background: #A50104;
 }
 
 .mx_BaseAvatar[data-color="5"] {
-    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    background: #A50104;
 }
 
 .mx_BaseAvatar_image {

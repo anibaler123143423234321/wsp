@@ -551,7 +551,12 @@ export const useSocketListeners = (
         });
 
         s.on("userTyping", (data) => {
-            if (data.from === toRef.current && !data.isGroup) {
+            if (data.isGroup) return;
+
+            const currentTo = toRef.current?.toLowerCase().trim();
+            const fromUser = data.from?.toLowerCase().trim();
+
+            if (currentTo && fromUser === currentTo) {
                 setTypingUser(data.isTyping ? { username: data.from } : null);
             }
         });

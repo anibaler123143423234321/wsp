@@ -46,10 +46,28 @@ export const useConversations = (
                 setAssignedTotalPages(result.totalPages);
 
                 // Actualizar conversaciones
-                if (append && page > 1) {
-                    setAssignedConversations((prev) => [...prev, ...result.conversations]);
+                // 🔥 CORREGIDO: Si append=true, SIEMPRE hacer append (no importa la página)
+                if (append) {
+                    setAssignedConversations((prev) => {
+                        // Filtrar duplicados usando ID
+                        const existingIds = new Set(prev.map((c) => c.id));
+                        const newConversations = (result.conversations || []).filter(
+                            (c) => !existingIds.has(c.id)
+                        );
+                        return [...prev, ...newConversations];
+                    });
                 } else {
-                    setAssignedConversations(result.conversations);
+                    setAssignedConversations(result.conversations || []);
+                }
+
+                // 🔥 ACTUALIZAR CONTADORES después de cargar
+                try {
+                    const counts = await apiService.getUnreadCounts();
+                    if (counts) {
+                        setUnreadMessages(counts);
+                    }
+                } catch (countError) {
+                    console.warn('⚠️ No se pudieron actualizar contadores:', countError);
                 }
 
                 // Actualizar el registro del socket
