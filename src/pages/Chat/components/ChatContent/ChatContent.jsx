@@ -1447,10 +1447,10 @@ const ChatContent = ({
         key={index}
         className={`message-row ${isGroupStart ? 'group-start' : ''} ${isOwnMessage ? 'is-own' : ''}`}
         id={`message-${message.id}`}
-        onMouseLeave={() => { if (isMenuOpen) return; setShowMessageMenu(null); }}
         style={{
           backgroundColor: isHighlighted ? 'rgba(0, 168, 132, 0.1)' : 'transparent',
-          position: 'relative'
+          position: 'relative',
+          zIndex: isMenuOpen ? 100 : 1
         }}
       >
         {/* Checkbox de selección */}
@@ -1908,15 +1908,13 @@ const ChatContent = ({
                     className="slack-dropdown-menu"
                     style={{
                       position: 'absolute',
-                      /* 🔥 ELIMINAMOS 'right: 0' de aquí para que use el CSS corregido */
                       top: menuPosition.openUp ? 'auto' : '100%',
                       bottom: menuPosition.openUp ? '100%' : 'auto',
-                      /* El resto de estilos se manejan en el CSS */
                       background: 'white',
                       border: '1px solid #e5e7eb',
                       borderRadius: '8px',
                       boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                      zIndex: 9999,
+                      zIndex: 99999,
                       minWidth: '200px',
                       padding: '6px 0',
                       display: 'flex',
@@ -2021,9 +2019,9 @@ const ChatContent = ({
                         <div
                           className="mini-read-avatar counter-bubble"
                           style={{
-                            right: '0px', // En la cima de la pila (derecha)
-                            zIndex: 10,
-                            backgroundColor: '#e5e7eb', // Gris suave
+                            right: '0px',
+                            zIndex: 1,
+                            backgroundColor: '#e5e7eb',
                             color: '#54656f',
                             fontSize: '9px',
                             border: '1px solid #fff'
@@ -2060,7 +2058,7 @@ const ChatContent = ({
                             className="mini-read-avatar"
                             style={{
                               right: `${rightPos}px`,
-                              zIndex: idx + 1,
+                              zIndex: 1,
                               ...(userPic && { backgroundImage: `url(${userPic})` }),
                               ...(!userPic && { background: `linear-gradient(135deg, #ff453a 0%, #ff453a 100%)` })
                             }}
