@@ -1985,7 +1985,7 @@ const ChatContent = ({
 
         {/* === 🛡️ AVATARES DE LECTURA (LÓGICA MODIFICADA: MÁXIMO 3 + CONTADOR) 🛡️ === */}
         {
-          message.readBy && message.readBy.length > 0 && !isOwnMessage && (
+          message.readBy && message.readBy.length > 0 && (
             <div className="read-by-avatars-container">
 
               {/* 1. ZONA INTERACTIVA (BOLITAS) */}
@@ -2075,45 +2075,47 @@ const ChatContent = ({
               </div>
 
               {/* 2. VENTANA FLOTANTE (POPOVER DETALLADO) - SE MANTIENE IGUAL QUE ANTES */}
-              {openReadReceiptsId === message.id && (
-                <div className="read-receipts-popover" onClick={(e) => e.stopPropagation()}>
-                  {/* ... El contenido del popover se mantiene igual ... */}
-                  <div className="popover-header">
-                    {message.readBy.length} {message.readBy.length === 1 ? 'persona' : 'personas'}
-                  </div>
-                  <div className="popover-list">
-                    {message.readBy.map((readerName, idx) => {
-                      // ... Lógica de renderizado de lista (mantener la existente) ...
-                      let userPic = null;
-                      let fullName = readerName;
-                      const searchName = typeof readerName === 'string' ? readerName.toLowerCase().trim() : "";
-                      if (roomUsers && Array.isArray(roomUsers)) {
-                        const u = roomUsers.find(u => {
-                          const uName = (u.username || "").toLowerCase();
-                          const uFull = (u.nombre && u.apellido) ? `${u.nombre} ${u.apellido}`.toLowerCase() : "";
-                          return uName === searchName || uFull === searchName;
-                        });
-                        if (u) {
-                          userPic = u.picture;
-                          fullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : u.username;
+              {
+                openReadReceiptsId === message.id && (
+                  <div className="read-receipts-popover" onClick={(e) => e.stopPropagation()}>
+                    {/* ... El contenido del popover se mantiene igual ... */}
+                    <div className="popover-header">
+                      {message.readBy.length} {message.readBy.length === 1 ? 'persona' : 'personas'}
+                    </div>
+                    <div className="popover-list">
+                      {message.readBy.map((readerName, idx) => {
+                        // ... Lógica de renderizado de lista (mantener la existente) ...
+                        let userPic = null;
+                        let fullName = readerName;
+                        const searchName = typeof readerName === 'string' ? readerName.toLowerCase().trim() : "";
+                        if (roomUsers && Array.isArray(roomUsers)) {
+                          const u = roomUsers.find(u => {
+                            const uName = (u.username || "").toLowerCase();
+                            const uFull = (u.nombre && u.apellido) ? `${u.nombre} ${u.apellido}`.toLowerCase() : "";
+                            return uName === searchName || uFull === searchName;
+                          });
+                          if (u) {
+                            userPic = u.picture;
+                            fullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : u.username;
+                          }
                         }
-                      }
-                      return (
-                        <div key={idx} className="popover-item">
-                          <div className="popover-avatar">
-                            {userPic ? <img src={userPic} alt={fullName} /> : <span className="popover-avatar-initial">{typeof readerName === 'string' ? readerName.charAt(0).toUpperCase() : "?"}</span>}
+                        return (
+                          <div key={idx} className="popover-item">
+                            <div className="popover-avatar">
+                              {userPic ? <img src={userPic} alt={fullName} /> : <span className="popover-avatar-initial">{typeof readerName === 'string' ? readerName.charAt(0).toUpperCase() : "?"}</span>}
+                            </div>
+                            <div className="popover-info">
+                              <div className="popover-name">{fullName}</div>
+                              <div className="popover-status">Visto</div>
+                            </div>
                           </div>
-                          <div className="popover-info">
-                            <div className="popover-name">{fullName}</div>
-                            <div className="popover-status">Visto</div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )
+              }
+            </div >
           )
         }
       </div >

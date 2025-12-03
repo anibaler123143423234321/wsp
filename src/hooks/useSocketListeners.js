@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+﻿import { useEffect, useRef } from 'react';
 import Swal from 'sweetalert2';
 import { showSuccessAlert, showErrorAlert } from '../sweetalert2';
 import { systemNotifications } from '../utils/systemNotifications';
@@ -437,6 +437,39 @@ export const useSocketListeners = (
                 );
             }
         });
+
+        // 🔥 NUEVO: Listener profesional para actualizaciones de conversaciones asignadas
+        // El backend emite este evento cuando llega un nuevo mensaje a una conversación asignada
+        s.on("assignedConversationUpdated", (data) => {
+            console.log("💬 assignedConversationUpdated recibido:", data);
+            
+            setAssignedConversations(prev => {
+                // Actualizar la conversación correspondiente
+                const updated = prev.map(conv => {
+                    if (conv.id === data.conversationId) {
+                        return {
+                            ...conv,
+                            lastMessage: data.lastMessage,
+                            lastMessageTime: data.lastMessageTime,
+                            lastMessageFrom: data.lastMessageFrom,
+                            lastMessageMediaType: data.lastMessageMediaType
+                        };
+                    }
+                    return conv;
+                });
+
+                // Reordenar: más recientes primero
+                return updated.sort((a, b) => {
+                    const aTime = a.lastMessageTime || a.createdAt || '';
+                    const bTime = b.lastMessageTime || b.createdAt || '';
+                    if (!aTime && !bTime) return 0;
+                    if (!aTime) return 1;
+                    if (!bTime) return -1;
+                    return new Date(bTime).getTime() - new Date(aTime).getTime();
+                });
+            });
+        });
+
 
         s.on("unreadCountReset", (data) => {
             setUnreadMessages((prev) => ({ ...prev, [data.roomCode]: 0 }));

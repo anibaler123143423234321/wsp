@@ -542,7 +542,7 @@
 
 /* Asegurar que el Toolbar tenga z-index suficiente para flotar sobre todo */
 .message-row:hover {
-  z-index: 100;
+  z-index: 1;
   /* Eleva toda la fila al pasar el mouse */
 }
 
@@ -2300,7 +2300,7 @@
   bottom: -10px;
   /* Flota justo debajo del mensaje */
   height: 14px;
-  z-index: 5;
+  z-index: 1;
   user-select: none;
 }
 
@@ -2340,42 +2340,11 @@
 }
 
 /* 3. CASO B: Mensajes PROPIOS (Alineados a la Derecha en pantalla) */
-/* Los avatares deben ir a la IZQUIERDA de la burbuja (lado interior) */
 .message-row.is-own .read-by-avatars-container {
-  left: 0;
-  /* 🔥 ESTO ES LO QUE FALTABA: Pegarse a la izquierda del contenedor del mensaje */
-  right: auto;
-  /* Anular la derecha */
-}
-
-/* Zona Clickable */
-.read-receipts-trigger {
-  position: relative;
-  height: 14px;
-  cursor: pointer;
-  pointer-events: auto;
-}
-
-/* Efecto al pasar el mouse por una bolita */
-.mini-read-avatar:hover {
-  transform: scale(1.5);
-  z-index: 100 !important;
-  box-shadow: 0 0 0 1px #cbd5e1;
-}
-
-.read-receipts-popover {
-  position: absolute;
-  bottom: 24px;
-  /* Encima de las bolitas */
-  width: 240px;
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
-  border: 1px solid #e5e7eb;
-  z-index: 9999;
-  padding: 8px 0;
-  text-align: left;
-  animation: fadeIn 0.15s ease-out;
+  right: 0;
+  /* 🔥 Pegarse a la derecha del contenedor del mensaje */
+  left: auto;
+  /* Anular la izquierda */
 }
 
 /* Estilos internos del popover */
@@ -2465,21 +2434,6 @@
   position: relative;
 }
 
-.read-receipts-popover {
-  position: absolute;
-  bottom: 22px;
-  /* Encima de las bolitas */
-  width: 240px;
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
-  border: 1px solid #e5e7eb;
-  z-index: 9999;
-  padding: 8px 0;
-  text-align: left;
-  animation: fadeIn 0.15s ease-out;
-}
-
 /* Alineación del Popover para OTROS (Sale hacia la izquierda para no salirse) */
 .message-row:not(.is-own) .read-receipts-popover {
   right: -10px;
@@ -2487,7 +2441,7 @@
 }
 
 .message-row.is-own .read-receipts-popover {
-  right: -5px;
+  right: 0;
   /* Pegado al borde derecho (encima de las bolitas) */
   left: auto;
   /* Libera la izquierda para que crezca hacia allá */
@@ -2497,16 +2451,6 @@
 /* El popover se ancla a la derecha del contenedor de avatares para no tapar el mensaje si es corto, 
    o puedes usar left:0 si prefieres que salga hacia la derecha. 
    Aquí usaremos right: -10px para que quede alineado con las bolitas. */
-
-
-/* Zona Clickable (Donde están las bolitas) */
-.read-receipts-trigger {
-  position: relative;
-  height: 14px;
-  cursor: pointer;
-  pointer-events: auto;
-  /* Asegura que reciba el click */
-}
 
 /* La Bolita Individual (14px exactos) */
 .mini-read-avatar {
@@ -2539,38 +2483,14 @@
 .message-row.is-own .read-by-avatars-container {
   left: 0;
   /* 🔥 ESTO ES LO QUE FALTABA: Pegarse a la izquierda del contenedor del mensaje */
-  right: auto;
+  right: 0;
   /* Anular la derecha */
 }
 
-/* Zona Clickable */
-.read-receipts-trigger {
-  position: relative;
-  height: 14px;
-  cursor: pointer;
-  pointer-events: auto;
-}
-
-/* Efecto al pasar el mouse por una bolita */
 .mini-read-avatar:hover {
   transform: scale(1.5);
-  z-index: 100 !important;
+  z-index: 50 !important;
   box-shadow: 0 0 0 1px #cbd5e1;
-}
-
-.read-receipts-popover {
-  position: absolute;
-  bottom: 24px;
-  /* Encima de las bolitas */
-  width: 240px;
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
-  border: 1px solid #e5e7eb;
-  z-index: 9999;
-  padding: 8px 0;
-  text-align: left;
-  animation: fadeIn 0.15s ease-out;
 }
 
 /* Estilos internos del popover */
@@ -2662,14 +2582,13 @@
 
 .read-receipts-popover {
   position: absolute;
-  bottom: 22px;
-  /* Encima de las bolitas */
+  bottom: 24px;
   width: 240px;
   background: #ffffff;
   border-radius: 12px;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
   border: 1px solid #e5e7eb;
-  z-index: 9999;
+  z-index: 999999 !important;
   padding: 8px 0;
   text-align: left;
   animation: fadeIn 0.15s ease-out;
@@ -2682,9 +2601,9 @@
 }
 
 .message-row.is-own .read-receipts-popover {
-  right: -5px;
+  right: 0;
   /* Pegado al borde derecho (encima de las bolitas) */
-  left: auto;
+  left: 0;
   /* Libera la izquierda para que crezca hacia allá */
 }
 
