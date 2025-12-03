@@ -62,6 +62,9 @@ const ThreadPanel = ({
   const [messageToForward, setMessageToForward] = useState(null);
   const [showReactionPicker, setShowReactionPicker] = useState(null); // ID del mensaje con picker abierto
   const [replyingTo, setReplyingTo] = useState(null); // Mensaje al que se responde
+  const [openReadReceiptsId, setOpenReadReceiptsId] = useState(null); // 🔥 NUEVO: ID del mensaje con popover de leídos abierto
+  const [popoverPosition, setPopoverPosition] = useState('top'); // 'top' | 'bottom'
+  const [popoverCoords, setPopoverCoords] = useState({ right: 0, top: 0 }); // 🔥 Coordenadas exactas para position: fixed
 
 
 
@@ -680,6 +683,10 @@ const ThreadPanel = ({
       if (reactionPickerRef.current && !reactionPickerRef.current.contains(event.target)) {
         setShowReactionPicker(null);
       }
+      // 🔥 Cerrar popover de leídos si se hace clic fuera
+      if (!event.target.closest('.thread-read-receipts-popover') && !event.target.closest('.thread-read-receipts-trigger')) {
+        setOpenReadReceiptsId(null);
+      }
     };
 
     if (showMessageMenu || showReactionPicker) {
@@ -957,40 +964,134 @@ const ThreadPanel = ({
                 </div>
               )}
 
-              {/* 🔥 Read Receipts */}
-              {msg.from === currentUsername && msg.readBy && msg.readBy.length > 0 && (
+              {/* 🔥 Read Receipts - Mostrar para TODOS los mensajes si hay lectores */}
+              {msg.readBy && msg.readBy.length > 0 && (
                 <div className="thread-read-receipts">
-                  <div className="thread-read-avatars">
-                    {msg.readBy.slice(0, 3).map((reader, idx) => {
-                      const readerUser = roomUsers.find(u =>
-                        (u.username || u.nombre) === reader
-                      );
-                      const readerName = readerUser
-                        ? (readerUser.nombre && readerUser.apellido
-                          ? `${readerUser.nombre} ${readerUser.apellido}`
-                          : readerUser.username || reader)
-                        : reader;
+                  <div
+                    className="thread-read-receipts-trigger"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // 🔥 Cálculo de posición FIXED (coordenadas absolutas en pantalla)
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      // Preferimos ARRIBA (top) para no tapar los mensajes siguientes
+                      const preferTop = rect.top > 180;
+                      const newPosition = preferTop ? 'top' : 'bottom';
+                      setPopoverPosition(newPosition);
+
+                      // Calcular coordenadas exactas en la pantalla
+                      const coords = {
+                        right: window.innerWidth - rect.right,
+                        top: preferTop ? rect.top - 12 : rect.bottom + 12
+                      };
+                      setPopoverCoords(coords);
+                      setOpenReadReceiptsId(openReadReceiptsId === msg.id ? null : msg.id);
+                    }}
+                    title="Ver quién lo ha leído"
+                  >
+                    {(() => {
+                      const MAX_VISIBLE = 3;
+                      const totalReaders = msg.readBy.length;
+                      const remainingCount = totalReaders - MAX_VISIBLE;
+                      const showCounter = remainingCount > 0;
+                      const visibleReaders = msg.readBy.slice(0, MAX_VISIBLE);
 
                       return (
-                        <div
-                          key={idx}
-                          className="thread-read-avatar"
-                          title={`Leído por ${readerName}`}
-                        >
-                          {readerUser?.picture ? (
-                            <img src={readerUser.picture} alt={readerName} />
-                          ) : (
-                            <div className="thread-read-avatar-placeholder">
-                              {readerName.charAt(0).toUpperCase()}
+                        <div className="thread-read-avatars">
+                          {/* A. BOLITA DE CONTADOR (+N) */}
+                          {showCounter && (
+                            <div className="thread-read-avatar counter-bubble">
+                              +{remainingCount}
                             </div>
                           )}
+
+                          {/* B. AVATARES DE USUARIOS */}
+                          {visibleReaders.map((reader, idx) => {
+                            const readerUser = roomUsers.find(u =>
+                              (u.username || u.nombre) === reader
+                            );
+                            const readerName = readerUser
+                              ? (readerUser.nombre && readerUser.apellido
+                                ? `${readerUser.nombre} ${readerUser.apellido}`
+                                : readerUser.username || reader)
+                              : reader;
+
+                            return (
+                              <div
+                                key={idx}
+                                className="thread-read-avatar"
+                                title={`Leído por ${readerName}`}
+                              >
+                                {readerUser?.picture ? (
+                                  <img src={readerUser.picture} alt={readerName} />
+                                ) : (
+                                  <div className="thread-read-avatar-placeholder">
+                                    {readerName.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       );
-                    })}
-                    {msg.readBy.length > 3 && (
-                      <span className="thread-read-more">+{msg.readBy.length - 3}</span>
-                    )}
+                    })()}
                   </div>
+
+                  {/* 🔥 POPOVER DE DETALLES */}
+                  {openReadReceiptsId === msg.id && (
+                    <div
+                      className={`thread-read-receipts-popover position-${popoverPosition}`}
+                      style={{
+                        right: `${popoverCoords.right}px`,
+                        top: `${popoverCoords.top}px`,
+                        transform: popoverPosition === 'top' ? 'translateY(-100%)' : 'none'
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="popover-header">
+                        <span>{msg.readBy.length} {msg.readBy.length === 1 ? 'persona' : 'personas'}</span>
+                        <button
+                          className="popover-close-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenReadReceiptsId(null);
+                          }}
+                          aria-label="Cerrar"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div className="popover-list">
+                        {msg.readBy.map((reader, idx) => {
+                          const readerUser = roomUsers.find(u =>
+                            (u.username || u.nombre) === reader
+                          );
+                          const readerName = readerUser
+                            ? (readerUser.nombre && readerUser.apellido
+                              ? `${readerUser.nombre} ${readerUser.apellido}`
+                              : readerUser.username || reader)
+                            : reader;
+
+                          return (
+                            <div key={idx} className="popover-item">
+                              <div className="popover-avatar">
+                                {readerUser?.picture ? (
+                                  <img src={readerUser.picture} alt={readerName} />
+                                ) : (
+                                  <span className="popover-avatar-initial">
+                                    {readerName.charAt(0).toUpperCase()}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="popover-info">
+                                <div className="popover-name">{readerName}</div>
+                                <div className="popover-status">Visto</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

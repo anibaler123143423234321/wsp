@@ -488,6 +488,57 @@ const ConversationList = ({
       )}
       {!isCompact && <div className="border-b border-gray-200 mx-4"></div>}
 
+      {/* Barra de búsqueda */}
+      {!isCompact && (
+        <div className="bg-white flex flex-col max-[1280px]:!px-2 max-[1280px]:!py-1 max-[1024px]:!px-1.5 max-[1024px]:!py-0.5 max-[768px]:!px-3 max-[768px]:!py-1.5" style={{ paddingTop: '6px', paddingLeft: '12px', paddingRight: '12px', paddingBottom: '6px' }}>
+          <div className="relative flex items-center bg-[#E8E8E8] overflow-hidden max-[1280px]:!w-full max-[1280px]:!h-9 max-[1280px]:!px-2.5 max-[1280px]:!py-1.5 max-[1280px]:!gap-1.5 max-[1024px]:!h-8 max-[1024px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!gap-1 max-[768px]:!w-full max-[768px]:!h-9 max-[768px]:!px-2.5 max-[768px]:!py-1.5 max-[768px]:!gap-1.5" style={{ width: '100%', height: '34px', borderRadius: '10px', paddingTop: '6px', paddingRight: '10px', paddingBottom: '6px', paddingLeft: '10px', gap: '8px' }}>
+            <span className="text-gray-500 flex-shrink-0" style={{ display: 'flex', alignItems: 'center' }}>
+              <svg viewBox="0 0 24 24" height="18" width="18" fill="none" className="text-gray-500">
+                <path d="M10.5 18C14.6421 18 18 14.6421 18 10.5C18 6.35786 14.6421 3 10.5 3C6.35786 3 3 6.35786 3 10.5C3 14.6421 6.35786 18 10.5 18Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M21 21L15.8 15.8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+            <input
+              type="text"
+              placeholder="Buscar en chats"
+              className="flex-1 bg-transparent border-none text-gray-800 outline-none placeholder:text-gray-400 max-[1280px]:!text-sm max-[1280px]:placeholder:!text-xs max-[1024px]:!text-xs max-[1024px]:placeholder:!text-[11px] max-[768px]:!text-sm max-[768px]:placeholder:!text-xs"
+              style={{ fontSize: '14px', lineHeight: '16px', fontWeight: 400 }}
+              value={activeModule === 'chats' || activeModule === 'monitoring' ? assignedSearchTerm : searchTerm}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (activeModule === 'chats' || activeModule === 'monitoring') {
+                  setAssignedSearchTerm(value);
+                  handleMessageSearch(value);
+                } else {
+                  setSearchTerm(value);
+                  handleMessageSearch(value);
+                }
+              }}
+            />
+            {((activeModule === 'conversations' && searchTerm) || (activeModule === 'chats' && assignedSearchTerm) || (activeModule === 'monitoring' && assignedSearchTerm)) && (
+              <button className="bg-transparent border-none text-gray-500 cursor-pointer p-0.5 flex items-center justify-center rounded-full transition-all duration-200 hover:bg-gray-200 hover:text-gray-800 active:scale-95 max-[1280px]:!text-xs max-[1024px]:!text-[11px] max-[1024px]:!p-0.5" style={{ fontSize: '12px' }}
+                onClick={() => {
+                  if (activeModule === 'chats' || activeModule === 'monitoring') { setAssignedSearchTerm(''); setMessageSearchResults([]); }
+                  else { setSearchTerm(''); setMessageSearchResults([]); }
+                }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" className="w-3.5 h-3.5"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </button>
+            )}
+          </div>
+          {(activeModule === 'conversations' || activeModule === 'chats' || activeModule === 'monitoring') && (
+            <div className="flex items-center gap-2 max-[1280px]:!mt-2 max-[1280px]:!gap-1.5 max-[1024px]:!mt-1.5 max-[1024px]:!gap-1" style={{ marginTop: '8px' }}>
+              <span className="text-gray-600 max-[1280px]:!text-sm max-[1024px]:!text-xs" style={{ fontWeight: 400, fontSize: '14px', lineHeight: '18px', color: 'rgba(0, 0, 0, 0.65)' }}>Ordenar por</span>
+              <select className="bg-transparent border-none text-[#33B8FF] cursor-pointer outline-none max-[1280px]:!text-sm max-[1024px]:!text-xs" style={{ fontWeight: 400, fontSize: '14px', lineHeight: '18px' }} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+                <option value="name">Name</option>
+              </select>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* =========================================================================
          MÓDULO: CHATS / CONVERSACIONES (Grupos + Asignados + Usuarios)
          ========================================================================= */}
