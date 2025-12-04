@@ -39,7 +39,7 @@ export const useSocket = (isAuthenticated, username, user) => {
 
         socket.current = io(socketUrl, {
           transports: ["websocket", "polling"],
-          timeout: 10000,
+          timeout: 45000, // OPTIMIZADO: 45s - sincronizado con backend connectTimeout
           path: "/BackendChat/socket.io/", // Ruta específica de tu backend
           //path: "/socket.io/", // Ruta específica de tu backend
           forceNew: true,
@@ -49,6 +49,8 @@ export const useSocket = (isAuthenticated, username, user) => {
           reconnectionDelayMax: 5000,
           randomizationFactor: 0.5,
           autoConnect: true,
+          pingInterval: 25000, // 25s
+          pingTimeout: 30000, // 30s
         });
 
         // Timeout de seguridad por si la conexión se queda colgada
@@ -58,7 +60,7 @@ export const useSocket = (isAuthenticated, username, user) => {
             isConnecting.current = false;
             socket.current.disconnect();
           }
-        }, 15000);
+        }, 50000); //  OPTIMIZADO: 50s - ligeramente mayor que backend connectTimeout (45s)
 
         // =================================================
         // EVENTO: CONNECT
