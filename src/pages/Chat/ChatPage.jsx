@@ -521,7 +521,7 @@ const ChatPage = () => {
     clearMessages(); // Limpiar mensajes primero
     setAdminViewConversation(null); // Limpiar vista de admin
     setReplyingTo(null); // 🔥 Limpiar estado de respuesta
-    setPinnedMessageId(group.pinnedMessageId || null);
+    chatState.setPinnedMessageId(group.pinnedMessageId || null);
     setPinnedMessageObject(null); // 🔥 Limpiar objeto mensaje fijado
     // Establecer nuevo estado
     setTo(group.name);
@@ -545,7 +545,7 @@ const ChatPage = () => {
     currentRoomCodeRef.current = null;
     setAdminViewConversation(null); // Limpiar vista de admin
     setReplyingTo(null); // 🔥 Limpiar estado de respuesta
-    setPinnedMessageId(null);
+    chatState.setPinnedMessageId(null);
     setPinnedMessageObject(null);
     setTo(username);
   };
@@ -583,7 +583,7 @@ const ChatPage = () => {
         chatState.setRoomUsers([]);
         chatState.setAdminViewConversation(null);
         chatState.setReplyingTo(null);
-        setPinnedMessageId(null);
+        chatState.setPinnedMessageId(null);
         setPinnedMessageObject(null);
         // Limpiar mensajes visualmente
         clearMessages();

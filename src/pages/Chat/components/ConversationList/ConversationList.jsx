@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+﻿import { useState, useRef, useCallback, useEffect } from 'react';
 import { FaBars, FaStar, FaRegStar, FaChevronDown, FaChevronRight, FaChevronLeft } from 'react-icons/fa';
 import { MessageSquare, Home, Users } from 'lucide-react';
 import clsx from 'clsx';
@@ -87,17 +87,25 @@ const CollapsibleList = ({ title, icon: Icon, children, isOpen, onToggle, onLoad
 
   // 🔥 FUNCIÓN PARA VERIFICAR SI NECESITAMOS CARGAR MÁS DATOS (solo después de resize)
   const checkIfNeedsMoreData = useCallback(() => {
-    if (!contentRef.current || !hasMore || isLoading || !onLoadMore) return;
+    if (!contentRef.current || !hasMoreRef.current || isLoading || !onLoadMore) return;
 
-    // 🔥 Prevenir llamadas múltiples en corto tiempo (debounce manual)
+    // 🔥 Prevenir llamadas múltiples en corto tiempo
     const now = Date.now();
-    if (now - lastCheckTime.current < 500) return; // No llamar más de una vez cada 500ms
+    if (now - lastCheckTime.current < 300) return;
 
     const { scrollTop, scrollHeight, clientHeight } = contentRef.current;
 
-    // Solo cargar si el contenido no llena el contenedor completamente
-    if (scrollHeight <= clientHeight + 10) {
-      console.log(`🔄 Auto-loading more data for "${title}" after resize (content doesn't fill container)`);
+    // 🔥 Obtener altura actual del contenedor
+    const containerHeight = listRef.current?.offsetHeight || clientHeight;
+    const headerHeight = listRef.current?.querySelector('.mx_RoomSublist_header')?.offsetHeight || 36;
+    const availableHeight = containerHeight - headerHeight;
+
+    // 🔥 MEJORADO: Cargar más si hay espacio vacío o cerca del final
+    const hasEmptySpace = scrollHeight < availableHeight;
+    const isNearBottom = scrollHeight - scrollTop <= clientHeight + 80;
+
+    if (hasEmptySpace || isNearBottom) {
+      console.log(`🔄 Loading more for "${title}" (empty: ${hasEmptySpace}, nearBottom: ${isNearBottom})`);
       lastCheckTime.current = now;
       onLoadMore();
     }
@@ -108,12 +116,12 @@ const CollapsibleList = ({ title, icon: Icon, children, isOpen, onToggle, onLoad
     const deltaY = e.clientY - startY.current;
     let newHeight = startHeight.current + deltaY;
 
-    // 🔥 SIEMPRE limitamos la altura al contenido real para evitar espacios en blanco
+    // 🔥 Permitir crecer un poco más para disparar carga de datos
     if (innerContentRef.current && listRef.current) {
       const contentHeight = innerContentRef.current.offsetHeight;
       const header = listRef.current.querySelector('.mx_RoomSublist_header');
-      const headerHeight = header ? header.offsetHeight : 36; // 36px fallback
-      const maxAllowedHeight = contentHeight + headerHeight; // 🔥 Sin buffer extra para ser estrictos
+      const headerHeight = header ? header.offsetHeight : 36;
+      const maxAllowedHeight = contentHeight + headerHeight + 60; // +60px buffer
 
       if (newHeight > maxAllowedHeight) {
         newHeight = maxAllowedHeight;
@@ -130,11 +138,12 @@ const CollapsibleList = ({ title, icon: Icon, children, isOpen, onToggle, onLoad
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', stopResizing);
 
-    // 🔥 SOLO verificar después de redimensionar manualmente
-    setTimeout(() => {
-      checkIfNeedsMoreData();
-    }, 150);
-  }, [handleMouseMove, checkIfNeedsMoreData]);
+    // 🔥 SIMPLE: Si hay más datos y no está cargando, cargar más
+    if (hasMoreRef.current && onLoadMore && !isLoading) {
+      console.log(`🔄 Loading more for "${title}" on resize release`);
+      onLoadMore();
+    }
+  }, [handleMouseMove, onLoadMore, isLoading, title]);
 
   const handleScroll = useCallback((e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
@@ -161,7 +170,8 @@ const CollapsibleList = ({ title, icon: Icon, children, isOpen, onToggle, onLoad
         <>
           <div
             ref={contentRef}
-            className={`mx_RoomSublist_content mx_AutoHideScrollbar ${contentClassName || ''}`}
+            className={`mx_RoomSublist_content ${contentClassName || ''}`}
+            style={{ overflowY: 'auto' }}
             onScroll={handleScroll}
           >
             <div ref={innerContentRef}>
@@ -543,7 +553,7 @@ const ConversationList = ({
          MÓDULO: CHATS / CONVERSACIONES (Grupos + Asignados + Usuarios)
          ========================================================================= */}
       {(activeModule === 'chats' || activeModule === 'conversations') && (
-        <div ref={conversationsListRef} className="flex-1 overflow-y-auto bg-white px-4" onScroll={handleScroll}>
+        <div ref={conversationsListRef} className="flex-1 overflow-y-auto bg-white px-4" style={{ maxHeight: 'calc(100vh - 180px)' }} onScroll={handleScroll}>
 
           {/* Resultados de búsqueda de mensajes */}
           {assignedSearchTerm.trim() && messageSearchResults.length > 0 && (
@@ -577,6 +587,73 @@ const ConversationList = ({
 
           {isSearching && <div className="flex items-center justify-center py-8"><div className="text-sm text-gray-500">Buscando mensajes...</div></div>}
 
+
+          {/* 0. SECCIÓN DE FAVORITOS - Siempre fijos arriba */}
+          {(favoriteRoomCodes.length > 0 || favoriteConversationIds.length > 0) && (
+            <CollapsibleList
+              title="FAVORITOS"
+              icon={FaStar}
+              isOpen={true}
+              onToggle={() => { }}
+              defaultHeight={120}
+            >
+              {/* Grupos favoritos */}
+              {myActiveRooms?.filter(room => favoriteRoomCodes.includes(room.roomCode)).map((room) => {
+                const typingUsers = roomTypingUsers[room.roomCode] || [];
+                const isTypingInRoom = typingUsers.length > 0;
+                const roomUnreadCount = unreadMessages?.[room.roomCode] !== undefined ? unreadMessages[room.roomCode] : (room.unreadCount || 0);
+                return (
+                  <div key={`fav-room-${room.id}`} className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer ${currentRoomCode === room.roomCode ? 'bg-[#e7f3f0]' : ''}`} style={{ padding: '6px 16px', gap: '8px', minHeight: '50px' }} onClick={() => onRoomSelect && onRoomSelect(room)}>
+                    <div className="relative flex-shrink-0" style={{ width: '32px', height: '32px' }}>
+                      <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold" style={{ width: '32px', height: '32px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '14px', backgroundColor: '#A50104' }}>
+                        {room.description ? <img src={room.description} alt={room.name} className="w-full h-full object-cover" /> : "🏠"}
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px', display: isCompact ? 'none' : 'flex' }}>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className="flex-shrink-0 text-yellow-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px' }}><FaStar size={10} /> GRUPO</span>
+                          <h3 className="font-semibold text-[#111] truncate flex-1" style={{ fontSize: '11.5px', fontWeight: 600 }}>{room.name}</h3>
+                          {roomUnreadCount > 0 && <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center ml-2" style={{ minWidth: '18px', height: '18px', fontSize: '10px', fontWeight: 'bold' }}>{roomUnreadCount > 99 ? '99+' : roomUnreadCount}</div>}
+                        </div>
+                        <button onClick={(e) => handleToggleFavorite(room, e)} className="flex-shrink-0 p-1 hover:bg-gray-200 rounded-full transition-colors" style={{ color: '#ff453a' }}><FaStar /></button>
+                      </div>
+                      <p className="text-gray-600 truncate" style={{ fontSize: '11px' }}>{isTypingInRoom ? `${typingUsers[0]?.nombre || typingUsers[0]?.username} está escribiendo...` : (room.lastMessage?.text || `${room.currentMembers}/${room.maxCapacity} usuarios`)}</p>
+                    </div>
+                  </div>
+                );
+              })}
+              {/* Conversaciones favoritas */}
+              {myAssignedConversations.filter(conv => favoriteConversationIds.includes(conv.id)).map((conv) => {
+                const participants = conv.participants || [];
+                const currentUserFullName = user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.username;
+                const otherParticipant = participants.find(p => p?.toLowerCase() !== currentUserFullName?.toLowerCase()) || participants[0];
+                const itemUnreadCount = unreadMessages?.[conv.id] !== undefined ? unreadMessages[conv.id] : (conv.unreadCount || 0);
+                const getInitials = (name) => { const parts = name?.split(' ') || []; return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : (name?.[0]?.toUpperCase() || 'U'); };
+                return (
+                  <div key={`fav-conv-${conv.id}`} className="flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer" style={{ padding: '6px 16px', gap: '8px', minHeight: '50px' }} onClick={() => onUserSelect && onUserSelect(otherParticipant, null, conv)}>
+                    <div className="relative flex-shrink-0" style={{ width: '32px', height: '32px' }}>
+                      <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold" style={{ width: '32px', height: '32px', fontSize: '14px', backgroundColor: '#A50104' }}>{getInitials(otherParticipant)}</div>
+                    </div>
+                    <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '4px', display: isCompact ? 'none' : 'flex' }}>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-col gap-1 flex-1 min-w-0">
+                          <span className="flex-shrink-0 text-yellow-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px' }}><FaStar size={10} /> CHAT</span>
+                          <h3 className="font-semibold text-[#111] truncate" style={{ fontSize: '11.5px', fontWeight: 600 }}>{otherParticipant}</h3>
+                        </div>
+                        <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-1 hover:bg-gray-200 rounded-full transition-colors" style={{ color: '#ff453a' }}><FaStar /></button>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-gray-600 truncate" style={{ fontSize: '11px' }}>{conv.lastMessage || 'Sin mensajes'}</p>
+                        {itemUnreadCount > 0 && <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '18px', height: '18px', fontSize: '10px', fontWeight: 600 }}>{itemUnreadCount > 99 ? '99+' : itemUnreadCount}</div>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </CollapsibleList>
+          )}
+
           {/* 1. SECCIÓN DE GRUPOS */}
           <CollapsibleList
             title="GRUPOS"
@@ -602,6 +679,7 @@ const ConversationList = ({
                 );
               }
               const filteredRooms = myActiveRooms
+                .filter(room => !favoriteRoomCodes.includes(room.roomCode)) // Excluir favoritos
                 .filter(room => assignedSearchTerm.trim() === '' || room.name.toLowerCase().includes(assignedSearchTerm.toLowerCase()) || room.roomCode.toLowerCase().includes(assignedSearchTerm.toLowerCase()));
 
               return (
@@ -671,7 +749,7 @@ const ConversationList = ({
             defaultHeight={350}
           >
             {(() => {
-              const myConversations = myAssignedConversations.filter(conv => {
+              const myConversations = myAssignedConversations.filter(conv => !favoriteConversationIds.includes(conv.id)).filter(conv => {
                 if (!assignedSearchTerm.trim()) return true;
                 const searchLower = assignedSearchTerm.toLowerCase();
                 const participants = conv.participants || [];

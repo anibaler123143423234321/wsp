@@ -229,6 +229,55 @@ export const useSocketListeners = (
                         });
                         return sortRoomsByBackendLogic(updated, favoriteRoomCodes);
                     });
+
+                    // 🔥 NOTIFICACIÓN TOAST para grupos (solo si NO es mensaje propio y chat NO está abierto)
+                    if (!isOwnMessage && !isChatOpen) {
+                        playMessageSound(soundsEnabledRef.current);
+
+                        if (systemNotifications.canShow()) {
+                            systemNotifications.show(
+                                `Nuevo mensaje en ${data.roomName || data.roomCode}`,
+                                `${data.from}: ${messageText}`,
+                                { tag: `room-${data.roomCode}`, silent: !soundsEnabledRef.current },
+                                () => {
+                                    window.dispatchEvent(new CustomEvent("navigateToRoom", {
+                                        detail: { roomCode: data.roomCode }
+                                    }));
+                                }
+                            );
+                        }
+
+                        Swal.fire({
+                            toast: true,
+                            position: "bottom-end",
+                            icon: "info",
+                            title: `Mensaje en ${data.roomName || data.roomCode}`,
+                            html: `
+                                <div class="toast-content">
+                                    <div class="toast-sender">${data.from}</div>
+                                    <div class="toast-message">${messageText.substring(0, 80)}${messageText.length > 80 ? "..." : ""}</div>
+                                </div>
+                            `,
+                            showConfirmButton: true,
+                            confirmButtonText: "Ver",
+                            showCloseButton: true,
+                            timer: 6000,
+                            customClass: {
+                                popup: 'modern-toast',
+                                title: 'modern-toast-title',
+                                htmlContainer: 'modern-toast-html',
+                                confirmButton: 'modern-toast-btn',
+                                icon: 'modern-toast-icon',
+                                closeButton: 'modern-toast-close'
+                            }
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                window.dispatchEvent(new CustomEvent("navigateToRoom", {
+                                    detail: { roomCode: data.roomCode }
+                                }));
+                            }
+                        });
+                    }
                 }
 
                 // CASO B: CHATS INDIVIDUALES
@@ -620,9 +669,36 @@ export const useSocketListeners = (
             }));
         });
 
+        // 🔥 Listener para mensajes individuales marcados como leídos
+        s.on("messageRead", (data) => {
+            updateMessage(data.messageId, (prev) => ({
+                isRead: true,
+                readBy: prev.readBy
+                    ? (prev.readBy.includes(data.readBy) ? prev.readBy : [...prev.readBy, data.readBy])
+                    : [data.readBy],
+                readAt: data.readAt
+            }));
+        });
+
+        // 🔥 Listener para mensajes de sala/grupo marcados como leídos
+        s.on("roomMessageRead", (data) => {
+            if (data.roomCode === currentRoomCodeRef.current) {
+                updateMessage(data.messageId, {
+                    isRead: true,
+                    readBy: data.readBy, // El backend envía el array completo
+                    readAt: data.readAt
+                });
+            }
+        });
+
         s.on("conversationRead", (data) => {
             if (data.messageIds) {
-                data.messageIds.forEach(id => updateMessage(id, { isRead: true, readBy: [data.readBy] }));
+                data.messageIds.forEach(id => updateMessage(id, (prev) => ({
+                    isRead: true,
+                    readBy: prev.readBy
+                        ? (prev.readBy.includes(data.readBy) ? prev.readBy : [...prev.readBy, data.readBy])
+                        : [data.readBy]
+                })));
             }
         });
 
@@ -679,6 +755,8 @@ export const useSocketListeners = (
             s.off('roomCreated');
             s.off('reactionUpdated');
             s.off('threadCountUpdated');
+            s.off('messageRead');
+            s.off('roomMessageRead');
             s.off('conversationRead');
             s.off('error');
             s.off('joinRoomError');
