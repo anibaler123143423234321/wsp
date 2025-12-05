@@ -84,13 +84,11 @@ export const useSocketListeners = (
         const s = socket;
 
         s.on('roomJoined', (data) => {
-            console.log('🏠 Room Joined:', data);
             chatState.setRoomUsers(data.users);
             chatState.setPinnedMessageId(data.pinnedMessageId || null);
         });
 
         s.on('messagePinned', (data) => {
-            console.log('📌 Message Pinned Event:', data);
             chatState.setPinnedMessageId(data.messageId);
         });
 
@@ -142,8 +140,6 @@ export const useSocketListeners = (
         // 3. MENSAJERÍA (CORE)
         // =====================================================
         s.on("message", (data) => {
-            console.log("📩 Mensaje recibido en frontend:", data);
-
             // Si es un mensaje de monitoreo, ignorarlo aquí
             if (data.isMonitoring) return;
 
@@ -442,7 +438,7 @@ export const useSocketListeners = (
         // El backend emite este evento cuando llega un nuevo mensaje a una conversación asignada
         s.on("assignedConversationUpdated", (data) => {
             console.log("💬 assignedConversationUpdated recibido:", data);
-            
+
             setAssignedConversations(prev => {
                 // Actualizar la conversación correspondiente
                 const updated = prev.map(conv => {
@@ -658,7 +654,35 @@ export const useSocketListeners = (
         });
 
         return () => {
-            // Cleanup si es necesario
+            // 🔥 CRÍTICO: Cleanup de TODOS los event listeners para evitar memory leaks
+            // Sin esto, cada re-render agrega nuevos listeners sin remover los anteriores
+            s.off('roomJoined');
+            s.off('messagePinned');
+            s.off('userList');
+            s.off('userListPage');
+            s.off('roomUsers');
+            s.off('userJoinedRoom');
+            s.off('message');
+            s.off('unreadCountUpdate');
+            s.off('assignedConversationUpdated');
+            s.off('unreadCountReset');
+            s.off('monitoringMessage');
+            s.off('messageDeleted');
+            s.off('messageEdited');
+            s.off('kicked');
+            s.off('roomDeactivated');
+            s.off('addedToRoom');
+            s.off('removedFromRoom');
+            s.off('newConversationAssigned');
+            s.off('userTyping');
+            s.off('roomTyping');
+            s.off('roomCreated');
+            s.off('reactionUpdated');
+            s.off('threadCountUpdated');
+            s.off('conversationRead');
+            s.off('error');
+            s.off('joinRoomError');
+            s.off('videoCallEnded');
         };
     }, [socket, username, user]); // 🔥 NO incluir soundsEnabled aquí para evitar re-registrar todos los listeners
 };

@@ -137,8 +137,8 @@ const ChatPage = () => {
 
     fetchUnreadCounts();
 
-    // Opcional: Polling cada 60 segundos para asegurar sincronización
-    const interval = setInterval(fetchUnreadCounts, 60000);
+    // 🚀 OPTIMIZADO: Polling cada 5 minutos como respaldo (WebSocket maneja tiempo real)
+    const interval = setInterval(fetchUnreadCounts, 300000);
     return () => clearInterval(interval);
   }, [username]);
 
