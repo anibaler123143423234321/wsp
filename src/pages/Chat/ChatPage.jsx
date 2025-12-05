@@ -912,6 +912,13 @@ const ChatPage = () => {
   // Definición de la función (ya la tienes)
   const handleReplyMessage = useCallback((message) => {
     chatState.setReplyingTo(message);
+    // 🔥 NUEVO: Hacer focus en el textarea después de establecer la respuesta
+    setTimeout(() => {
+      const textarea = document.querySelector('.message-input');
+      if (textarea) {
+        textarea.focus();
+      }
+    }, 100);
   }, [chatState]);
 
   // 🔥 AGREGAR ESTO: Exponer la función globalmente para ChatContent

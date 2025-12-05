@@ -60,8 +60,8 @@ class SystemNotifications {
 
         const notification = new Notification(title, {
             body: body,
-            icon: '/assets/login.png', // Cambia por tu logo si existe
-            badge: '/assets/login.png',
+            icon: '/assets/CHATICON0.svg', // Cambia por tu logo si existe
+            badge: '/assets/CHATICON0.svg',
             tag: options.tag || 'chat-notification',
             renotify: true,
             requireInteraction: false,
