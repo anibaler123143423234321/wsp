@@ -626,24 +626,23 @@ const ThreadPanel = ({
   };
 
   // 🔥 NUEVO: Reaccionar a mensaje
-  const handleReaction = async (messageId, emoji) => {
-    try {
-      if (!socket || !socket.connected) {
-        console.warn('Socket no conectado');
-        return;
-      }
-
-      socket.emit('addReaction', {
-        messageId,
-        emoji,
-        username: currentUsername,
-      });
-
-      setShowReactionPicker(null);
-    } catch (error) {
-      console.error('Error al agregar reacción:', error);
+  const handleReaction = (msg, emoji) => {
+    if (!socket || !socket.connected || !currentUsername) {
+      console.warn('Socket no conectado o usuario no identificado');
+      return;
     }
+
+    // 🔥 FIX: Usar 'toggleReaction' como en ChatContent
+    socket.emit("toggleReaction", {
+      messageId: msg.id,
+      username: currentUsername,
+      emoji: emoji,
+      roomCode: currentRoomCode, // 🔥 Incluir roomCode para hilos de grupo
+    });
+
+    setShowReactionPicker(null);
   };
+
 
   // 🔥 NUEVO: Responder a mensaje
   const handleReplyTo = (message) => {
@@ -1146,7 +1145,7 @@ const ThreadPanel = ({
                       <button
                         key={emoji}
                         className="reaction-emoji-btn"
-                        onClick={() => handleReaction(msg.id, emoji)}
+                        onClick={() => handleReaction(msg, emoji)}
                       >
                         {emoji}
                       </button>
