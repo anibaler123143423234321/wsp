@@ -1221,8 +1221,8 @@ class ApiService {
       return []; // Retornar array vacío en caso de error
     }
   }
-  // Obtener TODAS las conversaciones asignadas (solo para admin)
-  async getAllAssignedConversations() {
+  // Obtener TODAS las conversaciones asignadas (solo para admin) con paginación y búsqueda
+  async getAllAssignedConversations(page = 1, limit = 20, search = '') {
     try {
       // Obtener el usuario actual para calcular unreadCount correctamente
       const user = this.getCurrentUser();
@@ -1230,10 +1230,18 @@ class ApiService {
         ? `${user.nombre} ${user.apellido}`
         : (user?.username || user?.email);
 
-      // ✅ Pasar username como query param para calcular unreadCount correctamente
-      const url = displayName
-        ? `${this.baseChatUrl}api/temporary-conversations/all?username=${encodeURIComponent(displayName)}`
-        : `${this.baseChatUrl}api/temporary-conversations/all`;
+      // 🔥 IMPORTANTE: Enviar el rol del usuario para que el backend muestre todas las conversaciones a admins
+      const userRole = user?.role || '';
+
+      // ✅ Pasar username, role, search, page y limit como query params
+      let url = `${this.baseChatUrl}api/temporary-conversations/all`;
+      const params = [];
+      if (displayName) params.push(`username=${encodeURIComponent(displayName)}`);
+      if (userRole) params.push(`role=${encodeURIComponent(userRole)}`);
+      if (search) params.push(`search=${encodeURIComponent(search)}`);
+      params.push(`page=${page}`);
+      params.push(`limit=${limit}`);
+      if (params.length > 0) url += `?${params.join('&')}`;
 
       const response = await this.fetchWithAuth(url, {
         method: "GET",
@@ -1247,7 +1255,7 @@ class ApiService {
       }
 
       const result = await response.json();
-      return result;
+      return result; // { data: [], total, page, totalPages }
     } catch (error) {
       console.error("Error al obtener todas las conversaciones:", error);
       throw error;

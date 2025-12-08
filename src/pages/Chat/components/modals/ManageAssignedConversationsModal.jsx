@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { FaEdit, FaTrash, FaUsers, FaClock, FaCalendarAlt, FaClipboardList } from 'react-icons/fa';
+import { useState, useEffect, useCallback } from 'react';
+import { FaEdit, FaTrash, FaUsers, FaClock, FaCalendarAlt, FaClipboardList, FaSearch, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import BaseModal from './BaseModal';
 import './ManageAssignedConversationsModal.css';
 import apiService from "../../../../apiService";
@@ -14,25 +14,75 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
     description: ''
   });
 
+  // 🔥 Estados de paginación y búsqueda
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [searchTimeout, setSearchTimeout] = useState(null);
+  const ITEMS_PER_PAGE = 20;
+
   // Verificar si el usuario puede eliminar (solo ADMIN)
   const canDelete = currentUser?.role === 'ADMIN';
 
-  useEffect(() => {
-    if (show) {
-      loadConversations();
-    }
-  }, [show]);
-
-  const loadConversations = async () => {
+  // 🔥 Cargar conversaciones con paginación y búsqueda
+  const loadConversations = useCallback(async (page = 1, search = '') => {
     setLoading(true);
     try {
-      const data = await apiService.getAllAssignedConversations();
-      setConversations(data || []);
+      const result = await apiService.getAllAssignedConversations(page, ITEMS_PER_PAGE, search);
+      setConversations(result.data || []);
+      setCurrentPage(result.page || 1);
+      setTotalPages(result.totalPages || 1);
+      setTotal(result.total || 0);
     } catch (error) {
       console.error('Error al cargar conversaciones:', error);
       await showErrorAlert('Error', 'No se pudieron cargar las conversaciones asignadas');
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (show) {
+      setSearchTerm('');
+      setCurrentPage(1);
+      loadConversations(1, '');
+    }
+  }, [show, loadConversations]);
+
+  // 🔥 Búsqueda con debounce
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+
+    // Limpiar timeout anterior
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    // Crear nuevo timeout para buscar después de 500ms
+    const timeout = setTimeout(() => {
+      setCurrentPage(1);
+      loadConversations(1, value);
+    }, 500);
+
+    setSearchTimeout(timeout);
+  };
+
+  // 🔥 Navegación de páginas
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      const newPage = currentPage - 1;
+      setCurrentPage(newPage);
+      loadConversations(newPage, searchTerm);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      const newPage = currentPage + 1;
+      setCurrentPage(newPage);
+      loadConversations(newPage, searchTerm);
     }
   };
 
@@ -111,7 +161,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
         }
 
         await showSuccessAlert('¡Eliminado!', 'La conversación ha sido eliminada correctamente');
-        loadConversations();
+        loadConversations(currentPage, searchTerm);
         if (onConversationUpdated) {
           onConversationUpdated();
         }
@@ -125,7 +175,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
             'La conversación ya fue eliminada o no existe. Se actualizará la lista.'
           );
           // Recargar la lista para sincronizar con el backend
-          loadConversations();
+          loadConversations(currentPage, searchTerm);
           if (onConversationUpdated) {
             onConversationUpdated();
           }
@@ -146,7 +196,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
       try {
         await apiService.deactivateAssignedConversation(conv.id);
         await showSuccessAlert('¡Desactivado!', 'La conversación ha sido desactivada correctamente');
-        loadConversations();
+        loadConversations(currentPage, searchTerm);
         if (onConversationUpdated) {
           onConversationUpdated();
         }
@@ -167,7 +217,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
       try {
         await apiService.activateAssignedConversation(conv.id);
         await showSuccessAlert('¡Activado!', 'La conversación ha sido activada correctamente');
-        loadConversations();
+        loadConversations(currentPage, searchTerm);
         if (onConversationUpdated) {
           onConversationUpdated();
         }
@@ -219,6 +269,54 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
       titleColor="#FFFFFF"
       maxWidth="1000px"
     >
+      {/* 🔥 Barra de búsqueda y contador */}
+      <div style={{
+        padding: '16px 20px',
+        borderBottom: '1px solid #e0e0e0',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{
+          position: 'relative',
+          flex: '1',
+          minWidth: '200px'
+        }}>
+          <FaSearch style={{
+            position: 'absolute',
+            left: '12px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            color: '#999',
+            fontSize: '14px'
+          }} />
+          <input
+            type="text"
+            placeholder="Buscar por nombre o participante..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            style={{
+              width: '100%',
+              padding: '10px 12px 10px 38px',
+              border: '1px solid #ddd',
+              borderRadius: '8px',
+              fontSize: '14px',
+              outline: 'none',
+              transition: 'border-color 0.2s',
+            }}
+          />
+        </div>
+        <div style={{
+          color: '#666',
+          fontSize: '14px',
+          fontWeight: '500',
+          whiteSpace: 'nowrap'
+        }}>
+          {total} conversaciones
+        </div>
+      </div>
+
       {loading ? (
         <div className="loading-state">
           <div className="spinner"></div>
@@ -227,7 +325,9 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
       ) : conversations.length === 0 ? (
         <div className="empty-state">
           <FaUsers size={48} style={{ color: '#A50104' }} />
-          <p style={{ color: '#666666' }}>No hay conversaciones asignadas</p>
+          <p style={{ color: '#666666' }}>
+            {searchTerm ? 'No se encontraron conversaciones' : 'No hay conversaciones asignadas'}
+          </p>
         </div>
       ) : (
         <div className="conversations-list">
@@ -363,6 +463,71 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
         </div>
       )}
 
+      {/* 🔥 Paginación */}
+      {totalPages > 1 && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '16px',
+          padding: '16px',
+          borderTop: '1px solid #e0e0e0',
+          backgroundColor: '#f9f9f9'
+        }}>
+          <button
+            onClick={handlePrevPage}
+            disabled={currentPage === 1 || loading}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 16px',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              backgroundColor: currentPage === 1 ? '#f0f0f0' : '#fff',
+              color: currentPage === 1 ? '#999' : '#333',
+              cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+              fontSize: '14px',
+              fontWeight: '500',
+              transition: 'all 0.2s'
+            }}
+          >
+            <FaChevronLeft size={12} />
+            Anterior
+          </button>
+
+          <span style={{
+            color: '#666',
+            fontSize: '14px',
+            fontWeight: '500'
+          }}>
+            Página {currentPage} de {totalPages}
+          </span>
+
+          <button
+            onClick={handleNextPage}
+            disabled={currentPage === totalPages || loading}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 16px',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              backgroundColor: currentPage === totalPages ? '#f0f0f0' : '#fff',
+              color: currentPage === totalPages ? '#999' : '#333',
+              cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+              fontSize: '14px',
+              fontWeight: '500',
+              transition: 'all 0.2s'
+            }}
+          >
+            Siguiente
+            <FaChevronRight size={12} />
+          </button>
+        </div>
+      )}
+
       <div className="modal-footer" style={{ borderTop: '1px solid #e0e0e0', backgroundColor: '#FFFFFF' }}>
         <button className="btn-secondary" onClick={onClose}>
           Cerrar
@@ -373,4 +538,3 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
 };
 
 export default ManageAssignedConversationsModal;
-
