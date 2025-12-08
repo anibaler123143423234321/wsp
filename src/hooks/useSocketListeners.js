@@ -241,7 +241,7 @@ export const useSocketListeners = (
                                 { tag: `room-${data.roomCode}`, silent: !soundsEnabledRef.current },
                                 () => {
                                     window.dispatchEvent(new CustomEvent("navigateToRoom", {
-                                        detail: { roomCode: data.roomCode }
+                                        detail: { roomCode: data.roomCode, messageId: data.id }
                                     }));
                                 }
                             );
@@ -273,7 +273,7 @@ export const useSocketListeners = (
                         }).then((result) => {
                             if (result.isConfirmed) {
                                 window.dispatchEvent(new CustomEvent("navigateToRoom", {
-                                    detail: { roomCode: data.roomCode }
+                                    detail: { roomCode: data.roomCode, messageId: data.id }
                                 }));
                             }
                         });
@@ -347,7 +347,7 @@ export const useSocketListeners = (
                             { tag: `chat-${data.from}`, silent: !soundsEnabledRef.current },
                             () => {
                                 window.dispatchEvent(new CustomEvent("navigateToChat", {
-                                    detail: { to: data.from }
+                                    detail: { to: data.from, messageId: data.id }
                                 }));
                             }
                         );
@@ -378,7 +378,7 @@ export const useSocketListeners = (
                     }).then((result) => {
                         if (result.isConfirmed) {
                             window.dispatchEvent(new CustomEvent("navigateToChat", {
-                                detail: { to: data.from }
+                                detail: { to: data.from, messageId: data.id }
                             }));
                         }
                     });
@@ -633,8 +633,16 @@ export const useSocketListeners = (
 
             const currentTo = toRef.current?.toLowerCase().trim();
             const fromUser = data.from?.toLowerCase().trim();
+            const toUser = data.to?.toLowerCase().trim();
+            const currentUserFullName = currentUserFullNameRef.current?.toLowerCase().trim();
 
-            if (currentTo && fromUser === currentTo) {
+            // 🔥 FIX: Verificar que el typing sea:
+            // 1. DE la persona con la que estamos chateando (currentTo)
+            // 2. PARA el usuario actual (currentUserFullName)
+            const isFromCurrentChat = currentTo && fromUser === currentTo;
+            const isForMe = currentUserFullName && toUser === currentUserFullName;
+
+            if (isFromCurrentChat && isForMe) {
                 setTypingUser(data.isTyping ? { username: data.from } : null);
             }
         });

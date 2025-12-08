@@ -997,7 +997,58 @@ class ApiService {
     }
   }
 
-  // Obtener mensajes de un hilo
+  // 🔥 NUEVO: Obtener mensajes alrededor de un messageId específico (para jump-to-message en grupos)
+  async getMessagesAroundId(roomCode, messageId, limit = 30) {
+    try {
+      const response = await fetch(
+        `${this.baseChatUrl}api/messages/room/${roomCode}/around/${messageId}?limit=${limit}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `Error del servidor: ${response.status} - ${JSON.stringify(errorData)}`
+        );
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error al obtener mensajes alrededor del ID:", error);
+      throw error;
+    }
+  }
+
+  // 🔥 NUEVO: Obtener mensajes alrededor de un messageId para chats individuales
+  async getUserMessagesAroundId(from, to, messageId, limit = 30) {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/messages/user/${from}/${to}/around/${messageId}?limit=${limit}`,
+        {
+          method: "GET",
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `Error del servidor: ${response.status} - ${JSON.stringify(errorData)}`
+        );
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error al obtener mensajes de usuario alrededor del ID:", error);
+      throw error;
+    }
+  }
+
+
   async getThreadMessages(threadId, limit = 20, offset = 0) {
     try {
       const response = await fetch(

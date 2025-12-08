@@ -605,7 +605,7 @@ const ChatPage = () => {
     const { roomCode, messageId } = event.detail;
 
     // Buscar la sala en myActiveRooms
-    const room = myActiveRooms.find((r) => r.roomCode === roomCode);
+    const room = chatState.myActiveRooms.find((r) => r.roomCode === roomCode);
     if (room) {
       await handleRoomSelect(room, messageId);
     } else {
@@ -614,19 +614,20 @@ const ChatPage = () => {
   };
 
   const handleNavigateToGroup = async (event) => {
-    const { roomCode, groupName } = event.detail;
+    const { roomCode, groupName, messageId } = event.detail;
 
     // Buscar la sala en myActiveRooms
     let room = null;
 
     if (roomCode) {
-      room = myActiveRooms.find((r) => r.roomCode === roomCode);
+      room = chatState.myActiveRooms.find((r) => r.roomCode === roomCode);
     } else if (groupName) {
-      room = myActiveRooms.find((r) => r.name === groupName || r.roomCode === groupName);
+      room = chatState.myActiveRooms.find((r) => r.name === groupName || r.roomCode === groupName);
     }
 
     if (room) {
-      await handleRoomSelect(room);
+      // 🔥 Pasar messageId para hacer scroll al mensaje específico
+      await handleRoomSelect(room, messageId);
     } else {
       console.warn("Sala no encontrada en myActiveRooms:", { roomCode, groupName });
       // Intentar cargar las salas de nuevo
@@ -635,10 +636,10 @@ const ChatPage = () => {
   };
 
   const handleNavigateToChat = async (event) => {
-    const { username: targetUsername } = event.detail;
+    const { to: targetUsername, messageId } = event.detail;
 
     // Buscar en conversaciones asignadas
-    const conversation = assignedConversations.find((conv) => {
+    const conversation = chatState.assignedConversations.find((conv) => {
       return conv.participants && conv.participants.includes(targetUsername);
     });
 
@@ -655,7 +656,13 @@ const ChatPage = () => {
       setCurrentRoomCode(null);
       setAdminViewConversation(null);
     }
+
+    // 🔥 Si hay messageId, establecer para scroll después de cargar mensajes
+    if (messageId) {
+      setHighlightMessageId(messageId);
+    }
   };
+
 
   const normalizeUsername = (username) => {
     return (
@@ -667,7 +674,22 @@ const ChatPage = () => {
     );
   };
 
-  // Función para enviar mensaje principal
+  // 🔥 NUEVO: Registrar event listeners para navegación desde toasts
+  useEffect(() => {
+    window.addEventListener('navigateToRoom', handleNavigateToGroup);
+    window.addEventListener('navigateToChat', handleNavigateToChat);
+    window.addEventListener('navigateToGroup', handleNavigateToGroup);
+    window.addEventListener('navigateToMention', handleNavigateToMention);
+
+    return () => {
+      window.removeEventListener('navigateToRoom', handleNavigateToGroup);
+      window.removeEventListener('navigateToChat', handleNavigateToChat);
+      window.removeEventListener('navigateToGroup', handleNavigateToGroup);
+      window.removeEventListener('navigateToMention', handleNavigateToMention);
+    };
+  }, [chatState.myActiveRooms, chatState.assignedConversations]);
+
+
   const handleSendMessage = async () => {
     // 1. Prevenir envío si ya se está enviando o si está vacío
     if (chatState.isSending) return;
