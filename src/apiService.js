@@ -1314,7 +1314,7 @@ class ApiService {
   }
 
   // 🔥 NUEVO: Obtener conversaciones asignadas con paginación
-  async getAssignedConversationsPaginated(page = 1, limit = 10) {
+  async getAssignedConversationsPaginated(page = 1, limit = 10, search = '') {
     try {
       const user = this.getCurrentUser();
       const displayName = user?.nombre && user?.apellido
@@ -1325,12 +1325,17 @@ class ApiService {
         throw new Error('Usuario no encontrado');
       }
 
-      const response = await this.fetchWithAuth(
-        `${this.baseChatUrl}api/temporary-conversations/assigned/list?username=${encodeURIComponent(displayName)}&page=${page}&limit=${limit}`,
-        {
-          method: "GET",
-        }
-      );
+      // Construir URL con parámetros
+      let url = `${this.baseChatUrl}api/temporary-conversations/assigned/list?username=${encodeURIComponent(displayName)}&page=${page}&limit=${limit}`;
+
+      // 🔥 NUEVO: Agregar parámetro de búsqueda si existe
+      if (search && search.trim()) {
+        url += `&search=${encodeURIComponent(search.trim())}`;
+      }
+
+      const response = await this.fetchWithAuth(url, {
+        method: "GET",
+      });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -1348,7 +1353,7 @@ class ApiService {
   }
 
   // 🔥 NUEVO: Obtener salas del usuario con paginación
-  async getUserRoomsPaginated(page = 1, limit = 10) {
+  async getUserRoomsPaginated(page = 1, limit = 10, search = '') {
     try {
       const user = this.getCurrentUser();
       // 🔥 IMPORTANTE: Usar el displayName (nombre completo) porque el backend busca por displayName en los members
@@ -1360,19 +1365,17 @@ class ApiService {
         throw new Error('Usuario no encontrado');
       }
 
-      // console.log('🔍 getUserRoomsPaginated - Enviando request:', {
-      //   displayName,
-      //   userObject: user,
-      //   page,
-      //   limit,
-      // });
+      // Construir URL con parámetros
+      let url = `${this.baseChatUrl}api/temporary-rooms/user/list?username=${encodeURIComponent(displayName)}&page=${page}&limit=${limit}`;
 
-      const response = await this.fetchWithAuth(
-        `${this.baseChatUrl}api/temporary-rooms/user/list?username=${encodeURIComponent(displayName)}&page=${page}&limit=${limit}`,
-        {
-          method: "GET",
-        }
-      );
+      // 🔥 NUEVO: Agregar parámetro de búsqueda si existe
+      if (search && search.trim()) {
+        url += `&search=${encodeURIComponent(search.trim())}`;
+      }
+
+      const response = await this.fetchWithAuth(url, {
+        method: "GET",
+      });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -1382,7 +1385,6 @@ class ApiService {
       }
 
       const result = await response.json();
-      // console.log('✅ getUserRoomsPaginated - Respuesta recibida:', result);
       return result;
     } catch (error) {
       console.error("❌ Error al obtener salas del usuario paginadas:", error);

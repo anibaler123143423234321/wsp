@@ -142,12 +142,26 @@ const ThreadPanel = ({
       }
     };
 
+    // 🔥 NUEVO: Handler para actualizar reacciones en mensajes del hilo
+    const handleReactionUpdated = (data) => {
+      console.log('👍 ThreadPanel evento reactionUpdated:', data);
+      setThreadMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === data.messageId
+            ? { ...msg, reactions: data.reactions }
+            : msg
+        )
+      );
+    };
+
     socket.on("threadMessage", handleThreadMessage);
     socket.on("threadCountUpdated", handleThreadCountUpdated);
+    socket.on("reactionUpdated", handleReactionUpdated);
 
     return () => {
       socket.off("threadMessage", handleThreadMessage);
       socket.off("threadCountUpdated", handleThreadCountUpdated);
+      socket.off("reactionUpdated", handleReactionUpdated);
     };
   }, [socket, message?.id, currentUsername]);
 
@@ -960,6 +974,39 @@ const ThreadPanel = ({
                       (Mensaje vacío o archivo no soportado)
                     </span>
                   )}
+                </div>
+              )}
+
+              {/* 🔥 NUEVO: Mostrar reacciones (igual que en ChatContent) */}
+              {msg.reactions && msg.reactions.length > 0 && (
+                <div className="thread-reactions-row" style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
+                  {Object.entries(msg.reactions.reduce((acc, r) => {
+                    if (!acc[r.emoji]) acc[r.emoji] = [];
+                    acc[r.emoji].push(r.username);
+                    return acc;
+                  }, {})).map(([emoji, users]) => (
+                    <div
+                      key={emoji}
+                      className="reaction-pill"
+                      onClick={() => handleReaction(msg, emoji)}
+                      title={users.join(', ')}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '2px',
+                        padding: '2px 6px',
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #d1d7db',
+                        boxShadow: '0 1px 1px rgba(0, 0, 0, 0.05)',
+                      }}
+                    >
+                      <span style={{ fontSize: '14px' }}>{emoji}</span>
+                      <span style={{ fontSize: '10px', fontWeight: 'bold', marginLeft: '2px', color: '#54656f' }}>{users.length}</span>
+                    </div>
+                  ))}
                 </div>
               )}
 

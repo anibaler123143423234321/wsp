@@ -379,6 +379,20 @@ const ChatContent = ({
   }, [to, currentRoomCode, isGroup]);
 
   // ============================================================
+  // EFFECT - Autofocus en el input al entrar a un chat
+  // ============================================================
+  useEffect(() => {
+    // Si hay un chat abierto y el usuario puede enviar mensajes, hacer focus en el input
+    if (to && canSendMessages && inputRef.current) {
+      // Pequeño delay para asegurar que el DOM esté listo
+      const timeoutId = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [to, currentRoomCode, canSendMessages]);
+
+  // ============================================================
   // FUNCIONES AUXILIARES - Formateo de fechas
   // ============================================================
   const formatDateFromBackend = (messageOrDate) => {
@@ -898,7 +912,8 @@ const ChatContent = ({
 
     isUserScrollingRef.current = !isAtBottom;
 
-    if (chatHistory.scrollTop === 0 && hasMoreMessages && !isLoadingMore && onLoadMoreMessages) {
+    // Cargar más mensajes antiguos cuando el usuario llega al tope
+    if (chatHistory.scrollTop < 10 && hasMoreMessages && !isLoadingMore && onLoadMoreMessages) {
       previousScrollHeightRef.current = chatHistory.scrollHeight;
       onLoadMoreMessages();
     }
@@ -1732,11 +1747,11 @@ const ChatContent = ({
               <div className="thread-row-container">
 
                 {/* --- DEBUG: ESTO TE AYUDARÁ A VER SI LLEGAN DATOS EN LA CONSOLA --- */}
-                {console.log(`Mensaje ${message.id} Hilo:`, {
+                {/* console.log(`Mensaje ${message.id} Hilo:`, {
                   count: message.threadCount,
                   quien: message.lastReplyFrom,
                   tieneFoto: roomUsers?.find(u => u.username === message.lastReplyFrom)?.picture
-                })}
+                }) */}
 
                 {/* 1. EL BOTÓN DEL HILO */}
                 <div

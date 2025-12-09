@@ -250,6 +250,12 @@ const ConversationList = ({
   const [showGroups, setShowGroups] = useState(true);
   const [showAssigned, setShowAssigned] = useState(true);
   const searchTimeoutRef = useRef(null);
+  // 🔥 NUEVO: Estado para filtrar búsqueda por tipo
+  const [searchFilter, setSearchFilter] = useState('all'); // 'all', 'groups', 'favorites', 'assigned'
+  // 🔥 NUEVO: Estados para resultados de búsqueda desde la API
+  const [apiSearchResults, setApiSearchResults] = useState({ groups: [], assigned: [] });
+  const [isApiSearching, setIsApiSearching] = useState(false);
+  const apiSearchTimeoutRef = useRef(null);
 
   // 🔥 Estados locales para listas ordenadas (se actualizan automáticamente)
   const [sortedRooms, setSortedRooms] = useState([]);
@@ -405,8 +411,67 @@ const ConversationList = ({
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
       }
+      if (apiSearchTimeoutRef.current) {
+        clearTimeout(apiSearchTimeoutRef.current);
+      }
     };
   }, []);
+
+  // 🔥 NUEVO: Función para buscar en la API según el filtro seleccionado
+  const handleApiSearch = useCallback((searchValue, filterOverride = null) => {
+    if (apiSearchTimeoutRef.current) {
+      clearTimeout(apiSearchTimeoutRef.current);
+    }
+
+    // Si no hay término de búsqueda, limpiar resultados
+    if (!searchValue || searchValue.trim().length === 0) {
+      setApiSearchResults({ groups: [], assigned: [] });
+      setIsApiSearching(false);
+      return;
+    }
+
+    // Solo buscar si hay más de 2 caracteres
+    if (searchValue.trim().length < 2) {
+      return;
+    }
+
+    // Usar el filtro proporcionado o el estado actual
+    const currentFilter = filterOverride || searchFilter;
+
+    apiSearchTimeoutRef.current = setTimeout(async () => {
+      setIsApiSearching(true);
+      try {
+        const results = { groups: [], assigned: [] };
+
+        // Buscar grupos si el filtro es 'all' o 'groups'
+        if (currentFilter === 'all' || currentFilter === 'groups') {
+          try {
+            const groupsResult = await apiService.getUserRoomsPaginated(1, 50, searchValue);
+            results.groups = groupsResult?.rooms || [];
+          } catch (error) {
+            console.error('Error al buscar grupos:', error);
+          }
+        }
+
+        // Buscar asignados si el filtro es 'all' o 'assigned'
+        if (currentFilter === 'all' || currentFilter === 'assigned') {
+          try {
+            const assignedResult = await apiService.getAssignedConversationsPaginated(1, 50, searchValue);
+            results.assigned = assignedResult?.conversations || [];
+          } catch (error) {
+            console.error('Error al buscar asignados:', error);
+          }
+        }
+
+        setApiSearchResults(results);
+      } catch (error) {
+        console.error('Error al buscar:', error);
+        setApiSearchResults({ groups: [], assigned: [] });
+      } finally {
+        setIsApiSearching(false);
+      }
+    }, 500);
+  }, [searchFilter]);
 
   // --- FILTRADO DE CONVERSACIONES DIRECTAS (USUARIOS) ---
   const filteredConversations = userList?.filter(conversation => {
@@ -530,17 +595,27 @@ const ConversationList = ({
                 if (activeModule === 'chats' || activeModule === 'monitoring') {
                   setAssignedSearchTerm(value);
                   handleMessageSearch(value);
+                  handleApiSearch(value); // 🔥 NUEVO: Buscar en API
                 } else {
                   setSearchTerm(value);
                   handleMessageSearch(value);
+                  handleApiSearch(value); // 🔥 NUEVO: Buscar en API
                 }
               }}
             />
             {((activeModule === 'conversations' && searchTerm) || (activeModule === 'chats' && assignedSearchTerm) || (activeModule === 'monitoring' && assignedSearchTerm)) && (
               <button className="bg-transparent border-none text-gray-500 cursor-pointer p-0.5 flex items-center justify-center rounded-full transition-all duration-200 hover:bg-gray-200 hover:text-gray-800 active:scale-95 max-[1280px]:!text-xs max-[1024px]:!text-[11px] max-[1024px]:!p-0.5" style={{ fontSize: '12px' }}
                 onClick={() => {
-                  if (activeModule === 'chats' || activeModule === 'monitoring') { setAssignedSearchTerm(''); setMessageSearchResults([]); }
-                  else { setSearchTerm(''); setMessageSearchResults([]); }
+                  if (activeModule === 'chats' || activeModule === 'monitoring') {
+                    setAssignedSearchTerm('');
+                    setMessageSearchResults([]);
+                    setApiSearchResults({ groups: [], assigned: [] }); // 🔥 NUEVO: Limpiar resultados de API
+                  }
+                  else {
+                    setSearchTerm('');
+                    setMessageSearchResults([]);
+                    setApiSearchResults({ groups: [], assigned: [] }); // 🔥 NUEVO: Limpiar resultados de API
+                  }
                 }}
               >
                 <svg viewBox="0 0 24 24" fill="none" className="w-3.5 h-3.5"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -548,13 +623,40 @@ const ConversationList = ({
             )}
           </div>
           {(activeModule === 'conversations' || activeModule === 'chats' || activeModule === 'monitoring') && (
-            <div className="flex items-center gap-2 max-[1280px]:!mt-2 max-[1280px]:!gap-1.5 max-[1024px]:!mt-1.5 max-[1024px]:!gap-1" style={{ marginTop: '8px' }}>
-              <span className="text-gray-600 max-[1280px]:!text-sm max-[1024px]:!text-xs" style={{ fontWeight: 400, fontSize: '14px', lineHeight: '18px', color: 'rgba(0, 0, 0, 0.65)' }}>Ordenar por</span>
-              <select className="bg-transparent border-none text-[#33B8FF] cursor-pointer outline-none max-[1280px]:!text-sm max-[1024px]:!text-xs" style={{ fontWeight: 400, fontSize: '14px', lineHeight: '18px' }} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                <option value="newest">Newest</option>
-                <option value="oldest">Oldest</option>
-                <option value="name">Name</option>
-              </select>
+            <div className="flex items-center gap-4 flex-nowrap max-[1280px]:!gap-2 max-[1024px]:!gap-1.5" style={{ marginTop: '8px' }}>
+              {/* Ordenar por */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-gray-600 max-[1280px]:!text-sm max-[1024px]:!text-xs" style={{ fontWeight: 400, fontSize: '14px', lineHeight: '18px', color: 'rgba(0, 0, 0, 0.65)' }}>Ordenar por</span>
+                <select className="bg-transparent border-none text-[#33B8FF] cursor-pointer outline-none max-[1280px]:!text-sm max-[1024px]:!text-xs" style={{ fontWeight: 400, fontSize: '14px', lineHeight: '18px' }} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                  <option value="newest">Newest</option>
+                  <option value="oldest">Oldest</option>
+                  <option value="name">Name</option>
+                </select>
+              </div>
+              {/* Separador */}
+              <span className="text-gray-300">|</span>
+              {/* Filtrar por */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-gray-600 max-[1280px]:!text-sm max-[1024px]:!text-xs" style={{ fontWeight: 400, fontSize: '14px', lineHeight: '18px', color: 'rgba(0, 0, 0, 0.65)' }}>Filtrar</span>
+                <select
+                  className="bg-transparent border-none text-[#33B8FF] cursor-pointer outline-none max-[1280px]:!text-sm max-[1024px]:!text-xs"
+                  style={{ fontWeight: 400, fontSize: '14px', lineHeight: '18px' }}
+                  value={searchFilter}
+                  onChange={(e) => {
+                    const newFilter = e.target.value;
+                    setSearchFilter(newFilter);
+                    // 🔥 NUEVO: Re-ejecutar búsqueda con el nuevo filtro
+                    if (assignedSearchTerm.trim().length >= 2) {
+                      handleApiSearch(assignedSearchTerm, newFilter);
+                    }
+                  }}
+                >
+                  <option value="all">Todos</option>
+                  <option value="groups">Grupos</option>
+                  <option value="favorites">Favoritos</option>
+                  <option value="assigned">Asignados</option>
+                </select>
+              </div>
             </div>
           )}
         </div>
@@ -600,7 +702,7 @@ const ConversationList = ({
 
 
           {/* 0. SECCIÓN DE FAVORITOS - Siempre fijos arriba */}
-          {(favoriteRoomCodes.length > 0 || favoriteConversationIds.length > 0) && (
+          {(searchFilter === 'all' || searchFilter === 'favorites') && (favoriteRoomCodes.length > 0 || favoriteConversationIds.length > 0) && (
             <CollapsibleList
               title="FAVORITOS"
               icon={FaStar}
@@ -665,180 +767,243 @@ const ConversationList = ({
           )}
 
           {/* 1. SECCIÓN DE GRUPOS */}
-          <CollapsibleList
-            title="GRUPOS"
-            icon={Users}
-            isOpen={showGroups}
-            onToggle={() => setShowGroups(prev => !prev)}
-            defaultHeight={300}
-            maxHeight={350}
-            onLoadMore={() => {
-              if (onLoadUserRooms && roomsPage < roomsTotalPages) {
-                onLoadUserRooms(roomsPage + 1);
-              }
-            }}
-            hasMore={roomsPage < roomsTotalPages}
-            isLoading={roomsLoading}
-          >
-            {(() => {
-              if (!myActiveRooms || myActiveRooms.length === 0) {
-                return (
-                  <div className="flex flex-col items-center justify-center py-[60px] px-5 text-center">
-                    <div className="text-5xl mb-4 opacity-50">👥</div>
-                    <div className="text-sm text-gray-600 font-medium">No perteneces a un chat grupal aún</div>
-                  </div>
-                );
-              }
-              const filteredRooms = myActiveRooms
-                .filter(room => !favoriteRoomCodes.includes(room.roomCode)) // Excluir favoritos
-                .filter(room => assignedSearchTerm.trim() === '' || room.name.toLowerCase().includes(assignedSearchTerm.toLowerCase()) || room.roomCode.toLowerCase().includes(assignedSearchTerm.toLowerCase()));
+          {(searchFilter === 'all' || searchFilter === 'groups') && (
+            <CollapsibleList
+              title="GRUPOS"
+              icon={Users}
+              isOpen={showGroups}
+              onToggle={() => setShowGroups(prev => !prev)}
+              defaultHeight={300}
+              maxHeight={350}
+              onLoadMore={() => {
+                if (onLoadUserRooms && roomsPage < roomsTotalPages) {
+                  onLoadUserRooms(roomsPage + 1);
+                }
+              }}
+              hasMore={roomsPage < roomsTotalPages}
+              isLoading={roomsLoading}
+            >
+              {(() => {
+                // 🔥 NUEVO: Si hay búsqueda activa con resultados de API, usar esos resultados
+                const hasApiSearch = assignedSearchTerm.trim().length >= 2 && apiSearchResults.groups.length > 0;
 
-              return (
-                <>
-                  {filteredRooms.map((room) => {
-                    const typingUsers = roomTypingUsers[room.roomCode] || [];
-                    const isTypingInRoom = typingUsers.length > 0;
-                    const isFavorite = favoriteRoomCodes.includes(room.roomCode);
-                    const roomUnreadCount = unreadMessages?.[room.roomCode] !== undefined ? unreadMessages[room.roomCode] : (room.unreadCount || 0);
-
+                if (!myActiveRooms || myActiveRooms.length === 0) {
+                  if (!hasApiSearch) {
                     return (
-                      <div key={room.id} className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer max-[1280px]:!py-1.5 max-[1280px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!px-1.5 ${currentRoomCode === room.roomCode ? 'bg-[#e7f3f0]' : ''}`} style={{ padding: '4px 12px', gap: '6px', minHeight: '40px' }} onClick={() => onRoomSelect && onRoomSelect(room)}>
-                        <div className="relative flex-shrink-0 max-[1280px]:!w-8 max-[1280px]:!h-8 max-[1024px]:!w-7 max-[1024px]:!h-7" style={{ width: '32px', height: '32px' }}>
-                          <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold max-[1280px]:!text-sm max-[1024px]:!text-xs" style={{ width: '32px', height: '32px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '14px', backgroundColor: '#A50104' }}>
-                            {room.description ? (
-                              <img src={room.description} alt={room.name} className="w-full h-full object-cover" />
-                            ) : (
-                              "🏠"
-                            )}
-                          </div>
-                          {room.isActive && <div className="absolute bottom-0 right-0 rounded-full bg-white flex items-center justify-center" style={{ width: '12px', height: '12px', border: '2px solid white' }}><div className="rounded-full bg-green-500" style={{ width: '8px', height: '8px' }} /></div>}
-                        </div>
-                        <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px', display: isCompact ? 'none' : 'flex' }}>
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              {isFavorite && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-red-500" /> Fijado</span>}
-                              <h3 className="font-semibold text-[#111] truncate flex-1" style={{ fontSize: '11.5px', lineHeight: '14px', fontWeight: 600 }}>{room.name}</h3>
-                              {roomUnreadCount > 0 && <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center ml-2" style={{ minWidth: '18px', height: '18px', fontSize: '10px', fontWeight: 'bold', padding: roomUnreadCount > 99 ? '0 4px' : '0' }}>{roomUnreadCount > 99 ? '99+' : roomUnreadCount}</div>}
-                            </div>
-                            <button onClick={(e) => handleToggleFavorite(room, e)} className="flex-shrink-0 p-1 hover:bg-gray-200 rounded-full transition-colors" style={{ color: isFavorite ? '#ff453a' : '#9ca3af', fontSize: '16px' }}>{isFavorite ? <FaStar /> : <FaRegStar />}</button>
-                          </div>
-                          <div className="flex items-center justify-between gap-2">
-                            {isTypingInRoom ? (
-                              <p className="text-green-600 italic truncate flex items-center gap-1" style={{ fontSize: '11px', lineHeight: '14px', fontWeight: 400 }}>{typingUsers.length === 1 ? `${typingUsers[0].nombre && typingUsers[0].apellido ? `${typingUsers[0].nombre} ${typingUsers[0].apellido}` : (typingUsers[0].nombre || typingUsers[0].username)} está escribiendo...` : `${typingUsers.length} personas están escribiendo...`}</p>
-                            ) : (
-                              <p className="text-gray-600 truncate" style={{ fontSize: '11px', lineHeight: '14px', fontWeight: 400 }}>{isAdmin ? <>Código: {room.roomCode}</> : null}</p>)}
-                          </div>
-                        </div>
+                      <div className="flex flex-col items-center justify-center py-[60px] px-5 text-center">
+                        <div className="text-5xl mb-4 opacity-50">👥</div>
+                        <div className="text-sm text-gray-600 font-medium">No perteneces a un chat grupal aún</div>
                       </div>
                     );
-                  })}
-                </>
-              );
-            })()}
-          </CollapsibleList>
+                  }
+                }
+
+                // 🔥 NUEVO: Usar resultados de API si hay búsqueda, sino filtrar localmente
+                let filteredRooms;
+                if (hasApiSearch) {
+                  filteredRooms = apiSearchResults.groups.filter(room => !favoriteRoomCodes.includes(room.roomCode));
+                } else {
+                  filteredRooms = (myActiveRooms || [])
+                    .filter(room => !favoriteRoomCodes.includes(room.roomCode)) // Excluir favoritos
+                    .filter(room => assignedSearchTerm.trim() === '' || room.name.toLowerCase().includes(assignedSearchTerm.toLowerCase()) || room.roomCode.toLowerCase().includes(assignedSearchTerm.toLowerCase()));
+                }
+
+                // Mostrar indicador de búsqueda
+                if (isApiSearching && assignedSearchTerm.trim().length >= 2) {
+                  return (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="text-sm text-gray-500">Buscando grupos...</div>
+                    </div>
+                  );
+                }
+
+                // Mostrar mensaje si no hay resultados de búsqueda
+                if (hasApiSearch && filteredRooms.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center justify-center py-[40px] px-5 text-center">
+                      <div className="text-3xl mb-2 opacity-50">🔍</div>
+                      <div className="text-sm text-gray-600 font-medium">No se encontraron grupos para "{assignedSearchTerm}"</div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <>
+                    {filteredRooms.map((room) => {
+                      const typingUsers = roomTypingUsers[room.roomCode] || [];
+                      const isTypingInRoom = typingUsers.length > 0;
+                      const isFavorite = favoriteRoomCodes.includes(room.roomCode);
+                      const roomUnreadCount = unreadMessages?.[room.roomCode] !== undefined ? unreadMessages[room.roomCode] : (room.unreadCount || 0);
+
+                      return (
+                        <div key={room.id} className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer max-[1280px]:!py-1.5 max-[1280px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!px-1.5 ${currentRoomCode === room.roomCode ? 'bg-[#e7f3f0]' : ''}`} style={{ padding: '4px 12px', gap: '6px', minHeight: '40px' }} onClick={() => onRoomSelect && onRoomSelect(room)}>
+                          <div className="relative flex-shrink-0 max-[1280px]:!w-8 max-[1280px]:!h-8 max-[1024px]:!w-7 max-[1024px]:!h-7" style={{ width: '32px', height: '32px' }}>
+                            <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold max-[1280px]:!text-sm max-[1024px]:!text-xs" style={{ width: '32px', height: '32px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '14px', backgroundColor: '#A50104' }}>
+                              {room.description ? (
+                                <img src={room.description} alt={room.name} className="w-full h-full object-cover" />
+                              ) : (
+                                "🏠"
+                              )}
+                            </div>
+                            {room.isActive && <div className="absolute bottom-0 right-0 rounded-full bg-white flex items-center justify-center" style={{ width: '12px', height: '12px', border: '2px solid white' }}><div className="rounded-full bg-green-500" style={{ width: '8px', height: '8px' }} /></div>}
+                          </div>
+                          <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px', display: isCompact ? 'none' : 'flex' }}>
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                {isFavorite && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-red-500" /> Fijado</span>}
+                                <h3 className="font-semibold text-[#111] truncate flex-1" style={{ fontSize: '11.5px', lineHeight: '14px', fontWeight: 600 }}>{room.name}</h3>
+                                {roomUnreadCount > 0 && <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center ml-2" style={{ minWidth: '18px', height: '18px', fontSize: '10px', fontWeight: 'bold', padding: roomUnreadCount > 99 ? '0 4px' : '0' }}>{roomUnreadCount > 99 ? '99+' : roomUnreadCount}</div>}
+                              </div>
+                              <button onClick={(e) => handleToggleFavorite(room, e)} className="flex-shrink-0 p-1 hover:bg-gray-200 rounded-full transition-colors" style={{ color: isFavorite ? '#ff453a' : '#9ca3af', fontSize: '16px' }}>{isFavorite ? <FaStar /> : <FaRegStar />}</button>
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                              {isTypingInRoom ? (
+                                <p className="text-green-600 italic truncate flex items-center gap-1" style={{ fontSize: '11px', lineHeight: '14px', fontWeight: 400 }}>{typingUsers.length === 1 ? `${typingUsers[0].nombre && typingUsers[0].apellido ? `${typingUsers[0].nombre} ${typingUsers[0].apellido}` : (typingUsers[0].nombre || typingUsers[0].username)} está escribiendo...` : `${typingUsers.length} personas están escribiendo...`}</p>
+                              ) : (
+                                <p className="text-gray-600 truncate" style={{ fontSize: '11px', lineHeight: '14px', fontWeight: 400 }}>{isAdmin ? <>Código: {room.roomCode}</> : null}</p>)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                );
+              })()}
+            </CollapsibleList>
+          )}
 
           {/* 2. SECCIÓN DE ASIGNADOS */}
-          <CollapsibleList
-            title="ASIGNADOS"
-            icon={CommunityIcon}
-            isOpen={showAssigned}
-            onToggle={() => setShowAssigned(prev => !prev)}
-            onLoadMore={() => {
-              if (onLoadAssignedConversations && assignedPage < assignedTotalPages) {
-                onLoadAssignedConversations(assignedPage + 1);
-              }
-            }}
-            hasMore={assignedPage < assignedTotalPages}
-            isLoading={assignedLoading}
-            defaultHeight={250}
-          >
-            {(() => {
-              const myConversations = myAssignedConversations.filter(conv => !favoriteConversationIds.includes(conv.id)).filter(conv => {
-                if (!assignedSearchTerm.trim()) return true;
-                const searchLower = assignedSearchTerm.toLowerCase();
-                const participants = conv.participants || [];
-                return (conv.name?.toLowerCase().includes(searchLower) || participants.some(p => p?.toLowerCase().includes(searchLower)) || conv.lastMessage?.toLowerCase().includes(searchLower));
-              });
+          {(searchFilter === 'all' || searchFilter === 'assigned') && (
+            <CollapsibleList
+              title="ASIGNADOS"
+              icon={CommunityIcon}
+              isOpen={showAssigned}
+              onToggle={() => setShowAssigned(prev => !prev)}
+              onLoadMore={() => {
+                if (onLoadAssignedConversations && assignedPage < assignedTotalPages) {
+                  onLoadAssignedConversations(assignedPage + 1);
+                }
+              }}
+              hasMore={assignedPage < assignedTotalPages}
+              isLoading={assignedLoading}
+              defaultHeight={250}
+            >
+              {(() => {
+                // 🔥 NUEVO: Si hay búsqueda activa con resultados de API, usar esos resultados
+                const hasApiSearch = assignedSearchTerm.trim().length >= 2 && apiSearchResults.assigned.length > 0;
 
-              const sortedConversations = myConversations.sort((a, b) => {
-                const aIsFavorite = favoriteConversationIds.includes(a.id);
-                const bIsFavorite = favoriteConversationIds.includes(b.id);
-                if (aIsFavorite && !bIsFavorite) return -1;
-                if (!aIsFavorite && bIsFavorite) return 1;
-                if (sortBy === 'newest') return new Date(b.lastMessageTime || b.createdAt) - new Date(a.lastMessageTime || a.createdAt);
-                else if (sortBy === 'oldest') return new Date(a.lastMessageTime || a.createdAt) - new Date(b.lastMessageTime || b.createdAt);
-                else if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '');
-                return 0;
-              });
+                // Mostrar indicador de búsqueda
+                if (isApiSearching && assignedSearchTerm.trim().length >= 2) {
+                  return (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="text-sm text-gray-500">Buscando chats asignados...</div>
+                    </div>
+                  );
+                }
 
-              return myConversations.length > 0 ? (
-                <>
-                  {sortedConversations.map((conv) => {
+                // 🔥 NUEVO: Usar resultados de API si hay búsqueda, sino filtrar localmente
+                let myConversations;
+                if (hasApiSearch) {
+                  myConversations = apiSearchResults.assigned.filter(conv => !favoriteConversationIds.includes(conv.id));
+                } else {
+                  myConversations = myAssignedConversations.filter(conv => !favoriteConversationIds.includes(conv.id)).filter(conv => {
+                    if (!assignedSearchTerm.trim()) return true;
+                    const searchLower = assignedSearchTerm.toLowerCase();
                     const participants = conv.participants || [];
-                    const participant1Name = participants[0] || 'Usuario 1';
-                    const participant2Name = participants[1] || 'Usuario 2';
-                    const currentUserFullName = user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.username;
-                    let displayName = conv.name;
-                    let otherParticipantName = null;
-                    const currentUserNormalized = currentUserFullName?.toLowerCase().trim();
-                    const participant1Normalized = participant1Name?.toLowerCase().trim();
-                    const participant2Normalized = participant2Name?.toLowerCase().trim();
+                    return (conv.name?.toLowerCase().includes(searchLower) || participants.some(p => p?.toLowerCase().includes(searchLower)) || conv.lastMessage?.toLowerCase().includes(searchLower));
+                  });
+                }
 
-                    if (currentUserNormalized === participant1Normalized) { displayName = participant2Name; otherParticipantName = participant2Name; }
-                    else if (currentUserNormalized === participant2Normalized) { displayName = participant1Name; otherParticipantName = participant1Name; }
-                    else if (!conv.name) { displayName = `${participant1Name} ↔️ ${participant2Name}`; }
+                // Mostrar mensaje si no hay resultados de búsqueda
+                if (hasApiSearch && myConversations.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center justify-center py-[40px] px-5 text-center">
+                      <div className="text-3xl mb-2 opacity-50">🔍</div>
+                      <div className="text-sm text-gray-600 font-medium">No se encontraron chats asignados para "{assignedSearchTerm}"</div>
+                    </div>
+                  );
+                }
 
-                    let otherParticipantPicture = null;
-                    let isOtherParticipantOnline = false;
-                    if (otherParticipantName) {
-                      const otherParticipantNormalized = otherParticipantName?.toLowerCase().trim();
-                      const otherUser = userList.find(u => {
-                        const fullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : u.username;
-                        return fullName?.toLowerCase().trim() === otherParticipantNormalized;
-                      });
-                      if (otherUser) {
-                        otherParticipantPicture = otherUser.picture || null;
-                        isOtherParticipantOnline = otherUser.isOnline === true;
-                      } else {
-                        const cachedUser = userCache[otherParticipantNormalized];
-                        if (cachedUser) {
-                          otherParticipantPicture = cachedUser.picture || null;
-                          isOtherParticipantOnline = cachedUser.isOnline === true;
+                const sortedConversations = myConversations.sort((a, b) => {
+                  const aIsFavorite = favoriteConversationIds.includes(a.id);
+                  const bIsFavorite = favoriteConversationIds.includes(b.id);
+                  if (aIsFavorite && !bIsFavorite) return -1;
+                  if (!aIsFavorite && bIsFavorite) return 1;
+                  if (sortBy === 'newest') return new Date(b.lastMessageTime || b.createdAt) - new Date(a.lastMessageTime || a.createdAt);
+                  else if (sortBy === 'oldest') return new Date(a.lastMessageTime || a.createdAt) - new Date(b.lastMessageTime || b.createdAt);
+                  else if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '');
+                  return 0;
+                });
+
+                return myConversations.length > 0 ? (
+                  <>
+                    {sortedConversations.map((conv) => {
+                      const participants = conv.participants || [];
+                      const participant1Name = participants[0] || 'Usuario 1';
+                      const participant2Name = participants[1] || 'Usuario 2';
+                      const currentUserFullName = user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.username;
+                      let displayName = conv.name;
+                      let otherParticipantName = null;
+                      const currentUserNormalized = currentUserFullName?.toLowerCase().trim();
+                      const participant1Normalized = participant1Name?.toLowerCase().trim();
+                      const participant2Normalized = participant2Name?.toLowerCase().trim();
+
+                      if (currentUserNormalized === participant1Normalized) { displayName = participant2Name; otherParticipantName = participant2Name; }
+                      else if (currentUserNormalized === participant2Normalized) { displayName = participant1Name; otherParticipantName = participant1Name; }
+                      else if (!conv.name) { displayName = `${participant1Name} ↔️ ${participant2Name}`; }
+
+                      let otherParticipantPicture = null;
+                      let isOtherParticipantOnline = false;
+                      if (otherParticipantName) {
+                        const otherParticipantNormalized = otherParticipantName?.toLowerCase().trim();
+                        const otherUser = userList.find(u => {
+                          const fullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : u.username;
+                          return fullName?.toLowerCase().trim() === otherParticipantNormalized;
+                        });
+                        if (otherUser) {
+                          otherParticipantPicture = otherUser.picture || null;
+                          isOtherParticipantOnline = otherUser.isOnline === true;
+                        } else {
+                          const cachedUser = userCache[otherParticipantNormalized];
+                          if (cachedUser) {
+                            otherParticipantPicture = cachedUser.picture || null;
+                            isOtherParticipantOnline = cachedUser.isOnline === true;
+                          }
                         }
                       }
-                    }
-                    const getInitials = (name) => { const parts = name.split(' '); if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase(); return name[0]?.toUpperCase() || 'U'; };
-                    const isFavorite = favoriteConversationIds.includes(conv.id);
+                      const getInitials = (name) => { const parts = name.split(' '); if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase(); return name[0]?.toUpperCase() || 'U'; };
+                      const isFavorite = favoriteConversationIds.includes(conv.id);
 
-                    const itemUnreadCount = unreadMessages?.[conv.id] !== undefined ? unreadMessages[conv.id] : (conv.unreadCount || 0);
+                      const itemUnreadCount = unreadMessages?.[conv.id] !== undefined ? unreadMessages[conv.id] : (conv.unreadCount || 0);
 
-                    return (
-                      <div key={conv.id} className="flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group overflow-visible relative max-[1280px]:!py-1.5 max-[1280px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!px-1.5" style={{ padding: '4px 12px', gap: '6px', minHeight: '40px', display: 'flex', alignItems: 'flex-start', width: '100%', minWidth: 0, position: 'relative' }} onClick={() => { if (onUserSelect) onUserSelect(displayName, null, conv); }}>
-                        <div className="relative flex-shrink-0 max-[1280px]:!w-9 max-[1280px]:!h-9 max-[1024px]:!w-8 max-[1024px]:!h-8" style={{ width: '32px', height: '32px' }}>
-                          <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold max-[1280px]:!text-sm max-[1024px]:!text-xs" style={{ width: '32px', height: '32px', fontSize: '14px', backgroundColor: '#A50104' }}>
-                            {otherParticipantPicture ? <img src={otherParticipantPicture} alt={displayName} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = getInitials(displayName); }} /> : getInitials(displayName)}
-                          </div>
-                          <div className="absolute bottom-0 right-0 rounded-full border-2 border-white" style={{ width: '12px', height: '12px', backgroundColor: isOtherParticipantOnline ? '#10b981' : '#9ca3af' }} title={isOtherParticipantOnline ? 'En línea' : 'Desconectado'} />
-                        </div>
-                        <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px', display: isCompact ? 'none' : 'flex' }}>
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              {isFavorite && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px' }}><PinIcon size={10} className="text-red-500" /> Fijado</span>}
-                              <h3 className="font-semibold text-[#111] truncate flex-1" style={{ fontSize: '11.5px', fontWeight: 600 }}>{displayName}</h3>
-                              {itemUnreadCount > 0 && <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center ml-2" style={{ minWidth: '18px', height: '18px', fontSize: '10px', fontWeight: 'bold' }}>{itemUnreadCount > 99 ? '99+' : itemUnreadCount}</div>}
+                      return (
+                        <div key={conv.id} className="flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group overflow-visible relative max-[1280px]:!py-1.5 max-[1280px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!px-1.5" style={{ padding: '4px 12px', gap: '6px', minHeight: '40px', display: 'flex', alignItems: 'flex-start', width: '100%', minWidth: 0, position: 'relative' }} onClick={() => { if (onUserSelect) onUserSelect(displayName, null, conv); }}>
+                          <div className="relative flex-shrink-0 max-[1280px]:!w-9 max-[1280px]:!h-9 max-[1024px]:!w-8 max-[1024px]:!h-8" style={{ width: '32px', height: '32px' }}>
+                            <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold max-[1280px]:!text-sm max-[1024px]:!text-xs" style={{ width: '32px', height: '32px', fontSize: '14px', backgroundColor: '#A50104' }}>
+                              {otherParticipantPicture ? <img src={otherParticipantPicture} alt={displayName} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = getInitials(displayName); }} /> : getInitials(displayName)}
                             </div>
-                            <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-1 rounded-full hover:bg-gray-200 transition-all duration-200" style={{ color: isFavorite ? '#ff453a' : '#9ca3af' }}>{isFavorite ? <FaStar size={14} /> : <FaRegStar size={14} />}</button>
+                            <div className="absolute bottom-0 right-0 rounded-full border-2 border-white" style={{ width: '12px', height: '12px', backgroundColor: isOtherParticipantOnline ? '#10b981' : '#9ca3af' }} title={isOtherParticipantOnline ? 'En línea' : 'Desconectado'} />
                           </div>
-                          <p className="text-gray-500" style={{ fontSize: '10px' }}>{conv.updatedAt ? new Date(conv.updatedAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : ''}</p>
-                        </div>
+                          <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px', display: isCompact ? 'none' : 'flex' }}>
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                {isFavorite && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px' }}><PinIcon size={10} className="text-red-500" /> Fijado</span>}
+                                <h3 className="font-semibold text-[#111] truncate flex-1" style={{ fontSize: '11.5px', fontWeight: 600 }}>{displayName}</h3>
+                                {itemUnreadCount > 0 && <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center ml-2" style={{ minWidth: '18px', height: '18px', fontSize: '10px', fontWeight: 'bold' }}>{itemUnreadCount > 99 ? '99+' : itemUnreadCount}</div>}
+                              </div>
+                              <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-1 rounded-full hover:bg-gray-200 transition-all duration-200" style={{ color: isFavorite ? '#ff453a' : '#9ca3af' }}>{isFavorite ? <FaStar size={14} /> : <FaRegStar size={14} />}</button>
+                            </div>
+                            <p className="text-gray-500" style={{ fontSize: '10px' }}>{conv.updatedAt ? new Date(conv.updatedAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : ''}</p>
+                          </div>
 
-                      </div>
-                    );
-                  })}
-                </>
-              ) : (<div className="flex flex-col items-center justify-center py-[60px] px-5 text-center"><div className="text-5xl mb-4 opacity-50">👁️</div><div className="text-sm text-gray-600 font-medium">{assignedSearchTerm ? `No se encontraron resultados para "${assignedSearchTerm}"` : 'No hay chats asignados'}</div></div>);
-            })()}
-          </CollapsibleList>
+                        </div>
+                      );
+                    })}
+                  </>
+                ) : (<div className="flex flex-col items-center justify-center py-[60px] px-5 text-center"><div className="text-5xl mb-4 opacity-50">👁️</div><div className="text-sm text-gray-600 font-medium">{assignedSearchTerm ? `No se encontraron resultados para "${assignedSearchTerm}"` : 'No hay chats asignados'}</div></div>);
+              })()}
+            </CollapsibleList>
+          )}
 
 
         </div >
