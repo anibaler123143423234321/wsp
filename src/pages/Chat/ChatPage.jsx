@@ -607,7 +607,7 @@ const ChatPage = () => {
     // Buscar la sala en myActiveRooms
     const room = chatState.myActiveRooms.find((r) => r.roomCode === roomCode);
     if (room) {
-      await handleRoomSelect(room, messageId);
+      await roomManagement.handleRoomSelect(room, messageId);
     } else {
       console.error("Sala no encontrada:", roomCode);
     }
@@ -627,11 +627,11 @@ const ChatPage = () => {
 
     if (room) {
       // 🔥 Pasar messageId para hacer scroll al mensaje específico
-      await handleRoomSelect(room, messageId);
+      await roomManagement.handleRoomSelect(room, messageId);
     } else {
       console.warn("Sala no encontrada en myActiveRooms:", { roomCode, groupName });
       // Intentar cargar las salas de nuevo
-      await loadMyActiveRooms(1, false);
+      await roomManagement.loadMyActiveRooms(1, false);
     }
   };
 

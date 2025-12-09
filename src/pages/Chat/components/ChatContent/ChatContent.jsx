@@ -3299,8 +3299,6 @@ const ChatContent = ({
         onClose={() => setImagePreview(null)}
         onDownload={handleDownload}
       />
-      {/* Toolbar de selección múltiple */}
-      {console.log('🔍 Checking toolbar:', { isSelectionMode, selectedMessages })}
       {
         isSelectionMode && (
           <MessageSelectionManager

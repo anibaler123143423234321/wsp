@@ -10,7 +10,8 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
   const [error, setError] = useState(null); // 🔥 Estado de error
 
   const currentOffset = useRef(0);
-  const MESSAGES_PER_PAGE = 10; // 🔥 Revertir a 10 como pidió el usuario
+  const initialLoadComplete = useRef(false); // 🔥 Prevenir carga inmediata post-inicial
+  const MESSAGES_PER_PAGE = 10;
 
   // Cargar mensajes iniciales (más recientes)
   const loadInitialMessages = useCallback(async () => {
@@ -23,13 +24,14 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     setError(null); // 🔥 Resetear error
     setHasMoreMessages(true); // 🔥 IMPORTANTE: Resetear estado de "más mensajes"
     currentOffset.current = 0;
+    initialLoadComplete.current = false; // 🔥 Evitar carga inmediata de más mensajes
 
     try {
-      let historicalMessages;
+      let response;
 
       if (isGroup) {
         // 🔥 Cargar mensajes de sala/grupo ordenados por ID (para evitar problemas con sentAt corrupto)
-        historicalMessages = await apiService.getRoomMessagesOrderedById(
+        response = await apiService.getRoomMessagesOrderedById(
           roomCode,
           MESSAGES_PER_PAGE,
           0,
@@ -37,7 +39,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         );
       } else {
         // 🔥 Cargar mensajes entre usuarios ordenados por ID (para evitar problemas con sentAt corrupto)
-        historicalMessages = await apiService.getUserMessagesOrderedById(
+        response = await apiService.getUserMessagesOrderedById(
           username,
           to,
           MESSAGES_PER_PAGE,
@@ -51,11 +53,16 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         // (esto se hace en ChatPage.jsx cuando se cargan los mensajes iniciales)
       }
 
+      // 🔥 NUEVO: Manejar respuesta paginada del backend
+      // El backend ahora puede devolver { data, total, hasMore, page, totalPages } o un array directamente
+      const historicalMessages = Array.isArray(response) ? response : (response?.data || []);
+      const backendHasMore = response?.hasMore;
+
       // Verificar si hay error en la respuesta
       if (
-        historicalMessages.statusCode &&
-        (historicalMessages.statusCode === 500 ||
-          historicalMessages.statusCode === 503)
+        response.statusCode &&
+        (response.statusCode === 500 ||
+          response.statusCode === 503)
       ) {
         setMessages([]);
         setHasMoreMessages(false);
@@ -119,8 +126,10 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       setMessages(formattedMessages);
       currentOffset.current = MESSAGES_PER_PAGE;
 
-      // Si recibimos menos mensajes de los esperados, no hay más mensajes
-      if (historicalMessages.length < MESSAGES_PER_PAGE) {
+      // 🔥 MEJORADO: Usar hasMore del backend si está disponible, sino estimar
+      if (backendHasMore !== undefined) {
+        setHasMoreMessages(backendHasMore);
+      } else if (historicalMessages.length < MESSAGES_PER_PAGE) {
         setHasMoreMessages(false);
       }
     } catch (error) {
@@ -130,6 +139,10 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       setError("No se pudieron cargar los mensajes. Verifica tu conexión."); // 🔥 Setear error
     } finally {
       setIsLoading(false);
+      // 🔥 Esperar 500ms antes de permitir cargar más mensajes (evita doble carga)
+      setTimeout(() => {
+        initialLoadComplete.current = true;
+      }, 500);
     }
   }, [roomCode, username, to, isGroup]);
 
@@ -139,16 +152,16 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     if (isGroup && !roomCode) return;
     if (!isGroup && !to) return;
     if (!hasMoreMessages || isLoadingMore) return;
+    if (!initialLoadComplete.current) return; // 🔥 Esperar a que termine la carga inicial
 
     setIsLoadingMore(true);
 
     try {
-      let historicalMessages;
+      let response;
 
       if (isGroup) {
         // 🔥 Cargar más mensajes de sala/grupo ordenados por ID
-        // console.log(`📥 Cargando más mensajes (Grupo) - Offset: ${currentOffset.current}, Room: ${roomCode}`);
-        historicalMessages = await apiService.getRoomMessagesOrderedById(
+        response = await apiService.getRoomMessagesOrderedById(
           roomCode,
           MESSAGES_PER_PAGE,
           currentOffset.current,
@@ -156,7 +169,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         );
       } else {
         // 🔥 Cargar más mensajes entre usuarios ordenados por ID
-        historicalMessages = await apiService.getUserMessagesOrderedById(
+        response = await apiService.getUserMessagesOrderedById(
           username,
           to,
           MESSAGES_PER_PAGE,
@@ -166,11 +179,15 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         );
       }
 
+      // 🔥 NUEVO: Manejar respuesta paginada del backend
+      const historicalMessages = Array.isArray(response) ? response : (response?.data || []);
+      const backendHasMore = response?.hasMore;
+
       // Verificar si hay error en la respuesta
       if (
-        historicalMessages.statusCode &&
-        (historicalMessages.statusCode === 500 ||
-          historicalMessages.statusCode === 503)
+        response.statusCode &&
+        (response.statusCode === 500 ||
+          response.statusCode === 503)
       ) {
         console.warn("⚠️ Error del servidor al cargar más mensajes");
         setHasMoreMessages(false);
@@ -243,8 +260,10 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       });
       currentOffset.current += MESSAGES_PER_PAGE;
 
-      // Si recibimos menos mensajes de los esperados, no hay más mensajes
-      if (historicalMessages.length < MESSAGES_PER_PAGE) {
+      // 🔥 MEJORADO: Usar hasMore del backend si está disponible, sino estimar
+      if (backendHasMore !== undefined) {
+        setHasMoreMessages(backendHasMore);
+      } else if (historicalMessages.length < MESSAGES_PER_PAGE) {
         setHasMoreMessages(false);
       }
     } catch (error) {
