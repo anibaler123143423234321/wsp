@@ -111,16 +111,21 @@ export const useSocketListeners = (
 
         // 🚀 NUEVO: Listener para actualizaciones de estado de usuario (ligero)
         // Este evento reemplaza los broadcasts masivos cuando alguien se conecta/desconecta
+        // 🚀 NUEVO: Listener para actualizaciones de estado de usuario (ligero)
+        // Este evento reemplaza los broadcasts masivos cuando alguien se conecta/desconecta
         s.on("userStatusChanged", (data) => {
             const { username: changedUser, isOnline, nombre, apellido } = data;
+            const changedUserLower = changedUser?.toLowerCase().trim();
 
             setUserList((prev) => {
-                // Buscar si el usuario ya existe en la lista
+                // Buscar si el usuario ya existe en la lista (Case Insensitive)
                 const existingIndex = prev.findIndex(u => {
-                    const fullName = u.nombre && u.apellido
-                        ? `${u.nombre} ${u.apellido}`
-                        : u.username;
-                    return fullName === changedUser || u.username === changedUser;
+                    const uUsername = u.username?.toLowerCase().trim();
+                    const uNombre = u.nombre?.toLowerCase().trim();
+                    const uApellido = u.apellido?.toLowerCase().trim();
+                    const fullName = (uNombre && uApellido) ? `${uNombre} ${uApellido}` : uUsername;
+
+                    return fullName === changedUserLower || uUsername === changedUserLower;
                 });
 
                 if (existingIndex >= 0) {
@@ -131,14 +136,19 @@ export const useSocketListeners = (
                         isOnline
                     };
                     return updated;
-                } else if (isOnline && nombre && apellido) {
-                    // Usuario nuevo conectado: agregarlo a la lista
-                    return [...prev, {
-                        username: changedUser,
-                        nombre,
-                        apellido,
-                        isOnline: true
-                    }];
+                } else {
+                    // 🔥 CRÍTICO: Si el usuario no está en la lista visible, PERO recibimos el evento,
+                    // debemos agregarlo o al menos disparar una actualización para que el caché global (ConversationList)
+                    // se entere del cambio.
+                    // Si tenemos datos mínimos (nombre/apellido O username), lo agregamos.
+                    if (nombre || apellido || changedUser) {
+                        return [...prev, {
+                            username: changedUser,
+                            nombre: nombre || changedUser,
+                            apellido: apellido || "",
+                            isOnline // 🔥 Importante: Respetar el estado que llega (sea true O false)
+                        }];
+                    }
                 }
                 return prev;
             });

@@ -1300,8 +1300,13 @@ const ChatPage = () => {
       clearInput();
       chatState.setReplyingTo(null);
 
+      // 🔥 DEBUG: Confirmar desconexión del socket
       if (socket) {
+        console.log('🔥 handleLogout: Desconectando socket...', socket.connected);
         socket.disconnect();
+        console.log('🔥 handleLogout: Socket desconectado:', socket.connected);
+      } else {
+        console.log('⚠️ handleLogout: Socket no existe');
       }
 
       logout();
