@@ -11,7 +11,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
 
   const currentOffset = useRef(0);
   const initialLoadComplete = useRef(false); // 🔥 Prevenir carga inmediata post-inicial
-  const MESSAGES_PER_PAGE = 10;
+  const MESSAGES_PER_PAGE = 15; // 🚀 Sincronizado con backend
 
   // Cargar mensajes iniciales (más recientes)
   const loadInitialMessages = useCallback(async () => {
@@ -139,10 +139,10 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       setError("No se pudieron cargar los mensajes. Verifica tu conexión."); // 🔥 Setear error
     } finally {
       setIsLoading(false);
-      // 🔥 Esperar 500ms antes de permitir cargar más mensajes (evita doble carga)
+      // 🚀 OPTIMIZADO: Reducido de 500ms a 200ms para carga más rápida
       setTimeout(() => {
         initialLoadComplete.current = true;
-      }, 500);
+      }, 200);
     }
   }, [roomCode, username, to, isGroup]);
 
