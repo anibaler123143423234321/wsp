@@ -773,18 +773,16 @@ const ChatPage = () => {
         });
       }
 
-      // 8. UI Update
-      if (!effectiveIsGroup) {
-        addNewMessage({
-          ...messageObj,
-          id: savedMessage.id,
-          sender: "Tú",
-          realSender: currentUserFullName,
-          isSent: true,
-          isSelf: true,
-          time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-        });
-      }
+      // 8. UI Update - Siempre agregar localmente para feedback inmediato
+      addNewMessage({
+        ...messageObj,
+        id: savedMessage.id,
+        sender: "Tú",
+        realSender: currentUserFullName,
+        isSent: true,
+        isSelf: true,
+        time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+      });
 
       clearInput();
       chatState.setReplyingTo(null);

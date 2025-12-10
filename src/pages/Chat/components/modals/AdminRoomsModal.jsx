@@ -15,9 +15,9 @@ const AdminRoomsModal = ({ isOpen, onClose, onDeleteRoom, onDeactivateRoom, onAc
   const itemsPerPage = 5;
   const searchTimeoutRef = useRef(null);
 
-  // Verificar si el usuario puede eliminar (solo ADMIN)
-  const canDelete = currentUser?.role === 'ADMIN';
-  const canEdit = currentUser?.role === 'ADMIN' || currentUser?.role === 'JEFEPISO';
+  // Verificar si el usuario puede eliminar (solo ADMIN y SUPERADMIN)
+  const canDelete = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPERADMIN';
+  const canEdit = ['ADMIN', 'SUPERADMIN', 'PROGRAMADOR'].includes(currentUser?.role);
 
   // Cargar salas desde el backend
   const loadRooms = async (page = 1, search = '') => {
@@ -234,126 +234,122 @@ const AdminRoomsModal = ({ isOpen, onClose, onDeleteRoom, onDeactivateRoom, onAc
             ))}
           </div>
 
-          {/* Paginación */}
+          {/* Paginación Compacta */}
           {totalPages > 1 && (
             <div style={{
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
-              gap: '10px',
-              padding: '20px',
+              gap: '8px',
+              padding: '16px 20px',
               borderTop: '1px solid #e0e0e0',
-              marginTop: '20px'
+              marginTop: '12px'
             }}>
+              {/* Primera página */}
               <button
-                onClick={() => goToPage(currentPage - 1)}
+                onClick={() => goToPage(1)}
                 disabled={currentPage === 1}
+                title="Primera página"
                 style={{
-                  padding: '8px 12px',
+                  width: '34px',
+                  height: '34px',
                   border: '1px solid #d1d7db',
                   borderRadius: '6px',
-                  backgroundColor: currentPage === 1 ? '#f5f5f5' : '#FFFFFF',
-                  color: currentPage === 1 ? '#999999' : '#000000',
+                  backgroundColor: currentPage === 1 ? '#f5f5f5' : '#fff',
+                  color: currentPage === 1 ? '#bbb' : '#555',
                   cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '5px',
+                  justifyContent: 'center',
                   fontSize: '14px',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  if (currentPage !== 1) {
-                    e.target.style.backgroundColor = '#f5f5f5';
-                    e.target.style.borderColor = '#A50104';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (currentPage !== 1) {
-                    e.target.style.backgroundColor = '#FFFFFF';
-                    e.target.style.borderColor = '#d1d7db';
-                  }
+                  fontWeight: 'bold',
+                  transition: 'all 0.15s'
                 }}
               >
-                <FaChevronLeft size={12} />
-                Anterior
+                «
               </button>
 
-              <div style={{
-                display: 'flex',
-                gap: '5px',
-                alignItems: 'center'
-              }}>
-                {[...Array(totalPages)].map((_, index) => {
-                  const pageNum = index + 1;
-                  const isCurrentPage = pageNum === currentPage;
+              {/* Anterior */}
+              <button
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                title="Página anterior"
+                style={{
+                  width: '34px',
+                  height: '34px',
+                  border: '1px solid #d1d7db',
+                  borderRadius: '6px',
+                  backgroundColor: currentPage === 1 ? '#f5f5f5' : '#fff',
+                  color: currentPage === 1 ? '#bbb' : '#555',
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.15s'
+                }}
+              >
+                <FaChevronLeft size={11} />
+              </button>
 
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => goToPage(pageNum)}
-                      style={{
-                        padding: '8px 12px',
-                        border: '1px solid',
-                        borderColor: isCurrentPage ? '#A50104' : '#d1d7db',
-                        borderRadius: '6px',
-                        backgroundColor: isCurrentPage ? '#A50104' : '#FFFFFF',
-                        color: isCurrentPage ? '#FFFFFF' : '#000000',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        fontWeight: isCurrentPage ? 'bold' : 'normal',
-                        minWidth: '40px',
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isCurrentPage) {
-                          e.target.style.backgroundColor = '#f5f5f5';
-                          e.target.style.borderColor = '#A50104';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isCurrentPage) {
-                          e.target.style.backgroundColor = '#FFFFFF';
-                          e.target.style.borderColor = '#d1d7db';
-                        }
-                      }}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
+              {/* Indicador de página */}
+              <div style={{
+                padding: '8px 20px',
+                backgroundColor: '#A50104',
+                color: '#fff',
+                borderRadius: '6px',
+                fontSize: '13px',
+                fontWeight: '600',
+                textAlign: 'center',
+                userSelect: 'none',
+                whiteSpace: 'nowrap'
+              }}>
+                Página {currentPage} de {totalPages}
               </div>
 
+              {/* Siguiente */}
               <button
                 onClick={() => goToPage(currentPage + 1)}
                 disabled={currentPage === totalPages}
+                title="Página siguiente"
                 style={{
-                  padding: '8px 12px',
+                  width: '34px',
+                  height: '34px',
                   border: '1px solid #d1d7db',
                   borderRadius: '6px',
-                  backgroundColor: currentPage === totalPages ? '#f5f5f5' : '#FFFFFF',
-                  color: currentPage === totalPages ? '#999999' : '#000000',
+                  backgroundColor: currentPage === totalPages ? '#f5f5f5' : '#fff',
+                  color: currentPage === totalPages ? '#bbb' : '#555',
                   cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '5px',
-                  fontSize: '14px',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  if (currentPage !== totalPages) {
-                    e.target.style.backgroundColor = '#f5f5f5';
-                    e.target.style.borderColor = '#A50104';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (currentPage !== totalPages) {
-                    e.target.style.backgroundColor = '#FFFFFF';
-                    e.target.style.borderColor = '#d1d7db';
-                  }
+                  justifyContent: 'center',
+                  transition: 'all 0.15s'
                 }}
               >
-                Siguiente
-                <FaChevronRight size={12} />
+                <FaChevronRight size={11} />
+              </button>
+
+              {/* Última página */}
+              <button
+                onClick={() => goToPage(totalPages)}
+                disabled={currentPage === totalPages}
+                title="Última página"
+                style={{
+                  width: '34px',
+                  height: '34px',
+                  border: '1px solid #d1d7db',
+                  borderRadius: '6px',
+                  backgroundColor: currentPage === totalPages ? '#f5f5f5' : '#fff',
+                  color: currentPage === totalPages ? '#bbb' : '#555',
+                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  transition: 'all 0.15s'
+                }}
+              >
+                »
               </button>
             </div>
           )}
