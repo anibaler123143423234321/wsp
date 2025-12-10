@@ -698,7 +698,7 @@ const ChatPage = () => {
     chatState.setIsSending(true);
 
     try {
-      // 2. Normalización (Ahora funcionará porque moviste la función arriba)
+      // 2. Normalización
       const currentUserNormalized = normalizeUsername(currentUserFullName);
 
       // 3. Verificar si es chat asignado
@@ -716,7 +716,6 @@ const ChatPage = () => {
         try {
           chatState.setIsUploadingFile(true);
           const file = mediaFiles[0];
-          // Asegúrate de importar apiService arriba
           const uploadResult = await apiService.uploadFile(file, "chat");
           attachmentData = {
             mediaType: file.type.split("/")[0],
@@ -734,7 +733,6 @@ const ChatPage = () => {
 
       // 5. Construir mensaje
       const messageObj = {
-        id: `temp_${Date.now()}`,
         from: currentUserFullName,
         fromId: user.id,
         to: chatState.to,
@@ -758,39 +756,36 @@ const ChatPage = () => {
         if (other) messageObj.actualRecipient = other;
       }
 
-      // 6. Guardar en BD
-      const savedMessage = await apiService.createMessage({
-        ...messageObj,
-        to: messageObj.actualRecipient || messageObj.to
-      });
-
-      // 7. Emitir por Socket
-      if (socket && socket.connected) {
-        socket.emit("message", {
+      // 🔥 DIFERENCIA CLAVE: Para GRUPOS, el backend guarda. Para INDIVIDUALES, el frontend guarda.
+      if (effectiveIsGroup) {
+        // GRUPO: Solo emitir por socket, el backend guarda y emite de vuelta
+        if (socket && socket.connected) {
+          socket.emit("message", messageObj);
+        }
+      } else {
+        // INDIVIDUAL: Frontend guarda en BD, luego emite por socket
+        const savedMessage = await apiService.createMessage({
           ...messageObj,
-          id: savedMessage.id,
-          sentAt: savedMessage.sentAt
+          to: messageObj.actualRecipient || messageObj.to
         });
+
+        if (socket && socket.connected) {
+          socket.emit("message", {
+            ...messageObj,
+            id: savedMessage.id,
+            sentAt: savedMessage.sentAt
+          });
+        }
       }
 
-      // 8. UI Update - Siempre agregar localmente para feedback inmediato
-      addNewMessage({
-        ...messageObj,
-        id: savedMessage.id,
-        sender: "Tú",
-        realSender: currentUserFullName,
-        isSent: true,
-        isSelf: true,
-        time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-      });
+      // 🔥 CONFIAR EN EL BACKEND - No agregar mensaje localmente
+      // El socket devolverá el mensaje con el evento 'message' (useSocketListeners lo manejará)
 
       clearInput();
       chatState.setReplyingTo(null);
-      playMessageSound(chatState.soundsEnabled);
 
     } catch (error) {
       console.error("Error enviando mensaje:", error);
-      // await showErrorAlert("Error", "No se pudo enviar el mensaje.");
     } finally {
       chatState.setIsSending(false);
       chatState.setIsUploadingFile(false);
@@ -956,94 +951,73 @@ const ChatPage = () => {
   const handleSendVoiceMessage = useCallback(async (audioFile) => {
     if (!audioFile || !chatState.to) return;
 
-    // 1. URL LOCAL: Para mostrarlo en tu chat inmediatamente sin esperar subida
-    const localAudioUrl = URL.createObjectURL(audioFile);
-
     try {
-      // 🔥 CORREGIDO: Determinar correctamente si estamos en grupo o chat asignado
+      // Determinar correctamente si estamos en grupo o chat asignado
       const currentUserNormalized = normalizeUsername(currentUserFullName);
 
-      // Buscar si el chat actual es una conversación asignada
       const assignedConv = chatState.assignedConversations?.find((conv) => {
         const participants = conv.participants || [];
         return participants.some(p => normalizeUsername(p) === normalizeUsername(chatState.to));
       });
 
-      // 🔥 Si es grupo, SIEMPRE es grupo (no importa si hay conversación asignada)
+      // Si es grupo, SIEMPRE es grupo
       const effectiveIsGroup = chatState.isGroup;
 
-      // 2. Objeto PRELIMINAR (UI inmediata)
-      const tempMessageObj = {
-        id: `msg_${Date.now()}`,
+      // 1. Subir archivo al servidor
+      const uploadResult = await apiService.uploadFile(audioFile, "chat");
+
+      // 2. Preparar objeto del mensaje
+      const messageData = {
         to: chatState.to,
         isGroup: effectiveIsGroup,
         from: currentUserFullName,
         fromId: user.id,
         mediaType: "audio",
-        mediaData: localAudioUrl,
-        fileName: "audio-mensaje.webm",
-        fileSize: audioFile.size,
-        message: "",
-        roomCode: effectiveIsGroup ? chatState.currentRoomCode : undefined,
-        isSent: false // Marcado como "enviando..."
-      };
-
-      // Agregar visualmente al chat (feedback inmediato)
-      addNewMessage({
-        ...tempMessageObj,
-        sender: "Tú",
-        realSender: currentUserFullName,
-        isSelf: true,
-        time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-      });
-
-      // 3. 🚀 SUBIR ARCHIVO AL SERVIDOR
-      const uploadResult = await apiService.uploadFile(audioFile, "chat");
-
-      // 4. Preparar objeto FINAL (con URL real del servidor)
-      const finalMessageData = {
-        ...tempMessageObj,
-        mediaData: uploadResult.fileUrl, // <--- URL REAL QUE VIENE DEL BACKEND
+        mediaData: uploadResult.fileUrl,
         fileName: uploadResult.fileName,
-        isSent: true
+        fileSize: uploadResult.fileSize,
+        message: "",
+        roomCode: effectiveIsGroup ? chatState.currentRoomCode : undefined
       };
 
       // Datos extra para asignados
       if (assignedConv) {
-        finalMessageData.isAssignedConversation = true;
-        finalMessageData.conversationId = assignedConv.id;
-        finalMessageData.participants = assignedConv.participants;
+        messageData.isAssignedConversation = true;
+        messageData.conversationId = assignedConv.id;
+        messageData.participants = assignedConv.participants;
         const other = assignedConv.participants.find(p => normalizeUsername(p) !== currentUserNormalized);
-        if (other) finalMessageData.actualRecipient = other;
+        if (other) messageData.actualRecipient = other;
       }
 
-      // 5. 🔥🔥🔥 GUARDAR EN BASE DE DATOS (ESTO FALTABA) 🔥🔥🔥
-      // Sin esto, al dar F5 el mensaje desaparece.
-      const savedMessage = await apiService.createMessage({
-        ...finalMessageData,
-        // Aseguramos que el 'to' sea correcto para el backend
-        to: finalMessageData.actualRecipient || finalMessageData.to
-      });
+      // 🔥 DIFERENCIA CLAVE: Para GRUPOS, el backend guarda. Para INDIVIDUALES, el frontend guarda.
+      if (effectiveIsGroup) {
+        // GRUPO: Solo emitir por socket, el backend guarda y emite de vuelta
+        if (socket && socket.connected) {
+          socket.emit("message", messageData);
+        }
+      } else {
+        // INDIVIDUAL: Frontend guarda en BD, luego emite por socket
+        const savedMessage = await apiService.createMessage({
+          ...messageData,
+          to: messageData.actualRecipient || messageData.to
+        });
 
-      // 6. Actualizar el ID temporal con el ID real de la base de datos
-      finalMessageData.id = savedMessage.id;
-      finalMessageData.sentAt = savedMessage.sentAt;
-
-      // 7. Emitir al socket (para que el otro lo vea en tiempo real)
-      if (socket && socket.connected) {
-        socket.emit("message", finalMessageData);
+        if (socket && socket.connected) {
+          socket.emit("message", {
+            ...messageData,
+            id: savedMessage.id,
+            sentAt: savedMessage.sentAt
+          });
+        }
       }
 
-      playMessageSound(chatState.soundsEnabled);
-
-      // Opcional: Actualizar el mensaje local con la URL real (para liberar memoria del blob local)
-      // updateMessage(`msg_${Date.now()}`, { mediaData: uploadResult.fileUrl });
+      // 🔥 CONFIAR EN EL BACKEND - No agregar mensaje localmente
 
     } catch (error) {
       console.error("Error enviando audio:", error);
       showErrorAlert("Error", "No se pudo enviar el audio.");
     }
-  }, [chatState, username, user, socket, addNewMessage, playMessageSound, currentUserFullName]);
+  }, [chatState, user, socket, currentUserFullName]);
 
   // Función para enviar mensaje en hilo
   const handleSendThreadMessage = useCallback(async (messageData) => {

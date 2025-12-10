@@ -701,8 +701,16 @@ export const useSocketListeners = (
                 if (!isChatOpen) {
                     playMessageSound(soundsEnabledRef.current);
 
+                    // Buscar nombre del grupo usando REF
+                    let groupName = 'Grupo';
+                    if (data.isGroup && data.roomCode) {
+                        const rooms = myActiveRoomsRef.current;
+                        const foundRoom = rooms.find(r => r.roomCode === data.roomCode);
+                        groupName = foundRoom?.roomName || foundRoom?.name || foundRoom?.groupName || data.roomName || data.roomCode;
+                    }
+
                     const notificationTitle = data.isGroup
-                        ? `Nueva respuesta en hilo - ${data.roomCode || 'Grupo'}`
+                        ? `Nueva respuesta en hilo - ${groupName}`
                         : `Nueva respuesta en hilo`;
 
                     if (systemNotifications.canShow()) {

@@ -12,11 +12,11 @@ const AdminRoomsModal = ({ isOpen, onClose, onDeleteRoom, onDeactivateRoom, onAc
   const [totalRooms, setTotalRooms] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(false);
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
   const searchTimeoutRef = useRef(null);
 
-  // Verificar si el usuario puede eliminar (solo ADMIN y SUPERADMIN)
-  const canDelete = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPERADMIN';
+  // Verificar si el usuario puede eliminar (solo ADMIN, SUPERADMIN y PROGRAMADOR)
+  const canDelete = ['ADMIN', 'SUPERADMIN', 'PROGRAMADOR'].includes(currentUser?.role);
   const canEdit = ['ADMIN', 'SUPERADMIN', 'PROGRAMADOR'].includes(currentUser?.role);
 
   // Cargar salas desde el backend

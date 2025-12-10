@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { FaEdit, FaTrash, FaUsers, FaClock, FaCalendarAlt, FaClipboardList, FaSearch, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import BaseModal from './BaseModal';
 import './ManageAssignedConversationsModal.css';
+import './Modal.css';
 import apiService from "../../../../apiService";
 import { showSuccessAlert, showErrorAlert, showConfirmAlert } from "../../../../sweetalert2";
 
@@ -20,10 +21,10 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [searchTimeout, setSearchTimeout] = useState(null);
-  const ITEMS_PER_PAGE = 20;
+  const ITEMS_PER_PAGE = 10;
 
-  // Verificar si el usuario puede eliminar (solo ADMIN)
-  const canDelete = currentUser?.role === 'ADMIN';
+  // Verificar si el usuario puede eliminar (ADMIN, SUPERADMIN, PROGRAMADOR)
+  const canDelete = ['ADMIN', 'SUPERADMIN', 'PROGRAMADOR'].includes(currentUser?.role);
 
   // 🔥 Cargar conversaciones con paginación y búsqueda
   const loadConversations = useCallback(async (page = 1, search = '') => {
@@ -72,17 +73,19 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
   // 🔥 Navegación de páginas
   const handlePrevPage = () => {
     if (currentPage > 1) {
-      const newPage = currentPage - 1;
-      setCurrentPage(newPage);
-      loadConversations(newPage, searchTerm);
+      loadConversations(currentPage - 1, searchTerm);
     }
   };
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
-      const newPage = currentPage + 1;
-      setCurrentPage(newPage);
-      loadConversations(newPage, searchTerm);
+      loadConversations(currentPage + 1, searchTerm);
+    }
+  };
+
+  const goToPage = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      loadConversations(page, searchTerm);
     }
   };
 
@@ -270,25 +273,21 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
       maxWidth="1000px"
     >
       {/* 🔥 Barra de búsqueda y contador */}
+      {/* 🔥 Barra de búsqueda y contador (Estilo Compacto) */}
       <div style={{
-        padding: '16px 20px',
-        borderBottom: '1px solid #e0e0e0',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '16px',
-        flexWrap: 'wrap'
+        marginBottom: '20px',
+        padding: '0 20px',
+        paddingTop: '20px'
       }}>
         <div style={{
           position: 'relative',
-          flex: '1',
-          minWidth: '200px'
+          display: 'flex',
+          alignItems: 'center'
         }}>
           <FaSearch style={{
             position: 'absolute',
             left: '12px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            color: '#999',
+            color: '#666666',
             fontSize: '14px'
           }} />
           <input
@@ -296,25 +295,33 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
             placeholder="Buscar por nombre o participante..."
             value={searchTerm}
             onChange={handleSearchChange}
+            disabled={loading}
+            autoComplete="off"
             style={{
               width: '100%',
-              padding: '10px 12px 10px 38px',
-              border: '1px solid #ddd',
+              padding: '10px 10px 10px 40px',
+              border: '1px solid #d1d7db',
               borderRadius: '8px',
               fontSize: '14px',
+              backgroundColor: loading ? '#f5f5f5' : '#FFFFFF',
+              color: '#000000',
               outline: 'none',
               transition: 'border-color 0.2s',
+              cursor: loading ? 'not-allowed' : 'text'
             }}
+            onFocus={(e) => !loading && (e.target.style.borderColor = '#A50104')}
+            onBlur={(e) => e.target.style.borderColor = '#d1d7db'}
           />
         </div>
-        <div style={{
-          color: '#666',
-          fontSize: '14px',
-          fontWeight: '500',
-          whiteSpace: 'nowrap'
-        }}>
-          {total} conversaciones
-        </div>
+        {!loading && (
+          <div style={{
+            marginTop: '8px',
+            fontSize: '13px',
+            color: '#666666'
+          }}>
+            {total} {total === 1 ? 'conversación encontrada' : 'conversaciones encontradas'}
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -330,29 +337,28 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
           </p>
         </div>
       ) : (
-        <div className="conversations-list">
+        <div className="rooms-list">
           {conversations.map((conv) => (
-            <div key={conv.id} className="conversation-card" style={{ backgroundColor: '#f9f9f9', border: '1px solid #e0e0e0' }}>
+            <div key={conv.id} className="room-item" style={{ backgroundColor: '#f5f5f5', border: '1px solid #e0e0e0' }}>
               {editingConv === conv.id ? (
-                // Modo edición
-                <div className="edit-mode">
+                // Modo edición (Mantenemos el estilo de formulario pero dentro del item)
+                <div className="edit-mode" style={{ width: '100%', padding: '10px' }}>
                   <div className="form-group">
-                    <label style={{ color: '#000000' }}>Nombre de la conversación</label>
+                    <label style={{ color: '#000000' }}>Nombre</label>
                     <input
                       type="text"
                       value={editForm.name}
                       onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                      placeholder="Nombre de la conversación"
+                      placeholder="Nombre"
                       style={{ backgroundColor: '#FFFFFF', color: '#000000', border: '1px solid #d1d7db' }}
                     />
                   </div>
                   <div className="form-group">
-                    <label style={{ color: '#000000' }}>Descripción (opcional)</label>
+                    <label style={{ color: '#000000' }}>Descripción</label>
                     <textarea
                       value={editForm.description}
                       onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                      placeholder="Descripción de la conversación"
-                      rows="3"
+                      rows="2"
                       style={{ backgroundColor: '#FFFFFF', color: '#000000', border: '1px solid #d1d7db' }}
                     />
                   </div>
@@ -366,95 +372,77 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
                   </div>
                 </div>
               ) : (
-                // Modo vista
+                // Modo vista (Compacto estilo AdminRooms)
                 <>
-                  <div className="conversation-header">
-                    <h3 style={{ color: '#000000' }}>
+                  <div className="room-info">
+                    <div className="room-name" style={{ color: '#000000', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       {conv.name}
                       {!conv.isActive && (
-                        <span style={{ marginLeft: '10px', fontSize: '12px', color: '#999', fontWeight: 'normal' }}>
-                          (Inactiva)
+                        <span style={{ fontSize: '11px', color: '#999', fontWeight: 'normal' }}>(Inactiva)</span>
+                      )}
+                    </div>
+
+                    <div className="room-details">
+                      <span className="room-code" style={{ backgroundColor: '#e0e0e0', color: '#000000' }} title="Participantes">
+                        <FaUsers size={10} style={{ marginRight: '4px' }} />
+                        {conv.participants?.length || 0}
+                      </span>
+
+                      <span className={`room-status ${formatExpiration(conv.expiresAt).className}`} style={{ fontSize: '10px' }}>
+                        {formatExpiration(conv.expiresAt).text}
+                      </span>
+
+                      {conv.description && (
+                        <span style={{ color: '#666', fontStyle: 'italic', maxWidth: '200px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                          {conv.description}
                         </span>
                       )}
-                    </h3>
-                    <div className="conversation-actions">
-                      <button
-                        className="action-btn edit-btn"
-                        onClick={() => handleEdit(conv)}
-                        title="Editar"
-                      >
-                        <FaEdit />
-                      </button>
-                      {canDelete && conv.isActive && (
-                        <button
-                          className="action-btn"
-                          onClick={() => handleDeactivate(conv)}
-                          title="Desactivar"
-                          style={{ color: '#f59e0b' }}
-                        >
-                          ⏸️
-                        </button>
-                      )}
-                      {canDelete && !conv.isActive && (
-                        <button
-                          className="action-btn"
-                          onClick={() => handleActivate(conv)}
-                          title="Activar"
-                          style={{ color: '#10b981' }}
-                        >
-                          ▶️
-                        </button>
-                      )}
-                      {canDelete && (
-                        <button
-                          className="action-btn delete-btn"
-                          onClick={() => handleDelete(conv)}
-                          title="Eliminar permanentemente"
-                        >
-                          <FaTrash />
-                        </button>
-                      )}
+
+                      <span style={{ color: '#666' }}>
+                        {formatDate(conv.createdAt)}
+                      </span>
                     </div>
                   </div>
 
-                  {conv.description && (
-                    <p className="conversation-description" style={{ color: '#666666' }}>{conv.description}</p>
-                  )}
-
-                  <div className="conversation-info">
-                    <div className="info-item">
-                      <FaUsers style={{ color: '#A50104' }} />
-                      <span style={{ color: '#000000' }}>Participantes:</span>
-                      <div className="participants">
-                        {conv.participants?.map((participant, idx) => {
-                          // Función para extraer solo los primeros nombres
-                          const getShortName = (fullName) => {
-                            const parts = fullName.split(' ');
-                            return parts.length > 2 ? `${parts[0]} ${parts[1]}` : parts[0];
-                          };
-
-                          return (
-                            <span key={idx} className="participant-badge" title={participant}>
-                              {getShortName(participant)}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    <div className="info-item">
-                      <FaCalendarAlt style={{ color: '#A50104' }} />
-                      <span style={{ color: '#000000' }}>Creada:</span>
-                      <span className="date" style={{ color: '#666666' }}>{formatDate(conv.createdAt)}</span>
-                    </div>
-
-                    <div className="info-item">
-                      <FaClock style={{ color: '#A50104' }} />
-                      <span style={{ color: '#000000' }}>Estado:</span>
-                      <span className={`status ${formatExpiration(conv.expiresAt).className}`}>
-                        {formatExpiration(conv.expiresAt).text}
-                      </span>
-                    </div>
+                  <div className="room-actions">
+                    <button
+                      className="btn btn-edit" // Usando estilo de Modal.css
+                      onClick={() => handleEdit(conv)}
+                      title="Editar"
+                      style={{ padding: '6px 10px' }}
+                    >
+                      <FaEdit />
+                    </button>
+                    {canDelete && conv.isActive && (
+                      <button
+                        className="btn btn-warning"
+                        onClick={() => handleDeactivate(conv)}
+                        title="Desactivar"
+                        style={{ padding: '6px 10px' }}
+                      >
+                        ⏸️
+                      </button>
+                    )}
+                    {canDelete && !conv.isActive && (
+                      <button
+                        className="btn btn-success"
+                        onClick={() => handleActivate(conv)}
+                        title="Activar"
+                        style={{ padding: '6px 10px' }}
+                      >
+                        ▶️
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        className="btn btn-danger"
+                        onClick={() => handleDelete(conv)}
+                        title="Eliminar"
+                        style={{ padding: '6px 10px' }}
+                      >
+                        <FaTrash />
+                      </button>
+                    )}
                   </div>
                 </>
               )}
@@ -463,70 +451,136 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
         </div>
       )}
 
-      {/* 🔥 Paginación */}
+      {/* 🔥 Paginación Compacta */}
       {totalPages > 1 && (
         <div style={{
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          gap: '16px',
-          padding: '16px',
+          gap: '8px',
+          padding: '16px 20px',
           borderTop: '1px solid #e0e0e0',
-          backgroundColor: '#f9f9f9'
+          marginTop: '12px'
         }}>
+          {/* Primera página */}
           <button
-            onClick={handlePrevPage}
-            disabled={currentPage === 1 || loading}
+            onClick={() => goToPage(1)}
+            disabled={currentPage === 1}
+            title="Primera página"
             style={{
+              width: '34px',
+              height: '34px',
+              border: '1px solid #d1d7db',
+              borderRadius: '6px',
+              backgroundColor: currentPage === 1 ? '#f5f5f5' : '#fff',
+              color: currentPage === 1 ? '#bbb' : '#555',
+              cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              padding: '8px 16px',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              backgroundColor: currentPage === 1 ? '#f0f0f0' : '#fff',
-              color: currentPage === 1 ? '#999' : '#333',
-              cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+              justifyContent: 'center',
               fontSize: '14px',
-              fontWeight: '500',
-              transition: 'all 0.2s'
+              fontWeight: 'bold',
+              transition: 'all 0.15s'
             }}
           >
-            <FaChevronLeft size={12} />
-            Anterior
+            «
           </button>
 
-          <span style={{
-            color: '#666',
-            fontSize: '14px',
-            fontWeight: '500'
-          }}>
-            Página {currentPage} de {totalPages}
-          </span>
-
+          {/* Anterior */}
           <button
-            onClick={handleNextPage}
-            disabled={currentPage === totalPages || loading}
+            onClick={() => goToPage(currentPage - 1)}
+            disabled={currentPage === 1}
+            title="Página anterior"
             style={{
+              width: '34px',
+              height: '34px',
+              border: '1px solid #d1d7db',
+              borderRadius: '6px',
+              backgroundColor: currentPage === 1 ? '#f5f5f5' : '#fff',
+              color: currentPage === 1 ? '#bbb' : '#555',
+              cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              padding: '8px 16px',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              backgroundColor: currentPage === totalPages ? '#f0f0f0' : '#fff',
-              color: currentPage === totalPages ? '#999' : '#333',
-              cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              transition: 'all 0.2s'
+              justifyContent: 'center',
+              transition: 'all 0.15s'
             }}
           >
-            Siguiente
-            <FaChevronRight size={12} />
+            <FaChevronLeft size={11} />
+          </button>
+
+          {/* Indicador de página */}
+          <div style={{
+            padding: '8px 20px',
+            backgroundColor: '#A50104',
+            color: '#fff',
+            borderRadius: '6px',
+            fontSize: '13px',
+            fontWeight: '600',
+            textAlign: 'center',
+            userSelect: 'none',
+            whiteSpace: 'nowrap'
+          }}>
+            Página {currentPage} de {totalPages}
+          </div>
+
+          {/* Siguiente */}
+          <button
+            onClick={() => goToPage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            title="Página siguiente"
+            style={{
+              width: '34px',
+              height: '34px',
+              border: '1px solid #d1d7db',
+              borderRadius: '6px',
+              backgroundColor: currentPage === totalPages ? '#f5f5f5' : '#fff',
+              color: currentPage === totalPages ? '#bbb' : '#555',
+              cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.15s'
+            }}
+          >
+            <FaChevronRight size={11} />
+          </button>
+
+          {/* Última página */}
+          <button
+            onClick={() => goToPage(totalPages)}
+            disabled={currentPage === totalPages}
+            title="Última página"
+            style={{
+              width: '34px',
+              height: '34px',
+              border: '1px solid #d1d7db',
+              borderRadius: '6px',
+              backgroundColor: currentPage === totalPages ? '#f5f5f5' : '#fff',
+              color: currentPage === totalPages ? '#bbb' : '#555',
+              cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              transition: 'all 0.15s'
+            }}
+          >
+            »
           </button>
         </div>
       )}
+
+      {/* Info de paginación */}
+      <div style={{
+        textAlign: 'center',
+        padding: '10px 20px',
+        fontSize: '13px',
+        color: '#666666',
+        borderTop: totalPages > 1 ? 'none' : '1px solid #e0e0e0'
+      }}>
+        Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, total)} de {total} {total === 1 ? 'conversación' : 'conversaciones'}
+      </div>
 
       <div className="modal-footer" style={{ borderTop: '1px solid #e0e0e0', backgroundColor: '#FFFFFF' }}>
         <button className="btn-secondary" onClick={onClose}>

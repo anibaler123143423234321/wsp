@@ -3,6 +3,8 @@
  * Similar a WhatsApp Desktop - muestra notificaciones cuando estás en otra app
  */
 
+import chatIcon from '../assets/CHATICON0.svg';
+
 class SystemNotifications {
     constructor() {
         this.isWindowFocused = document.hasFocus();
@@ -60,8 +62,8 @@ class SystemNotifications {
 
         const notification = new Notification(title, {
             body: body,
-            icon: '/assets/CHATICON0.svg', // Cambia por tu logo si existe
-            badge: '/assets/CHATICON0.svg',
+            icon: chatIcon,
+            badge: chatIcon,
             tag: options.tag || 'chat-notification',
             renotify: true,
             requireInteraction: false,

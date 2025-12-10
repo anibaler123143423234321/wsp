@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { FaBars, FaStar, FaRegStar, FaChevronDown, FaChevronRight, FaChevronLeft } from 'react-icons/fa';
 import { MessageSquare, Home, Users } from 'lucide-react';
 import clsx from 'clsx';
@@ -244,6 +244,7 @@ const ConversationList = ({
   const [isSearching, setIsSearching] = useState(false);
   const conversationsListRef = useRef(null);
   const [favoriteRoomCodes, setFavoriteRoomCodes] = useState([]);
+  const [favoriteRooms, setFavoriteRooms] = useState([]); // 🔥 NUEVO: Grupos favoritos con datos completos
   const [favoriteConversationIds, setFavoriteConversationIds] = useState([]);
   const [userCache, setUserCache] = useState({});
   const [messageSearchResults, setMessageSearchResults] = useState([]);
@@ -251,7 +252,7 @@ const ConversationList = ({
   const [showAssigned, setShowAssigned] = useState(true);
   const searchTimeoutRef = useRef(null);
   // 🔥 NUEVO: Estado para filtrar búsqueda por tipo
-  const [searchFilter, setSearchFilter] = useState('all'); // 'all', 'groups', 'favorites', 'assigned'
+  const [searchFilter, setSearchFilter] = useState('select_option'); // 'select_option', 'groups', 'favorites', 'assigned', 'messages'
   // 🔥 NUEVO: Estados para resultados de búsqueda desde la API
   const [apiSearchResults, setApiSearchResults] = useState({ groups: [], assigned: [] });
   const [isApiSearching, setIsApiSearching] = useState(false);
@@ -321,12 +322,18 @@ const ConversationList = ({
       const displayName = getDisplayName();
       if (!displayName || !isMounted) return;
 
-      if (favoriteRoomCodes.length > 0 && favoriteConversationIds.length > 0) return;
-
+      // 🔥 Siempre recargar favoritos para mantener sincronizado
       try {
-        const roomCodes = await apiService.getUserFavoriteRoomCodes(displayName);
-        if (isMounted) setFavoriteRoomCodes(roomCodes);
+        // console.log('🔥 Cargando favoritos para:', displayName);
+        // Cargar grupos favoritos con datos completos
+        const roomsWithData = await apiService.getUserFavoriteRoomsWithData(displayName);
+        // console.log('🔥 Favoritos cargados:', roomsWithData);
+        if (isMounted) {
+          setFavoriteRooms(roomsWithData);
+          setFavoriteRoomCodes(roomsWithData.map(r => r.roomCode));
+        }
 
+        // Cargar IDs de conversaciones favoritas
         const conversationIds = await apiService.getUserFavoriteConversationIds(displayName);
         if (isMounted) setFavoriteConversationIds(conversationIds);
       } catch (error) {
@@ -344,9 +351,13 @@ const ConversationList = ({
     try {
       const result = await apiService.toggleRoomFavorite(displayName, room.roomCode, room.id);
       if (result.isFavorite) {
+        // 🔥 Agregar a favoritos con datos completos
         setFavoriteRoomCodes(prev => [...prev, room.roomCode]);
+        setFavoriteRooms(prev => [...prev, { ...room, isFavorite: true }]);
       } else {
+        // 🔥 Quitar de favoritos
         setFavoriteRoomCodes(prev => prev.filter(code => code !== room.roomCode));
+        setFavoriteRooms(prev => prev.filter(r => r.roomCode !== room.roomCode));
       }
     } catch (error) {
       console.error('Error al alternar favorito:', error);
@@ -443,23 +454,43 @@ const ConversationList = ({
       try {
         const results = { groups: [], assigned: [] };
 
-        // Buscar grupos si el filtro es 'all' o 'groups'
-        if (currentFilter === 'all' || currentFilter === 'groups') {
+        // Buscar grupos si el filtro es 'groups'
+        if (currentFilter === 'groups') {
           try {
-            const groupsResult = await apiService.getUserRoomsPaginated(1, 50, searchValue);
-            results.groups = groupsResult?.rooms || [];
+            // 🔥 Usar la API correcta según el rol del usuario
+            const isPrivilegedUser = ['ADMIN', 'JEFEPISO', 'PROGRAMADOR', 'SUPERADMIN'].includes(user?.role);
+            let groupsResult;
+            if (isPrivilegedUser) {
+              groupsResult = await apiService.getAdminRooms(1, 50, searchValue);
+              results.groups = groupsResult?.data || [];
+            } else {
+              groupsResult = await apiService.getUserRoomsPaginated(1, 50, searchValue);
+              results.groups = groupsResult?.rooms || [];
+            }
           } catch (error) {
             console.error('Error al buscar grupos:', error);
           }
         }
 
-        // Buscar asignados si el filtro es 'all' o 'assigned'
-        if (currentFilter === 'all' || currentFilter === 'assigned') {
+        // Buscar asignados si el filtro es 'assigned'
+        if (currentFilter === 'assigned') {
           try {
             const assignedResult = await apiService.getAssignedConversationsPaginated(1, 50, searchValue);
             results.assigned = assignedResult?.conversations || [];
           } catch (error) {
             console.error('Error al buscar asignados:', error);
+          }
+        }
+
+        // 🔥 NUEVO: Buscar mensajes si el filtro es 'messages'
+        if (currentFilter === 'messages') {
+          try {
+            console.log(`🔎 Buscando mensajes para: "${searchValue}"`);
+            const messagesResult = await apiService.searchMessagesByUserId(user.id, searchValue);
+            setMessageSearchResults(messagesResult || []);
+          } catch (error) {
+            console.error('Error al buscar mensajes:', error);
+            setMessageSearchResults([]);
           }
         }
 
@@ -586,7 +617,8 @@ const ConversationList = ({
             </span>
             <input
               type="text"
-              placeholder="Buscar en chats"
+              disabled={searchFilter === 'select_option'}
+              placeholder={searchFilter === 'select_option' ? "Seleccione un filtro para buscar" : "Buscar..."}
               className="flex-1 bg-transparent border-none text-gray-800 outline-none placeholder:text-gray-400 max-[1280px]:!text-sm max-[1280px]:placeholder:!text-xs max-[1024px]:!text-xs max-[1024px]:placeholder:!text-[11px] max-[768px]:!text-sm max-[768px]:placeholder:!text-xs"
               style={{ fontSize: '14px', lineHeight: '16px', fontWeight: 400 }}
               value={activeModule === 'chats' || activeModule === 'monitoring' ? assignedSearchTerm : searchTerm}
@@ -604,29 +636,34 @@ const ConversationList = ({
               }}
             />
             {((activeModule === 'conversations' && searchTerm) || (activeModule === 'chats' && assignedSearchTerm) || (activeModule === 'monitoring' && assignedSearchTerm)) && (
-              <button className="bg-transparent border-none text-gray-500 cursor-pointer p-0.5 flex items-center justify-center rounded-full transition-all duration-200 hover:bg-gray-200 hover:text-gray-800 active:scale-95 max-[1280px]:!text-xs max-[1024px]:!text-[11px] max-[1024px]:!p-0.5" style={{ fontSize: '12px' }}
+              <button className="bg-transparent border-none text-gray-400 cursor-pointer p-0.5 flex items-center justify-center rounded-full transition-all duration-200 hover:text-gray-600 active:scale-95"
                 onClick={() => {
                   if (activeModule === 'chats' || activeModule === 'monitoring') {
                     setAssignedSearchTerm('');
                     setMessageSearchResults([]);
-                    setApiSearchResults({ groups: [], assigned: [] }); // 🔥 NUEVO: Limpiar resultados de API
+                    setApiSearchResults({ groups: [], assigned: [] });
                   }
                   else {
                     setSearchTerm('');
                     setMessageSearchResults([]);
-                    setApiSearchResults({ groups: [], assigned: [] }); // 🔥 NUEVO: Limpiar resultados de API
+                    setApiSearchResults({ groups: [], assigned: [] });
                   }
                 }}
               >
-                <svg viewBox="0 0 24 24" fill="none" className="w-3.5 h-3.5"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+                  <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.2" />
+                  <path d="M15 9L9 15M9 9L15 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               </button>
             )}
           </div>
           {(activeModule === 'conversations' || activeModule === 'chats' || activeModule === 'monitoring') && (
-            <div className="flex items-center gap-4 flex-nowrap max-[1280px]:!gap-2 max-[1024px]:!gap-1.5" style={{ marginTop: '8px' }}>
+            <div className="flex items-center gap-2 flex-nowrap max-[1280px]:!gap-1 max-[1024px]:!gap-1" style={{ marginTop: '8px' }}>
               {/* Ordenar por */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-gray-600 max-[1280px]:!text-sm max-[1024px]:!text-xs" style={{ fontWeight: 400, fontSize: '14px', lineHeight: '18px', color: 'rgba(0, 0, 0, 0.65)' }}>Ordenar por</span>
+              <div className="flex items-center gap-1">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" className="text-gray-500">
+                  <path d="M4 6H20M4 12H14M4 18H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
                 <select className="bg-transparent border-none text-[#33B8FF] cursor-pointer outline-none max-[1280px]:!text-sm max-[1024px]:!text-xs" style={{ fontWeight: 400, fontSize: '14px', lineHeight: '18px' }} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
                   <option value="newest">Newest</option>
                   <option value="oldest">Oldest</option>
@@ -636,8 +673,10 @@ const ConversationList = ({
               {/* Separador */}
               <span className="text-gray-300">|</span>
               {/* Filtrar por */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-gray-600 max-[1280px]:!text-sm max-[1024px]:!text-xs" style={{ fontWeight: 400, fontSize: '14px', lineHeight: '18px', color: 'rgba(0, 0, 0, 0.65)' }}>Filtrar</span>
+              <div className="flex items-center gap-1">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" className="text-gray-500">
+                  <path d="M3 6H21M7 12H17M10 18H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
                 <select
                   className="bg-transparent border-none text-[#33B8FF] cursor-pointer outline-none max-[1280px]:!text-sm max-[1024px]:!text-xs"
                   style={{ fontWeight: 400, fontSize: '14px', lineHeight: '18px' }}
@@ -651,11 +690,30 @@ const ConversationList = ({
                     }
                   }}
                 >
-                  <option value="all">Todos</option>
+                  <option value="select_option" disabled>Seleccione filtro...</option>
                   <option value="groups">Grupos</option>
                   <option value="favorites">Favoritos</option>
                   <option value="assigned">Asignados</option>
+                  <option value="messages">Mensajes</option>
                 </select>
+                {searchFilter !== 'select_option' && (
+                  <button
+                    className="bg-transparent border-none text-gray-500 cursor-pointer p-0.5 flex items-center justify-center rounded-full transition-all duration-200 hover:text-red-500 hover:bg-red-50 active:scale-95 flex-shrink-0"
+                    onClick={() => {
+                      setSearchFilter('select_option');
+                      setSearchTerm('');
+                      setAssignedSearchTerm('');
+                      setMessageSearchResults([]);
+                      setApiSearchResults({ groups: [], assigned: [] });
+                    }}
+                    title="Limpiar filtro"
+                  >
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.3" />
+                      <path d="M15 9L9 15M9 9L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -702,7 +760,7 @@ const ConversationList = ({
 
 
           {/* 0. SECCIÓN DE FAVORITOS - Siempre fijos arriba */}
-          {(searchFilter === 'all' || searchFilter === 'favorites') && (favoriteRoomCodes.length > 0 || favoriteConversationIds.length > 0) && (
+          {(searchFilter === 'select_option' || searchFilter === 'favorites') && (favoriteRooms.length > 0 || favoriteConversationIds.length > 0) && (
             <CollapsibleList
               title="FAVORITOS"
               icon={FaStar}
@@ -710,8 +768,8 @@ const ConversationList = ({
               onToggle={() => { }}
               defaultHeight={130}
             >
-              {/* Grupos favoritos */}
-              {myActiveRooms?.filter(room => favoriteRoomCodes.includes(room.roomCode)).map((room) => {
+              {/* Grupos favoritos - 🔥 Usando favoriteRooms con datos completos */}
+              {favoriteRooms.map((room) => {
                 const typingUsers = roomTypingUsers[room.roomCode] || [];
                 const isTypingInRoom = typingUsers.length > 0;
                 const roomUnreadCount = unreadMessages?.[room.roomCode] !== undefined ? unreadMessages[room.roomCode] : (room.unreadCount || 0);
@@ -730,7 +788,11 @@ const ConversationList = ({
                         </div>
                         <button onClick={(e) => handleToggleFavorite(room, e)} className="flex-shrink-0 p-1 hover:bg-gray-200 rounded-full transition-colors" style={{ color: '#ff453a' }}><FaStar /></button>
                       </div>
-                      <p className="text-gray-600 truncate" style={{ fontSize: '11px' }}>{isTypingInRoom ? `${typingUsers[0]?.nombre || typingUsers[0]?.username} está escribiendo...` : ''}</p>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-green-600 italic truncate flex-1" style={{ fontSize: '11px' }}>{isTypingInRoom ? `${typingUsers[0]?.nombre || typingUsers[0]?.username} está escribiendo...` : ''}</p>
+                        {(room.lastMessageAt || room.lastMessageTime || room.updatedAt) && <span className="text-gray-400 flex-shrink-0" style={{ fontSize: '10px' }}>{new Date(room.lastMessageAt || room.lastMessageTime || room.updatedAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}</span>}
+                      </div>
+
                     </div>
                   </div>
                 );
@@ -755,9 +817,11 @@ const ConversationList = ({
                         </div>
                         <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-1 hover:bg-gray-200 rounded-full transition-colors" style={{ color: '#ff453a' }}><FaStar /></button>
                       </div>
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-gray-600 truncate" style={{ fontSize: '11px' }}>{conv.lastMessage || 'Sin mensajes'}</p>
-                        {itemUnreadCount > 0 && <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '18px', height: '18px', fontSize: '10px', fontWeight: 600 }}>{itemUnreadCount > 99 ? '99+' : itemUnreadCount}</div>}
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center gap-1">
+                          {(conv.lastMessageTime || conv.updatedAt) && <span className="text-gray-400" style={{ fontSize: '10px' }}>{new Date(conv.lastMessageTime || conv.updatedAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}</span>}
+                          {itemUnreadCount > 0 && <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '18px', height: '18px', fontSize: '10px', fontWeight: 600 }}>{itemUnreadCount > 99 ? '99+' : itemUnreadCount}</div>}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -767,7 +831,7 @@ const ConversationList = ({
           )}
 
           {/* 1. SECCIÓN DE GRUPOS */}
-          {(searchFilter === 'all' || searchFilter === 'groups') && (
+          {(searchFilter === 'select_option' || searchFilter === 'groups') && (
             <CollapsibleList
               title="GRUPOS"
               icon={Users}
@@ -798,13 +862,14 @@ const ConversationList = ({
                   }
                 }
 
-                // 🔥 NUEVO: Usar resultados de API si hay búsqueda, sino filtrar localmente
+                // 🔥 El backend excluye favoritos, pero filtramos aquí también para
+                // reactividad inmediata cuando marcas un nuevo favorito (myActiveRooms está cacheado)
                 let filteredRooms;
                 if (hasApiSearch) {
                   filteredRooms = apiSearchResults.groups.filter(room => !favoriteRoomCodes.includes(room.roomCode));
                 } else {
                   filteredRooms = (myActiveRooms || [])
-                    .filter(room => !favoriteRoomCodes.includes(room.roomCode)) // Excluir favoritos
+                    .filter(room => !favoriteRoomCodes.includes(room.roomCode)) // 🔥 Excluir favoritos
                     .filter(room => assignedSearchTerm.trim() === '' || room.name.toLowerCase().includes(assignedSearchTerm.toLowerCase()) || room.roomCode.toLowerCase().includes(assignedSearchTerm.toLowerCase()));
                 }
 
@@ -872,6 +937,7 @@ const ConversationList = ({
                                 <p className="text-green-600 italic truncate flex items-center gap-1" style={{ fontSize: '11px', lineHeight: '14px', fontWeight: 400 }}>{typingUsers.length === 1 ? `${typingUsers[0].nombre && typingUsers[0].apellido ? `${typingUsers[0].nombre} ${typingUsers[0].apellido}` : (typingUsers[0].nombre || typingUsers[0].username)} está escribiendo...` : `${typingUsers.length} personas están escribiendo...`}</p>
                               ) : (
                                 <p className="text-gray-600 truncate" style={{ fontSize: '11px', lineHeight: '14px', fontWeight: 400 }}>{isAdmin ? <>Código: {room.roomCode}</> : null}</p>)}
+                              {(room.lastMessageAt || room.updatedAt) && <span className="text-gray-400 flex-shrink-0" style={{ fontSize: '10px' }}>{new Date(room.lastMessageAt || room.updatedAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}</span>}
                             </div>
                           </div>
                         </div>
@@ -884,7 +950,7 @@ const ConversationList = ({
           )}
 
           {/* 2. SECCIÓN DE ASIGNADOS */}
-          {(searchFilter === 'all' || searchFilter === 'assigned') && (
+          {(searchFilter === 'select_option' || searchFilter === 'assigned') && (
             <CollapsibleList
               title="ASIGNADOS"
               icon={CommunityIcon}
@@ -940,8 +1006,8 @@ const ConversationList = ({
                   const bIsFavorite = favoriteConversationIds.includes(b.id);
                   if (aIsFavorite && !bIsFavorite) return -1;
                   if (!aIsFavorite && bIsFavorite) return 1;
-                  if (sortBy === 'newest') return new Date(b.lastMessageTime || b.createdAt) - new Date(a.lastMessageTime || a.createdAt);
-                  else if (sortBy === 'oldest') return new Date(a.lastMessageTime || a.createdAt) - new Date(b.lastMessageTime || b.createdAt);
+                  if (sortBy === 'newest') return new Date(b.lastMessage?.sentAt || b.lastMessageTime || b.createdAt) - new Date(a.lastMessage?.sentAt || a.lastMessageTime || a.createdAt);
+                  else if (sortBy === 'oldest') return new Date(a.lastMessage?.sentAt || a.lastMessageTime || a.createdAt) - new Date(b.lastMessage?.sentAt || b.lastMessageTime || b.createdAt);
                   else if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '');
                   return 0;
                 });
@@ -1004,7 +1070,13 @@ const ConversationList = ({
                               </div>
                               <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-1 rounded-full hover:bg-gray-200 transition-all duration-200" style={{ color: isFavorite ? '#ff453a' : '#9ca3af' }}>{isFavorite ? <FaStar size={14} /> : <FaRegStar size={14} />}</button>
                             </div>
-                            <p className="text-gray-500" style={{ fontSize: '10px' }}>{conv.updatedAt ? new Date(conv.updatedAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : ''}</p>
+                            <div className="flex items-center justify-end mt-0.5">
+                              {(conv.lastMessage?.sentAt || conv.updatedAt) && (
+                                <span className="text-gray-400" style={{ fontSize: '10px' }}>
+                                  {new Date(conv.lastMessage?.sentAt || conv.updatedAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
+                                </span>
+                              )}
+                            </div>
                           </div>
 
                         </div>
@@ -1016,6 +1088,66 @@ const ConversationList = ({
             </CollapsibleList>
           )}
 
+          {/* 3. SECCIÓN DE MENSAJES */}
+          {searchFilter === 'messages' && (
+            <CollapsibleList
+              title="MENSAJES"
+              icon={MessageSquare}
+              isOpen={true}
+              onToggle={() => { }}
+              defaultHeight={400}
+            >
+              {(() => {
+                if (isApiSearching) {
+                  return (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="text-sm text-gray-500">Buscando mensajes...</div>
+                    </div>
+                  );
+                }
+
+                if (messageSearchResults.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center justify-center py-[40px] px-5 text-center">
+                      <div className="text-3xl mb-2 opacity-50">💬</div>
+                      <div className="text-sm text-gray-600 font-medium">No se encontraron mensajes para "{assignedSearchTerm}"</div>
+                    </div>
+                  );
+                }
+
+                return messageSearchResults.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className="flex flex-col transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer border-b border-gray-100 pb-2"
+                    style={{ padding: '8px 12px' }}
+                    onClick={() => {
+                      if (onRoomSelect) {
+                        // Intentar construir el objeto room lo mejor posible
+                        // El backend debe devolver isGroup, roomCode, roomName, to, etc.
+                        const isGroup = msg.isGroup || !!msg.roomCode;
+                        const roomName = msg.roomName || (isGroup ? msg.roomCode : (msg.senderName || 'Chat'));
+
+                        onRoomSelect({
+                          roomCode: msg.roomCode,
+                          name: roomName,
+                          isGroup: isGroup
+                        }, msg.id);
+                      }
+                    }}
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="font-semibold text-xs text-gray-800">{msg.roomName || (msg.isGroup ? 'Grupo' : 'Chat')}</span>
+                      <span className="text-[10px] text-gray-400">{new Date(msg.createdAt || msg.sentAt).toLocaleDateString()}</span>
+                    </div>
+                    <div className="text-sm text-gray-600 line-clamp-2" style={{ fontSize: '11px' }}>
+                      <span className="font-bold text-gray-700 mr-1">{msg.senderName}:</span>
+                      {msg.content || msg.message}
+                    </div>
+                  </div>
+                ));
+              })()}
+            </CollapsibleList>
+          )}
 
         </div >
       )}

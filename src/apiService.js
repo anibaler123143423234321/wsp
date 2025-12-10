@@ -1886,6 +1886,27 @@ class ApiService {
     }
   }
 
+  // 🔥 NUEVO: Obtener grupos favoritos con datos completos (para sección FAVORITOS)
+  async getUserFavoriteRoomsWithData(username) {
+    try {
+      const response = await this.fetchWithAuth(
+        `${this.baseChatUrl}api/room-favorites/full/${encodeURIComponent(username)}`,
+        {
+          method: "GET",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error al obtener favoritos con datos:", error);
+      return [];
+    }
+  }
+
   // Verificar si una sala es favorita
   async isRoomFavorite(username, roomCode) {
     try {
