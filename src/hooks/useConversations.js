@@ -60,28 +60,12 @@ export const useConversations = (
                     setAssignedConversations(result.conversations || []);
                 }
 
-                // 🔥 ACTUALIZAR CONTADORES después de cargar
-                try {
-                    const counts = await apiService.getUnreadCounts();
-                    if (counts) {
-                        setUnreadMessages(counts);
-                    }
-                } catch (countError) {
-                    console.warn('⚠️ No se pudieron actualizar contadores:', countError);
-                }
+                // 🚀 OPTIMIZADO: getUnreadCounts ya se llama en ChatPage.jsx
+                // No es necesario llamarlo aquí también (evitar duplicación)
 
-                // Actualizar el registro del socket
-                if (socket && result.conversations && result.conversations.length > 0) {
-                    const displayName =
-                        user?.nombre && user?.apellido
-                            ? `${user.nombre} ${user.apellido}`
-                            : user?.username || user?.email;
-
-                    socket.emit('updateAssignedConversations', {
-                        username: displayName,
-                        assignedConversations: result.conversations,
-                    });
-                }
+                // 🚀 OPTIMIZADO: updateAssignedConversations ya no es necesario
+                // El backend obtiene las conversaciones al registrar el usuario
+                // Esto reduce significativamente la carga del servidor
             } catch (error) {
                 console.error('❌ Error al cargar conversaciones asignadas:', error);
                 if (!append) {

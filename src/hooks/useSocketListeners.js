@@ -109,6 +109,41 @@ export const useSocketListeners = (
             setUserListLoading(false);
         });
 
+        // 🚀 NUEVO: Listener para actualizaciones de estado de usuario (ligero)
+        // Este evento reemplaza los broadcasts masivos cuando alguien se conecta/desconecta
+        s.on("userStatusChanged", (data) => {
+            const { username: changedUser, isOnline, nombre, apellido } = data;
+
+            setUserList((prev) => {
+                // Buscar si el usuario ya existe en la lista
+                const existingIndex = prev.findIndex(u => {
+                    const fullName = u.nombre && u.apellido
+                        ? `${u.nombre} ${u.apellido}`
+                        : u.username;
+                    return fullName === changedUser || u.username === changedUser;
+                });
+
+                if (existingIndex >= 0) {
+                    // Usuario existe: actualizar su estado
+                    const updated = [...prev];
+                    updated[existingIndex] = {
+                        ...updated[existingIndex],
+                        isOnline
+                    };
+                    return updated;
+                } else if (isOnline && nombre && apellido) {
+                    // Usuario nuevo conectado: agregarlo a la lista
+                    return [...prev, {
+                        username: changedUser,
+                        nombre,
+                        apellido,
+                        isOnline: true
+                    }];
+                }
+                return prev;
+            });
+        });
+
         // =====================================================
         // 2. SALAS Y GRUPOS
         // =====================================================
