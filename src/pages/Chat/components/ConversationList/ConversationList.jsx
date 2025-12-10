@@ -808,6 +808,17 @@ const ConversationList = ({
                     .filter(room => assignedSearchTerm.trim() === '' || room.name.toLowerCase().includes(assignedSearchTerm.toLowerCase()) || room.roomCode.toLowerCase().includes(assignedSearchTerm.toLowerCase()));
                 }
 
+                // Ordenar: grupos con mensajes no leídos primero
+                filteredRooms = filteredRooms.sort((a, b) => {
+                  const unreadA = unreadMessages?.[a.roomCode] ?? (a.unreadCount || 0);
+                  const unreadB = unreadMessages?.[b.roomCode] ?? (b.unreadCount || 0);
+                  // Los que tienen mensajes no leídos van primero
+                  if (unreadA > 0 && unreadB === 0) return -1;
+                  if (unreadA === 0 && unreadB > 0) return 1;
+                  // Si ambos tienen o ambos no tienen, ordenar por cantidad (más mensajes primero)
+                  return unreadB - unreadA;
+                });
+
                 // Mostrar indicador de búsqueda
                 if (isApiSearching && assignedSearchTerm.trim().length >= 2) {
                   return (

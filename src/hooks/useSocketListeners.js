@@ -336,8 +336,8 @@ export const useSocketListeners = (
                     return conv;
                 }));
 
-                // 🔥 NOTIFICACIONES SOLO si NO es mensaje propio
-                if (!isOwnMessage && (!isChatOpen || systemNotifications.canShow())) {
+                // 🔥 NOTIFICACIONES SOLO si NO es mensaje propio y chat NO está abierto
+                if (!isOwnMessage && !isChatOpen) {
                     playMessageSound(soundsEnabledRef.current);
 
                     if (systemNotifications.canShow()) {
@@ -675,6 +675,93 @@ export const useSocketListeners = (
                 threadCount: (prev.threadCount || 0) + 1,
                 lastReplyFrom: data.lastReplyFrom
             }));
+
+            // 🔥 Notificación para respuestas en hilos
+            const currentFullName = currentUserFullNameRef.current;
+            const isOwnReply = data.lastReplyFrom === username || data.lastReplyFrom === currentFullName;
+
+            // Solo notificar si NO es respuesta propia
+            if (!isOwnReply) {
+                // Verificar si el chat/grupo está abierto
+                const currentRoom = currentRoomCodeRef.current;
+                const currentTo = toRef.current;
+                const currentIsGroup = isGroupRef.current;
+                let isChatOpen = false;
+
+                if (data.isGroup && data.roomCode) {
+                    isChatOpen = currentIsGroup && currentRoom === data.roomCode;
+                } else if (data.to) {
+                    const chatPartner = currentTo?.toLowerCase().trim();
+                    const msgFrom = data.from?.toLowerCase().trim();
+                    const msgTo = data.to?.toLowerCase().trim();
+                    isChatOpen = chatPartner && (chatPartner === msgFrom || chatPartner === msgTo);
+                }
+
+                // Reproducir sonido y mostrar notificación si el chat no está abierto
+                if (!isChatOpen) {
+                    playMessageSound(soundsEnabledRef.current);
+
+                    const notificationTitle = data.isGroup
+                        ? `Nueva respuesta en hilo - ${data.roomCode || 'Grupo'}`
+                        : `Nueva respuesta en hilo`;
+
+                    if (systemNotifications.canShow()) {
+                        systemNotifications.show(
+                            notificationTitle,
+                            `${data.lastReplyFrom} respondió en un hilo`,
+                            { tag: `thread-${data.messageId}`, silent: !soundsEnabledRef.current },
+                            () => {
+                                if (data.isGroup && data.roomCode) {
+                                    window.dispatchEvent(new CustomEvent("navigateToRoom", {
+                                        detail: { roomCode: data.roomCode, messageId: data.messageId }
+                                    }));
+                                } else {
+                                    window.dispatchEvent(new CustomEvent("navigateToChat", {
+                                        detail: { to: data.from, messageId: data.messageId }
+                                    }));
+                                }
+                            }
+                        );
+                    }
+
+                    Swal.fire({
+                        toast: true,
+                        position: "bottom-end",
+                        icon: "info",
+                        title: notificationTitle,
+                        html: `
+                            <div class="toast-content">
+                                <div class="toast-sender">${data.lastReplyFrom}</div>
+                                <div class="toast-message">Respondió en un hilo</div>
+                            </div>
+                        `,
+                        showConfirmButton: true,
+                        confirmButtonText: "Ver",
+                        showCloseButton: true,
+                        timer: 6000,
+                        customClass: {
+                            popup: 'modern-toast',
+                            title: 'modern-toast-title',
+                            htmlContainer: 'modern-toast-html',
+                            confirmButton: 'modern-toast-btn',
+                            icon: 'modern-toast-icon',
+                            closeButton: 'modern-toast-close'
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            if (data.isGroup && data.roomCode) {
+                                window.dispatchEvent(new CustomEvent("navigateToRoom", {
+                                    detail: { roomCode: data.roomCode, messageId: data.messageId }
+                                }));
+                            } else {
+                                window.dispatchEvent(new CustomEvent("navigateToChat", {
+                                    detail: { to: data.from, messageId: data.messageId }
+                                }));
+                            }
+                        }
+                    });
+                }
+            }
         });
 
         // 🔥 Listener para mensajes individuales marcados como leídos
