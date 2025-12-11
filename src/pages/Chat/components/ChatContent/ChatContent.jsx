@@ -850,23 +850,9 @@ const ChatContent = ({
   // EFFECTS - Marcar mensajes como leídos
   // ============================================================
 
-  // Marcar mensajes de sala como leídos
-  useEffect(() => {
-    if (!socket?.connected || !isGroup || !currentRoomCode || !currentUsername) return;
-
-    const unreadMessages = messages.filter(
-      (msg) => msg.id && msg.sender !== currentUsername && msg.sender !== "Tú" &&
-        (!msg.readBy || !msg.readBy.includes(currentUsername))
-    );
-
-    unreadMessages.forEach((msg) => {
-      socket.emit("markRoomMessageAsRead", {
-        messageId: msg.id,
-        username: currentUsername,
-        roomCode: currentRoomCode,
-      });
-    });
-  }, [messages, socket, isGroup, currentRoomCode, currentUsername]);
+  // 🔥 NOTA: La lógica de marcar mensajes como leídos se maneja en ChatPage.jsx
+  // usando markRoomMessagesAsRead (bulk) para evitar múltiples emisiones de socket.
+  // NO usar un forEach aquí porque causa bucles cuando hay múltiples clusters.
 
   // Marcar mensajes de conversaciones individuales como leídos
   useEffect(() => {
