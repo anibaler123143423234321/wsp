@@ -489,7 +489,7 @@ const ChatContent = ({
 
     try {
       // 1. Intentamos descargar como Blob para forzar la descarga directa
-      const response = await fetch(url);
+      const response = await apiService.fetchWithAuth(url);
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
 
@@ -1676,7 +1676,7 @@ const ChatContent = ({
                         if (isPdf) {
                           // Descargar PDF y convertir a ArrayBuffer
                           console.log("📥 Descargando PDF:", message.mediaData);
-                          fetch(message.mediaData)
+                          apiService.fetchWithAuth(message.mediaData)
                             .then(res => {
                               if (!res.ok) throw new Error(`HTTP ${res.status}`);
                               return res.arrayBuffer();
