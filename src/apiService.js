@@ -497,10 +497,27 @@ class ApiService {
     return response;
   }
 
+  //  NUEVO: Helper para peticiones a BackendChat SIN Authorization header
+  // Esto evita CORS preflight ya que no enviamos headers custom
+  async fetchChatApi(endpoint, options = {}) {
+    const headers = {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    };
+
+    // Remover explícitamente Authorization si existe
+    delete headers.Authorization;
+
+    return await fetch(endpoint, {
+      ...(options || {}),
+      headers,
+    });
+  }
+
   // Método para crear conversación temporal
   async createTemporaryConversation(data) {
     try {
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/temporary-conversations`,
         {
           method: "POST",
@@ -519,7 +536,7 @@ class ApiService {
   // Método para crear sala temporal
   async createTemporaryRoom(data) {
     try {
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/temporary-rooms`,
         {
           method: "POST",
@@ -552,7 +569,7 @@ class ApiService {
   // Método para unirse a sala
   async joinRoom(data) {
     try {
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/temporary-rooms/join`,
         {
           method: "POST",
@@ -571,7 +588,7 @@ class ApiService {
   // Método para eliminar un usuario de una sala
   async removeUserFromRoom(roomCode, username) {
     try {
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/temporary-rooms/${roomCode}/remove-user`,
         {
           method: "POST",
@@ -594,7 +611,7 @@ class ApiService {
   // Método para obtener información de sala por código
   async getRoomByCode(roomCode) {
     try {
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/temporary-rooms/code/${roomCode}`,
         {
           method: "GET",
@@ -637,7 +654,7 @@ class ApiService {
         params.append('role', role); // 👈 Enviar el rol
       }
 
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/temporary-rooms/admin/rooms?${params.toString()}`,
         {
           method: "GET",
@@ -658,7 +675,7 @@ class ApiService {
 
   async deleteRoom(roomId) {
     try {
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/temporary-rooms/${roomId}`,
         {
           method: "DELETE",
@@ -681,7 +698,7 @@ class ApiService {
 
   async deactivateRoom(roomId) {
     try {
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/temporary-rooms/${roomId}/deactivate`,
         {
           method: "PATCH",
@@ -702,7 +719,7 @@ class ApiService {
 
   async activateRoom(roomId) {
     try {
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/temporary-rooms/${roomId}/activate`,
         {
           method: "PATCH",
@@ -724,7 +741,7 @@ class ApiService {
   // Método para obtener configuración del sistema
   async getSystemConfig() {
     try {
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/system-config`,
         {
           method: "GET",
@@ -742,7 +759,7 @@ class ApiService {
   // Método para actualizar configuración del sistema
   async updateSystemConfig(key, data) {
     try {
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/system-config/${key}`,
         {
           method: "POST",
@@ -767,7 +784,7 @@ class ApiService {
         ? `${user.nombre} ${user.apellido}`
         : user.username;
 
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/temporary-rooms/user/current-room?username=${encodeURIComponent(displayName)}`,
         {
           method: "GET",
@@ -785,7 +802,7 @@ class ApiService {
   // Método para obtener usuarios de una sala
   async getRoomUsers(roomCode) {
     try {
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/temporary-rooms/${roomCode}/users`,
         {
           method: "GET",
@@ -814,7 +831,7 @@ class ApiService {
   // Método para actualizar la capacidad de una sala
   async updateRoom(roomId, updateData) {
     try {
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/temporary-rooms/${roomId}/update`,
         {
           method: "PATCH",
@@ -871,7 +888,7 @@ class ApiService {
   async getUserMessages(from, to, limit = 10, offset = 0) {
     try {
       // ✅ Usar fetchWithAuth para renovación automática de token
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/messages/user/${from}/${to}?limit=${limit}&offset=${offset}`,
         {
           method: "GET",
@@ -904,7 +921,7 @@ class ApiService {
       if (isGroup !== undefined) url += `&isGroup=${isGroup}`;
       if (roomCode) url += `&roomCode=${roomCode}`;
 
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         url,
         {
           method: "GET",
@@ -1027,7 +1044,7 @@ class ApiService {
   // 🔥 NUEVO: Obtener mensajes alrededor de un messageId para chats individuales
   async getUserMessagesAroundId(from, to, messageId, limit = 30) {
     try {
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/messages/user/${from}/${to}/around/${messageId}?limit=${limit}`,
         {
           method: "GET",
@@ -1104,7 +1121,7 @@ class ApiService {
         url += `?roomCode=${roomCode}`;
       }
 
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         url,
         {
           method: "GET",
@@ -1206,7 +1223,7 @@ class ApiService {
         throw new Error("Usuario no autenticado");
       }
 
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/temporary-conversations/admin-assign`,
         {
           method: "POST",
@@ -1251,7 +1268,7 @@ class ApiService {
         : (user.username || user.email);
 
       // ✅ Usar fetchWithAuth para renovación automática de token
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/temporary-conversations/my-conversations?username=${encodeURIComponent(displayName)}`,
         {
           method: "GET",
@@ -1294,7 +1311,7 @@ class ApiService {
       params.push(`limit=${limit}`);
       if (params.length > 0) url += `?${params.join('&')}`;
 
-      const response = await this.fetchWithAuth(url, {
+      const response = await this.fetchChatApi(url, {
         method: "GET",
       });
 
@@ -1333,7 +1350,7 @@ class ApiService {
         url += `&search=${encodeURIComponent(search.trim())}`;
       }
 
-      const response = await this.fetchWithAuth(url, {
+      const response = await this.fetchChatApi(url, {
         method: "GET",
       });
 
@@ -1373,7 +1390,7 @@ class ApiService {
         url += `&search=${encodeURIComponent(search.trim())}`;
       }
 
-      const response = await this.fetchWithAuth(url, {
+      const response = await this.fetchChatApi(url, {
         method: "GET",
       });
 
@@ -1412,7 +1429,7 @@ class ApiService {
         ? `${this.baseChatUrl}api/temporary-conversations/monitoring/list?username=${encodeURIComponent(displayName)}&page=${page}&limit=${limit}`
         : `${this.baseChatUrl}api/temporary-conversations/monitoring/list?page=${page}&limit=${limit}`;
 
-      const response = await this.fetchWithAuth(url, {
+      const response = await this.fetchChatApi(url, {
         method: "GET",
       });
 
@@ -1435,7 +1452,7 @@ class ApiService {
   async updateAssignedConversation(conversationId, data) {
     try {
       // ✅ Usar fetchWithAuth para renovación automática de token
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/temporary-conversations/${conversationId}`,
         {
           method: "PUT",
@@ -1462,7 +1479,7 @@ class ApiService {
   async deleteAssignedConversation(conversationId) {
     try {
       // ✅ Usar fetchWithAuth para renovación automática de token
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/temporary-conversations/${conversationId}`,
         {
           method: "DELETE",
@@ -1495,7 +1512,7 @@ class ApiService {
   async deactivateAssignedConversation(conversationId) {
     try {
       const user = this.getCurrentUser();
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/temporary-conversations/${conversationId}/deactivate`,
         {
           method: "PATCH",
@@ -1521,7 +1538,7 @@ class ApiService {
   async activateAssignedConversation(conversationId) {
     try {
       const user = this.getCurrentUser();
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/temporary-conversations/${conversationId}/activate`,
         {
           method: "PATCH",
@@ -1746,7 +1763,7 @@ class ApiService {
       console.log(`📋 Obteniendo usuarios de ${baseUrl}api/user/listar?page=${page}&size=${size}`);
 
       // ✅ Usar fetchWithAuth para renovación automática de token
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${baseUrl}api/user/listar?page=${page}&size=${size}`,
         {
           method: "GET",
@@ -1794,7 +1811,7 @@ class ApiService {
       const baseUrl = sede ? this.getBaseUrlForSede(sede) : this.baseUrl;
 
       // ✅ Usar fetchWithAuth para renovación automática de token
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${baseUrl}api/user/buscar?page=${page}&size=${size}&query=${encodeURIComponent(query)}`,
         {
           method: "GET",
@@ -1822,7 +1839,7 @@ class ApiService {
   // Alternar favorito (agregar o quitar)
   async toggleRoomFavorite(username, roomCode, roomId) {
     try {
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/room-favorites/toggle`,
         {
           method: "POST",
@@ -1845,7 +1862,7 @@ class ApiService {
   // Obtener favoritos de un usuario
   async getUserFavorites(username) {
     try {
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/room-favorites/user/${encodeURIComponent(username)}`,
         {
           method: "GET",
@@ -1867,7 +1884,7 @@ class ApiService {
   // Obtener códigos de salas favoritas
   async getUserFavoriteRoomCodes(username) {
     try {
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/room-favorites/codes/${encodeURIComponent(username)}`,
         {
           method: "GET",
@@ -1889,7 +1906,7 @@ class ApiService {
   // 🔥 NUEVO: Obtener grupos favoritos con datos completos (para sección FAVORITOS)
   async getUserFavoriteRoomsWithData(username) {
     try {
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/room-favorites/full/${encodeURIComponent(username)}`,
         {
           method: "GET",
@@ -1910,7 +1927,7 @@ class ApiService {
   // Verificar si una sala es favorita
   async isRoomFavorite(username, roomCode) {
     try {
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/room-favorites/check?username=${encodeURIComponent(username)}&roomCode=${encodeURIComponent(roomCode)}`,
         {
           method: "GET",
@@ -1934,7 +1951,7 @@ class ApiService {
   // Alternar favorito de conversación (agregar o quitar)
   async toggleConversationFavorite(username, conversationId) {
     try {
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/conversation-favorites/toggle`,
         {
           method: "POST",
@@ -1957,7 +1974,7 @@ class ApiService {
   // Obtener favoritos de conversaciones de un usuario
   async getUserConversationFavorites(username) {
     try {
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/conversation-favorites/user/${encodeURIComponent(username)}`,
         {
           method: "GET",
@@ -1979,7 +1996,7 @@ class ApiService {
   // Obtener IDs de conversaciones favoritas
   async getUserFavoriteConversationIds(username) {
     try {
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/conversation-favorites/ids/${encodeURIComponent(username)}`,
         {
           method: "GET",
@@ -2001,7 +2018,7 @@ class ApiService {
   // Verificar si una conversación es favorita
   async isConversationFavorite(username, conversationId) {
     try {
-      const response = await this.fetchWithAuth(
+      const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/conversation-favorites/check?username=${encodeURIComponent(username)}&conversationId=${conversationId}`,
         {
           method: "GET",
