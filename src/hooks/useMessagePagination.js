@@ -7,10 +7,10 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const [error, setError] = useState(null); // 🔥 Estado de error
+  const [error, setError] = useState(null); //  Estado de error
 
   const currentOffset = useRef(0);
-  const initialLoadComplete = useRef(false); // 🔥 Prevenir carga inmediata post-inicial
+  const initialLoadComplete = useRef(false); //  Prevenir carga inmediata post-inicial
   const MESSAGES_PER_PAGE = 20; // 🚀 Sincronizado con backend
 
   // Cargar mensajes iniciales (más recientes)
@@ -21,10 +21,10 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     if (!isGroup && !to) return;
 
     setIsLoading(true);
-    setError(null); // 🔥 Resetear error
-    setHasMoreMessages(true); // 🔥 IMPORTANTE: Resetear estado de "más mensajes"
+    setError(null); // Resetear error
+    setHasMoreMessages(true); // IMPORTANTE: Resetear estado de "más mensajes"
     currentOffset.current = 0;
-    initialLoadComplete.current = false; // 🔥 Evitar carga inmediata de más mensajes
+    initialLoadComplete.current = false; // Evitar carga inmediata de más mensajes
 
     try {
       let response;
@@ -131,7 +131,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       setMessages(formattedMessages);
       currentOffset.current = MESSAGES_PER_PAGE;
 
-      // 🔥 MEJORADO: Usar hasMore del backend si está disponible, sino estimar
+      //  MEJORADO: Usar hasMore del backend si está disponible, sino estimar
       if (backendHasMore !== undefined) {
         setHasMoreMessages(backendHasMore);
       } else if (historicalMessages.length < MESSAGES_PER_PAGE) {
@@ -141,7 +141,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       console.error("❌ Error al cargar mensajes históricos:", error);
       setMessages([]);
       setHasMoreMessages(false);
-      setError("No se pudieron cargar los mensajes. Verifica tu conexión."); // 🔥 Setear error
+      setError("No se pudieron cargar los mensajes. Verifica tu conexión."); //  Setear error
     } finally {
       setIsLoading(false);
       // 🚀 OPTIMIZADO: Reducido de 500ms a 200ms para carga más rápida
@@ -157,7 +157,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     if (isGroup && !roomCode) return;
     if (!isGroup && !to) return;
     if (!hasMoreMessages || isLoadingMore) return;
-    if (!initialLoadComplete.current) return; // 🔥 Esperar a que termine la carga inicial
+    if (!initialLoadComplete.current) return; //  Esperar a que termine la carga inicial
 
     setIsLoadingMore(true);
 
@@ -165,29 +165,29 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       let response;
 
       if (isGroup) {
-        // 🔥 Cargar más mensajes de sala/grupo ordenados por ID
+        //  Cargar más mensajes de sala/grupo ordenados por ID
         response = await apiService.getRoomMessagesOrderedById(
           roomCode,
           MESSAGES_PER_PAGE,
           currentOffset.current,
-          isGroup // 🔥 Pasar isGroup
+          isGroup //  Pasar isGroup
         );
       } else {
-        // 🔥 Cargar más mensajes entre usuarios ordenados por ID
+        //  Cargar más mensajes entre usuarios ordenados por ID
         response = await apiService.getUserMessagesOrderedById(
           username,
           to,
           MESSAGES_PER_PAGE,
           currentOffset.current,
-          isGroup, // 🔥 Pasar isGroup
-          roomCode // 🔥 Pasar roomCode (aunque sea null/undefined)
+          isGroup, //  Pasar isGroup
+          roomCode //  Pasar roomCode (aunque sea null/undefined)
         );
       }
 
-      // 🔥 NUEVO: Manejar respuesta paginada del backend
+      //  Manejar respuesta paginada del backend
       let historicalMessages = Array.isArray(response) ? response : (response?.data || []);
 
-      // 🔥 FIX: Filtrar mensajes de hilo - no deben aparecer en el chat principal
+      //  FIX: Filtrar mensajes de hilo - no deben aparecer en el chat principal
       historicalMessages = historicalMessages.filter(msg => !msg.threadId);
 
       const backendHasMore = response?.hasMore;
@@ -211,9 +211,9 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       // Convertir mensajes de BD al formato del frontend
       const formattedMessages = historicalMessages.map((msg) => ({
         sender: msg.from === username ? " Tú" : msg.from,
-        realSender: msg.from, // 🔥 Nombre real del remitente (sin convertir a "Tú")
-        senderRole: msg.senderRole || null, // 🔥 Incluir role del remitente
-        senderNumeroAgente: msg.senderNumeroAgente || null, // 🔥 Incluir numeroAgente del remitente
+        realSender: msg.from, //  Nombre real del remitente (sin convertir a "Tú")
+        senderRole: msg.senderRole || null, //  Incluir role del remitente
+        senderNumeroAgente: msg.senderNumeroAgente || null, //  Incluir numeroAgente del remitente
         receiver: msg.groupName || msg.to || username,
         text: msg.message || "",
         isGroup: msg.isGroup,
@@ -236,33 +236,33 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         sentAt: msg.sentAt,
         // Campos de respuesta
         replyToMessageId: msg.replyToMessageId,
-        replyToSender: msg.replyToSender, // 🔥 Mantener el valor original de la BD
-        replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null, // 🔥 Incluir numeroAgente del remitente original
+        replyToSender: msg.replyToSender, //  Mantener el valor original de la BD
+        replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null, //  Incluir numeroAgente del remitente original
         replyToText: msg.replyToText,
         // Campos de hilos
         threadCount: msg.threadCount || 0,
         lastReplyFrom: msg.lastReplyFrom || null,
-        lastReplyText: msg.lastReplyText || null, // 🔥 NUEVO: Texto del último mensaje del hilo
+        lastReplyText: msg.lastReplyText || null, //  NUEVO: Texto del último mensaje del hilo
         // Campos de edición
         isEdited: msg.isEdited || false,
         editedAt: msg.editedAt,
-        // 🔥 Campos de eliminación
+        //  Campos de eliminación
         isDeleted: msg.isDeleted || false,
         deletedBy: msg.deletedBy || null,
         deletedAt: msg.deletedAt || null,
-        // 🔥 Campos de reacciones
+        //  Campos de reacciones
         reactions: msg.reactions || [],
-        // 🔥 NUEVO: Campos de videollamada
+        //  NUEVO: Campos de videollamada
         type: msg.type || null,
         videoCallUrl: msg.videoCallUrl || null,
         videoRoomID: msg.videoRoomID || null,
         metadata: msg.metadata || null,
-        // 🔥 NUEVO: Campo de reenvío
+        //  NUEVO: Campo de reenvío
         isForwarded: msg.isForwarded || false,
       }));
 
       // Agregar mensajes más antiguos al inicio (estilo WhatsApp)
-      // 🔥 Filtrar duplicados por ID antes de agregar
+      //  Filtrar duplicados por ID antes de agregar
       setMessages((prevMessages) => {
         const existingIds = new Set(prevMessages.map(m => m.id));
         const newMessages = formattedMessages.filter(m => !existingIds.has(m.id));
@@ -270,7 +270,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       });
       currentOffset.current += MESSAGES_PER_PAGE;
 
-      // 🔥 MEJORADO: Usar hasMore del backend si está disponible, sino estimar
+      // MEJORADO: Usar hasMore del backend si está disponible, sino estimar
       if (backendHasMore !== undefined) {
         setHasMoreMessages(backendHasMore);
       } else if (historicalMessages.length < MESSAGES_PER_PAGE) {
@@ -278,7 +278,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       }
     } catch (error) {
       console.error("❌ Error al cargar más mensajes:", error);
-      // setHasMoreMessages(false); // 🔥 No deshabilitar paginación por error, permitir reintentar
+      // setHasMoreMessages(false); //  No deshabilitar paginación por error, permitir reintentar
     } finally {
       setIsLoadingMore(false);
     }
@@ -316,7 +316,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
 
   // Actualizar un mensaje específico
   // Si updates es una función, se llama con el mensaje actual para calcular las actualizaciones
-  // 🔥 NUEVO: Si messageId es null, buscar por videoRoomID en updates
+  //  NUEVO: Si messageId es null, buscar por videoRoomID en updates
   const updateMessage = useCallback((messageId, updates) => {
     // console.log('🔄 updateMessage llamado:', { messageId, updates });
 
@@ -332,12 +332,12 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
           // Buscar por ID
           shouldUpdate = String(msg.id) === String(messageId);
         } else if (updates.videoRoomID) {
-          // 🔥 NUEVO: Buscar por videoRoomID
+          //  NUEVO: Buscar por videoRoomID
           // Caso normal: usar campo videoRoomID
           const searchRoomID = updates.videoRoomID;
           let msgRoomID = msg.videoRoomID;
 
-          // 🔥 IMPORTANTE: Soportar mensajes antiguos sin videoRoomID
+          //  IMPORTANTE: Soportar mensajes antiguos sin videoRoomID
           // Intentar extraer el roomID desde la URL de la videollamada
           if (!msgRoomID) {
             let url = msg.videoCallUrl;
@@ -382,7 +382,12 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
           // Si updates es una función, llamarla con el mensaje actual
           const newUpdates = typeof updates === 'function' ? updates(msg) : updates;
 
-          // 🔥 NUEVO: Si se está actualizando metadata, fusionarlo con el existente
+          //  FIX: Si la función retorna null o el mismo objeto, no actualizar (evita re-renders)
+          if (newUpdates === null || newUpdates === msg) {
+            return msg; // Sin cambios
+          }
+
+          //  NUEVO: Si se está actualizando metadata, fusionarlo con el existente
           if (newUpdates.metadata && msg.metadata) {
             newUpdates.metadata = { ...msg.metadata, ...newUpdates.metadata };
           }
@@ -414,7 +419,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     currentOffset.current = 0;
   }, []);
 
-  // 🔥 NUEVO: Establecer mensajes iniciales de una vez (para admin view)
+  //  NUEVO: Establecer mensajes iniciales de una vez (para admin view)
   const setInitialMessages = useCallback((initialMessages) => {
     setMessages(initialMessages);
     currentOffset.current = initialMessages.length;
@@ -448,6 +453,6 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     updateMessage,
     clearMessages,
     setInitialMessages,
-    error, // 🔥 Retornar estado de error
+    error, //  Retornar estado de error
   };
 };

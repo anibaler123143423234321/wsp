@@ -13,7 +13,7 @@ export const useSocketListeners = (
     // Desestructurar estado
     const {
         setUserList, setUserListPage, setUserListHasMore, setUserListLoading,
-        setRoomUsers, setMyActiveRooms, myActiveRooms, setAssignedConversations, // 🔥 Agregado myActiveRooms
+        setRoomUsers, setMyActiveRooms, myActiveRooms, setAssignedConversations, //  Agregado myActiveRooms
         setMonitoringConversations, setUnreadMessages, setPendingMentions,
         setTypingUser, setRoomTypingUsers, setPinnedMessageId,
         // Refs vitales
@@ -29,21 +29,21 @@ export const useSocketListeners = (
 
     const { username, user, soundsEnabled, favoriteRoomCodes = [] } = authData;
 
-    // 🔥 CRÍTICO: Usar ref para tener siempre el valor actualizado
+    //  CRÍTICO: Usar ref para tener siempre el valor actualizado
     const soundsEnabledRef = useRef(soundsEnabled);
-    const myActiveRoomsRef = useRef(myActiveRooms || []); // 🔥 Nuevo Ref
+    const myActiveRoomsRef = useRef(myActiveRooms || []); //  Nuevo Ref
 
     // Actualizar ref cuando cambie soundsEnabled
     useEffect(() => {
         soundsEnabledRef.current = soundsEnabled;
     }, [soundsEnabled]);
 
-    // 🔥 Actualizar ref cuando cambie myActiveRooms
+    //  Actualizar ref cuando cambie myActiveRooms
     useEffect(() => {
         myActiveRoomsRef.current = myActiveRooms || [];
     }, [myActiveRooms]);
 
-    // 🔥 FUNCIÓN DE ORDENAMIENTO IDÉNTICA AL BACKEND
+    //  FUNCIÓN DE ORDENAMIENTO IDÉNTICA AL BACKEND
     const sortRoomsByBackendLogic = (rooms, favoriteRoomCodes) => {
         // Separar favoritas y no favoritas
         const favorites = rooms.filter(r => favoriteRoomCodes.includes(r.roomCode));
@@ -111,21 +111,25 @@ export const useSocketListeners = (
 
         // 🚀 NUEVO: Listener para actualizaciones de estado de usuario (ligero)
         // Este evento reemplaza los broadcasts masivos cuando alguien se conecta/desconecta
-        // 🚀 NUEVO: Listener para actualizaciones de estado de usuario (ligero)
-        // Este evento reemplaza los broadcasts masivos cuando alguien se conecta/desconecta
         s.on("userStatusChanged", (data) => {
-            const { username: changedUser, isOnline, nombre, apellido } = data;
+            const { username: changedUser, originalUsername, isOnline, nombre, apellido } = data;
             const changedUserLower = changedUser?.toLowerCase().trim();
+            const originalUsernameLower = originalUsername?.toLowerCase().trim();
 
             setUserList((prev) => {
                 // Buscar si el usuario ya existe en la lista (Case Insensitive)
+                //  FIX: Buscar por originalUsername (username real) ADEMÁS de displayName
                 const existingIndex = prev.findIndex(u => {
                     const uUsername = u.username?.toLowerCase().trim();
                     const uNombre = u.nombre?.toLowerCase().trim();
                     const uApellido = u.apellido?.toLowerCase().trim();
                     const fullName = (uNombre && uApellido) ? `${uNombre} ${uApellido}` : uUsername;
 
-                    return fullName === changedUserLower || uUsername === changedUserLower;
+                    //  FIX: Comparar con displayName, username original, O el nombre completo
+                    return fullName === changedUserLower ||
+                        uUsername === changedUserLower ||
+                        uUsername === originalUsernameLower ||
+                        fullName === originalUsernameLower;
                 });
 
                 if (existingIndex >= 0) {
@@ -137,16 +141,13 @@ export const useSocketListeners = (
                     };
                     return updated;
                 } else {
-                    // 🔥 CRÍTICO: Si el usuario no está en la lista visible, PERO recibimos el evento,
-                    // debemos agregarlo o al menos disparar una actualización para que el caché global (ConversationList)
-                    // se entere del cambio.
-                    // Si tenemos datos mínimos (nombre/apellido O username), lo agregamos.
-                    if (nombre || apellido || changedUser) {
+                    // Si el usuario no está en la lista visible, agregarlo con datos mínimos
+                    if (nombre || apellido || changedUser || originalUsername) {
                         return [...prev, {
-                            username: changedUser,
+                            username: originalUsername || changedUser,
                             nombre: nombre || changedUser,
                             apellido: apellido || "",
-                            isOnline // 🔥 Importante: Respetar el estado que llega (sea true O false)
+                            isOnline
                         }];
                     }
                 }
@@ -188,7 +189,7 @@ export const useSocketListeners = (
             // Si es un mensaje de monitoreo, ignorarlo aquí
             if (data.isMonitoring) return;
 
-            // 🔥 FIX: Si es un mensaje de hilo (respuesta), no agregarlo al chat principal
+            //  FIX: Si es un mensaje de hilo (respuesta), no agregarlo al chat principal
             // Los mensajes de hilo se manejan por el evento 'threadMessage' en ThreadPanel
             if (data.threadId) {
                 console.log('🚫 useSocketListeners: Ignorando mensaje con threadId:', data.threadId, data.message);
@@ -213,7 +214,7 @@ export const useSocketListeners = (
             const isOwnMessage = data.from === username || data.from === currentFullName;
 
             // ------------------------------------------------
-            // 🔥 CÁLCULO DE ESTADO DE CHAT ABIERTO
+            //  CÁLCULO DE ESTADO DE CHAT ABIERTO
             // ------------------------------------------------
             const currentTo = toRef.current;
             const currentRoom = currentRoomCodeRef.current;
@@ -234,7 +235,7 @@ export const useSocketListeners = (
             }
             // CASO A: GRUPOS
             if (data.isGroup) {
-                // 🔥 SIEMPRE agregar mensaje al chat si está abierto (propio o no)
+                //  SIEMPRE agregar mensaje al chat si está abierto (propio o no)
                 if (isChatOpen) {
                     addNewMessage({
                         ...data,
@@ -255,12 +256,12 @@ export const useSocketListeners = (
                     });
                 }
 
-                // 🔥 SOLO incrementar contador si NO es propio y el chat NO está abierto
+                //  SOLO incrementar contador si NO es propio y el chat NO está abierto
                 if (!isOwnMessage && !isChatOpen && data.roomCode) {
                     setUnreadMessages(prev => ({ ...prev, [data.roomCode]: (prev[data.roomCode] || 0) + 1 }));
                 }
 
-                // 🔥 SIEMPRE actualizar la lista de conversaciones
+                //  SIEMPRE actualizar la lista de conversaciones
                 if (data.roomCode) {
                     setMyActiveRooms(prev => {
                         const updated = prev.map(r => {
@@ -282,7 +283,7 @@ export const useSocketListeners = (
                         return sortRoomsByBackendLogic(updated, favoriteRoomCodes);
                     });
 
-                    // 🔥 NOTIFICACIÓN TOAST para grupos (solo si NO es mensaje propio y chat NO está abierto)
+                    //  NOTIFICACIÓN TOAST para grupos (solo si NO es mensaje propio y chat NO está abierto)
                     if (!isOwnMessage && !isChatOpen) {
                         playMessageSound(soundsEnabledRef.current);
 
@@ -334,7 +335,7 @@ export const useSocketListeners = (
 
                 // CASO B: CHATS INDIVIDUALES
             } else {
-                // 🔥 SIEMPRE agregar mensaje al chat si está abierto
+                //  SIEMPRE agregar mensaje al chat si está abierto
                 if (isChatOpen) {
                     addNewMessage({
                         ...data,
@@ -355,7 +356,7 @@ export const useSocketListeners = (
                     });
                 }
 
-                // 🔥 Actualizar conversaciones asignadas
+                //  Actualizar conversaciones asignadas
                 setAssignedConversations(prev => prev.map(conv => {
                     if (data.conversationId && conv.id == data.conversationId) {
                         return {
@@ -388,7 +389,7 @@ export const useSocketListeners = (
                     return conv;
                 }));
 
-                // 🔥 NOTIFICACIONES SOLO si NO es mensaje propio y chat NO está abierto
+                //  NOTIFICACIONES SOLO si NO es mensaje propio y chat NO está abierto
                 if (!isOwnMessage && !isChatOpen) {
                     playMessageSound(soundsEnabledRef.current);
 
@@ -447,7 +448,7 @@ export const useSocketListeners = (
                 setUnreadMessages(prev => ({ ...prev, [data.roomCode]: (prev[data.roomCode] || 0) + data.count }));
                 playMessageSound(soundsEnabledRef.current);
 
-                // 🔥 NUEVO: Mostrar notificación visual (Toast)
+                //  NUEVO: Mostrar notificación visual (Toast)
                 let messageText = data.lastMessage?.text || "";
                 if (!messageText && data.lastMessage?.mediaType) {
                     if (data.lastMessage.mediaType === 'image') messageText = "📷 Imagen";
@@ -535,7 +536,7 @@ export const useSocketListeners = (
             }
         });
 
-        // 🔥 NUEVO: Listener profesional para actualizaciones de conversaciones asignadas
+        //  NUEVO: Listener profesional para actualizaciones de conversaciones asignadas
         // El backend emite este evento cuando llega un nuevo mensaje a una conversación asignada
         s.on("assignedConversationUpdated", (data) => {
             console.log("💬 assignedConversationUpdated recibido:", data);
@@ -688,7 +689,7 @@ export const useSocketListeners = (
             const toUser = data.to?.toLowerCase().trim();
             const currentUserFullName = currentUserFullNameRef.current?.toLowerCase().trim();
 
-            // 🔥 FIX: Verificar que el typing sea:
+            //  FIX: Verificar que el typing sea:
             // 1. DE la persona con la que estamos chateando (currentTo)
             // 2. PARA el usuario actual (currentUserFullName)
             const isFromCurrentChat = currentTo && fromUser === currentTo;
@@ -723,7 +724,7 @@ export const useSocketListeners = (
         });
 
         s.on("threadCountUpdated", (data) => {
-            // 🔥 FIX: Ahora que el backend solo emite a una sala por usuario,
+            //  FIX: Ahora que el backend solo emite a una sala por usuario,
             // todos deben incrementar el contador (no hay duplicados)
             updateMessage(data.messageId, (prev) => ({
                 threadCount: (prev.threadCount || 0) + 1,
@@ -734,7 +735,7 @@ export const useSocketListeners = (
             const currentFullName = currentUserFullNameRef.current;
             const isOwnReply = data.lastReplyFrom === username || data.lastReplyFrom === currentFullName;
 
-            // 🔥 Notificación para respuestas en hilos
+            //  Notificación para respuestas en hilos
             // (Usamos las variables isOwnReply y currentFullName ya declaradas arriba)
 
             // Solo notificar si NO es respuesta propia
@@ -829,7 +830,7 @@ export const useSocketListeners = (
             }
         });
 
-        // 🔥 Listener para mensajes individuales marcados como leídos
+        //  Listener para mensajes individuales marcados como leídos
         s.on("messageRead", (data) => {
             updateMessage(data.messageId, (prev) => ({
                 isRead: true,
@@ -840,13 +841,22 @@ export const useSocketListeners = (
             }));
         });
 
-        // 🔥 Listener para mensajes de sala/grupo marcados como leídos
+        //  Listener para mensajes de sala/grupo marcados como leídos
+        //  FIX: Deduplicación para evitar actualizaciones múltiples cuando llegan eventos de diferentes clusters
         s.on("roomMessageRead", (data) => {
             if (data.roomCode === currentRoomCodeRef.current) {
-                updateMessage(data.messageId, {
-                    isRead: true,
-                    readBy: data.readBy, // El backend envía el array completo
-                    readAt: data.readAt
+                updateMessage(data.messageId, (prevMessage) => {
+                    //  DEDUPLICACIÓN: Si readBy ya es igual, no actualizar (evita re-renders)
+                    if (prevMessage.readBy &&
+                        JSON.stringify(prevMessage.readBy) === JSON.stringify(data.readBy)) {
+                        return null; // Sin cambios - updateMessage ignora este caso
+                    }
+                    return {
+                        ...prevMessage,
+                        isRead: true,
+                        readBy: data.readBy,
+                        readAt: data.readAt
+                    };
                 });
             }
         });
@@ -862,13 +872,13 @@ export const useSocketListeners = (
             }
         });
 
-        // 🔥 NUEVO: Manejo de errores genéricos del socket
+        //  NUEVO: Manejo de errores genéricos del socket
         s.on("error", (data) => {
             console.error("❌ Socket Error:", data);
             showErrorAlert("Error", data.message || "Ocurrió un error en la conexión");
         });
 
-        // 🔥 NUEVO: Manejo de error al unirse a sala
+        //  NUEVO: Manejo de error al unirse a sala
         s.on("joinRoomError", (data) => {
             console.error("❌ Error al unirse a sala:", data);
             showErrorAlert("Error al unirse", data.message || "No se pudo unir a la sala");
@@ -882,15 +892,23 @@ export const useSocketListeners = (
         });
 
         s.on("videoCallEnded", (data) => {
-            stopRingtone(); // 🔥 Detener tono
+            stopRingtone(); //  Detener tono
             updateMessage(null, {
                 videoRoomID: data.roomID,
                 metadata: { isActive: false, closedBy: data.closedBy }
             });
         });
 
+        // 🔥 CLUSTER FIX: Listener para notificación de nueva conexión
+        // Facebook-style: permitir múltiples tabs, solo informar
+        s.on("forceDisconnect", (data) => {
+            // Solo loguear - NO desconectar para permitir múltiples tabs como Facebook
+            console.log("ℹ️ Nueva conexión detectada en otro lugar:", data.reason);
+            // La deduplicación en roomMessageRead evita eventos duplicados
+        });
+
         return () => {
-            // 🔥 CRÍTICO: Cleanup de TODOS los event listeners para evitar memory leaks
+            //  CRÍTICO: Cleanup de TODOS los event listeners para evitar memory leaks
             // Sin esto, cada re-render agrega nuevos listeners sin remover los anteriores
             s.off('roomJoined');
             s.off('messagePinned');
@@ -921,6 +939,7 @@ export const useSocketListeners = (
             s.off('error');
             s.off('joinRoomError');
             s.off('videoCallEnded');
+            s.off('forceDisconnect'); // 🔥 NUEVO: Cleanup del listener de desconexión forzada
         };
-    }, [socket, username, user]); // 🔥 NO incluir soundsEnabled aquí para evitar re-registrar todos los listeners
+    }, [socket, username, user]); //  NO incluir soundsEnabled aquí para evitar re-registrar todos los listeners
 };

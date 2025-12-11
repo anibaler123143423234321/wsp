@@ -461,6 +461,7 @@ const ChatPage = () => {
     chatState.setRoomUsers([]);
     chatState.currentRoomCodeRef.current = null;
     chatState.setReplyingTo(null);
+    chatState.setTypingUser(null); // 🔥 FIX: Limpiar typing al cambiar de chat
 
     // Limpiar mensajes visualmente antes de cargar los nuevos
     // (Asumiendo que 'clearMessages' viene de useMessagePagination o roomManagement)
