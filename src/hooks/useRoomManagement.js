@@ -52,7 +52,7 @@ export const useRoomManagement = (
     // Función para cargar salas activas con paginación
     const loadMyActiveRooms = useCallback(
         async (page = 1, append = false, limitOverride, user) => {
-            const parsedLimit = Number(limitOverride ?? roomsLimit) || 10;
+            const parsedLimit = Number(limitOverride ?? roomsLimit) || 50;
             try {
                 setRoomsLoading(true);
 

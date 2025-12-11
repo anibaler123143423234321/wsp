@@ -2644,3 +2644,27 @@
   cursor: pointer;
   accent-color: #075e54;
 }
+
+/* 🔥 MENCIONES ROBUSTAS (Amarillo Suave) */
+.mention-span {
+  transition: background-color 0.2s ease;
+  display: inline-block;
+  /* Asegura que el background se renderice bien */
+}
+
+.mention-span.mention-me {
+  background-color: #fce8b2 !important;
+  /* Oro/Amarillo fuerte para que se note */
+  color: #3e2723 !important;
+  /* Marrón oscuro */
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.mention-span.mention-other {
+  background-color: #fce8b2 !important;
+  /* Amarillo brillante para otros */
+  color: #3e2723 !important;
+  /* Marrón oscuro */
+  border-radius: 4px;
+}

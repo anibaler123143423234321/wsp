@@ -852,6 +852,12 @@
   opacity: 1;
 }
 
+/* 🔥 FIX: Mantener acciones visibles cuando hay menú o picker abierto */
+.thread-message-actions:has(.thread-message-menu),
+.thread-message-actions:has(.thread-reaction-picker) {
+  opacity: 1 !important;
+}
+
 .thread-message-menu-btn {
   background: rgba(255, 255, 255, 0.95);
   border: 1px solid #e0e0e0;
@@ -1039,4 +1045,79 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 🔥 NUEVO: Estilos para edición de mensajes */
+.thread-message-edit-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #e3f2fd;
+  border-radius: 8px;
+}
+
+.thread-edit-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #1976d2;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: none;
+  outline: none;
+}
+
+.thread-edit-input:focus {
+  border-color: #1565c0;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+}
+
+.thread-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.thread-edit-cancel {
+  padding: 6px 12px;
+  background: #f5f5f5;
+  color: #666;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.thread-edit-cancel:hover {
+  background: #eee;
+  color: #333;
+}
+
+.thread-edit-save {
+  padding: 6px 12px;
+  background: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.thread-edit-save:hover:not(:disabled) {
+  background: #1565c0;
+}
+
+.thread-edit-save:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.thread-edited-label {
+  font-size: 10px;
+  color: #999;
+  font-style: italic;
+  margin-left: 6px;
 }

@@ -38,7 +38,7 @@ export const useConversations = (
             try {
                 setAssignedLoading(true);
 
-                const result = await apiService.getAssignedConversationsPaginated(page, 10);
+                const result = await apiService.getAssignedConversationsPaginated(page, 50);
 
                 // Actualizar estados de paginación
                 setAssignedPage(result.page);

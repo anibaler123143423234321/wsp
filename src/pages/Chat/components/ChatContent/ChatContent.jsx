@@ -1299,18 +1299,22 @@ const ChatContent = ({
   const renderTextWithMentions = (text) => {
     if (!text) return text;
 
-    // Obtener lista de usuarios válidos para menciones
+    // Obtener lista de usuarios válidos normalizada (sin acentos, mayúsculas)
+    const normalizeText = (str) => {
+      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+    };
+
     const validUsers = roomUsers
       ? roomUsers.map((user) => {
-        if (typeof user === "string") return user.toUpperCase();
-        return (user.username || user.nombre || "").toUpperCase();
+        if (typeof user === "string") return normalizeText(user);
+        return normalizeText(user.username || user.nombre || "");
       })
       : [];
 
-    // Regex mejorado: @ seguido de 1-4 palabras (nombre y apellidos)
-    // Captura hasta 4 palabras para nombres completos con múltiples apellidos
-    const mentionRegex =
-      /@([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
+    // Regex mejorado: @ seguido de cualquier caracter de palabra (incluye acentos si se usa \w en algunos motores, pero mejor explícito)
+    // Permitimos mayúsculas y minúsculas al inicio
+    const mentionRegex = /@([a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+(?:\s+[a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
+
     const parts = [];
     let lastIndex = 0;
     let match;
@@ -1323,16 +1327,8 @@ const ChatContent = ({
       // Verificar si después del @ hay un dominio de email común
       const mentionedText = match[1].toLowerCase().trim();
       const emailDomains = [
-        "gmail",
-        "outlook",
-        "hotmail",
-        "yahoo",
-        "icloud",
-        "live",
-        "msn",
-        "aol",
-        "protonmail",
-        "zoho",
+        "gmail", "outlook", "hotmail", "yahoo", "icloud",
+        "live", "msn", "aol", "protonmail", "zoho",
       ];
       const isEmailDomain = emailDomains.includes(mentionedText);
 
@@ -1350,40 +1346,31 @@ const ChatContent = ({
 
       // Verificar si es un usuario válido en la sala
       const mentionedUser = match[1].trim();
+      const normalizedMention = normalizeText(mentionedUser);
+
       const isValidUser = validUsers.some(
         (validUser) =>
-          validUser === mentionedUser.toUpperCase() ||
-          validUser.includes(mentionedUser.toUpperCase())
+          validUser === normalizedMention ||
+          validUser.includes(normalizedMention) ||
+          normalizedMention.includes(validUser) // 🔥 Check bidireccional
       );
 
       // Solo resaltar si es un usuario válido
       if (isValidUser) {
         const isCurrentUser =
-          mentionedUser.toUpperCase() === currentUsername?.toUpperCase();
+          normalizedMention === normalizeText(currentUsername || "");
 
         parts.push(
           <span
             key={match.index}
+            className={`mention-span ${isCurrentUser ? 'mention-me' : 'mention-other'}`}
             style={{
               display: "inline",
-              backgroundColor: isCurrentUser ? "#d3e4fd" : "#e8def8",
-              color: isCurrentUser ? "#0b57d0" : "#6750a4",
               padding: "2px 6px",
               borderRadius: "4px",
               fontWeight: "500",
               fontSize: "0.95em",
               cursor: "pointer",
-              transition: "all 0.2s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = isCurrentUser
-                ? "#c2d7f7"
-                : "#d7c9f0";
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = isCurrentUser
-                ? "#d3e4fd"
-                : "#e8def8";
             }}
             title={`Mención a ${mentionedUser}`}
           >
@@ -2981,11 +2968,30 @@ const ChatContent = ({
                         display: "flex",
                         alignItems: "center",
                         gap: "8px",
+                        color: "#333", // 🔥 FIX: Color de texto explícito
+                        backgroundColor: "#fff",
                       }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f0f7ff"}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#fff"}
                     >
                       {/* Avatar simple para la sugerencia */}
-                      <div style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#ccc", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px" }}>@</div>
-                      <div>{typeof user === "object" ? user.nombre : user}</div>
+                      <div style={{
+                        width: "28px",
+                        height: "28px",
+                        borderRadius: "50%",
+                        background: "#1976d2",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "12px",
+                        color: "#fff",
+                        fontWeight: "600"
+                      }}>
+                        {(typeof user === "object" ? (user.nombre || user.username || "@").charAt(0) : user.charAt(0)).toUpperCase()}
+                      </div>
+                      <div style={{ color: "#333", fontWeight: "500", fontSize: "14px" }}>
+                        {typeof user === "object" ? (user.nombre && user.apellido ? `${user.nombre} ${user.apellido}` : user.nombre || user.username) : user}
+                      </div>
                     </div>
                   ))}
               </div>

@@ -9,6 +9,7 @@ import {
   FaShare, // 🔥 NUEVO: Ícono de reenviar
   FaCopy, // 🔥 NUEVO: Ícono de copiar
   FaReply, // 🔥 NUEVO: Ícono de responder
+  FaPen, // 🔥 NUEVO: Ícono de editar
 } from "react-icons/fa";
 import EmojiPicker from "emoji-picker-react";
 import apiService from "../../../../apiService";
@@ -66,6 +67,10 @@ const ThreadPanel = ({
   const [popoverPosition, setPopoverPosition] = useState('top'); // 'top' | 'bottom'
   const [popoverCoords, setPopoverCoords] = useState({ right: 0, top: 0 }); // 🔥 Coordenadas exactas para position: fixed
 
+  // 🔥 NUEVO: Estados para edición de mensajes
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editText, setEditText] = useState("");
+
 
 
   // Cargar mensajes del hilo
@@ -80,6 +85,44 @@ const ThreadPanel = ({
   useEffect(() => {
     scrollToBottom();
   }, [threadMessages]);
+
+  // 🔥 NUEVO: Handler global de tecla Escape para cerrar ThreadPanel
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape') {
+        // Si hay algún menú o picker abierto, cerrar ese primero
+        if (showEmojiPicker) {
+          setShowEmojiPicker(false);
+          event.stopPropagation();
+          return;
+        }
+        if (showMessageMenu) {
+          setShowMessageMenu(null);
+          event.stopPropagation();
+          return;
+        }
+        if (showReactionPicker) {
+          setShowReactionPicker(null);
+          event.stopPropagation();
+          return;
+        }
+        if (editingMessageId) {
+          handleCancelEdit();
+          event.stopPropagation();
+          return;
+        }
+        // Si no hay nada más abierto, cerrar el ThreadPanel
+        event.stopPropagation();
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey, true); // capture phase
+    return () => document.removeEventListener('keydown', handleEscapeKey, true);
+  }, [isOpen, onClose, showEmojiPicker, showMessageMenu, showReactionPicker, editingMessageId]);
 
   // Cerrar emoji picker al hacer click fuera
   useEffect(() => {
@@ -657,6 +700,40 @@ const ThreadPanel = ({
     setShowReactionPicker(null);
   };
 
+  // 🔥 NUEVO: Handlers para edición de mensajes
+  const handleStartEdit = (msg) => {
+    setEditingMessageId(msg.id);
+    setEditText(msg.message || msg.text || "");
+    setShowMessageMenu(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setEditText("");
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editText.trim() || !editingMessageId) return;
+
+    try {
+      const result = await apiService.editMessage(editingMessageId, currentUsername, editText);
+      if (result && result.success) {
+        // Actualizar el mensaje en el estado local
+        setThreadMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === editingMessageId
+              ? { ...msg, message: editText, text: editText, isEdited: true }
+              : msg
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error al editar mensaje:", error);
+    } finally {
+      setEditingMessageId(null);
+      setEditText("");
+    }
+  };
 
   // 🔥 NUEVO: Responder a mensaje
   const handleReplyTo = (message) => {
@@ -690,10 +767,17 @@ const ThreadPanel = ({
   // 🔥 NUEVO: Cerrar menú y picker de reacciones al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
+      // Cerrar menú si se hace clic fuera
       if (messageMenuRef.current && !messageMenuRef.current.contains(event.target)) {
         setShowMessageMenu(null);
       }
-      if (reactionPickerRef.current && !reactionPickerRef.current.contains(event.target)) {
+      // 🔥 FIX: Cerrar picker solo si NO estamos clickeando en el menú NI en el picker
+      // Esto evita que el picker se cierre inmediatamente al hacer clic en "Reaccionar"
+      if (
+        reactionPickerRef.current &&
+        !reactionPickerRef.current.contains(event.target) &&
+        (!messageMenuRef.current || !messageMenuRef.current.contains(event.target))
+      ) {
         setShowReactionPicker(null);
       }
       // 🔥 Cerrar popover de leídos si se hace clic fuera
@@ -968,13 +1052,35 @@ const ThreadPanel = ({
                   )}
                 </div>
               ) : (
-                <div className="thread-message-text">
-                  {msg.message || msg.text || (
-                    <span style={{ fontStyle: 'italic', color: '#888' }}>
-                      (Mensaje vacío o archivo no soportado)
-                    </span>
-                  )}
-                </div>
+                // 🔥 EDIT MODE: Si estamos editando este mensaje, mostrar input
+                editingMessageId === msg.id ? (
+                  <div className="thread-message-edit-mode">
+                    <textarea
+                      className="thread-edit-input"
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      autoFocus
+                      rows={2}
+                    />
+                    <div className="thread-edit-actions">
+                      <button className="thread-edit-cancel" onClick={handleCancelEdit}>
+                        Cancelar
+                      </button>
+                      <button className="thread-edit-save" onClick={handleSaveEdit} disabled={!editText.trim()}>
+                        Guardar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="thread-message-text">
+                    {msg.message || msg.text || (
+                      <span style={{ fontStyle: 'italic', color: '#888' }}>
+                        (Mensaje vacío o archivo no soportado)
+                      </span>
+                    )}
+                    {msg.isEdited && <span className="thread-edited-label">(editado)</span>}
+                  </div>
+                )
               )}
 
               {/* 🔥 NUEVO: Mostrar reacciones (igual que en ChatContent) */}
@@ -1175,6 +1281,15 @@ const ThreadPanel = ({
                     >
                       <FaSmile className="menu-icon" /> Reaccionar
                     </button>
+                    {/* 🔥 NUEVO: Botón de editar - solo para mensajes propios */}
+                    {msg.from === currentUsername && (
+                      <button
+                        className="menu-item"
+                        onClick={() => handleStartEdit(msg)}
+                      >
+                        <FaPen className="menu-icon" /> Editar
+                      </button>
+                    )}
                     <div style={{ height: '1px', background: '#eee', margin: '4px 0' }}></div>
                     <button
                       className="menu-item"
