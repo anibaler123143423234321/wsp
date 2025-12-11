@@ -723,21 +723,16 @@ export const useSocketListeners = (
         });
 
         s.on("threadCountUpdated", (data) => {
-            // 🔥 FIX: El remitente ya incrementó el contador localmente al enviar,
-            // así que solo incrementamos si NO es nuestro propio mensaje
+            // 🔥 FIX: Ahora que el backend solo emite a una sala por usuario,
+            // todos deben incrementar el contador (no hay duplicados)
+            updateMessage(data.messageId, (prev) => ({
+                threadCount: (prev.threadCount || 0) + 1,
+                lastReplyFrom: data.lastReplyFrom
+            }));
+
+            // Variables para las notificaciones
             const currentFullName = currentUserFullNameRef.current;
             const isOwnReply = data.lastReplyFrom === username || data.lastReplyFrom === currentFullName;
-
-            if (isOwnReply) {
-                // Si es nuestro propio mensaje, solo actualizamos lastReplyFrom sin incrementar
-                updateMessage(data.messageId, { lastReplyFrom: data.lastReplyFrom });
-            } else {
-                // Si es de otro usuario, incrementamos el contador
-                updateMessage(data.messageId, (prev) => ({
-                    threadCount: (prev.threadCount || 0) + 1,
-                    lastReplyFrom: data.lastReplyFrom
-                }));
-            }
 
             // 🔥 Notificación para respuestas en hilos
             // (Usamos las variables isOwnReply y currentFullName ya declaradas arriba)

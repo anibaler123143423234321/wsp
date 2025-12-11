@@ -844,8 +844,8 @@ const ThreadPanel = ({
         )}
 
         <div className="thread-replies-count">
-          {currentThreadCount}{" "}
-          {currentThreadCount === 1 ? "respuesta" : "respuestas"}
+          {threadMessages.length}{" "}
+          {threadMessages.length === 1 ? "respuesta" : "respuestas"}
         </div>
       </div>
 
