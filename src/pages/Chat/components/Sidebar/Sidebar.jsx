@@ -50,7 +50,7 @@ const Sidebar = ({
   roomsTotalPages = 0,
   roomsLoading = false,
   onLoadUserRooms,
-  roomsLimit = 10,
+  roomsLimit = 50,
   onRoomsLimitChange,
   onGoToRoomsPage
 }) => {

@@ -39,7 +39,7 @@ export const useChatState = () => {
     const [roomsTotal, setRoomsTotal] = useState(0);
     const [roomsTotalPages, setRoomsTotalPages] = useState(0);
     const [roomsLoading, setRoomsLoading] = useState(false);
-    const [roomsLimit, setRoomsLimit] = useState(10);
+    const [roomsLimit, setRoomsLimit] = useState(50);
 
     const [myActiveRooms, setMyActiveRooms] = useState([]);
     const [isSending, setIsSending] = useState(false);
