@@ -30,32 +30,36 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       let response;
 
       if (isGroup) {
-        // 🔥 Cargar mensajes de sala/grupo ordenados por ID (para evitar problemas con sentAt corrupto)
+        //  Cargar mensajes de sala/grupo ordenados por ID (para evitar problemas con sentAt corrupto)
         response = await apiService.getRoomMessagesOrderedById(
           roomCode,
           MESSAGES_PER_PAGE,
           0,
-          isGroup // 🔥 Pasar isGroup
+          isGroup //  Pasar isGroup
         );
       } else {
-        // 🔥 Cargar mensajes entre usuarios ordenados por ID (para evitar problemas con sentAt corrupto)
+        //  Cargar mensajes entre usuarios ordenados por ID (para evitar problemas con sentAt corrupto)
         response = await apiService.getUserMessagesOrderedById(
           username,
           to,
           MESSAGES_PER_PAGE,
           0,
-          isGroup, // 🔥 Pasar isGroup
-          roomCode // 🔥 Pasar roomCode (aunque sea null/undefined)
+          isGroup, //  Pasar isGroup
+          roomCode //  Pasar roomCode (aunque sea null/undefined)
         );
 
-        // 🔥 NO marcar automáticamente como leída al cargar mensajes
+        //  NO marcar automáticamente como leída al cargar mensajes
         // La conversación se marcará como leída solo cuando el usuario vea los mensajes
         // (esto se hace en ChatPage.jsx cuando se cargan los mensajes iniciales)
       }
 
-      // 🔥 NUEVO: Manejar respuesta paginada del backend
+      //  NUEVO: Manejar respuesta paginada del backend
       // El backend ahora puede devolver { data, total, hasMore, page, totalPages } o un array directamente
-      const historicalMessages = Array.isArray(response) ? response : (response?.data || []);
+      let historicalMessages = Array.isArray(response) ? response : (response?.data || []);
+
+      //  FIX: Filtrar mensajes de hilo - no deben aparecer en el chat principal
+      historicalMessages = historicalMessages.filter(msg => !msg.threadId);
+
       const backendHasMore = response?.hasMore;
 
       // Verificar si hay error en la respuesta
@@ -66,16 +70,16 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       ) {
         setMessages([]);
         setHasMoreMessages(false);
-        setError("Error al cargar mensajes. Por favor intenta de nuevo."); // 🔥 Setear error
+        setError("Error al cargar mensajes. Por favor intenta de nuevo."); //  Setear error
         return;
       }
 
       // Convertir mensajes de BD al formato del frontend
       const formattedMessages = historicalMessages.map((msg) => ({
         sender: msg.from === username ? "Tú" : msg.from,
-        realSender: msg.from, // 🔥 Nombre real del remitente (sin convertir a "Tú")
-        senderRole: msg.senderRole || null, // 🔥 Incluir role del remitente
-        senderNumeroAgente: msg.senderNumeroAgente || null, // 🔥 Incluir numeroAgente del remitente
+        realSender: msg.from, //  Nombre real del remitente (sin convertir a "Tú")
+        senderRole: msg.senderRole || null, //  Incluir role del remitente
+        senderNumeroAgente: msg.senderNumeroAgente || null, //  Incluir numeroAgente del remitente
         receiver: msg.groupName || msg.to || username,
         text: msg.message || "",
         isGroup: msg.isGroup,
@@ -98,27 +102,28 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         sentAt: msg.sentAt,
         // Campos de respuesta
         replyToMessageId: msg.replyToMessageId,
-        replyToSender: msg.replyToSender, // 🔥 Mantener el valor original de la BD
-        replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null, // 🔥 Incluir numeroAgente del remitente original
+        replyToSender: msg.replyToSender, //  Mantener el valor original de la BD
+        replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null, //  Incluir numeroAgente del remitente original
         replyToText: msg.replyToText,
         // Campos de hilos
         threadCount: msg.threadCount || 0,
         lastReplyFrom: msg.lastReplyFrom || null,
+        lastReplyText: msg.lastReplyText || null, //  NUEVO: Texto del último mensaje del hilo
         // Campos de edición
         isEdited: msg.isEdited || false,
         editedAt: msg.editedAt,
-        // 🔥 Campos de eliminación
+        //  Campos de eliminación
         isDeleted: msg.isDeleted || false,
         deletedBy: msg.deletedBy || null,
         deletedAt: msg.deletedAt || null,
-        // 🔥 Campos de reacciones
+        //  Campos de reacciones
         reactions: msg.reactions || [],
-        // 🔥 NUEVO: Campos de videollamada
+        //  NUEVO: Campos de videollamada
         type: msg.type || null,
         videoCallUrl: msg.videoCallUrl || null,
         videoRoomID: msg.videoRoomID || null,
         metadata: msg.metadata || null,
-        // 🔥 NUEVO: Campo de reenvío
+        //  NUEVO: Campo de reenvío
         isForwarded: msg.isForwarded || false,
       }));
 
@@ -180,7 +185,11 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       }
 
       // 🔥 NUEVO: Manejar respuesta paginada del backend
-      const historicalMessages = Array.isArray(response) ? response : (response?.data || []);
+      let historicalMessages = Array.isArray(response) ? response : (response?.data || []);
+
+      // 🔥 FIX: Filtrar mensajes de hilo - no deben aparecer en el chat principal
+      historicalMessages = historicalMessages.filter(msg => !msg.threadId);
+
       const backendHasMore = response?.hasMore;
 
       // Verificar si hay error en la respuesta
@@ -233,6 +242,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         // Campos de hilos
         threadCount: msg.threadCount || 0,
         lastReplyFrom: msg.lastReplyFrom || null,
+        lastReplyText: msg.lastReplyText || null, // 🔥 NUEVO: Texto del último mensaje del hilo
         // Campos de edición
         isEdited: msg.isEdited || false,
         editedAt: msg.editedAt,

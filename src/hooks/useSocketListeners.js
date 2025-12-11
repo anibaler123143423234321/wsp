@@ -188,6 +188,13 @@ export const useSocketListeners = (
             // Si es un mensaje de monitoreo, ignorarlo aquí
             if (data.isMonitoring) return;
 
+            // 🔥 FIX: Si es un mensaje de hilo (respuesta), no agregarlo al chat principal
+            // Los mensajes de hilo se manejan por el evento 'threadMessage' en ThreadPanel
+            if (data.threadId) {
+                console.log('🚫 useSocketListeners: Ignorando mensaje con threadId:', data.threadId, data.message);
+                return;
+            }
+
             let timeString = data.time || new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
 
             // Derivar texto del mensaje
@@ -716,14 +723,24 @@ export const useSocketListeners = (
         });
 
         s.on("threadCountUpdated", (data) => {
-            updateMessage(data.messageId, (prev) => ({
-                threadCount: (prev.threadCount || 0) + 1,
-                lastReplyFrom: data.lastReplyFrom
-            }));
-
-            // 🔥 Notificación para respuestas en hilos
+            // 🔥 FIX: El remitente ya incrementó el contador localmente al enviar,
+            // así que solo incrementamos si NO es nuestro propio mensaje
             const currentFullName = currentUserFullNameRef.current;
             const isOwnReply = data.lastReplyFrom === username || data.lastReplyFrom === currentFullName;
+
+            if (isOwnReply) {
+                // Si es nuestro propio mensaje, solo actualizamos lastReplyFrom sin incrementar
+                updateMessage(data.messageId, { lastReplyFrom: data.lastReplyFrom });
+            } else {
+                // Si es de otro usuario, incrementamos el contador
+                updateMessage(data.messageId, (prev) => ({
+                    threadCount: (prev.threadCount || 0) + 1,
+                    lastReplyFrom: data.lastReplyFrom
+                }));
+            }
+
+            // 🔥 Notificación para respuestas en hilos
+            // (Usamos las variables isOwnReply y currentFullName ya declaradas arriba)
 
             // Solo notificar si NO es respuesta propia
             if (!isOwnReply) {

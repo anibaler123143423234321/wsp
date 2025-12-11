@@ -133,12 +133,12 @@ const ThreadPanel = ({
 
     const handleThreadCountUpdated = (data) => {
       console.log('🔢 ThreadPanel evento threadCountUpdated:', data);
-      // Solo actualizar si es para este hilo específico
+      // 🔥 FIX: NO incrementamos el contador aquí porque:
+      // 1. El contador real se basa en threadMessages.length
+      // 2. useSocketListeners ya maneja el contador del mensaje padre
+      // Solo logueamos para debugging
       if (String(data.messageId) === String(message?.id)) {
-        console.log(
-          `🔢 ThreadPanel actualizando contador para hilo ${data.messageId}`
-        );
-        setCurrentThreadCount((prev) => prev + 1);
+        console.log(`🔢 ThreadPanel: recibido update para nuestro hilo ${data.messageId}, ignorando incremento duplicado`);
       }
     };
 

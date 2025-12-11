@@ -1775,6 +1775,14 @@ const ChatContent = ({
                   <span className="mx_ThreadLastReply">
                     {message.lastReplyFrom ? message.lastReplyFrom : "Ver"}
                   </span>
+                  {/* 🔥 NUEVO: Vista previa del último mensaje del hilo */}
+                  {message.lastReplyText && (
+                    <span className="mx_ThreadLastReplyText" title={message.lastReplyText}>
+                      : {message.lastReplyText.length > 25
+                        ? message.lastReplyText.substring(0, 25) + '...'
+                        : message.lastReplyText}
+                    </span>
+                  )}
                   <FaChevronRight size={10} color="#8696a0" style={{ marginLeft: '4px' }} />
                 </div>
 

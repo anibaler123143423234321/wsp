@@ -2159,6 +2159,18 @@
   white-space: nowrap;
 }
 
+/* 🔥 NUEVO: Texto del último mensaje del hilo */
+.mx_ThreadLastReplyText {
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: 400;
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
 /* ============================================================
    📍 POSICIONAMIENTO CORREGIDO
    ============================================================ */

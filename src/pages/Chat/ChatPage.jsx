@@ -1063,7 +1063,13 @@ const ChatPage = () => {
         console.log('📡 DEBUG - Emitiendo threadMessage con id:', savedMessage.id);
         socket.emit("threadMessage", {
           ...savedMessage,
+          // 🔥 ASEGURAR RUTAS PARA CLUSTER:
+          // Explicitamente pasar datos de routing por si savedMessage no los tiene
           threadId: messageData.threadId,
+          isGroup: !!messageData.isGroup,
+          roomCode: messageData.roomCode,
+          from: messageObj.from,
+          to: messageObj.to,
         });
 
         // 🔥 ESTA LÍNEA ES LA CLAVE: Avisa al servidor que avise a todos (incluyéndome) que actualicen el contador
