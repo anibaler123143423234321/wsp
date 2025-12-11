@@ -71,7 +71,102 @@ const ThreadPanel = ({
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editText, setEditText] = useState("");
 
+  // 🔥 NUEVO: Función para renderizar texto con menciones resaltadas (igual que ChatContent)
+  const renderTextWithMentions = (text) => {
+    if (!text) return text;
 
+    // Obtener lista de usuarios válidos normalizada (sin acentos, mayúsculas)
+    const normalizeText = (str) => {
+      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+    };
+
+    const validUsers = roomUsers
+      ? roomUsers.map((user) => {
+        if (typeof user === "string") return normalizeText(user);
+        return normalizeText(user.username || user.nombre || "");
+      })
+      : [];
+
+    // Regex mejorado: @ seguido de cualquier caracter de palabra (incluye acentos)
+    const mentionRegex = /@([a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+(?:\s+[a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
+
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = mentionRegex.exec(text)) !== null) {
+      // Verificar si es parte de un email
+      const charBeforeMention = match.index > 0 ? text[match.index - 1] : "";
+      const isPartOfEmail = /[a-zA-Z0-9._-]/.test(charBeforeMention);
+
+      // Verificar si después del @ hay un dominio de email común
+      const mentionedText = match[1].toLowerCase().trim();
+      const emailDomains = [
+        "gmail", "outlook", "hotmail", "yahoo", "icloud",
+        "live", "msn", "aol", "protonmail", "zoho",
+      ];
+      const isEmailDomain = emailDomains.includes(mentionedText);
+
+      // Agregar texto antes de la mención
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index));
+      }
+
+      // Si es parte de un email, agregar sin resaltar
+      if (isPartOfEmail || isEmailDomain) {
+        parts.push(match[0]);
+        lastIndex = match.index + match[0].length;
+        continue;
+      }
+
+      // Verificar si es un usuario válido en la sala
+      const mentionedUser = match[1].trim();
+      const normalizedMention = normalizeText(mentionedUser);
+
+      const isValidUser = validUsers.some(
+        (validUser) =>
+          validUser === normalizedMention ||
+          validUser.includes(normalizedMention) ||
+          normalizedMention.includes(validUser)
+      );
+
+      // Solo resaltar si es un usuario válido
+      if (isValidUser) {
+        const isCurrentUser =
+          normalizedMention === normalizeText(currentUsername || "");
+
+        parts.push(
+          <span
+            key={match.index}
+            className={`mention-span ${isCurrentUser ? 'mention-me' : 'mention-other'}`}
+            style={{
+              display: "inline",
+              padding: "2px 6px",
+              borderRadius: "4px",
+              fontWeight: "500",
+              fontSize: "0.95em",
+              cursor: "pointer",
+            }}
+            title={`Mención a ${mentionedUser}`}
+          >
+            @{mentionedUser}
+          </span>
+        );
+      } else {
+        // Si no es un usuario válido, agregar como texto normal
+        parts.push(match[0]);
+      }
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Agregar texto restante
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts.length > 0 ? parts : text;
+  };
 
   // Cargar mensajes del hilo
 
@@ -985,7 +1080,7 @@ const ThreadPanel = ({
                   />
                   {msg.message && (
                     <div className="thread-message-text">
-                      {msg.message || msg.text}
+                      {renderTextWithMentions(msg.message || msg.text)}
                     </div>
                   )}
                 </div>
@@ -1004,7 +1099,7 @@ const ThreadPanel = ({
                   />
                   {msg.message && (
                     <div className="thread-message-text">
-                      {msg.message || msg.text}
+                      {renderTextWithMentions(msg.message || msg.text)}
                     </div>
                   )}
                 </div>
@@ -1021,7 +1116,7 @@ const ThreadPanel = ({
                   />
                   {msg.message && (
                     <div className="thread-message-text">
-                      {msg.message || msg.text}
+                      {renderTextWithMentions(msg.message || msg.text)}
                     </div>
                   )}
                 </div>
@@ -1047,7 +1142,7 @@ const ThreadPanel = ({
                   </div>
                   {msg.message && (
                     <div className="thread-message-text">
-                      {msg.message || msg.text}
+                      {renderTextWithMentions(msg.message || msg.text)}
                     </div>
                   )}
                 </div>
@@ -1073,12 +1168,16 @@ const ThreadPanel = ({
                   </div>
                 ) : (
                   <div className="thread-message-text">
-                    {msg.message || msg.text || (
+                    {msg.message || msg.text ? (
+                      <>
+                        {renderTextWithMentions(msg.message || msg.text)}
+                        {msg.isEdited && <span className="thread-edited-label">(editado)</span>}
+                      </>
+                    ) : (
                       <span style={{ fontStyle: 'italic', color: '#888' }}>
                         (Mensaje vacío o archivo no soportado)
                       </span>
                     )}
-                    {msg.isEdited && <span className="thread-edited-label">(editado)</span>}
                   </div>
                 )
               )}

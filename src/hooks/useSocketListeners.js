@@ -229,6 +229,17 @@ export const useSocketListeners = (
                 const chatPartner = currentTo?.toLowerCase().trim();
                 const msgFrom = data.from?.toLowerCase().trim();
                 const msgTo = data.to?.toLowerCase().trim();
+
+                // 🔥 DEBUG: Diagnosticar por qué no se abre el chat
+                console.log('🔍 DEBUG isChatOpen (DM):', {
+                    chatPartner,
+                    msgFrom,
+                    msgTo,
+                    match1: chatPartner === msgFrom,
+                    match2: chatPartner === msgTo,
+                    conversationId: data.conversationId
+                });
+
                 if (chatPartner && (chatPartner === msgFrom || chatPartner === msgTo)) {
                     isChatOpen = true;
                 }
@@ -336,7 +347,9 @@ export const useSocketListeners = (
                 // CASO B: CHATS INDIVIDUALES
             } else {
                 //  SIEMPRE agregar mensaje al chat si está abierto
+                console.log('🔍 DEBUG CASO B - isChatOpen:', isChatOpen, 'isOwnMessage:', isOwnMessage);
                 if (isChatOpen) {
+                    console.log('✅ CASO B: Llamando addNewMessage para DM:', data.id, data.message?.substring(0, 30));
                     addNewMessage({
                         ...data,
                         id: data.id,

@@ -89,7 +89,7 @@
 }
 
 .thread-main-message-header strong {
-  color: #1976d2;
+  color: #54656F;
   font-size: 14px;
 }
 
@@ -172,7 +172,7 @@
 
 .thread-message-header strong {
   font-size: 13px;
-  color: #333;
+  color: #54656F;
 }
 
 .thread-message-time {
@@ -208,17 +208,16 @@
 }
 
 .thread-message-own .thread-message-header strong {
-  color: #1976d2;
+  color: #54656F;
 }
 
 .thread-message-own .thread-message-text {
-  background: #e3f2fd;
-  color: #333;
+  background: #e1f4d6 !important;
+  color: #111b21 !important;
 }
 
 .thread-message-other .thread-message-text {
-  background: #f5f5f5;
-  color: #333;
+  color: #111b21 !important;
 }
 
 .thread-input-container {
@@ -828,11 +827,30 @@
 }
 
 .thread-message-text .mention {
-  background-color: #e3f2fd;
-  color: #1976d2;
-  padding: 2px 4px;
-  border-radius: 3px;
+  background-color: #fce8b2 !important;
+  color: #3e2723 !important;
+  padding: 2px 6px;
+  border-radius: 4px;
   font-weight: 500;
+}
+
+/* 🔥 MENCIONES ROBUSTAS - Igual que ChatContent (Amarillo Suave) */
+.thread-message-text .mention-span {
+  transition: background-color 0.2s ease;
+  display: inline-block;
+}
+
+.thread-message-text .mention-span.mention-me {
+  background-color: #fce8b2 !important;
+  color: #3e2723 !important;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.thread-message-text .mention-span.mention-other {
+  background-color: #fce8b2 !important;
+  color: #3e2723 !important;
+  border-radius: 4px;
 }
 
 /* 🔥 NUEVO - Estilos para menú de opciones de mensajes */

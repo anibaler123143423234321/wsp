@@ -286,6 +286,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
 
   // Agregar nuevo mensaje (para mensajes en tiempo real)
   const addNewMessage = useCallback((message) => {
+    console.log('📨 addNewMessage recibido:', { id: message.id, text: message.text || message.message });
     setMessages((prevMessages) => {
       // Verificar si el mensaje ya existe (evitar duplicados)
       const messageExists = prevMessages.some((msg) => {
@@ -300,9 +301,14 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       });
 
       if (messageExists) {
+        console.log('⏭️ addNewMessage: Mensaje ID', message.id, 'YA EXISTE');
+        console.log('📋 IDs en la lista actual:', prevMessages.map(m => m.id));
+        const existingMsg = prevMessages.find(m => String(m.id) === String(message.id));
+        console.log('📋 Mensaje existente:', existingMsg ? { id: existingMsg.id, text: existingMsg.text || existingMsg.message } : 'NO ENCONTRADO');
         return prevMessages;
       }
 
+      console.log('✅ addNewMessage: Agregando mensaje ID', message.id, '- Total:', prevMessages.length + 1);
       return [...prevMessages, message];
     });
   }, []);
