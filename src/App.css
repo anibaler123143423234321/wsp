@@ -14,6 +14,13 @@ body {
   background-color: #ffffff;
   color: #111b21;
   overflow: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Dark mode for body */
+html.dark body {
+  background-color: #1a1a1a;
+  color: #e5e5e5;
 }
 
 
@@ -102,6 +109,19 @@ body {
   background: #a0a0a0;
 }
 
+/* Dark mode scrollbar */
+html.dark ::-webkit-scrollbar-track {
+  background: #2a2a2a;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #4a4a4a;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #5a5a5a;
+}
+
 /* Mejoras para dispositivos móviles */
 @media (max-width: 768px) {
   body {
@@ -126,6 +146,7 @@ body {
 
 /* Prevenir zoom en inputs en iOS */
 @media screen and (-webkit-min-device-pixel-ratio: 0) {
+
   input[type="text"],
   input[type="password"],
   input[type="email"] {

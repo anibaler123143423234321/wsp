@@ -56,7 +56,16 @@ const Sidebar = ({
 }) => {
 
   // Estado y refs para el redimensionamiento
-  const [sidebarWidth, setSidebarWidth] = useState(sidebarCollapsed ? 450 : 580);
+  const [sidebarWidth, setSidebarWidth] = useState(sidebarCollapsed ? 450 : 540);
+
+  // Sincronizar sidebarWidth cuando cambia sidebarCollapsed
+  useEffect(() => {
+    if (sidebarCollapsed) {
+      setSidebarWidth(450); // LeftSidebar colapsado (90px) + ConversationList (360px)
+    } else {
+      setSidebarWidth(540); // LeftSidebar expandido (180px) + ConversationList (360px)
+    }
+  }, [sidebarCollapsed]);
 
   // Forzar ancho fijo en modo compacto
   useEffect(() => {

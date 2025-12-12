@@ -238,9 +238,9 @@
 
 /* Default width for LeftSidebar */
 .left-sidebar-responsive {
-  width: 220px;
-  max-width: 220px;
-  min-width: 220px;
+  width: 180px;
+  max-width: 180px;
+  min-width: 180px;
   flex-shrink: 0;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -248,9 +248,9 @@
 /* En 1400px: mantener ancho completo */
 @media (max-width: 1400px) {
   .left-sidebar-responsive {
-    width: 220px;
-    max-width: 220px;
-    min-width: 220px;
+    width: 180px;
+    max-width: 180px;
+    min-width: 180px;
   }
 }
 
@@ -275,9 +275,9 @@
 /* En 768px y menos: mantener ancho fijo (no full width) */
 @media (max-width: 768px) {
   .left-sidebar-responsive {
-    width: 220px;
-    max-width: 220px;
-    min-width: 220px;
+    width: 180px;
+    max-width: 180px;
+    min-width: 180px;
   }
 }
 
@@ -306,7 +306,7 @@
   .left-sidebar-button span {
     display: none !important;
   }
-  
+
   .left-sidebar-button {
     justify-content: center !important;
     padding: 0.5rem !important;

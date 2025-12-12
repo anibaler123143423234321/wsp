@@ -2691,3 +2691,118 @@
   /* Marrón oscuro */
   border-radius: 4px;
 }
+
+/* =========================================
+   🌙 DARK MODE STYLES - CHAT CONTENT
+   ========================================= */
+
+/* Chat content background */
+html.dark .chat-content {
+  background-color: #1a1a1a !important;
+}
+
+/* Chat history area */
+html.dark .chat-history {
+  background-color: transparent !important;
+}
+
+/* Typing indicator container */
+html.dark .typing-indicator-container {
+  background: linear-gradient(to top, #1a1a1a 85%, rgba(26, 26, 26, 0.8) 95%, transparent) !important;
+}
+
+/* Message row hover */
+html.dark .message-row:hover {
+  background-color: #2a2a2a !important;
+}
+
+/* Message text body */
+html.dark .message-text-body {
+  color: #e5e5e5 !important;
+}
+
+/* Sender name */
+html.dark .sender-name {
+  color: #ffffff !important;
+}
+
+/* Header timestamp */
+html.dark .header-timestamp,
+html.dark .message-timestamp-left {
+  color: #9ca3af !important;
+}
+
+/* Action toolbar */
+html.dark .action-toolbar {
+  background-color: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+}
+
+html.dark .toolbar-btn {
+  color: #9ca3af !important;
+}
+
+html.dark .toolbar-btn:hover {
+  background-color: #3a3a3a !important;
+  color: #ffffff !important;
+}
+
+/* Dropdown menu */
+html.dark .slack-dropdown-menu {
+  background-color: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+}
+
+html.dark .slack-dropdown-menu .menu-item {
+  color: #e5e5e5 !important;
+}
+
+html.dark .slack-dropdown-menu .menu-item:hover {
+  background-color: #3a3a3a !important;
+}
+
+html.dark .menu-separator {
+  background-color: #3a3a3a !important;
+}
+
+/* Welcome screen */
+html.dark .welcome-title {
+  color: #ffffff !important;
+}
+
+html.dark .welcome-subtitle,
+html.dark .welcome-description {
+  color: #9ca3af !important;
+}
+
+/* Input area dark mode */
+html.dark .chat-input-container {
+  background-color: #1a1a1a !important;
+}
+
+html.dark .input-group {
+  background-color: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+}
+
+html.dark .message-input {
+  background-color: transparent !important;
+  color: #e5e5e5 !important;
+}
+
+html.dark .message-input::placeholder {
+  color: #6b7280 !important;
+}
+
+/* Message bubbles for sent/received if applicable */
+html.dark .message-content {
+  color: #e5e5e5 !important;
+}
+
+/* Mentions in dark mode - keep yellow but darker text */
+html.dark .mention-span.mention-me,
+html.dark .mention-span.mention-other {
+  background-color: #b8860b !important;
+  color: #ffffff !important;
+}
+
