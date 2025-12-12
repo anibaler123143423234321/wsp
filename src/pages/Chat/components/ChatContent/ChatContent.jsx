@@ -167,6 +167,7 @@ const ChatContent = ({
   const isUserScrollingRef = useRef(false);
   const lastMessageCountRef = useRef(0);
   const previousScrollHeightRef = useRef(0);
+  const hasScrolledToUnreadRef = useRef(false); // 🔥 NUEVO: Rastrear si ya hicimos scroll al primer mensaje no leído
   const typingTimeoutRef = useRef(null);
   const emojiPickerRef = useRef(null);
   const reactionPickerRef = useRef(null);
@@ -213,13 +214,13 @@ const ChatContent = ({
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedMessages, setSelectedMessages] = useState([]);
 
-  // 🔥 NUEVOS ESTADOS - Modal de reenvío
+  //  NUEVOS ESTADOS - Modal de reenvío
   const [showForwardModal, setShowForwardModal] = useState(false);
   const [messageToForward, setMessageToForward] = useState(null);
   const [showPdfViewer, setShowPdfViewer] = useState(false);
   const [pdfData, setPdfData] = useState(null); // Cambiar a pdfData (ArrayBuffer)
 
-  // 🔥 PAGINACIÓN - Modal de reenvío
+  //  PAGINACIÓN - Modal de reenvío
   const [forwardRoomsPage, setForwardRoomsPage] = useState(1);
   const [forwardRoomsTotalPages, setForwardRoomsTotalPages] = useState(1);
   const [forwardRoomsLoading, setForwardRoomsLoading] = useState(false);
@@ -256,7 +257,7 @@ const ChatContent = ({
     setSelectedMessages([]);
   };
 
-  // 🔥 NUEVO HANDLER - Abrir modal de reenvío
+  //  NUEVO HANDLER - Abrir modal de reenvío
   const handleOpenForwardModal = async (message) => {
     setMessageToForward(message);
     setShowForwardModal(true);
@@ -268,7 +269,7 @@ const ChatContent = ({
     setForwardRoomsPage(1);
     setForwardConvsPage(1);
 
-    // 🔥 NUEVO: Obtener totales reales del backend
+    //  NUEVO: Obtener totales reales del backend
     try {
       const isPrivileged = user?.role === 'ADMIN' || user?.role === 'JEFEPISO' ||
         user?.role === 'PROGRAMADOR' || user?.role === 'SUPERADMIN';
@@ -347,7 +348,7 @@ const ChatContent = ({
     }
   };
 
-  // 🔥 NUEVO - Cargar más conversaciones asignadas para modal de reenvío  
+  //  NUEVO - Cargar más conversaciones asignadas para modal de reenvío  
   const handleLoadMoreForwardConvs = async () => {
     if (forwardConvsLoading || forwardConvsPage >= forwardConvsTotalPages) return;
 
@@ -372,11 +373,56 @@ const ChatContent = ({
   };
 
   // ============================================================
-  // EFFECT - Limpiar vista previa al cambiar de chat
+  // EFFECT - Resetear estado al cambiar de chat
   // ============================================================
   useEffect(() => {
     setImagePreview(null);
+    //  Resetear el flag de scroll a no leídos cuando cambiamos de chat
+    hasScrolledToUnreadRef.current = false;
+    lastMessageCountRef.current = 0;
   }, [to, currentRoomCode, isGroup]);
+
+  // ============================================================
+  // EFFECT - Scroll al primer mensaje no leído (estilo WhatsApp)
+  // ============================================================
+  useEffect(() => {
+    // Solo ejecutar si:
+    // 1. No hemos hecho scroll todavía
+    // 2. Hay mensajes cargados
+    // 3. No estamos cargando mensajes
+    if (hasScrolledToUnreadRef.current || messages.length === 0 || isLoadingMessages) return;
+    if (!chatHistoryRef.current) return;
+
+    const chatHistory = chatHistoryRef.current;
+
+    // Buscar el primer mensaje no leído que NO sea del usuario actual
+    const firstUnreadMessage = messages.find(
+      (msg) => msg.id && msg.sender !== currentUsername && msg.sender !== "Tú" && !msg.isRead
+    );
+
+    if (firstUnreadMessage) {
+      //  Primero intentar hacer scroll al separador de no leídos
+      setTimeout(() => {
+        const unreadSeparator = document.getElementById('unread-separator');
+        if (unreadSeparator) {
+          unreadSeparator.scrollIntoView({ behavior: "auto", block: "center" });
+        } else {
+          // Fallback: scroll al primer mensaje no leído
+          const messageElement = document.getElementById(`message-${firstUnreadMessage.id}`);
+          if (messageElement) {
+            messageElement.scrollIntoView({ behavior: "auto", block: "center" });
+          } else {
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+          }
+        }
+        hasScrolledToUnreadRef.current = true;
+      }, 150);
+    } else {
+      //  Si no hay mensajes no leídos, ir al final del chat
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+      hasScrolledToUnreadRef.current = true;
+    }
+  }, [messages, isLoadingMessages, currentUsername]);
 
   // ============================================================
   // EFFECT - Autofocus en el input al entrar a un chat
@@ -430,9 +476,11 @@ const ChatContent = ({
   };
 
   // Función simple para agrupar mensajes usando solo datos del backend
-  const groupMessagesByDate = (messages) => {
+  //  NUEVO: También inserta separador de "X mensajes no leídos"
+  const groupMessagesByDate = (messages, currentUser) => {
     const groups = [];
     let currentDateString = null;
+    let unreadSeparatorInserted = false;
 
     // 🔥 FILTRAR DUPLICADOS POR ID
     const uniqueMessages = [];
@@ -447,6 +495,11 @@ const ChatContent = ({
 
       uniqueMessages.push(msg);
     });
+
+    //  Contar mensajes no leídos (que no sean del usuario actual)
+    const unreadCount = uniqueMessages.filter(
+      msg => msg.id && msg.sender !== currentUser && msg.sender !== "Tú" && !msg.isRead
+    ).length;
 
     uniqueMessages.forEach((message, index) => {
       // Usar directamente el sentAt del backend
@@ -465,6 +518,22 @@ const ChatContent = ({
           date: dateToUse,
           label: formatDateFromBackend(dateToUse),
         });
+      }
+
+      // 🔥 NUEVO: Insertar separador de no leídos ANTES del primer mensaje no leído
+      if (
+        !unreadSeparatorInserted &&
+        unreadCount > 0 &&
+        message.id &&
+        message.sender !== currentUser &&
+        message.sender !== "Tú" &&
+        !message.isRead
+      ) {
+        groups.push({
+          type: "unread-separator",
+          count: unreadCount,
+        });
+        unreadSeparatorInserted = true;
       }
 
       groups.push({
@@ -806,12 +875,20 @@ const ChatContent = ({
   useEffect(() => {
     if (!chatHistoryRef.current) return;
 
+    // 🔥 NUEVO: No hacer scroll automático hasta que hayamos completado el scroll inicial a no leídos
+    if (!hasScrolledToUnreadRef.current) return;
+
     const chatHistory = chatHistoryRef.current;
+
+    // 🔥 Solo verificar si estamos cerca del final (100px de margen)
     const isAtBottom = chatHistory.scrollHeight - chatHistory.scrollTop <= chatHistory.clientHeight + 100;
 
-    if (messages.length > lastMessageCountRef.current && (isAtBottom || !isUserScrollingRef.current)) {
+    // 🔥 CORREGIDO: Solo hacer scroll automático si:
+    // 1. Hay mensajes nuevos (no solo re-renders)
+    // 2. El usuario está en la parte inferior del chat
+    // Esto preserva la posición de lectura cuando el usuario está leyendo historial
+    if (messages.length > lastMessageCountRef.current && isAtBottom) {
       chatHistory.scrollTop = chatHistory.scrollHeight;
-      isUserScrollingRef.current = false;
     }
 
     lastMessageCountRef.current = messages.length;
@@ -828,7 +905,9 @@ const ChatContent = ({
       (!isGroup && isOtherUserTyping && typingUser) ||
       (isGroup && currentRoomCode && roomTypingUsers?.[currentRoomCode]?.length > 0);
 
-    if (someoneIsTyping && (isAtBottom || !isUserScrollingRef.current)) {
+    // 🔥 CORREGIDO: Solo hacer scroll si el usuario está cerca del final
+    // Esto preserva la posición cuando lee mensajes antiguos
+    if (someoneIsTyping && isAtBottom) {
       chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: "auto" });
     }
   }, [isOtherUserTyping, typingUser, roomTypingUsers, currentRoomCode, isGroup]);
@@ -2175,12 +2254,24 @@ const ChatContent = ({
                 index === self.findIndex((t) => (
                   t.id === msg.id // Mantiene solo la primera ocurrencia de cada ID
                 ))
-              )
+              ),
+              currentUsername // 🔥 NUEVO: Pasar usuario actual para detectar mensajes no leídos
             ).map((item, idx) => {
               if (item.type === "date-separator") {
                 return (
                   <div key={`date-${idx}`} className="date-separator">
                     <div className="date-separator-content">{item.label}</div>
+                  </div>
+                );
+              } else if (item.type === "unread-separator") {
+                // 🔥 NUEVO: Separador de mensajes no leídos estilo WhatsApp
+                return (
+                  <div key={`unread-${idx}`} className="unread-separator" id="unread-separator">
+                    <div className="unread-separator-content">
+                      {item.count === 1
+                        ? "1 mensaje no leído"
+                        : `${item.count} mensajes no leídos`}
+                    </div>
                   </div>
                 );
               } else {

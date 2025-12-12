@@ -1144,6 +1144,29 @@
   padding: 4px 5px;
 }
 
+/* 🔥 NUEVO: Separador de mensajes no leídos (estilo WhatsApp) */
+.unread-separator {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 16px 0;
+  padding: 0 20px;
+  width: 100%;
+}
+
+.unread-separator-content {
+  background-color: #06cf9c;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
 /* Mensajes de información */
 .info-message,
 .error-message {
