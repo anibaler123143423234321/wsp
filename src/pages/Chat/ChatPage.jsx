@@ -319,12 +319,7 @@ const ChatPage = () => {
     if (chatState.isGroup && chatState.currentRoomCode && messages.length > 0) {
       if (!markedRoomsRef.current.has(chatState.currentRoomCode)) {
         markedRoomsRef.current.add(chatState.currentRoomCode);
-
-        const timer = setTimeout(() => {
-          markRoomMessagesAsRead(chatState.currentRoomCode);
-        }, 500);
-
-        return () => clearTimeout(timer);
+        markRoomMessagesAsRead(chatState.currentRoomCode);
       }
     }
 
@@ -335,7 +330,7 @@ const ChatPage = () => {
       if (!markedRoomsRef.current.has(conversationKey)) {
         markedRoomsRef.current.add(conversationKey);
 
-        const timer = setTimeout(async () => {
+        (async () => {
           try {
             // 1. Marcar en Backend
             await apiService.markConversationAsRead(username, chatState.to);
@@ -371,9 +366,7 @@ const ChatPage = () => {
           } catch (error) {
             console.error("Error marking chat as read:", error);
           }
-        }, 500);
-
-        return () => clearTimeout(timer);
+        })();
       }
     }
   }, [
@@ -928,13 +921,11 @@ const ChatPage = () => {
   // Definición de la función (ya la tienes)
   const handleReplyMessage = useCallback((message) => {
     chatState.setReplyingTo(message);
-    // 🔥 NUEVO: Hacer focus en el textarea después de establecer la respuesta
-    setTimeout(() => {
-      const textarea = document.querySelector('.message-input');
-      if (textarea) {
-        textarea.focus();
-      }
-    }, 100);
+    // 🔥 Hacer focus en el textarea inmediatamente
+    const textarea = document.querySelector('.message-input');
+    if (textarea) {
+      textarea.focus();
+    }
   }, [chatState]);
 
   // 🔥 AGREGAR ESTO: Exponer la función globalmente para ChatContent

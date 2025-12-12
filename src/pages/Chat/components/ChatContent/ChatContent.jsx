@@ -384,11 +384,7 @@ const ChatContent = ({
   useEffect(() => {
     // Si hay un chat abierto y el usuario puede enviar mensajes, hacer focus en el input
     if (to && canSendMessages && inputRef.current) {
-      // Pequeño delay para asegurar que el DOM esté listo
-      const timeoutId = setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
-      return () => clearTimeout(timeoutId);
+      inputRef.current?.focus();
     }
   }, [to, currentRoomCode, canSendMessages]);
 
@@ -785,18 +781,13 @@ const ChatContent = ({
   // Scroll al mensaje resaltado cuando se selecciona desde la búsqueda
   useEffect(() => {
     if (highlightMessageId && messages.length > 0) {
-      setTimeout(() => {
-        const messageElement = document.getElementById(`message-${highlightMessageId}`);
-        if (messageElement) {
-          messageElement.scrollIntoView({ behavior: "smooth", block: "center" });
-          setHighlightedMessageId(highlightMessageId);
-
-          setTimeout(() => {
-            setHighlightedMessageId(null);
-            onMessageHighlighted?.();
-          }, 3000);
-        }
-      }, 500);
+      const messageElement = document.getElementById(`message-${highlightMessageId}`);
+      if (messageElement) {
+        messageElement.scrollIntoView({ behavior: "auto", block: "center" });
+        setHighlightedMessageId(highlightMessageId);
+        setHighlightedMessageId(null);
+        onMessageHighlighted?.();
+      }
     }
   }, [highlightMessageId, messages, onMessageHighlighted]);
 
@@ -819,10 +810,8 @@ const ChatContent = ({
     const isAtBottom = chatHistory.scrollHeight - chatHistory.scrollTop <= chatHistory.clientHeight + 100;
 
     if (messages.length > lastMessageCountRef.current && (isAtBottom || !isUserScrollingRef.current)) {
-      setTimeout(() => {
-        chatHistory.scrollTop = chatHistory.scrollHeight;
-        isUserScrollingRef.current = false;
-      }, 100);
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+      isUserScrollingRef.current = false;
     }
 
     lastMessageCountRef.current = messages.length;
@@ -840,9 +829,7 @@ const ChatContent = ({
       (isGroup && currentRoomCode && roomTypingUsers?.[currentRoomCode]?.length > 0);
 
     if (someoneIsTyping && (isAtBottom || !isUserScrollingRef.current)) {
-      setTimeout(() => {
-        chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: "smooth" });
-      }, 100);
+      chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: "auto" });
     }
   }, [isOtherUserTyping, typingUser, roomTypingUsers, currentRoomCode, isGroup]);
 
@@ -1564,14 +1551,7 @@ const ChatContent = ({
                       // Intentar encontrar el mensaje en el DOM
                       const el = document.getElementById(`message-${message.replyToMessageId}`);
                       if (el) {
-                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        // Efecto de resaltado temporal
-                        el.style.transition = 'background-color 0.5s';
-                        const originalBg = el.style.backgroundColor;
-                        el.style.backgroundColor = 'rgba(0, 168, 132, 0.2)';
-                        setTimeout(() => {
-                          el.style.backgroundColor = originalBg;
-                        }, 1000);
+                        el.scrollIntoView({ behavior: 'auto', block: 'center' });
                       } else {
                         // Si no está en el DOM, intentar cargarlo (Lógica pendiente de conectar con hook de paginación)
                         console.log(`Mensaje ${message.replyToMessageId} no encontrado en vista actual. Se requiere búsqueda en historial.`);

@@ -358,11 +358,7 @@ export const useConversations = (
         // ✅ FIX: Verificar si ya tenemos conversaciones cargadas para no repetir
         if (chatState.assignedConversations.length > 0) return;
 
-        const timeoutId = setTimeout(() => {
-            loadAssignedConversations(1); // Cargar solo página 1
-        }, 1000);
-
-        return () => clearTimeout(timeoutId);
+        loadAssignedConversations(1); // Cargar solo página 1
     }, [isAuthenticated, username, loadAssignedConversations, chatState.assignedConversations.length]); // Agregamos length a dependencias
 
     return {

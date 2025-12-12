@@ -550,8 +550,6 @@ export const useRoomManagement = (
                     });
                 });
 
-                await new Promise((resolve) => setTimeout(resolve, 500));
-
                 if (currentRoomCode) {
                     const roomUsers = await apiService.getRoomUsers(currentRoomCode);
                     if (Array.isArray(roomUsers)) {
@@ -572,8 +570,6 @@ export const useRoomManagement = (
 
     // Callback cuando se remueven usuarios
     const handleUsersRemoved = useCallback(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
         if (currentRoomCode) {
             const roomUsers = await apiService.getRoomUsers(currentRoomCode);
             if (Array.isArray(roomUsers)) {

@@ -790,7 +790,7 @@ const ConversationList = ({
                       </div>
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-green-600 italic truncate flex-1" style={{ fontSize: '11px' }}>{isTypingInRoom ? `${typingUsers[0]?.nombre || typingUsers[0]?.username} está escribiendo...` : ''}</p>
-                        {(room.lastMessageAt || room.lastMessageTime || room.updatedAt) && <span className="text-gray-400 flex-shrink-0" style={{ fontSize: '10px' }}>{new Date(room.lastMessageAt || room.lastMessageTime || room.updatedAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}</span>}
+                        {room.lastMessage?.sentAt && <span className="text-gray-400 flex-shrink-0" style={{ fontSize: '10px' }}>{new Date(room.lastMessage.sentAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}</span>}
                       </div>
 
                     </div>
@@ -819,7 +819,7 @@ const ConversationList = ({
                       </div>
                       <div className="flex items-center justify-end gap-2">
                         <div className="flex items-center gap-1">
-                          {(conv.lastMessageTime || conv.updatedAt) && <span className="text-gray-400" style={{ fontSize: '10px' }}>{new Date(conv.lastMessageTime || conv.updatedAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}</span>}
+                          {conv.lastMessage?.sentAt && <span className="text-gray-400" style={{ fontSize: '10px' }}>{new Date(conv.lastMessage.sentAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}</span>}
                           {itemUnreadCount > 0 && <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '18px', height: '18px', fontSize: '10px', fontWeight: 600 }}>{itemUnreadCount > 99 ? '99+' : itemUnreadCount}</div>}
                         </div>
                       </div>
@@ -937,7 +937,7 @@ const ConversationList = ({
                                 <p className="text-green-600 italic truncate flex items-center gap-1" style={{ fontSize: '11px', lineHeight: '14px', fontWeight: 400 }}>{typingUsers.length === 1 ? `${typingUsers[0].nombre && typingUsers[0].apellido ? `${typingUsers[0].nombre} ${typingUsers[0].apellido}` : (typingUsers[0].nombre || typingUsers[0].username)} está escribiendo...` : `${typingUsers.length} personas están escribiendo...`}</p>
                               ) : (
                                 <p className="text-gray-600 truncate" style={{ fontSize: '11px', lineHeight: '14px', fontWeight: 400 }}>{isAdmin ? <>Código: {room.roomCode}</> : null}</p>)}
-                              {(room.lastMessageAt || room.updatedAt) && <span className="text-gray-400 flex-shrink-0" style={{ fontSize: '10px' }}>{new Date(room.lastMessageAt || room.updatedAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}</span>}
+                              {room.lastMessage?.sentAt && <span className="text-gray-400 flex-shrink-0" style={{ fontSize: '10px' }}>{new Date(room.lastMessage.sentAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}</span>}
                             </div>
                           </div>
                         </div>
@@ -1006,8 +1006,8 @@ const ConversationList = ({
                   const bIsFavorite = favoriteConversationIds.includes(b.id);
                   if (aIsFavorite && !bIsFavorite) return -1;
                   if (!aIsFavorite && bIsFavorite) return 1;
-                  if (sortBy === 'newest') return new Date(b.lastMessage?.sentAt || b.lastMessageTime || b.createdAt) - new Date(a.lastMessage?.sentAt || a.lastMessageTime || a.createdAt);
-                  else if (sortBy === 'oldest') return new Date(a.lastMessage?.sentAt || a.lastMessageTime || a.createdAt) - new Date(b.lastMessage?.sentAt || b.lastMessageTime || b.createdAt);
+                  if (sortBy === 'newest') return new Date(b.lastMessage?.sentAt || b.createdAt) - new Date(a.lastMessage?.sentAt || a.createdAt);
+                  else if (sortBy === 'oldest') return new Date(a.lastMessage?.sentAt || a.createdAt) - new Date(b.lastMessage?.sentAt || b.createdAt);
                   else if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '');
                   return 0;
                 });
@@ -1193,8 +1193,8 @@ const ConversationList = ({
                   const bIsFavorite = favoriteConversationIds.includes(b.id);
                   if (aIsFavorite && !bIsFavorite) return -1;
                   if (!aIsFavorite && bIsFavorite) return 1;
-                  if (sortBy === 'newest') return new Date(b.lastMessageTime || b.createdAt) - new Date(a.lastMessageTime || a.createdAt);
-                  else if (sortBy === 'oldest') return new Date(a.lastMessageTime || a.createdAt) - new Date(b.lastMessageTime || b.createdAt);
+                  if (sortBy === 'newest') return new Date(b.lastMessage?.sentAt || b.createdAt) - new Date(a.lastMessage?.sentAt || a.createdAt);
+                  else if (sortBy === 'oldest') return new Date(a.lastMessage?.sentAt || a.createdAt) - new Date(b.lastMessage?.sentAt || b.createdAt);
                   else if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '');
                   return 0;
                 }).map((conv) => {

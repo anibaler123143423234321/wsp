@@ -144,10 +144,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       setError("No se pudieron cargar los mensajes. Verifica tu conexión."); //  Setear error
     } finally {
       setIsLoading(false);
-      // 🚀 OPTIMIZADO: Reducido de 500ms a 200ms para carga más rápida
-      setTimeout(() => {
-        initialLoadComplete.current = true;
-      }, 200);
+      initialLoadComplete.current = true;
     }
   }, [roomCode, username, to, isGroup]);
 
