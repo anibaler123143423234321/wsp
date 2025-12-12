@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 /**
  * Hook personalizado para gestionar todos los estados del chat
@@ -97,6 +97,28 @@ export const useChatState = () => {
     const adminViewConversationRef = useRef(adminViewConversation);
     const currentUserFullNameRef = useRef(null);
     const userListRef = useRef(userList);
+
+    // ===== EFECTO PARA MANEJAR RESIZE DE VENTANA =====
+    // Cuando cambiamos de desktop a móvil, el sidebar overlay debe estar cerrado
+    const previousWidthRef = useRef(window.innerWidth);
+
+    useEffect(() => {
+        const handleResize = () => {
+            const currentWidth = window.innerWidth;
+            const wasMobile = previousWidthRef.current <= 768;
+            const isMobile = currentWidth <= 768;
+
+            // Si cambiamos de desktop a móvil, cerrar el sidebar overlay
+            if (!wasMobile && isMobile) {
+                setShowSidebar(false);
+            }
+
+            previousWidthRef.current = currentWidth;
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // ===== RETORNAR TODOS LOS ESTADOS Y SETTERS =====
     return {

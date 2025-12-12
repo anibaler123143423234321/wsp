@@ -731,8 +731,7 @@
   .compact-mode .mx_RoomSublist_content>div>* {
     display: flex !important;
     flex-direction: column !important;
-    align-items: flex-start !important;
-    /* <- De center a flex-start */
+    align-items: center !important;
     width: 100% !important;
   }
 
@@ -777,5 +776,42 @@
   /* Ocultar "Ordenar por" */
   .compact-mode>div>div:nth-child(2)>div:last-child {
     display: none !important;
+  }
+
+  /* En modo compacto, las listas deben usar toda la altura disponible */
+  .compact-mode .mx_RoomSublist {
+    max-height: none !important;
+    flex: 1 !important;
+    height: auto !important;
+  }
+
+  .compact-mode .mx_RoomSublist_content {
+    max-height: none !important;
+    overflow-y: auto !important;
+    flex: 1 !important;
+  }
+
+  /* El contenedor principal debe usar toda la altura */
+  .compact-mode .conversation-list-container,
+  .compact-mode.conversation-list-responsive {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-y: auto !important;
+  }
+
+  /* Eliminar cualquier limitación de altura en el scroll container */
+  .compact-mode>div[class*="overflow"] {
+    max-height: none !important;
+    height: auto !important;
+    flex: 1 !important;
+  }
+
+  /* Lista principal sin límite de altura */
+  .compact-mode .flex-1.overflow-y-auto {
+    max-height: none !important;
+    height: 100% !important;
+    flex: 1 !important;
   }
 }

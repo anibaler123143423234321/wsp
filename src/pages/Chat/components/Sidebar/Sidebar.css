@@ -3,15 +3,15 @@
   display: flex;
   flex-direction: row;
   width: 580px;
-  min-width: 240px;
-  max-width: 580px;
+  min-width: 170px;
+  max-width: 800px;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: visible;
 }
 
 /* Estado colapsado: LeftSidebar 90px + ConversationList 360px = 450px */
 .sidebar-responsive-container.collapsed {
   width: 450px;
-  max-width: 450px;
 }
 
 /* En 1400px: ancho completo (ambos sidebars) */
@@ -22,26 +22,22 @@
   }
 }
 
-/* En 1280px: LeftSidebar 90px + ConversationList 250px = 340px (más compacto para tablets) */
+/* En 1280px: más compacto para tablets */
 @media (max-width: 1280px) {
   .sidebar-responsive-container {
     width: 340px;
     max-width: 340px;
-    min-width: 340px;
   }
 }
 
-/* En 1024px: LeftSidebar 90px + ConversationList 250px = 340px (mantener para tablets pequeñas) */
+/* En 1024px: mantener para tablets pequeñas */
 @media (max-width: 1024px) {
   .sidebar-responsive-container {
     width: 340px;
     max-width: 340px;
-    min-width: 340px;
   }
 }
 
-/* 🔥 ELIMINADO EL BLOQUE QUE OCULTABA TODO EN MOBILE */
-/* En mobile, el ancho se controla mediante clases de Tailwind (w-full) en Sidebar.jsx */
 /* Barra de redimensionamiento */
 .sidebar-resize-handle {
   position: absolute;
@@ -70,9 +66,22 @@
   }
 }
 
-/* Modo compacto: Forzar anchos pequeños y sobrescribir media queries */
-.sidebar-responsive-container.compact-mode {
-  width: 130px !important;
-  min-width: 130px !important;
-  max-width: 130px !important;
+/* Modo compacto - reglas para diferentes estados */
+@media (min-width: 769px) {
+
+  /* Modo compacto + colapsado: menos ancho (LeftSidebar 90px + ConversationList ~80px) */
+  .sidebar-responsive-container.compact-mode.collapsed {
+    overflow-x: hidden !important;
+    width: 8% !important;
+    min-width: 140px !important;
+    max-width: 160px !important;
+  }
+
+  /* Modo compacto + expandido: más ancho para el menú (LeftSidebar 180px + ConversationList ~80px) */
+  .sidebar-responsive-container.compact-mode:not(.collapsed) {
+    overflow-x: hidden !important;
+    width: 15% !important;
+    min-width: 200px !important;
+    max-width: 240px !important;
+  }
 }

@@ -5,7 +5,6 @@ import './Sidebar.css';
 
 /**
  * Sidebar - Componente principal del sidebar
- * Unificado para evitar duplicidad de renderizado y llamadas a API.
  */
 const Sidebar = ({
   user,
@@ -55,30 +54,28 @@ const Sidebar = ({
   onGoToRoomsPage
 }) => {
 
-  // Estado y refs para el redimensionamiento
+  // Estado para el ancho del sidebar
   const [sidebarWidth, setSidebarWidth] = useState(sidebarCollapsed ? 450 : 540);
+
+  // Modo compacto cuando el ancho es menor a 300px
+  const isCompactMode = sidebarWidth <= 300;
 
   // Sincronizar sidebarWidth cuando cambia sidebarCollapsed
   useEffect(() => {
-    if (sidebarCollapsed) {
-      setSidebarWidth(450); // LeftSidebar colapsado (90px) + ConversationList (360px)
+    if (isCompactMode) {
+      // En modo compacto: ajustar según estado de colapso
+      setSidebarWidth(sidebarCollapsed ? 170 : 260);
     } else {
-      setSidebarWidth(540); // LeftSidebar expandido (180px) + ConversationList (360px)
+      // Modo normal
+      setSidebarWidth(sidebarCollapsed ? 450 : 540);
     }
-  }, [sidebarCollapsed]);
+  }, [sidebarCollapsed, isCompactMode]);
 
-  // Forzar ancho fijo en modo compacto
-  useEffect(() => {
-    if (sidebarWidth <= 300 && sidebarWidth !== 130) {
-      setSidebarWidth(130); // LeftSidebar (50px) + ConversationList (80px)
-    }
-  }, [sidebarWidth]);
-
+  // Refs para redimensionamiento
   const isResizing = useRef(false);
   const startX = useRef(0);
   const startWidth = useRef(0);
 
-  // Iniciar el redimensionamiento
   const startResizing = useCallback((e) => {
     e.preventDefault();
     isResizing.current = true;
@@ -88,18 +85,15 @@ const Sidebar = ({
     document.addEventListener('mouseup', stopResizing);
   }, [sidebarWidth]);
 
-  // Manejar el movimiento del mouse
   const handleMouseMove = useCallback((e) => {
     if (!isResizing.current) return;
     const deltaX = e.clientX - startX.current;
     const newWidth = startWidth.current + deltaX;
-    // Aplicar límites: mínimo 340px, máximo 800px
-    if (newWidth >= 200 && newWidth <= 800) {
+    if (newWidth >= 170 && newWidth <= 800) {
       setSidebarWidth(newWidth);
     }
   }, []);
 
-  // Detener el redimensionamiento
   const stopResizing = useCallback(() => {
     isResizing.current = false;
     document.removeEventListener('mousemove', handleMouseMove);
@@ -108,21 +102,28 @@ const Sidebar = ({
 
   return (
     <>
-      {/* Contenedor Principal (Desktop & Mobile Container) */}
+      {/* Contenedor Principal */}
       <div
-        className={`flex flex-row h-screen overflow-hidden bg-white sidebar-responsive-container ${sidebarCollapsed ? 'collapsed' : ''} ${sidebarWidth <= 300 ? 'compact-mode' : ''} ${to ? 'max-[768px]:hidden' : 'max-[768px]:w-full max-[768px]:flex'
-          }`}
+        className={`
+          flex flex-row h-screen bg-white relative
+          sidebar-responsive-container
+          ${sidebarCollapsed ? 'collapsed' : ''} 
+          ${isCompactMode ? 'compact-mode' : ''} 
+          ${to ? 'max-[768px]:hidden' : 'max-[768px]:w-full max-[768px]:flex'}
+        `}
         style={{
-          width: `${sidebarWidth}px`,  /* <- Volver a usar sidebarWidth siempre */
-          minWidth: '130px',  /* <- Mínimo absoluto */
+          width: `${sidebarWidth}px`,
+          minWidth: '170px',
           maxWidth: '800px',
-          position: 'relative',
-          transition: 'none',
           borderRight: '1.3px solid #EEEEEE'
         }}
       >
-        {/* Sidebar izquierdo - Menú azul (Visible en Desktop, Oculto en Mobile) */}
-        <div className="max-[768px]:hidden h-full">
+        {/* LeftSidebar - Siempre visible en desktop */}
+        <div className={`
+          max-[768px]:hidden h-full flex-shrink-0 overflow-visible
+          ${sidebarCollapsed ? 'w-[90px]' : 'w-[180px]'}
+          transition-all duration-300
+        `}>
           <LeftSidebar
             user={user}
             onShowCreateRoom={onShowCreateRoom}
@@ -139,8 +140,8 @@ const Sidebar = ({
           />
         </div>
 
-        {/* Lista de conversaciones - (Visible siempre que el contenedor padre lo esté) */}
-        <div className={`h-full min-w-0 ${sidebarWidth <= 300 ? '' : 'flex-1'}`}>
+        {/* ConversationList - Ocupa el resto del espacio */}
+        <div className="h-full flex-1 min-w-0 overflow-hidden">
           <ConversationList
             user={user}
             userList={userList}
@@ -175,7 +176,7 @@ const Sidebar = ({
             roomsLimit={roomsLimit}
             onRoomsLimitChange={onRoomsLimitChange}
             onGoToRoomsPage={onGoToRoomsPage}
-            isCompact={sidebarWidth <= 300}
+            isCompact={isCompactMode}
           />
         </div>
 
@@ -186,8 +187,12 @@ const Sidebar = ({
         />
       </div>
 
-      {/* LeftSidebar overlay para mobile (Solo visible cuando se abre el menú en mobile) */}
-      <div className={`hidden max-[768px]:block fixed left-0 top-0 h-full z-[101] transition-transform duration-300 ease-in-out ${showSidebar ? 'translate-x-0' : '-translate-x-full'}`}>
+      {/* LeftSidebar overlay para mobile */}
+      <div className={`
+        hidden max-[768px]:block fixed left-0 top-0 h-full z-[101] 
+        transition-transform duration-300 ease-in-out 
+        ${showSidebar ? 'translate-x-0' : '-translate-x-full'}
+      `}>
         <LeftSidebar
           user={user}
           onShowCreateRoom={onShowCreateRoom}

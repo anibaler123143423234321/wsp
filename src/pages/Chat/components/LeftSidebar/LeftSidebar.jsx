@@ -32,7 +32,7 @@ const LeftSidebar = ({
       {onToggleCollapse && (
         <button
           onClick={onToggleCollapse}
-          className={`flex items-center justify-center bg-gray-800 hover:bg-gray-700 rounded-full transition-all duration-200 active:scale-95 max-[768px]:hidden ${isCollapsed ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+          className={`flex items-center justify-center bg-gray-800 hover:bg-gray-700 rounded-full transition-all duration-200 active:scale-95 max-[768px]:hidden opacity-100`}
           role="button"
           tabIndex="0"
           aria-label={isCollapsed ? "Expandir" : "Colapsar"}
@@ -43,7 +43,7 @@ const LeftSidebar = ({
             position: 'absolute',
             right: '-8px',
             top: '50px',
-            zIndex: 50
+            zIndex: 200
           }}
         >
           <svg
