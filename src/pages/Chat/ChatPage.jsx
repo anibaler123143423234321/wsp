@@ -123,7 +123,7 @@ const ChatPage = () => {
       try {
         // 1. Obtener conteos de mensajes no leídos globales
         const counts = await apiService.getUnreadCounts();
-        console.log("🔢 Unread counts response:", counts); // 🔥 DEBUG REQUESTED BY USER
+        //console.log("🔢 Unread counts response:", counts); // 🔥 DEBUG REQUESTED BY USER
 
         // 2. Si tienes una estructura específica, adáptala aquí. 
         // Suponiendo que 'counts' es un objeto { "roomCode": 5, "userId": 2 }

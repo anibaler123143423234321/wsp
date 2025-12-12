@@ -100,11 +100,12 @@ const LeftSidebar = ({
               letterSpacing: '0px',
               color: '#FFFFFF',
               display: 'flex',
-              alignItems: 'center'
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
-            <span className="max-[768px]:hidden">Chat<br />corporativo</span>
-            <span className="hidden max-[768px]:inline">Chat<br />corporativo</span>
+            <span className="max-[768px]:hidden text-center">Chat<br />corporativo</span>
+            <span className="hidden max-[768px]:inline text-center">Chat<br />corporativo</span>
           </h1>
 
           {/* Botón X para cerrar en mobile */}
