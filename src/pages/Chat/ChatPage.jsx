@@ -45,6 +45,7 @@ const ChatPage = () => {
 
   // 1. 🔥 NUEVO ESTADO: Guardar el objeto del mensaje fijado
   const [pinnedMessageObject, setPinnedMessageObject] = useState(null);
+  const [selectedRoomData, setSelectedRoomData] = useState(null); // 🔥 NUEVO: Datos de la sala seleccionada (para favoritos)
 
   // ===== HOOK DE ESTADOS CENTRALIZADOS =====
   const chatState = useChatState();
@@ -460,6 +461,8 @@ const ChatPage = () => {
     // (Asumiendo que 'clearMessages' viene de useMessagePagination o roomManagement)
     if (typeof clearMessages === 'function') clearMessages();
 
+    setSelectedRoomData(null); // 🔥 Limpiar datos de sala seleccionada
+
     // 2. Definir quién soy yo (normalizado)
     const myNameNormalized = normalizeUsername(currentUserFullName);
 
@@ -523,6 +526,7 @@ const ChatPage = () => {
     setRoomUsers(group.members);
     setCurrentRoomCode(group.roomCode); // ✅ CORREGIDO: Establecer el roomCode de la nueva sala
     currentRoomCodeRef.current = group.roomCode; // ✅ CORREGIDO: Actualizar la ref también
+    setSelectedRoomData(group); // 🔥 Guardar datos completos de la sala (incluyendo imagen de favoritos)
 
     // 📱 Cerrar sidebar en mobile al seleccionar un grupo
     if (window.innerWidth <= 768) {
@@ -541,6 +545,7 @@ const ChatPage = () => {
     setReplyingTo(null); // 🔥 Limpiar estado de respuesta
     chatState.setPinnedMessageId(null);
     setPinnedMessageObject(null);
+    setSelectedRoomData(null); // 🔥 Limpiar datos de sala
     setTo(username);
   };
 
@@ -1458,7 +1463,10 @@ const ChatPage = () => {
         onShowSystemConfig={() => { }}
         unreadMessages={chatState.unreadMessages}
         myActiveRooms={chatState.myActiveRooms}
-        onRoomSelect={roomManagement.handleRoomSelect}
+        onRoomSelect={(room, messageId) => {
+          setSelectedRoomData(room); // 🔥 Guardar datos de sala para favoritos/imágenes
+          roomManagement.handleRoomSelect(room, messageId);
+        }}
         onKickUser={roomManagement.handleKickUser}
         userListHasMore={chatState.userListHasMore}
         userListLoading={chatState.userListLoading}
@@ -1538,6 +1546,7 @@ const ChatPage = () => {
         }
         onEditRoom={roomManagement.handleEditRoom}
         onViewRoomUsers={roomManagement.handleViewRoomUsers}
+        selectedRoomData={selectedRoomData} // 🔥 Pasar datos seleccionados
       />
 
       {/* Contenedor de modales */}

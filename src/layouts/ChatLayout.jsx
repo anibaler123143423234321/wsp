@@ -76,6 +76,7 @@ const ChatLayout = ({
   onPollVote,
   // 🔥 Props de actualización de sala
   onRoomUpdated,
+  selectedRoomData, // 🔥 NUEVO: Datos de sala seleccionada (fallback)
 }) => {
   // State para el panel de miembros (lifted from ChatHeader)
   const [showMembersPanel, setShowMembersPanel] = React.useState(false);
@@ -176,7 +177,15 @@ const ChatLayout = ({
       const room = myActiveRooms?.find(r => r.roomCode === currentRoomCode);
       // 🔥 Fallback: Si no hay picture, revisar description por si guardamos la URL ahí
       if (room?.picture) return room.picture;
-      if (room?.description && room.description.startsWith('http')) return room.description;
+      if (room?.description && room.description.trim().length > 0) return room.description;
+
+      // 🔥 Fallback 2: Revisar selectedRoomData (para Favoritos que no están en myActiveRooms)
+      // Relaxed check: trust selectedRoomData if present
+      if (selectedRoomData) {
+        if (selectedRoomData.picture) return selectedRoomData.picture;
+        if (selectedRoomData.description && selectedRoomData.description.trim().length > 0) return selectedRoomData.description;
+      }
+
       return null;
     }
     const targetUser = getTargetUser();
@@ -364,7 +373,7 @@ const ChatLayout = ({
             userRole={user?.role} // 🔥 NUEVO: Rol del usuario
             chatInfo={{ // 🔥 NUEVO: Información del chat
               name: to,
-              picture: isGroup ? null : getUserPicture(),
+              picture: getUserPicture(),
               isOnline: isGroup ? false : getTargetUser()?.isOnline
             }}
             user={user} // 🔥 NUEVO: Usuario para modal de reenvío
@@ -408,7 +417,9 @@ const ChatLayout = ({
             roomUsers: roomUsers,
             to: to,
             picture: getUserPicture(),
-            description: isGroup ? myActiveRooms?.find(r => r.roomCode === currentRoomCode)?.description : null,
+            description: isGroup
+              ? (myActiveRooms?.find(r => r.roomCode === currentRoomCode)?.description || selectedRoomData?.description)
+              : null,
             roomId: currentRoomCode
           }}
           onCreatePoll={handleCreatePoll}

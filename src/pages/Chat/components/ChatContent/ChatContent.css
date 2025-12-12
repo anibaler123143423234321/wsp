@@ -782,15 +782,15 @@
 .message-row.is-own {
   flex-direction: row-reverse;
   text-align: right;
+  padding-right: 2px !important;
+  padding-left: 16px !important;
 }
 
 /* 2. Ajustar columna lateral (Avatar/Hora) */
 .message-row.is-own .message-gutter {
   padding-right: 0;
-  padding-left: 12px;
-  /* Invertir padding */
-  align-items: flex-start;
-  /* Alinear a la izquierda de su columna (pegado al borde derecho de la pantalla) */
+  padding-left: 0;
+  align-items: center;
 }
 
 /* 3. Ajustar columna de contenido */
