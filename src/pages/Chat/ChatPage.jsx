@@ -526,7 +526,7 @@ const ChatPage = () => {
 
     // 📱 Cerrar sidebar en mobile al seleccionar un grupo
     if (window.innerWidth <= 768) {
-      setShowSidebar(false);
+      chatState.setShowSidebar(false);
     }
   };
 
@@ -546,9 +546,15 @@ const ChatPage = () => {
 
   const handleToggleMenu = useCallback(() => {
     if (window.innerWidth <= 768) {
-      chatState.setShowSidebar(!chatState.showSidebar);
+      // En móvil: limpiar el chat actual para volver al sidebar (ConversationList)
+      chatState.setTo('');
+      chatState.setIsGroup(false);
+      chatState.setCurrentRoomCode(null);
+      chatState.currentRoomCodeRef.current = null;
+      chatState.setAdminViewConversation(null);
+      clearMessages();
     }
-  }, [chatState.showSidebar, chatState.setShowSidebar]);
+  }, [chatState, clearMessages]);
 
   // Reemplaza tu handleEscKey actual con este:
   const handleEscKey = useCallback((event) => {

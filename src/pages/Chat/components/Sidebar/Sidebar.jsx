@@ -105,11 +105,12 @@ const Sidebar = ({
       {/* Contenedor Principal */}
       <div
         className={`
-          flex flex-row h-screen bg-white relative
+          h-screen bg-white relative
           sidebar-responsive-container
           ${sidebarCollapsed ? 'collapsed' : ''} 
           ${isCompactMode ? 'compact-mode' : ''} 
-          ${to ? 'max-[768px]:hidden' : 'max-[768px]:w-full max-[768px]:flex'}
+          ${to ? 'max-[768px]:!hidden' : 'max-[768px]:w-full max-[768px]:flex'}
+          ${!to ? 'flex flex-row' : 'flex flex-row'}
         `}
         style={{
           width: `${sidebarWidth}px`,
