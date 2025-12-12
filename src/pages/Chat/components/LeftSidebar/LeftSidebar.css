@@ -217,22 +217,31 @@
 @media (max-width: 768px) {
   .left-sidebar-container>div:last-child {
     padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
-    width: 70px;
-    max-width: 70px;
-    min-width: 70px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 100%;
   }
 
-  /* Ocultar texto en botones */
+  /* MOSTRAR texto en botones en móvil */
   .left-sidebar-button .left-sidebar-text {
-    display: none;
+    display: block !important;
+    font-size: 1rem !important;
   }
 
-  /* Hacer botones solo con iconos */
+  /* Restaurar estilo de botón completo en fila */
   .left-sidebar-button {
-    width: 40px !important;
-    height: 40px !important;
-    padding: 8px !important;
-    justify-content: center !important;
+    width: 100% !important;
+    height: 3rem !important;
+    padding: 0.5rem 1rem !important;
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    gap: 12px !important;
+    align-items: center !important;
+  }
+
+  .left-sidebar-button svg {
+    width: 20px !important;
+    height: 20px !important;
   }
 }
 

@@ -546,13 +546,23 @@ const ChatPage = () => {
 
   const handleToggleMenu = useCallback(() => {
     if (window.innerWidth <= 768) {
-      // En móvil: limpiar el chat actual para volver al sidebar (ConversationList)
-      chatState.setTo('');
-      chatState.setIsGroup(false);
-      chatState.setCurrentRoomCode(null);
-      chatState.currentRoomCodeRef.current = null;
-      chatState.setAdminViewConversation(null);
-      clearMessages();
+      // Comprobar si hay un chat abierto activamente
+      const isChatOpen = chatState.to || chatState.currentRoomCode || chatState.adminViewConversation;
+
+      if (isChatOpen) {
+        // ESCENARIO 1: Hay un chat abierto -> "Volver atrás" a la lista
+        chatState.setTo('');
+        chatState.setIsGroup(false);
+        chatState.setCurrentRoomCode(null);
+        chatState.currentRoomCodeRef.current = null;
+        chatState.setAdminViewConversation(null);
+        clearMessages();
+        // Asegurar que el sidebar de navegación (LeftSidebar) esté cerrado al volver a la lista
+        chatState.setShowSidebar(false);
+      } else {
+        // ESCENARIO 2: Estamos en la lista -> "Toggle Menú" (Abrir/Cerrar LeftSidebar)
+        chatState.setShowSidebar(!chatState.showSidebar);
+      }
     }
   }, [chatState, clearMessages]);
 

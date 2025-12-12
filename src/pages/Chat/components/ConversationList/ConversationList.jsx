@@ -912,16 +912,15 @@ const ConversationList = ({
                       const roomUnreadCount = unreadMessages?.[room.roomCode] !== undefined ? unreadMessages[room.roomCode] : (room.unreadCount || 0);
 
                       return (
-                        <div key={room.id} className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer max-[1280px]:!py-1.5 max-[1280px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!px-1.5 ${currentRoomCode === room.roomCode ? 'bg-[#e7f3f0]' : ''}`} style={{ padding: '4px 12px', gap: '6px', minHeight: '40px' }} onClick={() => onRoomSelect && onRoomSelect(room)}>
-                          <div className="relative flex-shrink-0 max-[1280px]:!w-8 max-[1280px]:!h-8 max-[1024px]:!w-7 max-[1024px]:!h-7" style={{ width: '32px', height: '32px' }}>
-                            <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold max-[1280px]:!text-sm max-[1024px]:!text-xs" style={{ width: '32px', height: '32px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '14px', backgroundColor: '#A50104' }}>
+                        <div key={room.id} className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer ${currentRoomCode === room.roomCode ? 'bg-[#e7f3f0]' : ''}`} style={{ padding: '4px 12px', gap: '6px', minHeight: '40px' }} onClick={() => onRoomSelect && onRoomSelect(room)}>
+                          <div className="relative flex-shrink-0" style={{ width: '32px', height: '32px' }}>
+                            <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold" style={{ width: '32px', height: '32px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '14px', backgroundColor: '#A50104' }}>
                               {room.description ? (
                                 <img src={room.description} alt={room.name} className="w-full h-full object-cover" />
                               ) : (
                                 "🏠"
                               )}
                             </div>
-                            {room.isActive && <div className="absolute bottom-0 right-0 rounded-full bg-white flex items-center justify-center" style={{ width: '12px', height: '12px', border: '2px solid white' }}><div className="rounded-full bg-green-500" style={{ width: '8px', height: '8px' }} /></div>}
                           </div>
                           <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px', display: isCompact ? 'none' : 'flex' }}>
                             <div className="flex items-center justify-between gap-2">
@@ -1054,9 +1053,9 @@ const ConversationList = ({
                       const itemUnreadCount = unreadMessages?.[conv.id] !== undefined ? unreadMessages[conv.id] : (conv.unreadCount || 0);
 
                       return (
-                        <div key={conv.id} className="flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group overflow-visible relative max-[1280px]:!py-1.5 max-[1280px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!px-1.5" style={{ padding: '4px 12px', gap: '6px', minHeight: '40px', display: 'flex', alignItems: 'flex-start', width: '100%', minWidth: 0, position: 'relative' }} onClick={() => { if (onUserSelect) onUserSelect(displayName, null, conv); }}>
-                          <div className="relative flex-shrink-0 max-[1280px]:!w-9 max-[1280px]:!h-9 max-[1024px]:!w-8 max-[1024px]:!h-8" style={{ width: '32px', height: '32px' }}>
-                            <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold max-[1280px]:!text-sm max-[1024px]:!text-xs" style={{ width: '32px', height: '32px', fontSize: '14px', backgroundColor: '#A50104' }}>
+                        <div key={conv.id} className="flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group overflow-visible relative" style={{ padding: '4px 12px', gap: '6px', minHeight: '40px', display: 'flex', alignItems: 'flex-start', width: '100%', minWidth: 0, position: 'relative' }} onClick={() => { if (onUserSelect) onUserSelect(displayName, null, conv); }}>
+                          <div className="relative flex-shrink-0" style={{ width: '32px', height: '32px' }}>
+                            <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold" style={{ width: '32px', height: '32px', fontSize: '14px', backgroundColor: '#A50104' }}>
                               {otherParticipantPicture ? <img src={otherParticipantPicture} alt={displayName} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = getInitials(displayName); }} /> : getInitials(displayName)}
                             </div>
                             <div className="absolute bottom-0 right-0 rounded-full border-2 border-white" style={{ width: '12px', height: '12px', backgroundColor: isOtherParticipantOnline ? '#10b981' : '#9ca3af' }} title={isOtherParticipantOnline ? 'En línea' : 'Desconectado'} />
