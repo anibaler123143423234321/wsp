@@ -1763,7 +1763,7 @@ class ApiService {
       console.log(`📋 Obteniendo usuarios de ${baseUrl}api/user/listar?page=${page}&size=${size}`);
 
       // ✅ Usar fetchWithAuth para renovación automática de token
-      const response = await this.fetchChatApi(
+      const response = await this.fetchWithAuth(
         `${baseUrl}api/user/listar?page=${page}&size=${size}`,
         {
           method: "GET",
@@ -1811,7 +1811,7 @@ class ApiService {
       const baseUrl = sede ? this.getBaseUrlForSede(sede) : this.baseUrl;
 
       // ✅ Usar fetchWithAuth para renovación automática de token
-      const response = await this.fetchChatApi(
+      const response = await this.fetchWithAuth(
         `${baseUrl}api/user/buscar?page=${page}&size=${size}&query=${encodeURIComponent(query)}`,
         {
           method: "GET",
