@@ -8,10 +8,10 @@ export const useMessages = () => {
   const [uploadedFiles, setUploadedFiles] = useState([]); // URLs de archivos subidos
   const [isRecording, setIsRecording] = useState(false);
   const messageSound = useRef(null);
-  const ringtoneSound = useRef(null); // 🔥 Referencia para el tono de llamada
+  const ringtoneSound = useRef(null); //  Referencia para el tono de llamada
 
   const playMessageSound = useCallback((soundsEnabled = true) => {
-    // 🔥 Reproducir sonido solo si está habilitado
+    //  Reproducir sonido solo si está habilitado
     if (!soundsEnabled) return;
 
     try {
@@ -54,7 +54,7 @@ export const useMessages = () => {
 
   const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
-      // 🔥 Límite actualizado a 70MB
+      //  Límite actualizado a 70MB
       const MAX_FILE_SIZE = 70 * 1024 * 1024; // 70MB
 
       if (file.size > MAX_FILE_SIZE) {
@@ -77,7 +77,7 @@ export const useMessages = () => {
     // ✅ Permitir todos los tipos de archivos (imágenes, PDFs, documentos, etc.)
     // Ya no hay restricción de tipo de archivo
 
-    // 🔥 Validar tamaño de cada archivo (70MB máximo) - ACTUALIZADO
+    //  Validar tamaño de cada archivo (70MB máximo) - ACTUALIZADO
     const MAX_FILE_SIZE = 70 * 1024 * 1024; // 70MB
 
     const oversizedFiles = files.filter(file => file.size > MAX_FILE_SIZE);
@@ -174,9 +174,9 @@ export const useMessages = () => {
     setIsRecording,
     messageSound,
     playMessageSound,
-    ringtoneSound, // 🔥 Exportar ref
-    playRingtone,  // 🔥 Exportar función play
-    stopRingtone,  // 🔥 Exportar función stop
+    ringtoneSound, //  Exportar ref
+    playRingtone,  //  Exportar función play
+    stopRingtone,  //  Exportar función stop
     handleFileSelect,
     handleRemoveMediaFile,
     cancelMediaUpload,

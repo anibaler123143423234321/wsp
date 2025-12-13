@@ -246,7 +246,7 @@
   max-width: 100%;
   word-break: break-word;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  /* 🔥 NUEVO: Estilos profesionales para dos participantes */
+  /*  NUEVO: Estilos profesionales para dos participantes */
   background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -295,7 +295,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
-  /* 🔥 NUEVO: Estilos profesionales para el subtítulo */
+  /*  NUEVO: Estilos profesionales para el subtítulo */
   letter-spacing: 0.2px;
 }
 
@@ -1036,7 +1036,7 @@
 }
 
 /* ==========================================
-   🔥 NUEVO: Estilos para Avatares Apilados
+    NUEVO: Estilos para Avatares Apilados
    ========================================== */
 
 .room-members-wrapper {
@@ -1201,7 +1201,7 @@
 }
 
 /* ==========================================
-   🔥 NUEVO: Estilos para Avatares Apilados
+    NUEVO: Estilos para Avatares Apilados
    ========================================== */
 
 .room-members-wrapper {

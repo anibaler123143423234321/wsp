@@ -24,7 +24,7 @@ const CopyOptions = ({ message, onClose, onEnterSelectionMode }) => {
 
     // Activar modo selección para copiar en lista
     const handleCopyInList = () => {
-        console.log('🔥 handleCopyInList llamado', { onEnterSelectionMode });
+        console.log(' handleCopyInList llamado', { onEnterSelectionMode });
         if (onEnterSelectionMode) {
             onEnterSelectionMode();
         }

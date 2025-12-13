@@ -5,17 +5,17 @@ import {
   FaPaperclip,
   FaSmile,
   FaSpinner,
-  FaEllipsisV, // 🔥 NUEVO: Menú de opciones
-  FaShare, // 🔥 NUEVO: Ícono de reenviar
-  FaCopy, // 🔥 NUEVO: Ícono de copiar
-  FaReply, // 🔥 NUEVO: Ícono de responder
-  FaPen, // 🔥 NUEVO: Ícono de editar
+  FaEllipsisV, //  NUEVO: Menú de opciones
+  FaShare, //  NUEVO: Ícono de reenviar
+  FaCopy, //  NUEVO: Ícono de copiar
+  FaReply, //  NUEVO: Ícono de responder
+  FaPen, //  NUEVO: Ícono de editar
 } from "react-icons/fa";
 import EmojiPicker from "emoji-picker-react";
 import apiService from "../../../../apiService";
 import AudioPlayer from "../AudioPlayer/AudioPlayer";
 import VoiceRecorder from "../VoiceRecorder/VoiceRecorder";
-import ForwardMessageModal from "../ChatContent/ForwardMessageModal"; // 🔥 NUEVO: Modal de reenvío
+import ForwardMessageModal from "../ChatContent/ForwardMessageModal"; //  NUEVO: Modal de reenvío
 
 import "./ThreadPanel.css";
 
@@ -26,14 +26,14 @@ const ThreadPanel = ({
   currentUsername,
   socket,
   onSendMessage,
-  currentRoomCode, // 🔥 NUEVO: RoomCode actual de la sesión
-  roomUsers = [], // 🔥 NUEVO: Lista de usuarios en la sala para menciones
-  // 🔥 NUEVO: Props para modal de reenvío
+  currentRoomCode, //  NUEVO: RoomCode actual de la sesión
+  roomUsers = [], //  NUEVO: Lista de usuarios en la sala para menciones
+  //  NUEVO: Props para modal de reenvío
   myActiveRooms = [],
   assignedConversations = [],
   user,
 }) => {
-  // if (!isOpen) return null; // 🔥 MOVIDO AL FINAL PARA RESPETAR REGLAS DE HOOKS
+  // if (!isOpen) return null; //  MOVIDO AL FINAL PARA RESPETAR REGLAS DE HOOKS
   const [threadMessages, setThreadMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -44,7 +44,7 @@ const ThreadPanel = ({
   const [mediaFiles, setMediaFiles] = useState([]);
   const [mediaPreviews, setMediaPreviews] = useState([]);
   const [isSending, setIsSending] = useState(false);
-  // 🔥 NUEVO: Estado para menciones
+  //  NUEVO: Estado para menciones
   const [showMentionSuggestions, setShowMentionSuggestions] = useState(false);
   const [mentionSearchTerm, setMentionSearchTerm] = useState("");
   const [filteredMembers, setFilteredMembers] = useState([]);
@@ -54,24 +54,24 @@ const ThreadPanel = ({
   const fileInputRef = useRef(null);
   const inputRef = useRef(null);
   const mentionDropdownRef = useRef(null);
-  const messageMenuRef = useRef(null); // 🔥 NUEVO: Ref para menú de opciones
-  const reactionPickerRef = useRef(null); // 🔥 NUEVO: Ref para picker de reacciones
+  const messageMenuRef = useRef(null); //  NUEVO: Ref para menú de opciones
+  const reactionPickerRef = useRef(null); //  NUEVO: Ref para picker de reacciones
 
-  // 🔥 NUEVOS ESTADOS - Menú de opciones y reenvío
+  //  NUEVOS ESTADOS - Menú de opciones y reenvío
   const [showMessageMenu, setShowMessageMenu] = useState(null); // ID del mensaje con menú abierto
   const [showForwardModal, setShowForwardModal] = useState(false);
   const [messageToForward, setMessageToForward] = useState(null);
   const [showReactionPicker, setShowReactionPicker] = useState(null); // ID del mensaje con picker abierto
   const [replyingTo, setReplyingTo] = useState(null); // Mensaje al que se responde
-  const [openReadReceiptsId, setOpenReadReceiptsId] = useState(null); // 🔥 NUEVO: ID del mensaje con popover de leídos abierto
+  const [openReadReceiptsId, setOpenReadReceiptsId] = useState(null); //  NUEVO: ID del mensaje con popover de leídos abierto
   const [popoverPosition, setPopoverPosition] = useState('top'); // 'top' | 'bottom'
-  const [popoverCoords, setPopoverCoords] = useState({ right: 0, top: 0 }); // 🔥 Coordenadas exactas para position: fixed
+  const [popoverCoords, setPopoverCoords] = useState({ right: 0, top: 0 }); //  Coordenadas exactas para position: fixed
 
-  // 🔥 NUEVO: Estados para edición de mensajes
+  //  NUEVO: Estados para edición de mensajes
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editText, setEditText] = useState("");
 
-  // 🔥 NUEVO: Función para renderizar texto con menciones resaltadas (igual que ChatContent)
+  //  NUEVO: Función para renderizar texto con menciones resaltadas (igual que ChatContent)
   const renderTextWithMentions = (text) => {
     if (!text) return text;
 
@@ -181,7 +181,7 @@ const ThreadPanel = ({
     scrollToBottom();
   }, [threadMessages]);
 
-  // 🔥 NUEVO: Handler global de tecla Escape para cerrar ThreadPanel
+  //  NUEVO: Handler global de tecla Escape para cerrar ThreadPanel
   useEffect(() => {
     if (!isOpen) return;
 
@@ -271,7 +271,7 @@ const ThreadPanel = ({
 
     const handleThreadCountUpdated = (data) => {
       console.log('🔢 ThreadPanel evento threadCountUpdated:', data);
-      // 🔥 FIX: NO incrementamos el contador aquí porque:
+      //  FIX: NO incrementamos el contador aquí porque:
       // 1. El contador real se basa en threadMessages.length
       // 2. useSocketListeners ya maneja el contador del mensaje padre
       // Solo logueamos para debugging
@@ -280,7 +280,7 @@ const ThreadPanel = ({
       }
     };
 
-    // 🔥 NUEVO: Handler para actualizar reacciones en mensajes del hilo
+    //  NUEVO: Handler para actualizar reacciones en mensajes del hilo
     const handleReactionUpdated = (data) => {
       console.log('👍 ThreadPanel evento reactionUpdated:', data);
       setThreadMessages((prev) =>
@@ -331,7 +331,7 @@ const ThreadPanel = ({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // 🔥 NUEVO: Marcar mensajes como leídos al cargar el hilo
+  //  NUEVO: Marcar mensajes como leídos al cargar el hilo
   useEffect(() => {
     if (threadMessages.length > 0) {
       const unreadMessageIds = threadMessages
@@ -348,7 +348,7 @@ const ThreadPanel = ({
   // Función para convertir archivo a base64
   const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
-      // 🔥 Límite actualizado a 70MB
+      //  Límite actualizado a 70MB
       const MAX_FILE_SIZE = 70 * 1024 * 1024; // 70MB
 
       if (file.size > MAX_FILE_SIZE) {
@@ -485,7 +485,7 @@ const ThreadPanel = ({
 
     setIsSending(true);
     try {
-      // 🔥 DEBUG: Ver estado de replyingTo
+      //  DEBUG: Ver estado de replyingTo
       console.log('🔍 handleSend - replyingTo:', replyingTo);
 
       // Helper para determinar tipo de medio
@@ -529,7 +529,7 @@ const ThreadPanel = ({
             mediaData: uploadResult.fileUrl,
             fileName: uploadResult.fileName,
             fileSize: uploadResult.fileSize,
-            ...replyData, // 🔥 Incluir datos de respuesta
+            ...replyData, //  Incluir datos de respuesta
           };
 
           await onSendMessage(messageData);
@@ -545,7 +545,7 @@ const ThreadPanel = ({
             : (message.realSender === currentUsername ? message.receiver : message.realSender),
           isGroup: message.isGroup,
           roomCode: message.isGroup ? currentRoomCode : undefined,
-          ...replyData, // 🔥 Incluir datos de respuesta
+          ...replyData, //  Incluir datos de respuesta
         };
 
         await onSendMessage(messageData);
@@ -555,7 +555,7 @@ const ThreadPanel = ({
       setInput("");
       setMediaFiles([]);
       setMediaPreviews([]);
-      setReplyingTo(null); // 🔥 NUEVO: Limpiar respuesta
+      setReplyingTo(null); //  NUEVO: Limpiar respuesta
 
       // Resetear input de archivo
       if (fileInputRef.current) {
@@ -583,19 +583,19 @@ const ThreadPanel = ({
         text: "",
         threadId: message.id,
         from: currentUsername,
-        // 🔥 CORREGIDO: Para mensajes de grupo, usar message.receiver (nombre de sala)
+        //  CORREGIDO: Para mensajes de grupo, usar message.receiver (nombre de sala)
         to: message.isGroup
           ? message.receiver  // Para grupos, usar receiver (nombre de la sala)
           : (message.realSender === currentUsername ? message.receiver : message.realSender),
         isGroup: message.isGroup,
-        // 🔥 CORREGIDO: Usar currentRoomCode de la sesión actual (prop)
+        //  CORREGIDO: Usar currentRoomCode de la sesión actual (prop)
         roomCode: message.isGroup ? currentRoomCode : undefined,
         mediaType: "audio",
         mediaData: uploadResult.fileUrl,
         fileName: uploadResult.fileName,
         fileSize: uploadResult.fileSize,
       };
-      // 🔥 CONFIAR EN EL BACKEND - NO agregar nada localmente
+      //  CONFIAR EN EL BACKEND - NO agregar nada localmente
       // El socket devolverá el mensaje con threadMessage
 
       await onSendMessage(messageData);
@@ -607,7 +607,7 @@ const ThreadPanel = ({
     }
   };
 
-  // 🔥 NUEVO: Handler para detectar menciones en el input
+  //  NUEVO: Handler para detectar menciones en el input
   const handleInputChange = (e) => {
     const value = e.target.value;
     setInput(value);
@@ -635,7 +635,7 @@ const ThreadPanel = ({
     }
   };
 
-  // 🔥 NUEVO: Handler de paste para imágenes
+  //  NUEVO: Handler de paste para imágenes
   const handlePaste = async (e) => {
     const items = e.clipboardData?.items;
     if (!items) return;
@@ -652,7 +652,7 @@ const ThreadPanel = ({
     }
   };
 
-  // 🔥 NUEVO: Insertar mención seleccionada
+  //  NUEVO: Insertar mención seleccionada
   const insertMention = (user) => {
     const username = user.username || user.nombre || '';
     const cursorPos = inputRef.current?.selectionStart || input.length;
@@ -678,7 +678,7 @@ const ThreadPanel = ({
   };
 
 
-  // 🔥 NUEVO: Listener global para pegar imágenes (evitando duplicados en input)
+  //  NUEVO: Listener global para pegar imágenes (evitando duplicados en input)
   useEffect(() => {
     const handleGlobalPaste = (e) => {
       const target = e.target;
@@ -706,7 +706,7 @@ const ThreadPanel = ({
   }, []);
 
   const handleKeyDown = (e) => {
-    // 🔥 NUEVO: Navegación en dropdown de menciones
+    //  NUEVO: Navegación en dropdown de menciones
     if (showMentionSuggestions) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
@@ -746,7 +746,7 @@ const ThreadPanel = ({
     setShowEmojiPicker(false);
   };
 
-  // 🔥 NUEVOS HANDLERS - Forward Modal
+  //  NUEVOS HANDLERS - Forward Modal
   const handleOpenForwardModal = (message) => {
     setMessageToForward(message);
     setShowForwardModal(true);
@@ -758,7 +758,7 @@ const ThreadPanel = ({
     setMessageToForward(null);
   };
 
-  // 🔥 NUEVO: Copiar texto del mensaje
+  //  NUEVO: Copiar texto del mensaje
   const handleCopyText = async (message) => {
     const text = message.message || message.text || message.fileName || '';
     if (text) {
@@ -771,31 +771,31 @@ const ThreadPanel = ({
     }
   };
 
-  // 🔥 NUEVO: Abrir picker de reacciones
+  //  NUEVO: Abrir picker de reacciones
   const handleOpenReactionPicker = (messageId) => {
     setShowReactionPicker(messageId);
     setShowMessageMenu(null);
   };
 
-  // 🔥 NUEVO: Reaccionar a mensaje
+  //  NUEVO: Reaccionar a mensaje
   const handleReaction = (msg, emoji) => {
     if (!socket || !socket.connected || !currentUsername) {
       console.warn('Socket no conectado o usuario no identificado');
       return;
     }
 
-    // 🔥 FIX: Usar 'toggleReaction' como en ChatContent
+    //  FIX: Usar 'toggleReaction' como en ChatContent
     socket.emit("toggleReaction", {
       messageId: msg.id,
       username: currentUsername,
       emoji: emoji,
-      roomCode: currentRoomCode, // 🔥 Incluir roomCode para hilos de grupo
+      roomCode: currentRoomCode, //  Incluir roomCode para hilos de grupo
     });
 
     setShowReactionPicker(null);
   };
 
-  // 🔥 NUEVO: Handlers para edición de mensajes
+  //  NUEVO: Handlers para edición de mensajes
   const handleStartEdit = (msg) => {
     setEditingMessageId(msg.id);
     setEditText(msg.message || msg.text || "");
@@ -830,14 +830,14 @@ const ThreadPanel = ({
     }
   };
 
-  // 🔥 NUEVO: Responder a mensaje
+  //  NUEVO: Responder a mensaje
   const handleReplyTo = (message) => {
     setReplyingTo(message);
     setShowMessageMenu(null);
     inputRef.current?.focus();
   };
 
-  // 🔥 NUEVO: Cancelar respuesta
+  //  NUEVO: Cancelar respuesta
   const handleCancelReply = () => {
     setReplyingTo(null);
   };
@@ -845,7 +845,7 @@ const ThreadPanel = ({
   const formatTime = (msg) => {
     if (!msg) return "";
 
-    // 🔥 IMPORTANTE: Si el mensaje tiene 'time' ya formateado, usarlo directamente
+    //  IMPORTANTE: Si el mensaje tiene 'time' ya formateado, usarlo directamente
     // El backend ya envía 'time' en formato de Perú (HH:mm)
     if (msg.time) {
       return msg.time;
@@ -859,14 +859,14 @@ const ThreadPanel = ({
     return "";
   };
 
-  // 🔥 NUEVO: Cerrar menú y picker de reacciones al hacer clic fuera
+  //  NUEVO: Cerrar menú y picker de reacciones al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
       // Cerrar menú si se hace clic fuera
       if (messageMenuRef.current && !messageMenuRef.current.contains(event.target)) {
         setShowMessageMenu(null);
       }
-      // 🔥 FIX: Cerrar picker solo si NO estamos clickeando en el menú NI en el picker
+      //  FIX: Cerrar picker solo si NO estamos clickeando en el menú NI en el picker
       // Esto evita que el picker se cierre inmediatamente al hacer clic en "Reaccionar"
       if (
         reactionPickerRef.current &&
@@ -875,7 +875,7 @@ const ThreadPanel = ({
       ) {
         setShowReactionPicker(null);
       }
-      // 🔥 Cerrar popover de leídos si se hace clic fuera
+      //  Cerrar popover de leídos si se hace clic fuera
       if (!event.target.closest('.thread-read-receipts-popover') && !event.target.closest('.thread-read-receipts-trigger')) {
         setOpenReadReceiptsId(null);
       }
@@ -887,7 +887,7 @@ const ThreadPanel = ({
     }
   }, [showMessageMenu, showReactionPicker]);
 
-  // 🔥 NUEVO: Handler de paste para el contenedor (reemplaza al useEffect)
+  //  NUEVO: Handler de paste para el contenedor (reemplaza al useEffect)
   const handleContainerPaste = (e) => {
     const target = e.target;
     const isInInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
@@ -898,7 +898,7 @@ const ThreadPanel = ({
     handlePaste(e);
   };
 
-  // 🔥 Limpiar estado al cerrar el panel
+  //  Limpiar estado al cerrar el panel
   useEffect(() => {
     if (!isOpen) {
       setInput("");
@@ -919,7 +919,7 @@ const ThreadPanel = ({
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
-      onPaste={handleContainerPaste} // 🔥 NUEVO: Paste handler en el div
+      onPaste={handleContainerPaste} //  NUEVO: Paste handler en el div
     >
       {isDragging && (
         <div className="thread-drag-overlay">
@@ -1049,7 +1049,7 @@ const ThreadPanel = ({
                 <span className="thread-message-time">{formatTime(msg)}</span>
               </div>
 
-              {/* 🔥 NUEVO: Mostrar referencia de respuesta si existe */}
+              {/*  NUEVO: Mostrar referencia de respuesta si existe */}
               {msg.replyToMessageId && msg.replyToSender && (
                 <div className="thread-reply-reference">
                   <FaReply className="reply-ref-icon" />
@@ -1121,7 +1121,7 @@ const ThreadPanel = ({
                   )}
                 </div>
               ) : (msg.mediaType && msg.mediaData) || (msg.fileName && msg.mediaData) ? (
-                // 🔥 FALLBACK GENÉRICO MEJORADO: Si tiene mediaData, mostrar como archivo
+                //  FALLBACK GENÉRICO MEJORADO: Si tiene mediaData, mostrar como archivo
                 <div className="thread-message-media">
                   <div
                     style={{
@@ -1147,7 +1147,7 @@ const ThreadPanel = ({
                   )}
                 </div>
               ) : (
-                // 🔥 EDIT MODE: Si estamos editando este mensaje, mostrar input
+                //  EDIT MODE: Si estamos editando este mensaje, mostrar input
                 editingMessageId === msg.id ? (
                   <div className="thread-message-edit-mode">
                     <textarea
@@ -1182,7 +1182,7 @@ const ThreadPanel = ({
                 )
               )}
 
-              {/* 🔥 NUEVO: Mostrar reacciones (igual que en ChatContent) */}
+              {/*  NUEVO: Mostrar reacciones (igual que en ChatContent) */}
               {msg.reactions && msg.reactions.length > 0 && (
                 <div className="thread-reactions-row" style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
                   {Object.entries(msg.reactions.reduce((acc, r) => {
@@ -1215,14 +1215,14 @@ const ThreadPanel = ({
                 </div>
               )}
 
-              {/* 🔥 Read Receipts - Mostrar para TODOS los mensajes si hay lectores */}
+              {/*  Read Receipts - Mostrar para TODOS los mensajes si hay lectores */}
               {msg.readBy && msg.readBy.length > 0 && (
                 <div className="thread-read-receipts">
                   <div
                     className="thread-read-receipts-trigger"
                     onClick={(e) => {
                       e.stopPropagation();
-                      // 🔥 Cálculo de posición FIXED (coordenadas absolutas en pantalla)
+                      //  Cálculo de posición FIXED (coordenadas absolutas en pantalla)
                       const rect = e.currentTarget.getBoundingClientRect();
                       // Preferimos ARRIBA (top) para no tapar los mensajes siguientes
                       const preferTop = rect.top > 180;
@@ -1287,7 +1287,7 @@ const ThreadPanel = ({
                     })()}
                   </div>
 
-                  {/* 🔥 POPOVER DE DETALLES */}
+                  {/*  POPOVER DE DETALLES */}
                   {openReadReceiptsId === msg.id && (
                     <div
                       className={`thread-read-receipts-popover position-${popoverPosition}`}
@@ -1346,7 +1346,7 @@ const ThreadPanel = ({
                 </div>
               )}
 
-              {/* 🔥 NUEVO: Botón de menú de opciones */}
+              {/*  NUEVO: Botón de menú de opciones */}
               <div className="thread-message-actions">
                 <button
                   className="thread-message-menu-btn"
@@ -1380,7 +1380,7 @@ const ThreadPanel = ({
                     >
                       <FaSmile className="menu-icon" /> Reaccionar
                     </button>
-                    {/* 🔥 NUEVO: Botón de editar - solo para mensajes propios */}
+                    {/*  NUEVO: Botón de editar - solo para mensajes propios */}
                     {msg.from === currentUsername && (
                       <button
                         className="menu-item"
@@ -1399,7 +1399,7 @@ const ThreadPanel = ({
                   </div>
                 )}
 
-                {/* 🔥 NUEVO: Picker de reacciones */}
+                {/*  NUEVO: Picker de reacciones */}
                 {showReactionPicker === msg.id && (
                   <div className="thread-reaction-picker" ref={reactionPickerRef}>
                     {['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji) => (
@@ -1421,7 +1421,7 @@ const ThreadPanel = ({
       </div>
 
       <div className="thread-input-container">
-        {/* 🔥 NUEVO: Vista previa de respuesta */}
+        {/*  NUEVO: Vista previa de respuesta */}
         {replyingTo && (
           <div className="thread-reply-preview">
             <div className="reply-preview-content">
@@ -1511,7 +1511,7 @@ const ThreadPanel = ({
           </div>
         )}
 
-        {/* 🔥 NUEVO: Dropdown de sugerencias de menciones */}
+        {/*  NUEVO: Dropdown de sugerencias de menciones */}
         {showMentionSuggestions && filteredMembers.length > 0 && (
           <div className="thread-mention-dropdown" ref={mentionDropdownRef}>
             {filteredMembers.map((user, index) => {
@@ -1610,7 +1610,7 @@ const ThreadPanel = ({
         </div>
       </div>
 
-      {/* 🔥 NUEVO: Modal de reenvío */}
+      {/*  NUEVO: Modal de reenvío */}
       <ForwardMessageModal
         isOpen={showForwardModal}
         onClose={handleCloseForwardModal}

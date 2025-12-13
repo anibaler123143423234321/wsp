@@ -22,7 +22,7 @@ const ChatLayout = ({
   onShowCreateRoom, onShowJoinRoom, onShowAdminRooms, onShowCreateConversation, onShowManageConversations,
   onShowManageUsers, onShowSystemConfig, myActiveRooms, onRoomSelect, onKickUser,
   userListHasMore, userListLoading, onLoadMoreUsers, roomTypingUsers,
-  // 🔥 NUEVOS PROPS para paginación real
+  //  NUEVOS PROPS para paginación real
   assignedPage, assignedTotal, assignedTotalPages, assignedLoading, onLoadAssignedConversations,
   roomsPage, roomsTotal, roomsTotalPages, roomsLoading, onLoadUserRooms, roomsLimit, onRoomsLimitChange, onGoToRoomsPage,
 
@@ -31,7 +31,7 @@ const ChatLayout = ({
   onSendMessage, onFileSelect, onRecordAudio, onStopRecording, isRecording,
   mediaFiles, mediaPreviews, onCancelMediaUpload, onRemoveMediaFile, onLeaveRoom, onToggleMenu,
   onEditMessage, onDeleteMessage, hasMoreMessages, isLoadingMore, isLoadingMessages, onLoadMoreMessages,
-  messagesError, onRetryMessages, // 🔥 Props de error y reintento
+  messagesError, onRetryMessages, //  Props de error y reintento
   onStartCall, onStartVideoCall, hasCamera, canSendMessages, adminViewConversation,
 
   // Props de modales
@@ -64,7 +64,7 @@ const ChatLayout = ({
   // Props para mensajes de voz
   onSendVoiceMessage,
 
-  // 🔥 Props de estado de carga
+  //  Props de estado de carga
   isUploadingFile,
   isSending,
   pinnedMessage,
@@ -73,9 +73,9 @@ const ChatLayout = ({
   onClickPinnedMessage,
   pinnedMessageId,
   onPollVote,
-  // 🔥 Props de actualización de sala
+  //  Props de actualización de sala
   onRoomUpdated,
-  selectedRoomData, // 🔥 NUEVO: Datos de sala seleccionada (fallback)
+  selectedRoomData, //  NUEVO: Datos de sala seleccionada (fallback)
 }) => {
   // State para el panel de miembros (lifted from ChatHeader)
   const [showMembersPanel, setShowMembersPanel] = React.useState(false);
@@ -174,11 +174,11 @@ const ChatLayout = ({
   const getUserPicture = () => {
     if (isGroup) {
       const room = myActiveRooms?.find(r => r.roomCode === currentRoomCode);
-      // 🔥 Fallback: Si no hay picture, revisar description por si guardamos la URL ahí
+      //  Fallback: Si no hay picture, revisar description por si guardamos la URL ahí
       if (room?.picture) return room.picture;
       if (room?.description && room.description.trim().length > 0) return room.description;
 
-      // 🔥 Fallback 2: Revisar selectedRoomData (para Favoritos que no están en myActiveRooms)
+      //  Fallback 2: Revisar selectedRoomData (para Favoritos que no están en myActiveRooms)
       // Relaxed check: trust selectedRoomData if present
       if (selectedRoomData) {
         if (selectedRoomData.picture) return selectedRoomData.picture;
@@ -299,7 +299,7 @@ const ChatLayout = ({
             onToggleInfoPanel={toggleInfoPanel}
           />
 
-          {/* 🔥 NUEVO: Banner de videollamada activa */}
+          {/*  NUEVO: Banner de videollamada activa */}
           {to && (
             <ActiveVideoCallBanner
               messages={messages}
@@ -309,11 +309,11 @@ const ChatLayout = ({
               to={to}
               socket={socket}
               user={user}
-              stopRingtone={stopRingtone} // 🔥 Pasar función
+              stopRingtone={stopRingtone} //  Pasar función
             />
           )}
 
-          {/* 🔥 NUEVO: Banner de mensaje fijado */}
+          {/*  NUEVO: Banner de mensaje fijado */}
           {isGroup && pinnedMessage && (
             <PinnedMessageBanner
               pinnedMessage={pinnedMessage}
@@ -345,10 +345,10 @@ const ChatLayout = ({
             onDeleteMessage={onDeleteMessage}
             hasMoreMessages={hasMoreMessages}
             isLoadingMore={isLoadingMore}
-            isLoadingMessages={isLoadingMessages} // 🔥 Estado de carga inicial
+            isLoadingMessages={isLoadingMessages} //  Estado de carga inicial
             onLoadMoreMessages={onLoadMoreMessages}
-            messagesError={messagesError} // 🔥 Error de carga
-            onRetryMessages={onRetryMessages} // 🔥 Función para reintentar
+            messagesError={messagesError} //  Error de carga
+            onRetryMessages={onRetryMessages} //  Función para reintentar
             socket={socket}
             highlightMessageId={highlightMessageId}
             onMessageHighlighted={onMessageHighlighted}
@@ -361,23 +361,23 @@ const ChatLayout = ({
             isOtherUserTyping={isTyping}
             typingUser={typingUser}
             roomTypingUsers={roomTypingUsers}
-            isUploadingFile={isUploadingFile} // 🔥 Pasar prop de loading
-            isSending={isSending} // 🔥 NUEVO: Estado de envío
-            onStartVideoCall={onStartVideoCall} // 🔥 NUEVO: Handler de videollamada
-            onPinMessage={onPinMessage} // 🔥 NUEVO: Fijar mensajes
-            onUnpinMessage={onUnpinMessage} // 🔥 NUEVO: Desfijar mensajes
-            onClickPinnedMessage={onClickPinnedMessage} // 🔥 NUEVO: Click en mensaje fijado
-            pinnedMessageId={pinnedMessageId} // 🔥 Usa la prop directa, NO pinnedMessage?.id
+            isUploadingFile={isUploadingFile} //  Pasar prop de loading
+            isSending={isSending} //  NUEVO: Estado de envío
+            onStartVideoCall={onStartVideoCall} //  NUEVO: Handler de videollamada
+            onPinMessage={onPinMessage} //  NUEVO: Fijar mensajes
+            onUnpinMessage={onUnpinMessage} //  NUEVO: Desfijar mensajes
+            onClickPinnedMessage={onClickPinnedMessage} //  NUEVO: Click en mensaje fijado
+            pinnedMessageId={pinnedMessageId} //  Usa la prop directa, NO pinnedMessage?.id
             pinnedMessage={pinnedMessage}     // ❌ TE FALTA ESTO (El objeto con los datos)
-            userRole={user?.role} // 🔥 NUEVO: Rol del usuario
-            chatInfo={{ // 🔥 NUEVO: Información del chat
+            userRole={user?.role} //  NUEVO: Rol del usuario
+            chatInfo={{ //  NUEVO: Información del chat
               name: to,
               picture: getUserPicture(),
               isOnline: isGroup ? false : getTargetUser()?.isOnline
             }}
-            user={user} // 🔥 NUEVO: Usuario para modal de reenvío
-            myActiveRooms={myActiveRooms} // 🔥 NUEVO: Grupos para modal de reenvío
-            assignedConversations={assignedConversations} // 🔥 NUEVO: Chats asignados para modal de reenvío
+            user={user} //  NUEVO: Usuario para modal de reenvío
+            myActiveRooms={myActiveRooms} //  NUEVO: Grupos para modal de reenvío
+            assignedConversations={assignedConversations} //  NUEVO: Chats asignados para modal de reenvío
           />
         </div>
         {/* Thread Panel (Displacement Layout) */}
@@ -390,9 +390,9 @@ const ChatLayout = ({
           onSendMessage={onSendThreadMessage}
           currentRoomCode={currentRoomCode}
           roomUsers={roomUsers}
-          myActiveRooms={myActiveRooms} // 🔥 NUEVO: Para modal de reenvío
-          assignedConversations={assignedConversations} // 🔥 NUEVO: Para modal de reenvío
-          user={user} // 🔥 NUEVO: Para modal de reenvío
+          myActiveRooms={myActiveRooms} //  NUEVO: Para modal de reenvío
+          assignedConversations={assignedConversations} //  NUEVO: Para modal de reenvío
+          user={user} //  NUEVO: Para modal de reenvío
         />
 
         {/* Members Panel (Displacement Layout) */}
@@ -424,8 +424,8 @@ const ChatLayout = ({
             roomId: currentRoomCode
           }}
           onCreatePoll={handleCreatePoll}
-          user={user} // 🔥 Pass user for permission checks
-          onRoomUpdated={onRoomUpdated} // 🔥 Pass callback for updates
+          user={user} //  Pass user for permission checks
+          onRoomUpdated={onRoomUpdated} //  Pass callback for updates
         />
 
       </div >

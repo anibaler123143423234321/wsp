@@ -13,12 +13,12 @@ const ForwardMessageModal = ({
     user,
     socket,
     onForward,
-    // 🔥 NUEVO: Props para paginación de grupos
+    //  NUEVO: Props para paginación de grupos
     roomsPage = 1,
     roomsTotalPages = 1,
     roomsLoading = false,
     onLoadMoreRooms, // Función callback para cargar más grupos
-    // 🔥 NUEVO: Props para paginación de conversaciones
+    //  NUEVO: Props para paginación de conversaciones
     convsPage = 1,
     convsTotalPages = 1,
     convsLoading = false,
@@ -28,7 +28,7 @@ const ForwardMessageModal = ({
     const [selectedDestination, setSelectedDestination] = useState(null);
     const [isSending, setIsSending] = useState(false);
 
-    // 🔥 NUEVO: Ref para la lista scrolleable
+    //  NUEVO: Ref para la lista scrolleable
     const destinationsListRef = useRef(null);
 
     // Filtrar chats disponibles por búsqueda
@@ -50,7 +50,7 @@ const ForwardMessageModal = ({
         );
     }, [assignedConversations, searchTerm]);
 
-    // 🔥 NUEVO: Handler para scroll infinito
+    //  NUEVO: Handler para scroll infinito
     const handleScroll = useCallback(() => {
         if (!destinationsListRef.current || roomsLoading || !onLoadMoreRooms) return;
 
@@ -64,7 +64,7 @@ const ForwardMessageModal = ({
         }
     }, [roomsLoading, roomsPage, roomsTotalPages, onLoadMoreRooms]);
 
-    // 🔥 NUEVO: Agregar event listener al scroll
+    //  NUEVO: Agregar event listener al scroll
     useEffect(() => {
         const listElement = destinationsListRef.current;
         if (listElement) {
@@ -73,7 +73,7 @@ const ForwardMessageModal = ({
         }
     }, [handleScroll]);
 
-    // 🔥 NUEVO: Handler para scroll infinito de conversaciones
+    //  NUEVO: Handler para scroll infinito de conversaciones
     const handleConvsScroll = useCallback(() => {
         if (!destinationsListRef.current || convsLoading || !onLoadMoreConvs) return;
 
@@ -87,13 +87,13 @@ const ForwardMessageModal = ({
         }
     }, [convsLoading, convsPage, convsTotalPages, onLoadMoreConvs]);
 
-    // 🔥 NUEVO: Combinar ambos handlers en uno solo
+    //  NUEVO: Combinar ambos handlers en uno solo
     const handleCombinedScroll = useCallback(() => {
         handleScroll();      // Para grupos
         handleConvsScroll(); // Para conversaciones
     }, [handleScroll, handleConvsScroll]);
 
-    // 🔥 Actualizar event listener para usar handler combinado
+    //  Actualizar event listener para usar handler combinado
     useEffect(() => {
         const listElement = destinationsListRef.current;
         if (listElement) {

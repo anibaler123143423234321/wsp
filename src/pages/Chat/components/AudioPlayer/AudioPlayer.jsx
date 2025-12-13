@@ -37,7 +37,7 @@ const AudioPlayer = ({
     }
   };
 
-  // 🔥 LÓGICA DE ANÁLISIS DE AUDIO REAL
+  //  LÓGICA DE ANÁLISIS DE AUDIO REAL
   useEffect(() => {
     if (!src) return;
 

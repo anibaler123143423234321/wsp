@@ -111,7 +111,7 @@
   transform: translateY(0);
 }
 
-/* 🔥 NUEVO: Estilos para mostrar participantes */
+/*  NUEVO: Estilos para mostrar participantes */
 .banner-participants {
   display: flex;
   align-items: center;

@@ -13,11 +13,11 @@ import apiService from '../../../../apiService';
 import Swal from 'sweetalert2';
 import './InfoPanel.css';
 
-import ImageViewer from '../ChatContent/ImageViewer'; // 🔥 Importar visor de imágenes
+import ImageViewer from '../ChatContent/ImageViewer'; //  Importar visor de imágenes
 
 const InfoPanel = ({ isOpen, onClose, chatInfo, onCreatePoll, user, onRoomUpdated }) => {
     const [isUploading, setIsUploading] = useState(false);
-    const [showImageViewer, setShowImageViewer] = useState(false); // 🔥 Estado para el visor
+    const [showImageViewer, setShowImageViewer] = useState(false); //  Estado para el visor
     const fileInputRef = useRef(null);
 
     if (!isOpen) return null;

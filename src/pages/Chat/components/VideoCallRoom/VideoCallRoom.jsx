@@ -32,7 +32,7 @@ export default function VideoCallRoom() {
   const [permissionError, setPermissionError] = React.useState(null);
   const [showEndCallButton, setShowEndCallButton] = React.useState(false);
 
-  // 🔥 NUEVO: Obtener información del grupo/chat desde localStorage
+  //  NUEVO: Obtener información del grupo/chat desde localStorage
   const [roomCode, setRoomCode] = React.useState(null);
   const [isGroup, setIsGroup] = React.useState(false);
 
@@ -47,7 +47,7 @@ export default function VideoCallRoom() {
         return {
           displayName: (user.nombre && user.apellido && `${user.nombre} ${user.apellido}`) || user.username || "Usuario",
           userID: String(user.id || user.username || randomID(8)),
-          userRole: user.role || null // 🔥 NUEVO: Obtener rol del usuario
+          userRole: user.role || null //  NUEVO: Obtener rol del usuario
         };
       }
     } catch (e) {
@@ -56,7 +56,7 @@ export default function VideoCallRoom() {
     return { displayName: "Usuario", userID: randomID(8), userRole: null };
   }, []);
 
-  // 🔥 NUEVO: Extraer roomCode del roomID
+  //  NUEVO: Extraer roomCode del roomID
   React.useEffect(() => {
     // El roomID tiene formato: "group_AD59B1D8" o "individual_username1_username2"
     if (roomID.startsWith('group_')) {
@@ -72,7 +72,7 @@ export default function VideoCallRoom() {
   }, [roomID]);
 
   // --------------------------------------------------------
-  // 🔥 CONECTAR SOCKET PARA ESCUCHAR EVENTOS
+  //  CONECTAR SOCKET PARA ESCUCHAR EVENTOS
   // --------------------------------------------------------
   React.useEffect(() => {
     // console.log("🔌 Iniciando conexión de socket en VideoCallRoom...");
@@ -101,7 +101,7 @@ export default function VideoCallRoom() {
     socket.on("connect", () => {
       // console.log("✅ Socket conectado en VideoCallRoom - Socket ID:", socket.id);
 
-      // 🔥 CRÍTICO: Unirse a la sala de video usando socket.join() del lado del servidor
+      //  CRÍTICO: Unirse a la sala de video usando socket.join() del lado del servidor
       // Esto permite que el servidor emita eventos a todos los que estén en esta sala
       // console.log(`🏠 Uniéndose a sala de video: ${roomID}`);
 
@@ -137,13 +137,13 @@ export default function VideoCallRoom() {
   }, [displayName, roomID]);
 
   // --------------------------------------------------------
-  // 🔥 FUNCIÓN PARA CERRAR LA SALA (SOLO CREADOR)
+  //  FUNCIÓN PARA CERRAR LA SALA (SOLO CREADOR)
   // --------------------------------------------------------
   // --------------------------------------------------------
-  // 🔥 FUNCIÓN PARA CERRAR LA SALA (SOLO ROLES PRIVILEGIADOS)
+  //  FUNCIÓN PARA CERRAR LA SALA (SOLO ROLES PRIVILEGIADOS)
   // --------------------------------------------------------
   const handleEndCall = () => {
-    // 🔥 Verificar si el usuario tiene un rol privilegiado
+    //  Verificar si el usuario tiene un rol privilegiado
     const privilegedRoles = ['ADMIN', 'PROGRAMADOR', 'COORDINADOR', 'JEFEPISO'];
     const hasPrivilegedRole = userRole && privilegedRoles.includes(userRole.toUpperCase());
     if (!hasPrivilegedRole) {
@@ -161,7 +161,7 @@ export default function VideoCallRoom() {
       //     isGroup,
       //     userRole
       //     });
-      // 🔥 NUEVO: Usar los mismos parámetros que el banner
+      //  NUEVO: Usar los mismos parámetros que el banner
       socketRef.current.emit("endVideoCall", {
         roomID: roomID,
         roomCode: roomCode,
@@ -177,7 +177,7 @@ export default function VideoCallRoom() {
   };
 
   // --------------------------------------------------------
-  // 🔥 EFECTO PRINCIPAL: INICIAR VIDEOLLAMADA
+  //  EFECTO PRINCIPAL: INICIAR VIDEOLLAMADA
   // --------------------------------------------------------
   React.useEffect(() => {
     let mounted = true;
@@ -248,7 +248,7 @@ export default function VideoCallRoom() {
 
           onJoinRoom: () => {
             // console.log("✅ Entraste a la sala.");
-            // 🔥 Mostrar botón de cerrar sala si tiene rol privilegiado
+            //  Mostrar botón de cerrar sala si tiene rol privilegiado
             const privilegedRoles = ['ADMIN', 'PROGRAMADOR', 'COORDINADOR', 'JEFEPISO'];
             const hasPrivilegedRole = userRole && privilegedRoles.includes(userRole.toUpperCase());
             if (hasPrivilegedRole) {
@@ -295,7 +295,7 @@ export default function VideoCallRoom() {
         </div>
       )}
 
-      {/* 🔥 BOTÓN PARA CERRAR SALA (SOLO CREADOR) */}
+      {/*  BOTÓN PARA CERRAR SALA (SOLO CREADOR) */}
       {showEndCallButton && isCreator && (
         <button
           onClick={handleEndCall}

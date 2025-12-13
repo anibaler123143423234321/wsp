@@ -230,7 +230,7 @@ export const useSocketListeners = (
                 const msgFrom = data.from?.toLowerCase().trim();
                 const msgTo = data.to?.toLowerCase().trim();
 
-                // 🔥 DEBUG: Diagnosticar por qué no se abre el chat
+                //  DEBUG: Diagnosticar por qué no se abre el chat
                 console.log('🔍 DEBUG isChatOpen (DM):', {
                     chatPartner,
                     msgFrom,
@@ -912,7 +912,7 @@ export const useSocketListeners = (
             });
         });
 
-        // 🔥 CLUSTER FIX: Listener para notificación de nueva conexión
+        //  CLUSTER FIX: Listener para notificación de nueva conexión
         // Facebook-style: permitir múltiples tabs, solo informar
         s.on("forceDisconnect", (data) => {
             // Solo loguear - NO desconectar para permitir múltiples tabs como Facebook
@@ -952,7 +952,7 @@ export const useSocketListeners = (
             s.off('error');
             s.off('joinRoomError');
             s.off('videoCallEnded');
-            s.off('forceDisconnect'); // 🔥 NUEVO: Cleanup del listener de desconexión forzada
+            s.off('forceDisconnect'); //  NUEVO: Cleanup del listener de desconexión forzada
         };
     }, [socket, username, user]); //  NO incluir soundsEnabled aquí para evitar re-registrar todos los listeners
 };

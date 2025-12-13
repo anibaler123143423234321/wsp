@@ -21,10 +21,10 @@ export default defineConfig({
     global: "globalThis",
   },
   build: {
-    // 🔥 OPTIMIZACIÓN: Reducir tamaño del bundle
+    //  OPTIMIZACIÓN: Reducir tamaño del bundle
     rollupOptions: {
       output: {
-        // 🔥 Dividir el código en chunks más pequeños
+        //  Dividir el código en chunks más pequeños
         manualChunks: {
           // Librerías de terceros grandes
           "vendor-react": ["react", "react-dom"],
@@ -34,13 +34,13 @@ export default defineConfig({
         },
       },
     },
-    // 🔥 Aumentar el límite de advertencia de tamaño de chunk
+    //  Aumentar el límite de advertencia de tamaño de chunk
     chunkSizeWarningLimit: 1000,
-    // 🔥 Minificación más agresiva
+    //  Minificación más agresiva
     minify: "terser",
     terserOptions: {
       compress: {
-        drop_console: false, // 🔥 TEMP: Permitir console.log para debugging
+        drop_console: false, //  TEMP: Permitir console.log para debugging
       },
     },
   },

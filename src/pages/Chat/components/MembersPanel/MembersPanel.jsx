@@ -11,13 +11,13 @@ const MembersPanel = ({
     currentRoomCode,
     user,
     userList,
-    socket // 🔥 NUEVO: Socket para escuchar eventos en tiempo real
+    socket //  NUEVO: Socket para escuchar eventos en tiempo real
 }) => {
     const [filterText, setFilterText] = useState('');
     const [roomUsers, setRoomUsers] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    // 🔥 NUEVO: Escuchar eventos de socket para actualizar isOnline en tiempo real
+    //  NUEVO: Escuchar eventos de socket para actualizar isOnline en tiempo real
     useEffect(() => {
         if (!socket || !isOpen) return;
 
@@ -45,7 +45,7 @@ const MembersPanel = ({
         };
     }, [socket, isOpen]);
 
-    // 🔥 Helper: Buscar picture en userList o propRoomUsers por displayName
+    //  Helper: Buscar picture en userList o propRoomUsers por displayName
     const findPicture = (displayName) => {
         if (!displayName) return null;
         const normalizedName = displayName.trim().toLowerCase();
@@ -75,7 +75,7 @@ const MembersPanel = ({
         return null;
     };
 
-    // 🔥 Cargar usuarios de la API cuando se abre el panel
+    //  Cargar usuarios de la API cuando se abre el panel
     // isOnline viene correcto de la API, solo necesitamos añadir picture
     useEffect(() => {
         if (isOpen && currentRoomCode) {

@@ -4,8 +4,8 @@ import './index.css'
 import App from './App.jsx'
 
 createRoot(document.getElementById('root')).render(
-  // 🔥 StrictMode deshabilitado temporalmente para evitar renderizados duplicados
+  //  StrictMode deshabilitado temporalmente para evitar renderizados duplicados
   // <StrictMode>
-    <App />
+  <App />
   // </StrictMode>,
 )

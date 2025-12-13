@@ -13,7 +13,7 @@ import {
   FaThumbtack,
   FaDownload,
   FaChevronRight,
-  FaShare, // 🔥 NUEVO: Ícono para reenviar
+  FaShare, //  NUEVO: Ícono para reenviar
 } from "react-icons/fa";
 import EmojiPicker from "emoji-picker-react";
 import LoadMoreMessages from "../LoadMoreMessages/LoadMoreMessages";
@@ -24,9 +24,9 @@ import VoiceRecorder from "../VoiceRecorder/VoiceRecorder";
 import PollMessage from "../PollMessage/PollMessage";
 import CopyOptions from "./CopyOptions/CopyOptions";
 import MessageSelectionManager from "./MessageSelectionManager/MessageSelectionManager";
-import ForwardMessageModal from "./ForwardMessageModal"; // 🔥 NUEVO: Modal de reenvío
+import ForwardMessageModal from "./ForwardMessageModal"; //  NUEVO: Modal de reenvío
 import PDFViewer from '../../../../components/PDFViewer/PDFViewer'; // Importar el visor de PDF
-import apiService from '../../../../apiService'; // 🔥 NUEVO: Para cargar datos de paginación
+import apiService from '../../../../apiService'; //  NUEVO: Para cargar datos de paginación
 
 import "./ChatContent.css";
 
@@ -156,7 +156,7 @@ const ChatContent = ({
   typingUser,
   roomTypingUsers,
 
-  // 🔥 NUEVO: Props para modal de reenvío
+  //  NUEVO: Props para modal de reenvío
   myActiveRooms = [],
   assignedConversations = [],
 }) => {
@@ -167,7 +167,7 @@ const ChatContent = ({
   const isUserScrollingRef = useRef(false);
   const lastMessageCountRef = useRef(0);
   const previousScrollHeightRef = useRef(0);
-  const hasScrolledToUnreadRef = useRef(false); // 🔥 NUEVO: Rastrear si ya hicimos scroll al primer mensaje no leído
+  const hasScrolledToUnreadRef = useRef(false); //  NUEVO: Rastrear si ya hicimos scroll al primer mensaje no leído
   const typingTimeoutRef = useRef(null);
   const emojiPickerRef = useRef(null);
   const reactionPickerRef = useRef(null);
@@ -294,7 +294,7 @@ const ChatContent = ({
     }
   };
 
-  // 🔥 NUEVO HANDLER - Cerrar modal de reenvío
+  //  NUEVO HANDLER - Cerrar modal de reenvío
   const handleCloseForwardModal = () => {
     setShowForwardModal(false);
     setMessageToForward(null);
@@ -305,7 +305,7 @@ const ChatContent = ({
     setForwardConvsPage(1);
   };
 
-  // 🔥 NUEVO - Cargar más grupos para modal de reenvío
+  //  NUEVO - Cargar más grupos para modal de reenvío
   const handleLoadMoreForwardRooms = async () => {
     if (forwardRoomsLoading || forwardRoomsPage >= forwardRoomsTotalPages) return;
 
@@ -482,7 +482,7 @@ const ChatContent = ({
     let currentDateString = null;
     let unreadSeparatorInserted = false;
 
-    // 🔥 FILTRAR DUPLICADOS POR ID
+    //  FILTRAR DUPLICADOS POR ID
     const uniqueMessages = [];
     const seenIds = new Set();
 
@@ -520,7 +520,7 @@ const ChatContent = ({
         });
       }
 
-      // 🔥 NUEVO: Insertar separador de no leídos ANTES del primer mensaje no leído
+      //  NUEVO: Insertar separador de no leídos ANTES del primer mensaje no leído
       if (
         !unreadSeparatorInserted &&
         unreadCount > 0 &&
@@ -727,7 +727,7 @@ const ChatContent = ({
         from: currentUsername,
         to: to,
         isTyping: true,
-        conversationId: conversationId // 🔥 Enviar ID para filtrado preciso
+        conversationId: conversationId //  Enviar ID para filtrado preciso
       };
 
       if (isGroup && currentRoomCode) {
@@ -822,7 +822,7 @@ const ChatContent = ({
   const handleReaction = (message, emoji) => {
     if (!socket || !socket.connected || !currentUsername) return;
 
-    // 🔥 Usar realSender para obtener el nombre real del usuario (no "Tú")
+    //  Usar realSender para obtener el nombre real del usuario (no "Tú")
     const actualSender = message.realSender || message.sender;
     const actualReceiver = message.receiver;
 
@@ -875,15 +875,15 @@ const ChatContent = ({
   useEffect(() => {
     if (!chatHistoryRef.current) return;
 
-    // 🔥 NUEVO: No hacer scroll automático hasta que hayamos completado el scroll inicial a no leídos
+    //  NUEVO: No hacer scroll automático hasta que hayamos completado el scroll inicial a no leídos
     if (!hasScrolledToUnreadRef.current) return;
 
     const chatHistory = chatHistoryRef.current;
 
-    // 🔥 Solo verificar si estamos cerca del final (100px de margen)
+    //  Solo verificar si estamos cerca del final (100px de margen)
     const isAtBottom = chatHistory.scrollHeight - chatHistory.scrollTop <= chatHistory.clientHeight + 100;
 
-    // 🔥 CORREGIDO: Solo hacer scroll automático si:
+    //  CORREGIDO: Solo hacer scroll automático si:
     // 1. Hay mensajes nuevos (no solo re-renders)
     // 2. El usuario está en la parte inferior del chat
     // Esto preserva la posición de lectura cuando el usuario está leyendo historial
@@ -905,7 +905,7 @@ const ChatContent = ({
       (!isGroup && isOtherUserTyping && typingUser) ||
       (isGroup && currentRoomCode && roomTypingUsers?.[currentRoomCode]?.length > 0);
 
-    // 🔥 CORREGIDO: Solo hacer scroll si el usuario está cerca del final
+    //  CORREGIDO: Solo hacer scroll si el usuario está cerca del final
     // Esto preserva la posición cuando lee mensajes antiguos
     if (someoneIsTyping && isAtBottom) {
       chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: "auto" });
@@ -916,7 +916,7 @@ const ChatContent = ({
   // EFFECTS - Marcar mensajes como leídos
   // ============================================================
 
-  // 🔥 NOTA: La lógica de marcar mensajes como leídos se maneja en ChatPage.jsx
+  //  NOTA: La lógica de marcar mensajes como leídos se maneja en ChatPage.jsx
   // usando markRoomMessagesAsRead (bulk) para evitar múltiples emisiones de socket.
   // NO usar un forEach aquí porque causa bucles cuando hay múltiples clusters.
 
@@ -1038,7 +1038,7 @@ const ChatContent = ({
     return fileTypes[extension] || { icon: "default", color: "#4A90E2", bgColor: "#E3F2FD", name: "Archivo" };
   };
 
-  // 🔥 NUEVO: Función para renderizar el ícono SVG según el tipo de archivo
+  //  NUEVO: Función para renderizar el ícono SVG según el tipo de archivo
   const renderFileIcon = (fileName) => {
     const fileInfo = getFileIcon(fileName);
 
@@ -1404,7 +1404,7 @@ const ChatContent = ({
         (validUser) =>
           validUser === normalizedMention ||
           validUser.includes(normalizedMention) ||
-          normalizedMention.includes(validUser) // 🔥 Check bidireccional
+          normalizedMention.includes(validUser) //  Check bidireccional
       );
 
       // Solo resaltar si es un usuario válido
@@ -1535,7 +1535,7 @@ const ChatContent = ({
                 <div
                   className="slack-avatar"
                   style={{
-                    // 🔥 CORRECCIÓN: Si es mensaje propio, usamos user.picture. Si no, message.senderPicture.
+                    //  CORRECCIÓN: Si es mensaje propio, usamos user.picture. Si no, message.senderPicture.
                     background: (isOwnMessage ? user?.picture : message.senderPicture)
                       ? `url(${isOwnMessage ? user.picture : message.senderPicture}) center/cover`
                       : "linear-gradient(135deg, #dc2626 0%, #dc2626 100%)",
@@ -1678,75 +1678,105 @@ const ChatContent = ({
 
                 {/* CONTENIDO REAL (Texto, Imagen, Video, Archivo) */}
                 {message.mediaType === 'image' ? (
-                  <img
-                    src={message.mediaData}
-                    alt="imagen"
-                    style={{
-                      maxWidth: '450px',
-                      maxHeight: '400px',
-                      width: 'auto',
-                      height: 'auto',
-                      objectFit: 'contain',
-                      borderRadius: '8px',
-                      border: '1px solid #e5e7eb',
-                      cursor: 'pointer',
-                      display: 'block'
-                    }}
-                    onClick={() => setImagePreview({ url: message.mediaData, fileName: message.fileName })}
-                  />
-                ) : message.mediaType === 'video' ? (
-                  <video
-                    src={message.mediaData}
-                    controls
-                    // 🔥 CAMBIO AQUÍ: Añadimos maxHeight y backgroundColor
-                    style={{
-                      maxWidth: '600px',     // Reduje un poco el ancho
-                      maxHeight: '300px',    // 🔥 ESTO EVITA QUE SEA GIGANTE VERTICALMENTE
-                      width: 'auto',         // Mantiene la proporción
-                      height: 'auto',
-                      borderRadius: '8px',
-                      border: '1px solid #e5e7eb',
-                      backgroundColor: '#000' // Fondo negro para que se vea prolijo
-                    }}
-                  />
-                ) : message.mediaType === 'audio' ? (
-                  <AudioPlayer src={message.mediaData} fileName={message.fileName} />
-                ) : message.mediaType && message.mediaData ? (
-                  // ARCHIVOS GENÉRICOS
-                  (() => {
-                    const isPdf = message.fileName?.toLowerCase().endsWith('.pdf') || message.mediaData?.toLowerCase().includes('application/pdf');
-
-                    return (
-                      <div className="wa-file-card" onClick={() => {
-                        if (isPdf) {
-                          // Descargar PDF y convertir a ArrayBuffer
-                          console.log("📥 Descargando PDF:", message.mediaData);
-                          apiService.fetchWithAuth(message.mediaData)
-                            .then(res => {
-                              if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                              return res.arrayBuffer();
-                            })
-                            .then(arrayBuffer => {
-                              console.log("✅ PDF descargado, tamaño:", arrayBuffer.byteLength);
-                              setPdfData(arrayBuffer);
-                              setShowPdfViewer(true);
-                            })
-                            .catch(err => {
-                              console.error("❌ Error descargando PDF:", err);
-                              alert("Error al cargar el PDF");
-                            });
-                        } else {
-                          handleDownload(message.mediaData, message.fileName);
-                        }
-                      }}>
-                        <div className="wa-file-icon">{renderFileIcon(message.fileName)}</div>
-                        <div className="wa-file-info">
-                          <div className="wa-file-name">{message.fileName}</div>
-                          <div className="wa-file-meta">{isPdf ? 'Click para ver PDF' : 'Click para descargar'}</div>
-                        </div>
+                  <>
+                    {/*  FIX: Mostrar texto del mensaje ADEMÁS de la imagen */}
+                    {(message.text || message.message) && (
+                      <div style={{ marginBottom: '8px' }}>
+                        {renderTextWithMentions(message.text || message.message)}
                       </div>
-                    );
-                  })()
+                    )}
+                    <img
+                      src={message.mediaData}
+                      alt="imagen"
+                      style={{
+                        maxWidth: '450px',
+                        maxHeight: '400px',
+                        width: 'auto',
+                        height: 'auto',
+                        objectFit: 'contain',
+                        borderRadius: '8px',
+                        border: '1px solid #e5e7eb',
+                        cursor: 'pointer',
+                        display: 'block'
+                      }}
+                      onClick={() => setImagePreview({ url: message.mediaData, fileName: message.fileName })}
+                    />
+                  </>
+                ) : message.mediaType === 'video' ? (
+                  <>
+                    {/*  FIX: Mostrar texto del mensaje ADEMÁS del video */}
+                    {(message.text || message.message) && (
+                      <div style={{ marginBottom: '8px' }}>
+                        {renderTextWithMentions(message.text || message.message)}
+                      </div>
+                    )}
+                    <video
+                      src={message.mediaData}
+                      controls
+                      style={{
+                        maxWidth: '600px',
+                        maxHeight: '300px',
+                        width: 'auto',
+                        height: 'auto',
+                        borderRadius: '8px',
+                        border: '1px solid #e5e7eb',
+                        backgroundColor: '#000'
+                      }}
+                    />
+                  </>
+                ) : message.mediaType === 'audio' ? (
+                  <>
+                    {/*  FIX: Mostrar texto del mensaje ADEMÁS del audio */}
+                    {(message.text || message.message) && (
+                      <div style={{ marginBottom: '8px' }}>
+                        {renderTextWithMentions(message.text || message.message)}
+                      </div>
+                    )}
+                    <AudioPlayer src={message.mediaData} fileName={message.fileName} />
+                  </>
+                ) : message.mediaType && message.mediaData ? (
+                  // ARCHIVOS GENÉRICOS (PDF, Word, Excel, etc.)
+                  <>
+                    {/*  FIX: Mostrar texto del mensaje ADEMÁS del archivo */}
+                    {(message.text || message.message) && (
+                      <div style={{ marginBottom: '8px' }}>
+                        {renderTextWithMentions(message.text || message.message)}
+                      </div>
+                    )}
+                    {(() => {
+                      const isPdf = message.fileName?.toLowerCase().endsWith('.pdf') || message.mediaData?.toLowerCase().includes('application/pdf');
+
+                      return (
+                        <div className="wa-file-card" onClick={() => {
+                          if (isPdf) {
+                            console.log("📥 Descargando PDF:", message.mediaData);
+                            apiService.fetchWithAuth(message.mediaData)
+                              .then(res => {
+                                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                                return res.arrayBuffer();
+                              })
+                              .then(arrayBuffer => {
+                                console.log("✅ PDF descargado, tamaño:", arrayBuffer.byteLength);
+                                setPdfData(arrayBuffer);
+                                setShowPdfViewer(true);
+                              })
+                              .catch(err => {
+                                console.error("❌ Error descargando PDF:", err);
+                                alert("Error al cargar el PDF");
+                              });
+                          } else {
+                            handleDownload(message.mediaData, message.fileName);
+                          }
+                        }}>
+                          <div className="wa-file-icon">{renderFileIcon(message.fileName)}</div>
+                          <div className="wa-file-info">
+                            <div className="wa-file-name">{message.fileName}</div>
+                            <div className="wa-file-meta">{isPdf ? 'Click para ver PDF' : 'Click para descargar'}</div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </>
                 ) : (
                   // TEXTO PLANO
                   renderTextWithMentions(message.text || message.message || "")
@@ -1773,7 +1803,7 @@ const ChatContent = ({
               </div>
             )
           }
-          {/* 🔥 HILO CON AVATARES (VERSIÓN FINAL A PRUEBA DE FALLOS) 🔥 */}
+          {/*  HILO CON AVATARES (VERSIÓN FINAL A PRUEBA DE FALLOS)  */}
           {
             message.threadCount > 0 && (
               <div className="thread-row-container">
@@ -1802,12 +1832,12 @@ const ChatContent = ({
                     {message.threadCount} {message.threadCount === 1 ? 'respuesta' : 'respuestas'}
                   </span>
 
-                  {/* 🔥 CAMBIO: Si hay nombre lo muestra, si no, muestra una flechita discreta */}
+                  {/*  CAMBIO: Si hay nombre lo muestra, si no, muestra una flechita discreta */}
                   <div className="thread-vertical-line"></div>
                   <span className="mx_ThreadLastReply">
                     {message.lastReplyFrom ? message.lastReplyFrom : "Ver"}
                   </span>
-                  {/* 🔥 NUEVO: Vista previa del último mensaje del hilo */}
+                  {/*  NUEVO: Vista previa del último mensaje del hilo */}
                   {message.lastReplyText && (
                     <span className="mx_ThreadLastReplyText" title={message.lastReplyText}>
                       : {message.lastReplyText.length > 25
@@ -1892,7 +1922,7 @@ const ChatContent = ({
                   <FaSmile size={15} />
                 </button>
 
-                {/* 🔥🔥🔥 ESTO ES LO QUE FALTABA: EL POPUP DE EMOJIS 🔥🔥🔥 */}
+                {/*  ESTO ES LO QUE FALTABA: EL POPUP DE EMOJIS  */}
                 {showReactionPicker === message.id && (
                   <div
                     ref={reactionPickerRef}
@@ -1999,7 +2029,7 @@ const ChatContent = ({
                       <FaInfoCircle className="menu-icon" /> Info. Mensaje
                     </button>}
 
-                    {/* 🔥 NUEVO: Botón de Reenviar */}
+                    {/*  NUEVO: Botón de Reenviar */}
                     <button className="menu-item" onClick={() => handleOpenForwardModal(message)}>
                       <FaShare className="menu-icon" /> Reenviar
                     </button>
@@ -2206,7 +2236,7 @@ const ChatContent = ({
         ref={chatHistoryRef}
         onScroll={handleScroll}
       >
-        {/* 🔥 Mostrar spinner de carga inicial */}
+        {/*  Mostrar spinner de carga inicial */}
         {isLoadingMessages ? (
           <div
             style={{
@@ -2255,7 +2285,7 @@ const ChatContent = ({
                   t.id === msg.id // Mantiene solo la primera ocurrencia de cada ID
                 ))
               ),
-              currentUsername // 🔥 NUEVO: Pasar usuario actual para detectar mensajes no leídos
+              currentUsername //  NUEVO: Pasar usuario actual para detectar mensajes no leídos
             ).map((item, idx) => {
               if (item.type === "date-separator") {
                 return (
@@ -2264,7 +2294,7 @@ const ChatContent = ({
                   </div>
                 );
               } else if (item.type === "unread-separator") {
-                // 🔥 NUEVO: Separador de mensajes no leídos estilo WhatsApp
+                //  NUEVO: Separador de mensajes no leídos estilo WhatsApp
                 return (
                   <div key={`unread-${idx}`} className="unread-separator" id="unread-separator">
                     <div className="unread-separator-content">
@@ -2279,7 +2309,7 @@ const ChatContent = ({
               }
             })}
 
-            {/* === 🔥 INDICADOR DE "ESTÁ ESCRIBIENDO" 🔥 === */}
+            {/* ===  INDICADOR DE "ESTÁ ESCRIBIENDO"  === */}
             {((!isGroup && isOtherUserTyping && typingUser) ||
               (isGroup &&
                 currentRoomCode &&
@@ -2796,7 +2826,7 @@ const ChatContent = ({
           </div>
         )}
 
-        {/* 🔥 NUEVO: Banner de edición de mensaje */}
+        {/*  NUEVO: Banner de edición de mensaje */}
         {editingMessageId && (
           <div
             style={{
@@ -3025,7 +3055,7 @@ const ChatContent = ({
                         display: "flex",
                         alignItems: "center",
                         gap: "8px",
-                        color: "#333", // 🔥 FIX: Color de texto explícito
+                        color: "#333", //  FIX: Color de texto explícito
                         backgroundColor: "#fff",
                       }}
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f0f7ff"}
@@ -3271,7 +3301,7 @@ const ChatContent = ({
                               width: "32px",
                               height: "32px",
                               borderRadius: "50%",
-                              // 🔥 AQUÍ ESTÁ EL CAMBIO CLAVE: Usamos la foto si existe
+                              //  AQUÍ ESTÁ EL CAMBIO CLAVE: Usamos la foto si existe
                               background: avatarUrl
                                 ? `url(${avatarUrl}) center/cover no-repeat`
                                 : "#A50104",
@@ -3381,7 +3411,7 @@ const ChatContent = ({
         )
       }
 
-      {/* 🔥 NUEVO: Modal de reenvío de mensajes */}
+      {/*  NUEVO: Modal de reenvío de mensajes */}
       <ForwardMessageModal
         isOpen={showForwardModal}
         onClose={handleCloseForwardModal}
@@ -3390,12 +3420,12 @@ const ChatContent = ({
         assignedConversations={extendedConvs.length > 0 ? extendedConvs : assignedConversations}
         user={user}
         socket={socket}
-        // 🔥 Props de paginación para grupos
+        //  Props de paginación para grupos
         roomsPage={forwardRoomsPage}
         roomsTotalPages={forwardRoomsTotalPages}
         roomsLoading={forwardRoomsLoading}
         onLoadMoreRooms={handleLoadMoreForwardRooms}
-        // 🔥 Props de paginación para conversaciones
+        //  Props de paginación para conversaciones
         convsPage={forwardConvsPage}
         convsTotalPages={forwardConvsTotalPages}
         convsLoading={forwardConvsLoading}

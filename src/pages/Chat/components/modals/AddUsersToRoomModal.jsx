@@ -227,7 +227,7 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
     try {
       // console.log(`🔄 Agregando ${selectedUsers.length} usuarios a la sala ${roomCode}...`);
 
-      // 🔥 IMPORTANTE: Agregar usuarios SECUENCIALMENTE para evitar condiciones de carrera
+      //  IMPORTANTE: Agregar usuarios SECUENCIALMENTE para evitar condiciones de carrera
       // Si se agregan en paralelo con Promise.all(), pueden fallar por límite de capacidad
       const results = [];
       const errors = [];

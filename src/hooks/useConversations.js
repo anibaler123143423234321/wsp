@@ -46,7 +46,7 @@ export const useConversations = (
                 setAssignedTotalPages(result.totalPages);
 
                 // Actualizar conversaciones
-                // 🔥 CORREGIDO: Si append=true, SIEMPRE hacer append (no importa la página)
+                //  CORREGIDO: Si append=true, SIEMPRE hacer append (no importa la página)
                 if (append) {
                     setAssignedConversations((prev) => {
                         // Filtrar duplicados usando ID

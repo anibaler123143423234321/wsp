@@ -23,7 +23,7 @@ const ChatHeader = ({
     return null;
   }
 
-  // 🔥 Verificar permisos para agregar/eliminar usuarios
+  //  Verificar permisos para agregar/eliminar usuarios
   const userRole = (user?.role || user?.rol || '').toUpperCase();
   const allowedRoles = ['ADMIN', 'JEFEPISO', 'PROGRAMADOR', 'SUPERVISOR'];
   const canManageUsers = allowedRoles.includes(userRole);
@@ -127,7 +127,7 @@ const ChatHeader = ({
         {/* Botones de acción */}
         <div className="chat-header-actions">
 
-          {/* 🔥 NUEVO: Botón de Videollamada Refactorizado */}
+          {/*  NUEVO: Botón de Videollamada Refactorizado */}
           <VideoCallButton
             onStartVideoCall={onStartVideoCall}
             isGroup={isGroup}

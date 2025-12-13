@@ -69,7 +69,7 @@ const CollapsibleList = ({ title, icon: Icon, children, isOpen, onToggle, onLoad
   const isResizing = useRef(false);
   const startY = useRef(0);
   const startHeight = useRef(0);
-  const lastCheckTime = useRef(0); // 🔥 Prevenir checks múltiples
+  const lastCheckTime = useRef(0); //  Prevenir checks múltiples
   const hasMoreRef = useRef(hasMore);
 
   useEffect(() => {
@@ -85,22 +85,22 @@ const CollapsibleList = ({ title, icon: Icon, children, isOpen, onToggle, onLoad
     document.addEventListener('mouseup', stopResizing);
   }, [height]);
 
-  // 🔥 FUNCIÓN PARA VERIFICAR SI NECESITAMOS CARGAR MÁS DATOS (solo después de resize)
+  //  FUNCIÓN PARA VERIFICAR SI NECESITAMOS CARGAR MÁS DATOS (solo después de resize)
   const checkIfNeedsMoreData = useCallback(() => {
     if (!contentRef.current || !hasMoreRef.current || isLoading || !onLoadMore) return;
 
-    // 🔥 Prevenir llamadas múltiples en corto tiempo
+    //  Prevenir llamadas múltiples en corto tiempo
     const now = Date.now();
     if (now - lastCheckTime.current < 300) return;
 
     const { scrollTop, scrollHeight, clientHeight } = contentRef.current;
 
-    // 🔥 Obtener altura actual del contenedor
+    //  Obtener altura actual del contenedor
     const containerHeight = listRef.current?.offsetHeight || clientHeight;
     const headerHeight = listRef.current?.querySelector('.mx_RoomSublist_header')?.offsetHeight || 36;
     const availableHeight = containerHeight - headerHeight;
 
-    // 🔥 MEJORADO: Cargar más si hay espacio vacío o cerca del final
+    //  MEJORADO: Cargar más si hay espacio vacío o cerca del final
     const hasEmptySpace = scrollHeight < availableHeight;
     const isNearBottom = scrollHeight - scrollTop <= clientHeight + 80;
 
@@ -116,7 +116,7 @@ const CollapsibleList = ({ title, icon: Icon, children, isOpen, onToggle, onLoad
     const deltaY = e.clientY - startY.current;
     let newHeight = startHeight.current + deltaY;
 
-    // 🔥 Permitir crecer un poco más para disparar carga de datos
+    //  Permitir crecer un poco más para disparar carga de datos
     if (innerContentRef.current && listRef.current) {
       const contentHeight = innerContentRef.current.offsetHeight;
       const header = listRef.current.querySelector('.mx_RoomSublist_header');
@@ -138,7 +138,7 @@ const CollapsibleList = ({ title, icon: Icon, children, isOpen, onToggle, onLoad
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', stopResizing);
 
-    // 🔥 SIMPLE: Si hay más datos y no está cargando, cargar más
+    //  SIMPLE: Si hay más datos y no está cargando, cargar más
     if (hasMoreRef.current && onLoadMore && !isLoading) {
       console.log(`🔄 Loading more for "${title}" on resize release`);
       onLoadMore();
@@ -244,21 +244,21 @@ const ConversationList = ({
   const [isSearching, setIsSearching] = useState(false);
   const conversationsListRef = useRef(null);
   const [favoriteRoomCodes, setFavoriteRoomCodes] = useState([]);
-  const [favoriteRooms, setFavoriteRooms] = useState([]); // 🔥 NUEVO: Grupos favoritos con datos completos
+  const [favoriteRooms, setFavoriteRooms] = useState([]); //  NUEVO: Grupos favoritos con datos completos
   const [favoriteConversationIds, setFavoriteConversationIds] = useState([]);
   const [userCache, setUserCache] = useState({});
   const [messageSearchResults, setMessageSearchResults] = useState([]);
   const [showGroups, setShowGroups] = useState(true);
   const [showAssigned, setShowAssigned] = useState(true);
   const searchTimeoutRef = useRef(null);
-  // 🔥 NUEVO: Estado para filtrar búsqueda por tipo
+  //  NUEVO: Estado para filtrar búsqueda por tipo
   const [searchFilter, setSearchFilter] = useState('select_option'); // 'select_option', 'groups', 'favorites', 'assigned', 'messages'
-  // 🔥 NUEVO: Estados para resultados de búsqueda desde la API
+  //  NUEVO: Estados para resultados de búsqueda desde la API
   const [apiSearchResults, setApiSearchResults] = useState({ groups: [], assigned: [] });
   const [isApiSearching, setIsApiSearching] = useState(false);
   const apiSearchTimeoutRef = useRef(null);
 
-  // 🔥 Estados locales para listas ordenadas (se actualizan automáticamente)
+  //  Estados locales para listas ordenadas (se actualizan automáticamente)
   const [sortedRooms, setSortedRooms] = useState([]);
   const [sortedAssignedConversations, setSortedAssignedConversations] = useState([]);
 
@@ -322,12 +322,12 @@ const ConversationList = ({
       const displayName = getDisplayName();
       if (!displayName || !isMounted) return;
 
-      // 🔥 Siempre recargar favoritos para mantener sincronizado
+      //  Siempre recargar favoritos para mantener sincronizado
       try {
-        // console.log('🔥 Cargando favoritos para:', displayName);
+        // console.log(' Cargando favoritos para:', displayName);
         // Cargar grupos favoritos con datos completos
         const roomsWithData = await apiService.getUserFavoriteRoomsWithData(displayName);
-        // console.log('🔥 Favoritos cargados:', roomsWithData);
+        // console.log(' Favoritos cargados:', roomsWithData);
         if (isMounted) {
           setFavoriteRooms(roomsWithData);
           setFavoriteRoomCodes(roomsWithData.map(r => r.roomCode));
@@ -351,11 +351,11 @@ const ConversationList = ({
     try {
       const result = await apiService.toggleRoomFavorite(displayName, room.roomCode, room.id);
       if (result.isFavorite) {
-        // 🔥 Agregar a favoritos con datos completos
+        //  Agregar a favoritos con datos completos
         setFavoriteRoomCodes(prev => [...prev, room.roomCode]);
         setFavoriteRooms(prev => [...prev, { ...room, isFavorite: true }]);
       } else {
-        // 🔥 Quitar de favoritos
+        //  Quitar de favoritos
         setFavoriteRoomCodes(prev => prev.filter(code => code !== room.roomCode));
         setFavoriteRooms(prev => prev.filter(r => r.roomCode !== room.roomCode));
       }
@@ -428,7 +428,7 @@ const ConversationList = ({
     };
   }, []);
 
-  // 🔥 NUEVO: Función para buscar en la API según el filtro seleccionado
+  //  NUEVO: Función para buscar en la API según el filtro seleccionado
   const handleApiSearch = useCallback((searchValue, filterOverride = null) => {
     if (apiSearchTimeoutRef.current) {
       clearTimeout(apiSearchTimeoutRef.current);
@@ -457,7 +457,7 @@ const ConversationList = ({
         // Buscar grupos si el filtro es 'groups'
         if (currentFilter === 'groups') {
           try {
-            // 🔥 Usar la API correcta según el rol del usuario
+            //  Usar la API correcta según el rol del usuario
             const isPrivilegedUser = ['ADMIN', 'JEFEPISO', 'PROGRAMADOR', 'SUPERADMIN'].includes(user?.role);
             let groupsResult;
             if (isPrivilegedUser) {
@@ -482,7 +482,7 @@ const ConversationList = ({
           }
         }
 
-        // 🔥 NUEVO: Buscar mensajes si el filtro es 'messages'
+        //  NUEVO: Buscar mensajes si el filtro es 'messages'
         if (currentFilter === 'messages') {
           try {
             console.log(`🔎 Buscando mensajes para: "${searchValue}"`);
@@ -523,7 +523,7 @@ const ConversationList = ({
     return conv.participants?.includes(displayName);
   });
 
-  // 🔥 CALCULO DE NO LEÍDOS PARA ASIGNADOS (Combinando prop interna + unreadMessages global)
+  //  CALCULO DE NO LEÍDOS PARA ASIGNADOS (Combinando prop interna + unreadMessages global)
   const unreadAssignedCount = myAssignedConversations.reduce((acc, conv) => {
     // Intentamos obtener el conteo real del socket (unreadMessages)
     // Usamos conv.id (si es por ID) o tratamos de buscar por username del otro participante si fuera necesario
@@ -536,7 +536,7 @@ const ConversationList = ({
 
   const unreadMonitoringCount = monitoringConversations.filter(conv => conv.unreadCount > 0).length;
 
-  // 🔥 CALCULO DE NO LEÍDOS PARA GRUPOS
+  //  CALCULO DE NO LEÍDOS PARA GRUPOS
   const unreadRoomsCount = myActiveRooms?.filter(room => {
     const roomUnread = unreadMessages?.[room.roomCode];
     // Si viene del socket, usarlo. Si no, fallback a propiedad del objeto si existiera (room.unreadCount)
@@ -627,11 +627,11 @@ const ConversationList = ({
                 if (activeModule === 'chats' || activeModule === 'monitoring') {
                   setAssignedSearchTerm(value);
                   handleMessageSearch(value);
-                  handleApiSearch(value); // 🔥 NUEVO: Buscar en API
+                  handleApiSearch(value); //  NUEVO: Buscar en API
                 } else {
                   setSearchTerm(value);
                   handleMessageSearch(value);
-                  handleApiSearch(value); // 🔥 NUEVO: Buscar en API
+                  handleApiSearch(value); //  NUEVO: Buscar en API
                 }
               }}
             />
@@ -684,7 +684,7 @@ const ConversationList = ({
                   onChange={(e) => {
                     const newFilter = e.target.value;
                     setSearchFilter(newFilter);
-                    // 🔥 NUEVO: Re-ejecutar búsqueda con el nuevo filtro
+                    //  NUEVO: Re-ejecutar búsqueda con el nuevo filtro
                     if (assignedSearchTerm.trim().length >= 2) {
                       handleApiSearch(assignedSearchTerm, newFilter);
                     }
@@ -768,7 +768,7 @@ const ConversationList = ({
               onToggle={() => { }}
               defaultHeight={130}
             >
-              {/* Grupos favoritos - 🔥 Usando favoriteRooms con datos completos */}
+              {/* Grupos favoritos -  Usando favoriteRooms con datos completos */}
               {favoriteRooms.map((room) => {
                 const typingUsers = roomTypingUsers[room.roomCode] || [];
                 const isTypingInRoom = typingUsers.length > 0;
@@ -848,7 +848,7 @@ const ConversationList = ({
               isLoading={roomsLoading}
             >
               {(() => {
-                // 🔥 NUEVO: Si hay búsqueda activa con resultados de API, usar esos resultados
+                //  NUEVO: Si hay búsqueda activa con resultados de API, usar esos resultados
                 const hasApiSearch = assignedSearchTerm.trim().length >= 2 && apiSearchResults.groups.length > 0;
 
                 if (!myActiveRooms || myActiveRooms.length === 0) {
@@ -862,14 +862,14 @@ const ConversationList = ({
                   }
                 }
 
-                // 🔥 El backend excluye favoritos, pero filtramos aquí también para
+                //  El backend excluye favoritos, pero filtramos aquí también para
                 // reactividad inmediata cuando marcas un nuevo favorito (myActiveRooms está cacheado)
                 let filteredRooms;
                 if (hasApiSearch) {
                   filteredRooms = apiSearchResults.groups.filter(room => !favoriteRoomCodes.includes(room.roomCode));
                 } else {
                   filteredRooms = (myActiveRooms || [])
-                    .filter(room => !favoriteRoomCodes.includes(room.roomCode)) // 🔥 Excluir favoritos
+                    .filter(room => !favoriteRoomCodes.includes(room.roomCode)) //  Excluir favoritos
                     .filter(room => assignedSearchTerm.trim() === '' || room.name.toLowerCase().includes(assignedSearchTerm.toLowerCase()) || room.roomCode.toLowerCase().includes(assignedSearchTerm.toLowerCase()));
                 }
 
@@ -965,7 +965,7 @@ const ConversationList = ({
               defaultHeight={250}
             >
               {(() => {
-                // 🔥 NUEVO: Si hay búsqueda activa con resultados de API, usar esos resultados
+                //  NUEVO: Si hay búsqueda activa con resultados de API, usar esos resultados
                 const hasApiSearch = assignedSearchTerm.trim().length >= 2 && apiSearchResults.assigned.length > 0;
 
                 // Mostrar indicador de búsqueda
@@ -977,7 +977,7 @@ const ConversationList = ({
                   );
                 }
 
-                // 🔥 NUEVO: Usar resultados de API si hay búsqueda, sino filtrar localmente
+                //  NUEVO: Usar resultados de API si hay búsqueda, sino filtrar localmente
                 let myConversations;
                 if (hasApiSearch) {
                   myConversations = apiSearchResults.assigned.filter(conv => !favoriteConversationIds.includes(conv.id));

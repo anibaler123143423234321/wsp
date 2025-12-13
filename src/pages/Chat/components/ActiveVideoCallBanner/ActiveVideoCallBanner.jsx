@@ -3,8 +3,8 @@ import './ActiveVideoCallBanner.css';
 
 const ActiveVideoCallBanner = ({ messages = [], currentUsername, isGroup, currentRoomCode, to, socket, user, stopRingtone }) => {
   const [activeCall, setActiveCall] = useState(null);
-  const activeCallRef = useRef(null); // 🔥 NUEVO: Ref para mantener referencia actualizada
-  const [participants, setParticipants] = useState([]); // 🔥 NUEVO: Lista de participantes conectados
+  const activeCallRef = useRef(null); //  NUEVO: Ref para mantener referencia actualizada
+  const [participants, setParticipants] = useState([]); //  NUEVO: Lista de participantes conectados
 
   // Función para calcular tiempo relativo
   const getRelativeTime = (timeStr) => {
@@ -28,12 +28,12 @@ const ActiveVideoCallBanner = ({ messages = [], currentUsername, isGroup, curren
     }
   };
 
-  // 🔥 NUEVO: Actualizar ref cada vez que activeCall cambia
+  //  NUEVO: Actualizar ref cada vez que activeCall cambia
   useEffect(() => {
     activeCallRef.current = activeCall;
   }, [activeCall]);
 
-  // 🔥 NUEVO: Escuchar actualizaciones de participantes en videollamada
+  //  NUEVO: Escuchar actualizaciones de participantes en videollamada
   useEffect(() => {
     if (!socket) return;
 
@@ -53,7 +53,7 @@ const ActiveVideoCallBanner = ({ messages = [], currentUsername, isGroup, curren
     };
   }, [socket, currentRoomCode]);
 
-  // 🔥 NUEVO: Escuchar evento videoCallEnded para ocultar el banner inmediatamente
+  //  NUEVO: Escuchar evento videoCallEnded para ocultar el banner inmediatamente
   useEffect(() => {
     if (!socket) return;
 
@@ -62,7 +62,7 @@ const ActiveVideoCallBanner = ({ messages = [], currentUsername, isGroup, curren
       // console.log('🔍 activeCallRef.current en el momento del evento:', activeCallRef.current);
       // console.log('🔍 currentRoomCode:', currentRoomCode);
 
-      // 🔥 SOLUCIÓN: Ocultar el banner si el roomCode coincide, sin importar si activeCall está establecido
+      //  SOLUCIÓN: Ocultar el banner si el roomCode coincide, sin importar si activeCall está establecido
       // Esto soluciona el problema de timing donde el evento llega antes de que activeCall se establezca
       if (data.roomCode === currentRoomCode) {
         // console.log('✅ Ocultando banner de videollamada (roomCode match)');
@@ -85,7 +85,7 @@ const ActiveVideoCallBanner = ({ messages = [], currentUsername, isGroup, curren
     return () => {
       socket.off('videoCallEnded', handleVideoCallEnded);
     };
-  }, [socket, currentRoomCode]); // 🔥 Agregar currentRoomCode a las dependencias
+  }, [socket, currentRoomCode]); //  Agregar currentRoomCode a las dependencias
 
   useEffect(() => {
     // console.log('🔍 ActiveVideoCallBanner - Buscando videollamadas en:', {
@@ -95,7 +95,7 @@ const ActiveVideoCallBanner = ({ messages = [], currentUsername, isGroup, curren
     //   to
     // });
 
-    // 🔥 NUEVO: Buscar el mensaje de videollamada más reciente (por ID, no por fecha)
+    //  NUEVO: Buscar el mensaje de videollamada más reciente (por ID, no por fecha)
     // Filtrar solo mensajes de videollamada de esta sala/chat
     const videoCallMessages = messages.filter(msg => {
       // Detectar si es videollamada
@@ -116,7 +116,7 @@ const ActiveVideoCallBanner = ({ messages = [], currentUsername, isGroup, curren
 
       if (!isVideoCall) return false;
 
-      // 🔥 CRÍTICO: Verificar que la videollamada esté activa
+      //  CRÍTICO: Verificar que la videollamada esté activa
       // Si metadata.isActive es false, NO mostrar el banner
       const isActive = !msg.metadata || msg.metadata.isActive !== false;
       // console.log('🔍 Verificando si videollamada está activa:', {
@@ -131,7 +131,7 @@ const ActiveVideoCallBanner = ({ messages = [], currentUsername, isGroup, curren
         return false;
       }
 
-      // 🔥 SIMPLIFICADO: Solo verificar que pertenezca a este chat (sin verificar fecha)
+      //  SIMPLIFICADO: Solo verificar que pertenezca a este chat (sin verificar fecha)
       // El mensaje más reciente (por ID) será el que se muestre
       if (isGroup) {
         // Para grupos, verificar que el receiver coincida con el nombre del grupo
@@ -161,7 +161,7 @@ const ActiveVideoCallBanner = ({ messages = [], currentUsername, isGroup, curren
       // console.log('🔗 URL extraída:', videoUrl);
 
       if (videoUrl) {
-        // 🔥 NUEVO: Extraer roomID de la URL si no está en el campo videoRoomID
+        //  NUEVO: Extraer roomID de la URL si no está en el campo videoRoomID
         let roomID = mostRecent.videoRoomID;
         if (!roomID && videoUrl) {
           const urlParams = new URLSearchParams(videoUrl.split('?')[1]);
@@ -191,14 +191,14 @@ const ActiveVideoCallBanner = ({ messages = [], currentUsername, isGroup, curren
   if (!activeCall) return null;
 
   const handleJoinCall = () => {
-    if (stopRingtone) stopRingtone(); // 🔥 Detener tono al unirse
+    if (stopRingtone) stopRingtone(); //  Detener tono al unirse
     window.open(activeCall.url, '_blank', 'width=1280,height=720,menubar=no,toolbar=no');
   };
 
   const handleCloseCall = () => {
     if (!socket || !activeCall) return;
 
-    // 🔥 Obtener nombre completo del usuario
+    //  Obtener nombre completo del usuario
     const closedByName = user?.nombre && user?.apellido
       ? `${user.nombre} ${user.apellido}`
       : currentUsername;
@@ -236,7 +236,7 @@ const ActiveVideoCallBanner = ({ messages = [], currentUsername, isGroup, curren
           </div>
         </div>
 
-        {/* 🔥 NUEVO: Mostrar participantes conectados */}
+        {/*  NUEVO: Mostrar participantes conectados */}
         {participants.length > 0 && (
           <div className="banner-participants">
             <div className="participants-avatars">
@@ -267,7 +267,7 @@ const ActiveVideoCallBanner = ({ messages = [], currentUsername, isGroup, curren
           Unirse
         </button>
 
-        {/* 🔥 NUEVO: Permitir cerrar si es el creador O si es admin */}
+        {/*  NUEVO: Permitir cerrar si es el creador O si es admin */}
         {(activeCall.isOwn || user?.role === 'ADMIN' || user?.role === 'PROGRAMADOR' || user?.role === 'JEFEPISO' || user?.role === 'COORDINADOR') && (
           <button className="banner-close-btn" onClick={handleCloseCall} title="Cerrar sala para todos">
             ✕ Cerrar

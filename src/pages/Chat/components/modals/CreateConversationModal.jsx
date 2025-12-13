@@ -13,26 +13,26 @@ const CreateConversationModal = ({
 }) => {
   const [selectedUser1, setSelectedUser1] = useState('');
   const [selectedUser2, setSelectedUser2] = useState('');
-  const [selectedUser1Obj, setSelectedUser1Obj] = useState(null); // 🔥 Objeto completo del usuario 1
-  const [selectedUser2Obj, setSelectedUser2Obj] = useState(null); // 🔥 Objeto completo del usuario 2
+  const [selectedUser1Obj, setSelectedUser1Obj] = useState(null); //  Objeto completo del usuario 1
+  const [selectedUser2Obj, setSelectedUser2Obj] = useState(null); //  Objeto completo del usuario 2
   const [conversationName, setConversationName] = useState('');
   const [error, setError] = useState('');
   const [searchUser1, setSearchUser1] = useState('');
   const [searchUser2, setSearchUser2] = useState('');
   const [pageUser1, setPageUser1] = useState(1);
   const [pageUser2, setPageUser2] = useState(1);
-  const [selectedSede, setSelectedSede] = useState('CHICLAYO_PIURA'); // 🔥 Sede seleccionada en los botones
-  const [sedeUser1, setSedeUser1] = useState('CHICLAYO_PIURA'); // 🔥 Sede del primer usuario
-  const [sedeUser2, setSedeUser2] = useState('CHICLAYO_PIURA'); // 🔥 Sede del segundo usuario
+  const [selectedSede, setSelectedSede] = useState('CHICLAYO_PIURA'); //  Sede seleccionada en los botones
+  const [sedeUser1, setSedeUser1] = useState('CHICLAYO_PIURA'); //  Sede del primer usuario
+  const [sedeUser2, setSedeUser2] = useState('CHICLAYO_PIURA'); //  Sede del segundo usuario
   const [searchResults1, setSearchResults1] = useState([]);
   const [searchResults2, setSearchResults2] = useState([]);
   const [loadingBackendUsers, setLoadingBackendUsers] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false); // 🔥 Estado para evitar doble envío
-  const [cacheVersion, setCacheVersion] = useState(0); // 🔥 Para forzar re-render cuando cambie la caché
+  const [isSubmitting, setIsSubmitting] = useState(false); //  Estado para evitar doble envío
+  const [cacheVersion, setCacheVersion] = useState(0); //  Para forzar re-render cuando cambie la caché
   const debounceTimer1 = useRef(null);
   const debounceTimer2 = useRef(null);
 
-  // 🔥 Caché de usuarios por sede para evitar recargas innecesarias
+  //  Caché de usuarios por sede para evitar recargas innecesarias
   const usersCache = useRef({
     CHICLAYO_PIURA: [],
     LIMA: []
@@ -41,7 +41,7 @@ const CreateConversationModal = ({
   const ITEMS_PER_PAGE = 10;
   const DEBOUNCE_DELAY = 500; // 500ms de delay
 
-  // 🔥 Obtener usuarios disponibles para el primer contenedor según su sede
+  //  Obtener usuarios disponibles para el primer contenedor según su sede
   const availableUsers1 = useMemo(() => {
     // Usar la caché de la sede del primer usuario
     const usersFromSede = usersCache.current[sedeUser1] || [];
@@ -52,7 +52,7 @@ const CreateConversationModal = ({
     });
   }, [sedeUser1, currentUser, cacheVersion]);
 
-  // 🔥 Obtener usuarios disponibles para el segundo contenedor según su sede
+  //  Obtener usuarios disponibles para el segundo contenedor según su sede
   const availableUsers2 = useMemo(() => {
     // Usar la caché de la sede del segundo usuario
     const usersFromSede = usersCache.current[sedeUser2] || [];
@@ -68,11 +68,11 @@ const CreateConversationModal = ({
     if (isOpen) {
       loadBackendUsers();
     }
-  }, [isOpen]); // 🔥 Solo cargar cuando se abre el modal, NO cuando cambia la sede
+  }, [isOpen]); //  Solo cargar cuando se abre el modal, NO cuando cambia la sede
 
   // Cargar usuarios del backend para ambos contenedores
   const loadBackendUsers = async () => {
-    // 🔥 Cargar usuarios para la sede del primer usuario si no hay caché
+    //  Cargar usuarios para la sede del primer usuario si no hay caché
     if (usersCache.current[sedeUser1].length === 0) {
       setLoadingBackendUsers(true);
       try {
@@ -87,7 +87,7 @@ const CreateConversationModal = ({
       }
     }
 
-    // 🔥 Cargar usuarios para la sede del segundo usuario si no hay caché
+    //  Cargar usuarios para la sede del segundo usuario si no hay caché
     if (usersCache.current[sedeUser2].length === 0) {
       setLoadingBackendUsers(true);
       try {
@@ -122,11 +122,11 @@ const CreateConversationModal = ({
     // Establecer nuevo timer
     debounceTimer1.current = setTimeout(async () => {
       try {
-        // 🔥 Pasar la sede del primer usuario al método
+        //  Pasar la sede del primer usuario al método
         const results = await apiService.searchUsersFromBackend(value, 0, 10, sedeUser1);
         setSearchResults1(results);
 
-        // 🔥 Actualizar caché con los nuevos usuarios encontrados (sin forzar re-render)
+        //  Actualizar caché con los nuevos usuarios encontrados (sin forzar re-render)
         const currentCache = usersCache.current[sedeUser1];
         const newUsers = results.filter(user => {
           const username = typeof user === 'string' ? user : user.username;
@@ -137,7 +137,7 @@ const CreateConversationModal = ({
         });
         if (newUsers.length > 0) {
           usersCache.current[sedeUser1] = [...currentCache, ...newUsers];
-          // 🔥 NO incrementar cacheVersion aquí para evitar afectar otros contenedores
+          //  NO incrementar cacheVersion aquí para evitar afectar otros contenedores
         }
       } catch (err) {
         console.error('Error al buscar usuarios:', err);
@@ -164,11 +164,11 @@ const CreateConversationModal = ({
     // Establecer nuevo timer
     debounceTimer2.current = setTimeout(async () => {
       try {
-        // 🔥 Pasar la sede del segundo usuario al método
+        //  Pasar la sede del segundo usuario al método
         const results = await apiService.searchUsersFromBackend(value, 0, 10, sedeUser2);
         setSearchResults2(results);
 
-        // 🔥 Actualizar caché con los nuevos usuarios encontrados (sin forzar re-render)
+        //  Actualizar caché con los nuevos usuarios encontrados (sin forzar re-render)
         const currentCache = usersCache.current[sedeUser2];
         const newUsers = results.filter(user => {
           const username = typeof user === 'string' ? user : user.username;
@@ -179,7 +179,7 @@ const CreateConversationModal = ({
         });
         if (newUsers.length > 0) {
           usersCache.current[sedeUser2] = [...currentCache, ...newUsers];
-          // 🔥 NO incrementar cacheVersion aquí para evitar afectar otros contenedores
+          //  NO incrementar cacheVersion aquí para evitar afectar otros contenedores
         }
       } catch (err) {
         console.error('Error al buscar usuarios:', err);
@@ -187,7 +187,7 @@ const CreateConversationModal = ({
     }, DEBOUNCE_DELAY);
   };
 
-  // 🔥 Actualizar sede de cada contenedor cuando cambia selectedSede
+  //  Actualizar sede de cada contenedor cuando cambia selectedSede
   useEffect(() => {
     // Solo actualizar la sede del primer usuario si NO hay usuario seleccionado
     if (!selectedUser1) {
@@ -204,8 +204,8 @@ const CreateConversationModal = ({
       // Limpiar el modal cuando se cierra
       setSelectedUser1('');
       setSelectedUser2('');
-      setSelectedUser1Obj(null); // 🔥 Limpiar objeto del usuario 1
-      setSelectedUser2Obj(null); // 🔥 Limpiar objeto del usuario 2
+      setSelectedUser1Obj(null); //  Limpiar objeto del usuario 1
+      setSelectedUser2Obj(null); //  Limpiar objeto del usuario 2
       setConversationName('');
       setError('');
       setSearchUser1('');
@@ -214,9 +214,9 @@ const CreateConversationModal = ({
       setPageUser2(1);
       setSearchResults1([]);
       setSearchResults2([]);
-      setIsSubmitting(false); // 🔥 Limpiar estado de envío
-      setSedeUser1('CHICLAYO_PIURA'); // 🔥 Resetear sede del primer usuario
-      setSedeUser2('CHICLAYO_PIURA'); // 🔥 Resetear sede del segundo usuario
+      setIsSubmitting(false); //  Limpiar estado de envío
+      setSedeUser1('CHICLAYO_PIURA'); //  Resetear sede del primer usuario
+      setSedeUser2('CHICLAYO_PIURA'); //  Resetear sede del segundo usuario
     }
   }, [isOpen]);
 
@@ -234,7 +234,7 @@ const CreateConversationModal = ({
       const name1 = getFullName(selectedUser1Obj);
       const name2 = getFullName(selectedUser2Obj);
 
-      // 🔥 Si uno de los usuarios es el usuario actual, mostrar solo el nombre del otro
+      //  Si uno de los usuarios es el usuario actual, mostrar solo el nombre del otro
       // Obtener el nombre completo del usuario actual
       const currentUserFullName = currentUser?.nombre && currentUser?.apellido
         ? `${currentUser.nombre} ${currentUser.apellido}`
@@ -287,7 +287,7 @@ const CreateConversationModal = ({
       });
     }
 
-    // 🔥 Si hay un usuario seleccionado y NO está en la lista, agregarlo al inicio
+    //  Si hay un usuario seleccionado y NO está en la lista, agregarlo al inicio
     if (selectedUser1Obj) {
       const username = typeof selectedUser1Obj === 'string' ? selectedUser1Obj : selectedUser1Obj.username;
       const isInList = users.some(u => {
@@ -336,7 +336,7 @@ const CreateConversationModal = ({
       }
     }
 
-    // 🔥 Si hay un usuario seleccionado y NO está en la lista, agregarlo al inicio
+    //  Si hay un usuario seleccionado y NO está en la lista, agregarlo al inicio
     if (selectedUser2Obj) {
       const username = typeof selectedUser2Obj === 'string' ? selectedUser2Obj : selectedUser2Obj.username;
       const isInList = users.some(u => {
@@ -372,7 +372,7 @@ const CreateConversationModal = ({
     e.preventDefault();
     setError('');
 
-    // 🔥 Evitar doble envío
+    //  Evitar doble envío
     if (isSubmitting) {
       return;
     }

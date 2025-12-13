@@ -27,7 +27,7 @@ class FaviconBadge {
         // Guardar el favicon original
         this.originalFavicon = this.faviconLink.href;
 
-        // 🔥 Crear canvas MÁS GRANDE para mejor visibilidad
+        //  Crear canvas MÁS GRANDE para mejor visibilidad
         this.canvas = document.createElement('canvas');
         this.canvas.width = 64;  // Aumentado de 32 a 64
         this.canvas.height = 64; // Aumentado de 32 a 64
@@ -81,7 +81,7 @@ class FaviconBadge {
         if (count > 0) {
             const displayCount = count > 99 ? '99+' : count.toString();
 
-            // 🔥 Badge ajustado: Número GRANDE en círculo pequeño
+            //  Badge ajustado: Número GRANDE en círculo pequeño
             const badgeRadius = displayCount.length === 1 ? 20 : (displayCount.length === 2 ? 22 : 22);
             const x = 64 - badgeRadius - 2; // Posición X (esquina derecha)
             const y = 64 - badgeRadius - 2; // Posición Y (esquina INFERIOR derecha)

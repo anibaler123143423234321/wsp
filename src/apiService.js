@@ -83,7 +83,7 @@ class ApiService {
 
       let response = await doUpload(token);
 
-      // 🔥 Manejo de errores 400, 401 y 403 (similar a fetchWithAuth)
+      //  Manejo de errores 400, 401 y 403 (similar a fetchWithAuth)
       if (response.status === 401 || response.status === 403 || response.status === 400) {
         let shouldRetry = false;
 
@@ -438,7 +438,7 @@ class ApiService {
 
     let response = await doRequest(headers);
 
-    // 🔥 Manejo de errores 400, 401 y 403
+    //  Manejo de errores 400, 401 y 403
     if (response.status === 400 || response.status === 401 || response.status === 403) {
       let shouldRetry = false;
 
@@ -912,12 +912,12 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener mensajes entre usuarios ordenados por ID (para evitar problemas con sentAt corrupto)
+  //  NUEVO: Obtener mensajes entre usuarios ordenados por ID (para evitar problemas con sentAt corrupto)
   async getUserMessagesOrderedById(from, to, limit = 10, offset = 0, isGroup = false, roomCode = null) {
     try {
       let url = `${this.baseChatUrl}api/messages/user/${from}/${to}/by-id?limit=${limit}&offset=${offset}`;
 
-      // 🔥 Agregar parámetros de filtro si existen
+      //  Agregar parámetros de filtro si existen
       if (isGroup !== undefined) url += `&isGroup=${isGroup}`;
       if (roomCode) url += `&roomCode=${roomCode}`;
 
@@ -978,12 +978,12 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener mensajes de una sala ordenados por ID (para evitar problemas con sentAt corrupto)
+  //  NUEVO: Obtener mensajes de una sala ordenados por ID (para evitar problemas con sentAt corrupto)
   async getRoomMessagesOrderedById(roomCode, limit = 10, offset = 0, isGroup = true) {
     try {
       let url = `${this.baseChatUrl}api/messages/room/${roomCode}/by-id?limit=${limit}&offset=${offset}`;
 
-      // 🔥 Agregar parámetros de filtro
+      //  Agregar parámetros de filtro
       if (isGroup !== undefined) url += `&isGroup=${isGroup}`;
 
       const response = await fetch(
@@ -1014,7 +1014,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener mensajes alrededor de un messageId específico (para jump-to-message en grupos)
+  //  NUEVO: Obtener mensajes alrededor de un messageId específico (para jump-to-message en grupos)
   async getMessagesAroundId(roomCode, messageId, limit = 30) {
     try {
       const response = await fetch(
@@ -1041,7 +1041,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener mensajes alrededor de un messageId para chats individuales
+  //  NUEVO: Obtener mensajes alrededor de un messageId para chats individuales
   async getUserMessagesAroundId(from, to, messageId, limit = 30) {
     try {
       const response = await this.fetchChatApi(
@@ -1113,7 +1113,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener un mensaje específico por ID (para mensajes fijados antiguos)
+  //  NUEVO: Obtener un mensaje específico por ID (para mensajes fijados antiguos)
   async getMessageById(messageId, roomCode = null) {
     try {
       let url = `${this.baseChatUrl}api/messages/${messageId}`;
@@ -1149,7 +1149,7 @@ class ApiService {
         message: newText
       };
 
-      // 🔥 Agregar campos multimedia si se proporcionan
+      //  Agregar campos multimedia si se proporcionan
       if (mediaType !== null) body.mediaType = mediaType;
       if (mediaData !== null) body.mediaData = mediaData;
       if (fileName !== null) body.fileName = fileName;
@@ -1298,7 +1298,7 @@ class ApiService {
         ? `${user.nombre} ${user.apellido}`
         : (user?.username || user?.email);
 
-      // 🔥 IMPORTANTE: Enviar el rol del usuario para que el backend muestre todas las conversaciones a admins
+      //  IMPORTANTE: Enviar el rol del usuario para que el backend muestre todas las conversaciones a admins
       const userRole = user?.role || '';
 
       // ✅ Pasar username, role, search, page y limit como query params
@@ -1330,7 +1330,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener conversaciones asignadas con paginación
+  //  NUEVO: Obtener conversaciones asignadas con paginación
   async getAssignedConversationsPaginated(page = 1, limit = 10, search = '') {
     try {
       const user = this.getCurrentUser();
@@ -1345,7 +1345,7 @@ class ApiService {
       // Construir URL con parámetros
       let url = `${this.baseChatUrl}api/temporary-conversations/assigned/list?username=${encodeURIComponent(displayName)}&page=${page}&limit=${limit}`;
 
-      // 🔥 NUEVO: Agregar parámetro de búsqueda si existe
+      //  NUEVO: Agregar parámetro de búsqueda si existe
       if (search && search.trim()) {
         url += `&search=${encodeURIComponent(search.trim())}`;
       }
@@ -1369,11 +1369,11 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener salas del usuario con paginación
+  //  NUEVO: Obtener salas del usuario con paginación
   async getUserRoomsPaginated(page = 1, limit = 10, search = '') {
     try {
       const user = this.getCurrentUser();
-      // 🔥 IMPORTANTE: Usar el displayName (nombre completo) porque el backend busca por displayName en los members
+      //  IMPORTANTE: Usar el displayName (nombre completo) porque el backend busca por displayName en los members
       const displayName = user?.nombre && user?.apellido
         ? `${user.nombre} ${user.apellido}`
         : (user?.username || user?.email);
@@ -1385,7 +1385,7 @@ class ApiService {
       // Construir URL con parámetros
       let url = `${this.baseChatUrl}api/temporary-rooms/user/list?username=${encodeURIComponent(displayName)}&page=${page}&limit=${limit}`;
 
-      // 🔥 NUEVO: Agregar parámetro de búsqueda si existe
+      //  NUEVO: Agregar parámetro de búsqueda si existe
       if (search && search.trim()) {
         url += `&search=${encodeURIComponent(search.trim())}`;
       }
@@ -1409,7 +1409,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener conversaciones de monitoreo (de otros usuarios) con paginación
+  //  NUEVO: Obtener conversaciones de monitoreo (de otros usuarios) con paginación
   async getMonitoringConversations(page = 1, limit = 10) {
     try {
       // Obtener el usuario actual
@@ -1682,7 +1682,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener conteos de mensajes no leídos para todas las salas del usuario
+  //  NUEVO: Obtener conteos de mensajes no leídos para todas las salas del usuario
   async getUnreadCounts() {
     try {
       const token = localStorage.getItem("token");
@@ -1757,7 +1757,7 @@ class ApiService {
   // Obtener lista de usuarios del backend Java con paginación
   async getUsersFromBackend(page = 0, size = 10, sede = null) {
     try {
-      // 🔥 Usar la sede especificada o la actual
+      //  Usar la sede especificada o la actual
       const baseUrl = sede ? this.getBaseUrlForSede(sede) : this.baseUrl;
 
       console.log(`📋 Obteniendo usuarios de ${baseUrl}api/user/listar?page=${page}&size=${size}`);
@@ -1807,7 +1807,7 @@ class ApiService {
         return [];
       }
 
-      // 🔥 Usar la sede especificada o la actual
+      //  Usar la sede especificada o la actual
       const baseUrl = sede ? this.getBaseUrlForSede(sede) : this.baseUrl;
 
       // ✅ Usar fetchWithAuth para renovación automática de token
@@ -1903,7 +1903,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener grupos favoritos con datos completos (para sección FAVORITOS)
+  //  NUEVO: Obtener grupos favoritos con datos completos (para sección FAVORITOS)
   async getUserFavoriteRoomsWithData(username) {
     try {
       const response = await this.fetchChatApi(
@@ -2036,7 +2036,7 @@ class ApiService {
       return false;
     }
   }
-  // 🔥 NUEVO: Obtener conteo de mensajes no leídos para un usuario en una sala
+  //  NUEVO: Obtener conteo de mensajes no leídos para un usuario en una sala
   async getUnreadCountForUserInRoom(roomCode, username) {
     try {
       const response = await fetch(
@@ -2064,7 +2064,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener conteo de mensajes no leídos para múltiples salas
+  //  NUEVO: Obtener conteo de mensajes no leídos para múltiples salas
   async getUnreadCountsForUserInRooms(roomCodes, username) {
     try {
       const response = await fetch(

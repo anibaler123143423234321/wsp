@@ -18,7 +18,7 @@ const PinnedMessageBanner = ({ pinnedMessage, onUnpin, onClickMessage, canUnpin 
       // Validar que la fecha sea válida
       if (isNaN(date.getTime())) return '';
 
-      // 2. 🔥 TRUCO: Usamos 'UTC' para que NO reste 5 horas.
+      // 2.  TRUCO: Usamos 'UTC' para que NO reste 5 horas.
       // Si el servidor manda "18:00Z" y tú quieres ver "18:00", usa 'UTC'.
       // Si usaras 'America/Lima', convertiría "18:00Z" a "13:00" (5 horas menos).
       return date.toLocaleTimeString('es-PE', {

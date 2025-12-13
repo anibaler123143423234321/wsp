@@ -492,7 +492,7 @@
   pointer-events: none;
 }
 
-/* 🔥 Mention Dropdown */
+/*  Mention Dropdown */
 .thread-mention-dropdown {
   position: absolute;
   bottom: 100%;
@@ -568,8 +568,8 @@
   margin-top: 2px;
 }
 
-/* 🔥 Read Receipts en Mensajes de Hilo */
-/* 🔥 Read Receipts en Mensajes de Hilo */
+/*  Read Receipts en Mensajes de Hilo */
+/*  Read Receipts en Mensajes de Hilo */
 .thread-read-receipts {
   margin-top: 4px;
   display: flex;
@@ -626,7 +626,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  /* 🔥 GRADIENTE SOLICITADO */
+  /*  GRADIENTE SOLICITADO */
   background: linear-gradient(135deg, rgb(255, 69, 58) 0%, rgb(255, 69, 58) 100%);
   color: white;
   font-weight: 600;
@@ -647,11 +647,11 @@
   /* Separar un poco del stack */
 }
 
-/* 🔥 POPOVER DE DETALLES */
-/* 🔥 POPOVER DE DETALLES - FIXED para escapar overflow:hidden */
+/*  POPOVER DE DETALLES */
+/*  POPOVER DE DETALLES - FIXED para escapar overflow:hidden */
 .thread-read-receipts-popover {
   position: fixed;
-  /* 🔥 CAMBIO CLAVE: fixed en lugar de absolute */
+  /*  CAMBIO CLAVE: fixed en lugar de absolute */
   background: white;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
@@ -820,7 +820,7 @@
   color: #54656f;
 }
 
-/* 🔥 Highlight de menciones en el texto */
+/*  Highlight de menciones en el texto */
 .thread-message-text {
   word-wrap: break-word;
   white-space: pre-wrap;
@@ -834,7 +834,7 @@
   font-weight: 500;
 }
 
-/* 🔥 MENCIONES ROBUSTAS - Igual que ChatContent (Amarillo Suave) */
+/*  MENCIONES ROBUSTAS - Igual que ChatContent (Amarillo Suave) */
 .thread-message-text .mention-span {
   transition: background-color 0.2s ease;
   display: inline-block;
@@ -853,7 +853,7 @@
   border-radius: 4px;
 }
 
-/* 🔥 NUEVO - Estilos para menú de opciones de mensajes */
+/*  NUEVO - Estilos para menú de opciones de mensajes */
 .thread-message {
   position: relative;
 }
@@ -870,7 +870,7 @@
   opacity: 1;
 }
 
-/* 🔥 FIX: Mantener acciones visibles cuando hay menú o picker abierto */
+/*  FIX: Mantener acciones visibles cuando hay menú o picker abierto */
 .thread-message-actions:has(.thread-message-menu),
 .thread-message-actions:has(.thread-reaction-picker) {
   opacity: 1 !important;
@@ -934,7 +934,7 @@
   color: #666;
 }
 
-/* 🔥 NUEVO - Styles para picker de reacciones */
+/*  NUEVO - Styles para picker de reacciones */
 .thread-reaction-picker {
   position: absolute;
   top: 100%;
@@ -967,7 +967,7 @@
   transform: scale(1.2);
 }
 
-/* 🔥 NUEVO - Styles para vista previa de respuesta */
+/*  NUEVO - Styles para vista previa de respuesta */
 .thread-reply-preview {
   display: flex;
   align-items: center;
@@ -1023,7 +1023,7 @@
   color: #666;
 }
 
-/* 🔥 NUEVO - Styles para referencia de respuesta en mensajes */
+/*  NUEVO - Styles para referencia de respuesta en mensajes */
 .thread-reply-reference {
   display: flex;
   align-items: flex-start;
@@ -1065,7 +1065,7 @@
   white-space: nowrap;
 }
 
-/* 🔥 NUEVO: Estilos para edición de mensajes */
+/*  NUEVO: Estilos para edición de mensajes */
 .thread-message-edit-mode {
   display: flex;
   flex-direction: column;

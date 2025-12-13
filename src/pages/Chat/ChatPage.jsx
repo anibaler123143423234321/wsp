@@ -25,9 +25,9 @@ import { useRoomManagement } from '../../hooks/useRoomManagement';
 import { useConversations } from '../../hooks/useConversations';
 import { useSocketListeners } from '../../hooks/useSocketListeners';
 import { showSuccessAlert, showErrorAlert, showConfirmAlert } from '../../sweetalert2';
-import { faviconBadge } from '../../utils/faviconBadge'; // 🔥 NUEVO: Badge en el favicon
+import { faviconBadge } from '../../utils/faviconBadge'; //  NUEVO: Badge en el favicon
 import whatsappSound from '../../assets/sonidos/whatsapp_pc.mp3';
-import ringtoneSoundFile from '../../assets/sonidos/llamada_wsp.mp3'; // 🔥 NUEVO: Tono de llamada
+import ringtoneSoundFile from '../../assets/sonidos/llamada_wsp.mp3'; //  NUEVO: Tono de llamada
 
 const ChatPage = () => {
   // ===== HOOKS DE AUTENTICACIÓN Y SOCKET =====
@@ -43,9 +43,9 @@ const ChatPage = () => {
 
   const socket = useSocket(isAuthenticated, username, user);
 
-  // 1. 🔥 NUEVO ESTADO: Guardar el objeto del mensaje fijado
+  // 1.  NUEVO ESTADO: Guardar el objeto del mensaje fijado
   const [pinnedMessageObject, setPinnedMessageObject] = useState(null);
-  const [selectedRoomData, setSelectedRoomData] = useState(null); // 🔥 NUEVO: Datos de la sala seleccionada (para favoritos)
+  const [selectedRoomData, setSelectedRoomData] = useState(null); //  NUEVO: Datos de la sala seleccionada (para favoritos)
 
   // ===== HOOK DE ESTADOS CENTRALIZADOS =====
   const chatState = useChatState();
@@ -60,9 +60,9 @@ const ChatPage = () => {
     setIsRecording,
     messageSound,
     playMessageSound,
-    ringtoneSound, // 🔥 Ref del tono
-    playRingtone,  // 🔥 Función play
-    stopRingtone,  // 🔥 Función stop
+    ringtoneSound, //  Ref del tono
+    playRingtone,  //  Función play
+    stopRingtone,  //  Función stop
     handleFileSelect,
     handleRemoveMediaFile,
     cancelMediaUpload,
@@ -124,7 +124,7 @@ const ChatPage = () => {
       try {
         // 1. Obtener conteos de mensajes no leídos globales
         const counts = await apiService.getUnreadCounts();
-        //console.log("🔢 Unread counts response:", counts); // 🔥 DEBUG REQUESTED BY USER
+        //console.log("🔢 Unread counts response:", counts); //  DEBUG REQUESTED BY USER
 
         // 2. Si tienes una estructura específica, adáptala aquí. 
         // Suponiendo que 'counts' es un objeto { "roomCode": 5, "userId": 2 }
@@ -161,7 +161,7 @@ const ChatPage = () => {
     chatState.userList,
   ]);
 
-  // 2. 🔥 NUEVO EFECTO: Resolver el mensaje (Local o API)
+  // 2.  NUEVO EFECTO: Resolver el mensaje (Local o API)
   useEffect(() => {
     const resolvePinnedMessage = async () => {
       const pinId = chatState.pinnedMessageId;
@@ -173,7 +173,7 @@ const ChatPage = () => {
       }
 
       // B. Intentamos buscarlo en los mensajes cargados (rápido)
-      // 🔥 IMPORTANTE: Asegúrate de que 'messages' sea un array
+      //  IMPORTANTE: Asegúrate de que 'messages' sea un array
       const msgArray = Array.isArray(messages) ? messages : [];
       const foundInList = msgArray.find(m => m.id === pinId);
 
@@ -186,7 +186,7 @@ const ChatPage = () => {
         try {
           const fetchedMsg = await apiService.getMessageById(pinId);
 
-          // 🔥 VALIDACIÓN DE SEGURIDAD: Verificar que el mensaje pertenezca a la sala actual
+          //  VALIDACIÓN DE SEGURIDAD: Verificar que el mensaje pertenezca a la sala actual
           if (fetchedMsg && fetchedMsg.roomCode === chatState.currentRoomCodeRef.current) {
             setPinnedMessageObject(fetchedMsg);
           } else {
@@ -232,7 +232,7 @@ const ChatPage = () => {
       document.title = 'Chat +34';
     }
 
-    // 🔥 NUEVO: Actualizar badge del favicon
+    //  NUEVO: Actualizar badge del favicon
     faviconBadge.update(totalUnread);
   }, [chatState.assignedConversations, chatState.myActiveRooms, chatState.unreadMessages, user]);
 
@@ -324,7 +324,7 @@ const ChatPage = () => {
       }
     }
 
-    // B. 🔥 Lógica para CHATS INDIVIDUALES (Asignados)
+    // B.  Lógica para CHATS INDIVIDUALES (Asignados)
     if (!chatState.isGroup && chatState.to && messages.length > 0 && !chatState.adminViewConversation) {
       const conversationKey = `user:${chatState.to}`;
 
@@ -344,7 +344,7 @@ const ChatPage = () => {
               });
             }
 
-            // 3. 🔥 RESETEAR CONTADOR LOCAL (CRÍTICO)
+            // 3.  RESETEAR CONTADOR LOCAL (CRÍTICO)
             const conversation = chatState.assignedConversations.find(c =>
               c.participants && c.participants.some(p =>
                 p?.toLowerCase().trim() === chatState.to?.toLowerCase().trim()
@@ -435,13 +435,13 @@ const ChatPage = () => {
       addNewMessage,
       updateMessage,
       playMessageSound,
-      playRingtone, // 🔥 Pasar función
-      stopRingtone, // 🔥 Pasar función
+      playRingtone, //  Pasar función
+      stopRingtone, //  Pasar función
       loadAssignedConversations: conversations.loadAssignedConversations,
       loadMyActiveRooms: roomManagement.loadMyActiveRooms,
       clearMessages
     },
-    { user, username, isAdmin, soundsEnabled: chatState.soundsEnabled, favoriteRoomCodes: [] } // 🔥 Pasar soundsEnabled
+    { user, username, isAdmin, soundsEnabled: chatState.soundsEnabled, favoriteRoomCodes: [] } //  Pasar soundsEnabled
   );
 
   const handleUserSelect = (
@@ -455,13 +455,13 @@ const ChatPage = () => {
     chatState.setRoomUsers([]);
     chatState.currentRoomCodeRef.current = null;
     chatState.setReplyingTo(null);
-    chatState.setTypingUser(null); // 🔥 FIX: Limpiar typing al cambiar de chat
+    chatState.setTypingUser(null); //  FIX: Limpiar typing al cambiar de chat
 
     // Limpiar mensajes visualmente antes de cargar los nuevos
     // (Asumiendo que 'clearMessages' viene de useMessagePagination o roomManagement)
     if (typeof clearMessages === 'function') clearMessages();
 
-    setSelectedRoomData(null); // 🔥 Limpiar datos de sala seleccionada
+    setSelectedRoomData(null); //  Limpiar datos de sala seleccionada
 
     // 2. Definir quién soy yo (normalizado)
     const myNameNormalized = normalizeUsername(currentUserFullName);
@@ -514,20 +514,20 @@ const ChatPage = () => {
   };
 
   const handleGroupSelect = async (group) => {
-    // 🔥 CRÍTICO: Limpiar INMEDIATAMENTE el estado anterior
+    //  CRÍTICO: Limpiar INMEDIATAMENTE el estado anterior
     clearMessages(); // Limpiar mensajes primero
     setAdminViewConversation(null); // Limpiar vista de admin
-    setReplyingTo(null); // 🔥 Limpiar estado de respuesta
+    setReplyingTo(null); //  Limpiar estado de respuesta
     chatState.setPinnedMessageId(group.pinnedMessageId || null);
-    setPinnedMessageObject(null); // 🔥 Limpiar objeto mensaje fijado
+    setPinnedMessageObject(null); //  Limpiar objeto mensaje fijado
     // Establecer nuevo estado
     setTo(group.name);
     setIsGroup(true);
     setCurrentRoomCode(group.roomCode); // ✅ CORREGIDO: Establecer el roomCode de la nueva sala
     currentRoomCodeRef.current = group.roomCode; // ✅ CORREGIDO: Actualizar la ref también
-    setSelectedRoomData(group); // 🔥 Guardar datos completos de la sala (incluyendo imagen de favoritos)
+    setSelectedRoomData(group); //  Guardar datos completos de la sala (incluyendo imagen de favoritos)
 
-    // 🔥 NUEVO: Cargar usuarios de la sala desde la API (con displayName, role, email, etc.)
+    //  NUEVO: Cargar usuarios de la sala desde la API (con displayName, role, email, etc.)
     try {
       const response = await apiService.getRoomUsers(group.roomCode);
       if (Array.isArray(response)) {
@@ -547,17 +547,17 @@ const ChatPage = () => {
   };
 
   const handlePersonalNotes = () => {
-    // 🔥 CRÍTICO: Limpiar INMEDIATAMENTE el estado anterior
+    //  CRÍTICO: Limpiar INMEDIATAMENTE el estado anterior
     clearMessages(); // Limpiar mensajes primero
     setRoomUsers([]); // Limpiar usuarios de sala
     setIsGroup(false);
     setCurrentRoomCode(null);
     currentRoomCodeRef.current = null;
     setAdminViewConversation(null); // Limpiar vista de admin
-    setReplyingTo(null); // 🔥 Limpiar estado de respuesta
+    setReplyingTo(null); //  Limpiar estado de respuesta
     chatState.setPinnedMessageId(null);
     setPinnedMessageObject(null);
-    setSelectedRoomData(null); // 🔥 Limpiar datos de sala
+    setSelectedRoomData(null); //  Limpiar datos de sala
     setTo(username);
   };
 
@@ -621,7 +621,7 @@ const ChatPage = () => {
         }
       }
     }
-  }, [chatState, socket, clearMessages]); // 🔥 Agregamos dependencias correctas
+  }, [chatState, socket, clearMessages]); //  Agregamos dependencias correctas
 
   useEffect(() => {
     window.addEventListener('keydown', handleEscKey);
@@ -653,7 +653,7 @@ const ChatPage = () => {
     }
 
     if (room) {
-      // 🔥 Pasar messageId para hacer scroll al mensaje específico
+      //  Pasar messageId para hacer scroll al mensaje específico
       await roomManagement.handleRoomSelect(room, messageId);
     } else {
       console.warn("Sala no encontrada en myActiveRooms:", { roomCode, groupName });
@@ -684,7 +684,7 @@ const ChatPage = () => {
       setAdminViewConversation(null);
     }
 
-    // 🔥 Si hay messageId, establecer para scroll después de cargar mensajes
+    //  Si hay messageId, establecer para scroll después de cargar mensajes
     if (messageId) {
       setHighlightMessageId(messageId);
     }
@@ -701,7 +701,7 @@ const ChatPage = () => {
     );
   };
 
-  // 🔥 NUEVO: Registrar event listeners para navegación desde toasts
+  //  NUEVO: Registrar event listeners para navegación desde toasts
   useEffect(() => {
     window.addEventListener('navigateToRoom', handleNavigateToGroup);
     window.addEventListener('navigateToChat', handleNavigateToChat);
@@ -767,7 +767,7 @@ const ChatPage = () => {
         isGroup: effectiveIsGroup,
         roomCode: effectiveIsGroup ? chatState.currentRoomCode : undefined,
         ...attachmentData,
-        // 🔥 DATOS DE RESPUESTA
+        //  DATOS DE RESPUESTA
         replyToMessageId: chatState.replyingTo?.id || null,
         replyToSender: chatState.replyingTo?.sender || null,
         replyToText: chatState.replyingTo?.text || chatState.replyingTo?.fileName || "Archivo adjunto",
@@ -783,7 +783,7 @@ const ChatPage = () => {
         if (other) messageObj.actualRecipient = other;
       }
 
-      // 🔥 DIFERENCIA CLAVE: Para GRUPOS, el backend guarda. Para INDIVIDUALES, el frontend guarda.
+      //  DIFERENCIA CLAVE: Para GRUPOS, el backend guarda. Para INDIVIDUALES, el frontend guarda.
       if (effectiveIsGroup) {
         // GRUPO: Solo emitir por socket, el backend guarda y emite de vuelta
         if (socket && socket.connected) {
@@ -805,7 +805,7 @@ const ChatPage = () => {
         }
       }
 
-      // 🔥 CONFIAR EN EL BACKEND - No agregar mensaje localmente
+      //  CONFIAR EN EL BACKEND - No agregar mensaje localmente
       // El socket devolverá el mensaje con el evento 'message' (useSocketListeners lo manejará)
 
       clearInput();
@@ -831,7 +831,7 @@ const ChatPage = () => {
       let fileName = null;
       let fileSize = null;
 
-      // 🔥 Si hay un nuevo archivo, subirlo primero
+      //  Si hay un nuevo archivo, subirlo primero
       if (newFile) {
         try {
           const uploadResult = await apiService.uploadFile(newFile, "chat");
@@ -877,7 +877,7 @@ const ChatPage = () => {
       }
 
       // Actualizar localmente
-      // 🔥 CORREGIDO: Usar fecha actual directamente (el backend maneja la zona horaria)
+      //  CORREGIDO: Usar fecha actual directamente (el backend maneja la zona horaria)
       const updateData = {
         text: newText,
         isEdited: true,
@@ -932,7 +932,7 @@ const ChatPage = () => {
         });
       }
 
-      // 🔥 CORREGIDO: Usar fecha actual directamente (el backend maneja la zona horaria)
+      //  CORREGIDO: Usar fecha actual directamente (el backend maneja la zona horaria)
       // Actualizar localmente
       updateMessage(messageId, {
         isDeleted: true,
@@ -954,14 +954,14 @@ const ChatPage = () => {
   // Definición de la función (ya la tienes)
   const handleReplyMessage = useCallback((message) => {
     chatState.setReplyingTo(message);
-    // 🔥 Hacer focus en el textarea inmediatamente
+    //  Hacer focus en el textarea inmediatamente
     const textarea = document.querySelector('.message-input');
     if (textarea) {
       textarea.focus();
     }
   }, [chatState]);
 
-  // 🔥 AGREGAR ESTO: Exponer la función globalmente para ChatContent
+  //  AGREGAR ESTO: Exponer la función globalmente para ChatContent
   useEffect(() => {
     window.handleReplyMessage = handleReplyMessage;
     return () => {
@@ -1014,7 +1014,7 @@ const ChatPage = () => {
         if (other) messageData.actualRecipient = other;
       }
 
-      // 🔥 DIFERENCIA CLAVE: Para GRUPOS, el backend guarda. Para INDIVIDUALES, el frontend guarda.
+      //  DIFERENCIA CLAVE: Para GRUPOS, el backend guarda. Para INDIVIDUALES, el frontend guarda.
       if (effectiveIsGroup) {
         // GRUPO: Solo emitir por socket, el backend guarda y emite de vuelta
         if (socket && socket.connected) {
@@ -1036,7 +1036,7 @@ const ChatPage = () => {
         }
       }
 
-      // 🔥 CONFIAR EN EL BACKEND - No agregar mensaje localmente
+      //  CONFIAR EN EL BACKEND - No agregar mensaje localmente
 
     } catch (error) {
       console.error("Error enviando audio:", error);
@@ -1057,7 +1057,7 @@ const ChatPage = () => {
         roomCode: messageData.roomCode || null,
         threadId: messageData.threadId,
         fromId: user.id,
-        // 🔥 NUEVO: Incluir datos de respuesta
+        //  NUEVO: Incluir datos de respuesta
         replyToMessageId: messageData.replyToMessageId || null,
         replyToSender: messageData.replyToSender || null,
         replyToText: messageData.replyToText || null,
@@ -1088,7 +1088,7 @@ const ChatPage = () => {
         console.log('📡 DEBUG - Emitiendo threadMessage con id:', savedMessage.id);
         socket.emit("threadMessage", {
           ...savedMessage,
-          // 🔥 ASEGURAR RUTAS PARA CLUSTER:
+          //  ASEGURAR RUTAS PARA CLUSTER:
           // Explicitamente pasar datos de routing por si savedMessage no los tiene
           threadId: messageData.threadId,
           isGroup: !!messageData.isGroup,
@@ -1097,7 +1097,7 @@ const ChatPage = () => {
           to: messageObj.to,
         });
 
-        // 🔥 ESTA LÍNEA ES LA CLAVE: Avisa al servidor que avise a todos (incluyéndome) que actualicen el contador
+        //  ESTA LÍNEA ES LA CLAVE: Avisa al servidor que avise a todos (incluyéndome) que actualicen el contador
         socket.emit("threadCountUpdated", {
           messageId: messageData.threadId,
           lastReplyFrom: username,
@@ -1113,7 +1113,7 @@ const ChatPage = () => {
       await showErrorAlert("Error", "No se pudo enviar la respuesta.");
     }
   }, [socket, user, username]);
-  // 🔥 FUNCIÓN RESTAURADA: Iniciar videollamada con Tarjeta UI
+  //  FUNCIÓN RESTAURADA: Iniciar videollamada con Tarjeta UI
   const handleStartVideoCall = useCallback(async () => {
     try {
       // 1️⃣ VALIDACIONES
@@ -1147,7 +1147,7 @@ const ChatPage = () => {
 
       console.log("📹 Iniciando llamada en:", videoCallUrl);
 
-      // 🔥 Guardar participantes en localStorage para poder cerrar la sala después
+      //  Guardar participantes en localStorage para poder cerrar la sala después
       const participants = chatState.isGroup
         ? chatState.roomUsers.map((u) =>
           typeof u === "string" ? u : u.username || u.nombre
@@ -1171,7 +1171,7 @@ const ChatPage = () => {
         from: currentUserFullName,
         fromId: user?.id,
         roomCode: chatState.currentRoomCode,
-        type: "video_call", // 🔥 Esto activa la tarjeta visual
+        type: "video_call", //  Esto activa la tarjeta visual
         message: fallbackText,
         text: fallbackText,
         videoCallRoomID: videoRoomID,
@@ -1180,7 +1180,7 @@ const ChatPage = () => {
         metadata: {
           videoCallUrl: videoCallUrl,
           videoRoomID: videoRoomID,
-          isActive: true, // 🔥 Inicia activa
+          isActive: true, //  Inicia activa
         },
         sender: currentUserFullName,
         senderRole: userRole,
@@ -1331,11 +1331,11 @@ const ChatPage = () => {
       clearInput();
       chatState.setReplyingTo(null);
 
-      // 🔥 DEBUG: Confirmar desconexión del socket
+      //  DEBUG: Confirmar desconexión del socket
       if (socket) {
-        console.log('🔥 handleLogout: Desconectando socket...', socket.connected);
+        console.log(' handleLogout: Desconectando socket...', socket.connected);
         socket.disconnect();
-        console.log('🔥 handleLogout: Socket desconectado:', socket.connected);
+        console.log(' handleLogout: Socket desconectado:', socket.connected);
       } else {
         console.log('⚠️ handleLogout: Socket no existe');
       }
@@ -1428,13 +1428,13 @@ const ChatPage = () => {
         preload="auto"
         src={whatsappSound}
       />
-      <audio ref={ringtoneSound} src={ringtoneSoundFile} loop /> {/* 🔥 Audio para llamadas (loop) */}
+      <audio ref={ringtoneSound} src={ringtoneSoundFile} loop /> {/*  Audio para llamadas (loop) */}
 
       {/* Layout principal */}
       <ChatLayout
         // Props del sidebar
         user={user}
-        socket={socket} // 🔥 NUEVO: Para actualizaciones de estado online en tiempo real
+        socket={socket} //  NUEVO: Para actualizaciones de estado online en tiempo real
         userList={chatState.userList}
         groupList={chatState.groupList}
         assignedConversations={chatState.assignedConversations}
@@ -1477,7 +1477,7 @@ const ChatPage = () => {
         unreadMessages={chatState.unreadMessages}
         myActiveRooms={chatState.myActiveRooms}
         onRoomSelect={(room, messageId) => {
-          setSelectedRoomData(room); // 🔥 Guardar datos de sala para favoritos/imágenes
+          setSelectedRoomData(room); //  Guardar datos de sala para favoritos/imágenes
           roomManagement.handleRoomSelect(room, messageId);
         }}
         onKickUser={roomManagement.handleKickUser}
@@ -1513,7 +1513,7 @@ const ChatPage = () => {
         socketConnected={chatState.socketConnected}
         soundsEnabled={chatState.soundsEnabled}
         onEnableSounds={handleEnableSounds}
-        stopRingtone={stopRingtone} // 🔥 Pasar función para detener tono
+        stopRingtone={stopRingtone} //  Pasar función para detener tono
         currentUsername={username}
         onEditMessage={handleEditMessage}
         onDeleteMessage={handleDeleteMessage}
@@ -1558,7 +1558,7 @@ const ChatPage = () => {
         }
         onEditRoom={roomManagement.handleEditRoom}
         onViewRoomUsers={roomManagement.handleViewRoomUsers}
-        selectedRoomData={selectedRoomData} // 🔥 Pasar datos seleccionados
+        selectedRoomData={selectedRoomData} //  Pasar datos seleccionados
       />
 
       {/* Contenedor de modales */}

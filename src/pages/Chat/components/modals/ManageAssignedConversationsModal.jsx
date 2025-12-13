@@ -15,7 +15,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
     description: ''
   });
 
-  // 🔥 Estados de paginación y búsqueda
+  //  Estados de paginación y búsqueda
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -26,7 +26,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
   // Verificar si el usuario puede eliminar (ADMIN, SUPERADMIN, PROGRAMADOR)
   const canDelete = ['ADMIN', 'SUPERADMIN', 'PROGRAMADOR'].includes(currentUser?.role);
 
-  // 🔥 Cargar conversaciones con paginación y búsqueda
+  //  Cargar conversaciones con paginación y búsqueda
   const loadConversations = useCallback(async (page = 1, search = '') => {
     setLoading(true);
     try {
@@ -51,7 +51,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
     }
   }, [show, loadConversations]);
 
-  // 🔥 Búsqueda con debounce
+  //  Búsqueda con debounce
   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
@@ -70,7 +70,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
     setSearchTimeout(timeout);
   };
 
-  // 🔥 Navegación de páginas
+  //  Navegación de páginas
   const handlePrevPage = () => {
     if (currentPage > 1) {
       loadConversations(currentPage - 1, searchTerm);
@@ -109,7 +109,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
 
       await apiService.updateAssignedConversation(convId, editForm);
 
-      // 🔥 Actualizar la lista local inmediatamente (sin recargar desde el servidor)
+      //  Actualizar la lista local inmediatamente (sin recargar desde el servidor)
       setConversations(prevConversations =>
         prevConversations.map(c =>
           c.id === convId
@@ -130,7 +130,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
       setEditingConv(null);
       setEditForm({ name: '', description: '' });
 
-      // 🔥 Mostrar alerta de éxito UNA SOLA VEZ
+      //  Mostrar alerta de éxito UNA SOLA VEZ
       await showSuccessAlert('¡Actualizado!', 'La conversación ha sido actualizada correctamente');
 
       // Notificar al componente padre (sin mostrar otra alerta)
@@ -154,7 +154,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
       try {
         await apiService.deleteAssignedConversation(conv.id);
 
-        // 🔥 Emitir websocket para notificar a los participantes
+        //  Emitir websocket para notificar a los participantes
         if (socket && socket.connected && conv.participants) {
           socket.emit('conversationRemoved', {
             conversationId: conv.id,
@@ -272,8 +272,8 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
       titleColor="#FFFFFF"
       maxWidth="1000px"
     >
-      {/* 🔥 Barra de búsqueda y contador */}
-      {/* 🔥 Barra de búsqueda y contador (Estilo Compacto) */}
+      {/*  Barra de búsqueda y contador */}
+      {/*  Barra de búsqueda y contador (Estilo Compacto) */}
       <div style={{
         marginBottom: '20px',
         padding: '0 20px',
@@ -451,7 +451,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
         </div>
       )}
 
-      {/* 🔥 Paginación Compacta */}
+      {/*  Paginación Compacta */}
       {totalPages > 1 && (
         <div style={{
           display: 'flex',

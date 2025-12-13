@@ -49,8 +49,8 @@ export const useSocket = (isAuthenticated, username, user) => {
           reconnectionDelayMax: 5000,
           randomizationFactor: 0.5,
           autoConnect: true,
-          pingInterval: 25000, // 25s
-          pingTimeout: 30000, // 30s
+          pingInterval: 5000, // 5s - sincronizado con backend (estilo gaming)
+          pingTimeout: 10000, // 10s - sincronizado con backend
         });
 
         // Timeout de seguridad por si la conexión se queda colgada
@@ -75,7 +75,7 @@ export const useSocket = (isAuthenticated, username, user) => {
               ? `${user.nombre} ${user.apellido}`
               : user.username || user.email;
 
-          // 🔥 OPTIMIZADO: Solo enviamos datos del usuario.
+          //  OPTIMIZADO: Solo enviamos datos del usuario.
           // Ya NO enviamos la lista gigante de conversaciones.
           socket.current.emit("register", {
             username: displayName,

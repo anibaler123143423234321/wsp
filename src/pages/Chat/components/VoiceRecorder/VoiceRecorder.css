@@ -84,7 +84,7 @@
   }
 }
 
-/* 🔥 CONTENEDOR DE BARRAS DE ONDAS */
+/*  CONTENEDOR DE BARRAS DE ONDAS */
 .wave-bars-container {
   display: flex;
   align-items: center;
@@ -105,7 +105,7 @@
   background-color: #cbd5e1;
 }
 
-/* 🔥 CONTROLES DE GRABACIÓN (Pausa/Stop) */
+/*  CONTROLES DE GRABACIÓN (Pausa/Stop) */
 .voice-recorder-controls {
   display: flex;
   align-items: center;
@@ -191,7 +191,7 @@
   font-family: monospace;
 }
 
-/* 🔥 BOTÓN ENVIAR (Estilo Píldora Verde) */
+/*  BOTÓN ENVIAR (Estilo Píldora Verde) */
 .voice-recorder-send {
   background: #00a884;
   color: white;
