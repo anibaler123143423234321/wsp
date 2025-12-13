@@ -513,7 +513,7 @@ const ChatPage = () => {
     }
   };
 
-  const handleGroupSelect = (group) => {
+  const handleGroupSelect = async (group) => {
     // 🔥 CRÍTICO: Limpiar INMEDIATAMENTE el estado anterior
     clearMessages(); // Limpiar mensajes primero
     setAdminViewConversation(null); // Limpiar vista de admin
@@ -523,10 +523,22 @@ const ChatPage = () => {
     // Establecer nuevo estado
     setTo(group.name);
     setIsGroup(true);
-    setRoomUsers(group.members);
     setCurrentRoomCode(group.roomCode); // ✅ CORREGIDO: Establecer el roomCode de la nueva sala
     currentRoomCodeRef.current = group.roomCode; // ✅ CORREGIDO: Actualizar la ref también
     setSelectedRoomData(group); // 🔥 Guardar datos completos de la sala (incluyendo imagen de favoritos)
+
+    // 🔥 NUEVO: Cargar usuarios de la sala desde la API (con displayName, role, email, etc.)
+    try {
+      const response = await apiService.getRoomUsers(group.roomCode);
+      if (Array.isArray(response)) {
+        setRoomUsers(response);
+      } else if (response && typeof response === 'object') {
+        setRoomUsers(response.users || response.data || []);
+      }
+    } catch (error) {
+      console.error('Error al cargar usuarios de la sala:', error);
+      setRoomUsers(group.members || []); // Fallback a group.members si falla
+    }
 
     // 📱 Cerrar sidebar en mobile al seleccionar un grupo
     if (window.innerWidth <= 768) {
@@ -1422,6 +1434,7 @@ const ChatPage = () => {
       <ChatLayout
         // Props del sidebar
         user={user}
+        socket={socket} // 🔥 NUEVO: Para actualizaciones de estado online en tiempo real
         userList={chatState.userList}
         groupList={chatState.groupList}
         assignedConversations={chatState.assignedConversations}
@@ -1497,7 +1510,6 @@ const ChatPage = () => {
         isLoadingMessages={effectiveIsLoadingMessages}
         onLoadMoreMessages={loadMoreMessages}
         onToggleMenu={handleToggleMenu}
-        socket={socket}
         socketConnected={chatState.socketConnected}
         soundsEnabled={chatState.soundsEnabled}
         onEnableSounds={handleEnableSounds}

@@ -43,8 +43,7 @@ const ChatLayout = ({
   unreadMessages,
 
   // Props del socket
-  soundsEnabled, onEnableSounds, socket, isTyping, typingUser, stopRingtone, // 🔥 Prop para detener tono
-  // Props del usuario
+  soundsEnabled, onEnableSounds, socket, isTyping, typingUser, stopRingtone,
   currentUsername,
 
   // Props de búsqueda
@@ -404,6 +403,8 @@ const ChatLayout = ({
           onAddUsersToRoom={onAddUsersToRoom}
           currentRoomCode={currentRoomCode}
           user={user}
+          userList={userList}
+          socket={socket}
         />
 
         {/* Info Panel (Displacement Layout) */}

@@ -11,6 +11,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
 
   const currentOffset = useRef(0);
   const initialLoadComplete = useRef(false); //  Prevenir carga inmediata post-inicial
+  const loadMoreBlockedUntil = useRef(0); // 🔥 NUEVO: Timestamp hasta el cual bloquear loadMoreMessages
   const MESSAGES_PER_PAGE = 20; // 🚀 Sincronizado con backend
 
   // Cargar mensajes iniciales (más recientes)
@@ -145,6 +146,8 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     } finally {
       setIsLoading(false);
       initialLoadComplete.current = true;
+      // 🔥 NUEVO: Bloquear loadMoreMessages por 500ms para evitar race condition con scroll
+      loadMoreBlockedUntil.current = Date.now() + 500;
     }
   }, [roomCode, username, to, isGroup]);
 
@@ -155,6 +158,8 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     if (!isGroup && !to) return;
     if (!hasMoreMessages || isLoadingMore) return;
     if (!initialLoadComplete.current) return; //  Esperar a que termine la carga inicial
+    // 🔥 NUEVO: Evitar race condition - esperar a que pase el bloqueo temporal post-carga inicial
+    if (Date.now() < loadMoreBlockedUntil.current) return;
 
     setIsLoadingMore(true);
 
