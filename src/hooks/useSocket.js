@@ -70,18 +70,13 @@ export const useSocket = (isAuthenticated, username, user) => {
           isConnecting.current = false;
           console.log("✅ Socket conectado:", socket.current.id);
 
-          const displayName =
-            user.nombre && user.apellido
-              ? `${user.nombre} ${user.apellido}`
-              : user.username || user.email;
-
-          //  OPTIMIZADO: Solo enviamos datos del usuario.
-          // Ya NO enviamos la lista gigante de conversaciones.
+          // ✅ CORREGIDO: Enviar username real (ID) no el displayName
+          // El displayName se construye en el backend desde nombre + apellido
           socket.current.emit("register", {
-            username: displayName,
+            username: user.username,  // ID real: "73583958"
             userData: {
               id: user.id,
-              username: displayName,
+              username: user.username,  // ID real
               role: user.role || "USER",
               nombre: user.nombre,
               apellido: user.apellido,
@@ -109,17 +104,12 @@ export const useSocket = (isAuthenticated, username, user) => {
           console.log(`🔄 Socket reconectado (intento ${attemptNumber})`);
           isConnecting.current = false;
 
-          const displayName =
-            user.nombre && user.apellido
-              ? `${user.nombre} ${user.apellido}`
-              : user.username || user.email;
-
-          // Re-registrar usuario de forma ligera
+          // ✅ CORREGIDO: Enviar username real (ID) no el displayName
           socket.current.emit("register", {
-            username: displayName,
+            username: user.username || user.email,
             userData: {
               id: user.id,
-              username: displayName,
+              username: user.username || user.email,
               role: user.role || "USER",
               nombre: user.nombre,
               apellido: user.apellido,

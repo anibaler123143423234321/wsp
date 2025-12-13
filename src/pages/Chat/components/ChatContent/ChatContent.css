@@ -3337,3 +3337,409 @@ html.dark .mention-span.mention-other {
     font-size: 7.5px !important;
   }
 }
+
+/* ============================================================
+   🌙 DARK MODE STYLES - CHAT CONTENT
+   ============================================================ */
+
+/* Main chat container */
+html.dark .chat-content {
+  background-color: #1a1a1a;
+}
+
+/* Chat history / message area */
+html.dark .chat-history {
+  background-color: #1a1a1a;
+}
+
+/* Typing indicator container */
+html.dark .typing-indicator-container {
+  background: linear-gradient(to top, #1a1a1a 85%, rgba(26, 26, 26, 0.8) 95%, transparent);
+}
+
+/* Welcome screen */
+html.dark .welcome-screen {
+  background-color: #1a1a1a;
+}
+
+html.dark .welcome-title {
+  color: #e9edef;
+}
+
+html.dark .welcome-subtitle,
+html.dark .welcome-description {
+  color: #8696a0;
+}
+
+/* Message rows */
+html.dark .message-row {
+  background-color: transparent;
+}
+
+html.dark .message-row:hover {
+  background-color: #2a2a2a !important;
+}
+
+/* Message text body */
+html.dark .message-text-body {
+  color: #e5e5e5 !important;
+}
+
+/* Own message bubble - Green tint for dark mode */
+html.dark .message-row.is-own .message-text-body {
+  background-color: #054d36 !important;
+  color: #e5e5e5 !important;
+}
+
+/* Sender name */
+html.dark .sender-name {
+  color: #ffffff !important;
+}
+
+/* Timestamps */
+html.dark .header-timestamp,
+html.dark .message-timestamp-left {
+  color: #9ca3af !important;
+}
+
+/* Date separator */
+html.dark .date-separator {
+  color: #9ca3af;
+}
+
+html.dark .date-separator-line {
+  background-color: #3a3a3a;
+}
+
+html.dark .date-separator-text {
+  background-color: #1a1a1a;
+  color: #9ca3af;
+}
+
+/* Action toolbar */
+html.dark .action-toolbar {
+  background-color: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+}
+
+html.dark .toolbar-btn {
+  color: #9ca3af !important;
+}
+
+html.dark .toolbar-btn:hover {
+  background-color: #3a3a3a !important;
+  color: #ffffff !important;
+}
+
+/* Dropdown menu */
+html.dark .slack-dropdown-menu {
+  background-color: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+}
+
+html.dark .slack-dropdown-menu .menu-item {
+  color: #e5e5e5 !important;
+}
+
+html.dark .slack-dropdown-menu .menu-item:hover {
+  background-color: #3a3a3a !important;
+}
+
+html.dark .menu-separator {
+  background-color: #3a3a3a !important;
+}
+
+html.dark .slack-dropdown-menu .menu-icon {
+  color: #9ca3af !important;
+}
+
+/* Input area dark mode */
+html.dark .chat-input-container {
+  background-color: #1a1a1a !important;
+  border-top-color: #3a3a3a !important;
+}
+
+html.dark .input-group {
+  background-color: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+}
+
+html.dark .message-input {
+  background-color: transparent !important;
+  color: #e5e5e5 !important;
+}
+
+html.dark .message-input::placeholder {
+  color: #6b7280 !important;
+}
+
+/* Send button */
+html.dark .btn-send {
+  background-color: #054d36 !important;
+  color: #ffffff !important;
+}
+
+html.dark .btn-send:hover {
+  background-color: #065f46 !important;
+}
+
+/* Attachment and action buttons in input */
+html.dark .attach-btn,
+html.dark .emoji-btn,
+html.dark .mic-btn {
+  color: #9ca3af !important;
+}
+
+html.dark .attach-btn:hover,
+html.dark .emoji-btn:hover,
+html.dark .mic-btn:hover {
+  color: #ffffff !important;
+  background-color: #3a3a3a !important;
+}
+
+/* Reaction picker popup */
+html.dark .reaction-picker-popup {
+  background-color: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+}
+
+html.dark .reaction-emoji-btn:hover {
+  background-color: #3a3a3a !important;
+}
+
+html.dark .reaction-emoji-btn.plus-btn {
+  background-color: #3a3a3a !important;
+  color: #9ca3af !important;
+}
+
+html.dark .reaction-emoji-btn.plus-btn:hover {
+  background-color: #4a4a4a !important;
+  color: #ffffff !important;
+}
+
+/* Mentions in dark mode */
+html.dark .mention-span.mention-me,
+html.dark .mention-span.mention-other {
+  background-color: #5c4813 !important;
+  color: #fce8b2 !important;
+}
+
+/* Reply preview bar */
+html.dark .reply-preview-bar {
+  background-color: #2a2a2a !important;
+  border-left-color: #054d36 !important;
+}
+
+html.dark .reply-preview-text {
+  color: #9ca3af !important;
+}
+
+html.dark .reply-preview-sender {
+  color: #e5e5e5 !important;
+}
+
+/* Thread summary */
+html.dark .mx_ThreadSummaryLine {
+  background-color: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+}
+
+html.dark .mx_ThreadSummaryLine:hover {
+  background-color: #3a3a3a !important;
+}
+
+html.dark .mx_ThreadCounter,
+html.dark .mx_ThreadLastReplyText {
+  color: #9ca3af !important;
+}
+
+/* File preview container */
+html.dark .file-preview-container {
+  background-color: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+}
+
+html.dark .file-preview-name,
+html.dark .file-preview-info {
+  color: #e5e5e5 !important;
+}
+
+/* Media preview */
+html.dark .media-preview-container {
+  background-color: #2a2a2a !important;
+}
+
+/* Poll messages */
+html.dark .poll-message {
+  background-color: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+}
+
+html.dark .poll-question {
+  color: #e5e5e5 !important;
+}
+
+html.dark .poll-option {
+  background-color: #3a3a3a !important;
+  color: #e5e5e5 !important;
+}
+
+html.dark .poll-option:hover {
+  background-color: #4a4a4a !important;
+}
+
+/* Video call card */
+html.dark .video-call-card {
+  background-color: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+}
+
+html.dark .video-call-title,
+html.dark .video-call-text {
+  color: #e5e5e5 !important;
+}
+
+/* Unread separator */
+html.dark .unread-separator-content {
+  background-color: #054d36 !important;
+  color: #e5e5e5 !important;
+}
+
+/* Loading states */
+html.dark .loading-messages {
+  color: #9ca3af !important;
+}
+
+html.dark .load-more-btn {
+  background-color: #2a2a2a !important;
+  color: #e5e5e5 !important;
+  border-color: #3a3a3a !important;
+}
+
+html.dark .load-more-btn:hover {
+  background-color: #3a3a3a !important;
+}
+
+/* Pinned message bar */
+html.dark .pinned-message-bar {
+  background-color: #2a2a2a !important;
+  border-bottom-color: #3a3a3a !important;
+}
+
+html.dark .pinned-message-text {
+  color: #e5e5e5 !important;
+}
+
+/* Drag overlay */
+html.dark .drag-overlay {
+  background: linear-gradient(135deg, rgba(5, 77, 54, 0.2) 0%, rgba(6, 95, 70, 0.2) 100%);
+}
+
+/* Scrollbar dark mode */
+html.dark .chat-history::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+html.dark .chat-history::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+}
+
+html.dark .chat-history::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4a;
+}
+
+/* Read receipts avatars */
+html.dark .mini-read-avatar.counter-bubble {
+  background-color: #3a3a3a !important;
+  color: #e5e5e5 !important;
+  box-shadow: 0 0 0 1px #2a2a2a !important;
+}
+
+html.dark .mini-read-avatar.counter-bubble:hover {
+  background-color: #4a4a4a !important;
+}
+
+/* File card dark mode (wa-file-card) */
+html.dark .wa-file-card {
+  background-color: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+}
+
+html.dark .wa-file-card:hover {
+  background-color: #3a3a3a !important;
+}
+
+html.dark .wa-file-name {
+  color: #e5e5e5 !important;
+}
+
+html.dark .wa-file-meta {
+  color: #9ca3af !important;
+}
+
+html.dark .wa-file-tag {
+  background-color: #3a3a3a !important;
+  color: #9ca3af !important;
+}
+
+/* Read receipts popover dark mode */
+html.dark .read-receipts-popover {
+  background-color: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+}
+
+html.dark .popover-header {
+  background-color: #1a1a1a !important;
+  color: #e5e5e5 !important;
+  border-bottom-color: #3a3a3a !important;
+}
+
+html.dark .popover-item {
+  border-bottom-color: #3a3a3a !important;
+}
+
+html.dark .popover-name {
+  color: #e5e5e5 !important;
+}
+
+html.dark .popover-status {
+  color: #9ca3af !important;
+}
+
+html.dark .popover-avatar-initial {
+  background-color: #3a3a3a !important;
+}
+
+/* Thread summary dark mode */
+html.dark .mx_ThreadSummaryLine {
+  background-color: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+}
+
+html.dark .mx_ThreadSummaryLine:hover {
+  background-color: #3a3a3a !important;
+}
+
+html.dark .mx_ThreadCounter {
+  color: #10b981 !important;
+}
+
+html.dark .mx_ThreadLastReply {
+  color: #e5e5e5 !important;
+}
+
+html.dark .mx_ThreadLastReplyText {
+  color: #9ca3af !important;
+}
+
+html.dark .thread-icon-wrapper {
+  color: #9ca3af !important;
+}
+
+html.dark .thread-vertical-line {
+  background-color: #3a3a3a !important;
+}
+
+html.dark .thread-row-container {
+  border-color: #3a3a3a !important;
+}

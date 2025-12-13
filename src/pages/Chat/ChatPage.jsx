@@ -1304,6 +1304,18 @@ const ChatPage = () => {
     localStorage.setItem('soundsEnabled', String(newValue));
   }, [chatState.soundsEnabled, chatState]);
 
+  // Estado para el tema (dark/light)
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem('theme') === 'dark';
+  });
+
+  const handleThemeToggle = useCallback(() => {
+    const newIsDark = !isDarkMode;
+    setIsDarkMode(newIsDark);
+    localStorage.setItem('theme', newIsDark ? 'dark' : 'light');
+    document.documentElement.classList.toggle('dark', newIsDark);
+  }, [isDarkMode]);
+
   const handleLoginSuccess = (userData) => {
     localStorage.setItem('user', JSON.stringify(userData));
     localStorage.setItem('token', userData.token || 'mock-token');
@@ -1607,6 +1619,8 @@ const ChatPage = () => {
         user={user}
         isSoundEnabled={chatState.soundsEnabled}
         onSoundToggle={handleSoundToggle}
+        isDarkMode={isDarkMode}
+        onThemeToggle={handleThemeToggle}
       />
     </>
   );

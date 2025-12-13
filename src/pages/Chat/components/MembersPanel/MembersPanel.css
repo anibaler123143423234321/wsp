@@ -249,3 +249,106 @@
         width: 100%;
     }
 }
+
+/* ============================================================
+   🌙 DARK MODE STYLES - MEMBERS PANEL
+   ============================================================ */
+
+html.dark .members-panel-container {
+    background-color: #1a1a1a !important;
+    border-left-color: #3a3a3a;
+}
+
+html.dark .members-panel-header {
+    background: #2a2a2a;
+    color: #e5e5e5;
+    border-bottom-color: #3a3a3a;
+}
+
+html.dark .members-panel-title {
+    color: #e5e5e5;
+}
+
+html.dark .members-panel-close-btn {
+    color: #9ca3af;
+}
+
+html.dark .members-panel-close-btn:hover {
+    background-color: #3a3a3a;
+    color: #e5e5e5;
+}
+
+html.dark .members-panel-content {
+    background-color: #1a1a1a !important;
+}
+
+html.dark .members-panel-invite-btn {
+    background-color: #2a2a2a;
+}
+
+html.dark .members-panel-invite-btn:hover {
+    background-color: #3a3a3a;
+}
+
+html.dark .invite-text {
+    color: #10b981;
+}
+
+html.dark .members-list {
+    background: #1a1a1a;
+}
+
+/* Entity Tile (member item) */
+html.dark .mx_EntityTile {
+    background-color: #1a1a1a;
+    border-bottom-color: #2a2a2a;
+}
+
+html.dark .mx_EntityTile:hover {
+    background-color: #2a2a2a;
+}
+
+html.dark .mx_EntityTile:active {
+    background-color: #3a3a3a;
+}
+
+html.dark .mx_BaseAvatar {
+    background-color: #3a3a3a;
+}
+
+html.dark .mx_BaseAvatar_online_indicator {
+    border-color: #1a1a1a;
+}
+
+html.dark .mx_EntityTile_name {
+    color: #e5e5e5;
+}
+
+html.dark .mx_EntityTile_subtext {
+    color: #9ca3af;
+}
+
+html.dark .mx_EntityTile_role {
+    color: #9ca3af;
+}
+
+/* Footer */
+html.dark .members-panel-footer {
+    background-color: #2a2a2a;
+    border-top-color: #3a3a3a;
+}
+
+html.dark .members-filter-input {
+    background-color: #1a1a1a;
+    border-color: #3a3a3a;
+    color: #e5e5e5;
+}
+
+html.dark .members-filter-input::placeholder {
+    color: #6b7280;
+}
+
+html.dark .members-filter-input:focus {
+    border-color: #054d36;
+    background-color: #1a1a1a;
+}

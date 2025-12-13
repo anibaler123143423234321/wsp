@@ -1,29 +1,31 @@
-import { FaTimes, FaKey, FaUserCircle, FaCog } from 'react-icons/fa'; // Añadido FaCog
+import { FaTimes, FaKey, FaUserCircle, FaCog } from 'react-icons/fa';
 import './SettingsPanel.css';
 
-const SettingsPanel = ({ 
-  isOpen, 
-  onClose, 
+const SettingsPanel = ({
+  isOpen,
+  onClose,
   user,
-  isSoundEnabled,   // Nueva prop
-  onSoundToggle     // Nueva prop
+  isSoundEnabled,
+  onSoundToggle,
+  isDarkMode,       // Nueva prop para tema
+  onThemeToggle     // Nueva prop para cambiar tema
 }) => {
   if (!isOpen) return null;
 
   return (
     <>
       {/* Overlay para cerrar al hacer click fuera */}
-      <div 
+      <div
         className="settings-overlay"
         onClick={onClose}
       />
-      
+
       {/* Panel de configuración */}
       <div className="settings-panel">
         {/* Header */}
         <div className="settings-header">
           <h2>Ajustes</h2>
-          <button 
+          <button
             className="settings-close-btn"
             onClick={onClose}
             title="Cerrar"
@@ -41,7 +43,6 @@ const SettingsPanel = ({
               <h3>Cuenta</h3>
             </div>
             <div className="settings-section-content">
-              {/* ... (items de Nombre de usuario, Nombre completo, Rol se mantienen igual) ... */}
               <div className="settings-item">
                 <div className="settings-item-label">Nombre de usuario</div>
                 <div className="settings-item-value">{user?.username || 'N/A'}</div>
@@ -49,8 +50,8 @@ const SettingsPanel = ({
               <div className="settings-item">
                 <div className="settings-item-label">Nombre completo</div>
                 <div className="settings-item-value">
-                  {user?.nombre && user?.apellido 
-                    ? `${user.nombre} ${user.apellido}` 
+                  {user?.nombre && user?.apellido
+                    ? `${user.nombre} ${user.apellido}`
                     : 'N/A'}
                 </div>
               </div>
@@ -61,28 +62,40 @@ const SettingsPanel = ({
             </div>
           </div>
 
-          {/* --- NUEVA SECCIÓN: PREFERENCIAS --- */}
+          {/* Sección de Preferencias */}
           <div className="settings-section">
             <div className="settings-section-header">
               <FaCog className="settings-section-icon" />
               <h3>Preferencias</h3>
             </div>
             <div className="settings-section-content">
+              {/* Toggle de sonido */}
               <div className="settings-toggle-item">
                 <span className="settings-toggle-label">Sonido de notificaciones</span>
                 <label className="toggle-switch">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     checked={isSoundEnabled}
                     onChange={onSoundToggle}
                   />
                   <span className="slider round"></span>
                 </label>
               </div>
-              {/* Aquí podrías añadir más toggles, como "Modo Oscuro" */}
+
+              {/* Toggle de modo oscuro */}
+              <div className="settings-toggle-item">
+                <span className="settings-toggle-label">Modo oscuro</span>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={isDarkMode}
+                    onChange={onThemeToggle}
+                  />
+                  <span className="slider round"></span>
+                </label>
+              </div>
             </div>
           </div>
-          {/* --- FIN DE LA NUEVA SECCIÓN --- */}
 
           {/* Notificaciones de seguridad */}
           <div className="settings-section">

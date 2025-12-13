@@ -1139,3 +1139,265 @@
   font-style: italic;
   margin-left: 6px;
 }
+
+/* ============================================================
+   🌙 DARK MODE STYLES - THREAD PANEL
+   ============================================================ */
+
+html.dark .thread-panel-container {
+  background-color: #1a1a1a !important;
+  border-left-color: #3a3a3a;
+}
+
+html.dark .thread-panel-header {
+  background: #2a2a2a;
+  border-bottom-color: #3a3a3a;
+}
+
+html.dark .thread-panel-title {
+  color: #e5e5e5;
+}
+
+html.dark .thread-close-btn {
+  color: #9ca3af;
+}
+
+html.dark .thread-close-btn:hover {
+  background: #3a3a3a;
+  color: #e5e5e5;
+}
+
+html.dark .thread-main-message {
+  background: #2a2a2a;
+  border-bottom-color: #3a3a3a;
+}
+
+html.dark .thread-main-message-header strong {
+  color: #e5e5e5;
+}
+
+html.dark .thread-main-message-time {
+  color: #9ca3af;
+}
+
+html.dark .thread-main-message-text {
+  color: #e5e5e5;
+}
+
+html.dark .thread-replies-count {
+  color: #9ca3af;
+}
+
+html.dark .thread-messages {
+  background: #1a1a1a;
+}
+
+html.dark .thread-loading,
+html.dark .thread-empty {
+  color: #9ca3af;
+}
+
+html.dark .thread-message-header strong {
+  color: #e5e5e5;
+}
+
+html.dark .thread-message-time {
+  color: #9ca3af;
+}
+
+html.dark .thread-message-text {
+  color: #e5e5e5;
+}
+
+/* Own message in thread - green tint */
+html.dark .thread-message-own .thread-message-text {
+  background: #054d36 !important;
+  color: #e5e5e5 !important;
+}
+
+/* Other message in thread */
+html.dark .thread-message-other .thread-message-text {
+  background: #2a2a2a;
+  color: #e5e5e5 !important;
+}
+
+html.dark .thread-input-container {
+  background: #2a2a2a;
+  border-top-color: #3a3a3a;
+}
+
+html.dark .thread-media-preview {
+  background: #1a1a1a;
+}
+
+html.dark .thread-media-preview-item {
+  background: #2a2a2a;
+  border-color: #3a3a3a;
+}
+
+html.dark .thread-preview-name {
+  color: #9ca3af;
+}
+
+html.dark .thread-preview-size {
+  color: #6b7280;
+}
+
+html.dark .thread-attach-btn,
+html.dark .thread-emoji-btn {
+  color: #9ca3af;
+}
+
+html.dark .thread-attach-btn:hover,
+html.dark .thread-emoji-btn:hover {
+  background: #3a3a3a;
+  color: #e5e5e5;
+}
+
+html.dark .thread-input {
+  background: #1a1a1a;
+  border-color: #3a3a3a;
+  color: #e5e5e5;
+}
+
+html.dark .thread-input:focus {
+  border-color: #054d36;
+}
+
+html.dark .thread-input::placeholder {
+  color: #6b7280;
+}
+
+html.dark .thread-send-btn {
+  background: #054d36;
+}
+
+html.dark .thread-send-btn:hover:not(:disabled) {
+  background: #065f46;
+}
+
+html.dark .thread-send-btn:disabled {
+  background: #3a3a3a;
+}
+
+/* Mention dropdown dark mode */
+html.dark .thread-mention-dropdown {
+  background: #2a2a2a;
+  border-color: #3a3a3a;
+}
+
+html.dark .thread-mention-suggestion:hover,
+html.dark .thread-mention-suggestion.selected {
+  background-color: #3a3a3a;
+}
+
+html.dark .mention-name {
+  color: #e5e5e5;
+}
+
+html.dark .mention-role {
+  color: #9ca3af;
+}
+
+/* Read receipts popover dark mode */
+html.dark .thread-read-receipts-popover {
+  background: #2a2a2a;
+  border-color: #3a3a3a;
+}
+
+html.dark .popover-header {
+  background: #1a1a1a;
+  color: #e5e5e5;
+  border-bottom-color: #3a3a3a;
+}
+
+html.dark .popover-close-btn {
+  color: #9ca3af;
+}
+
+html.dark .popover-close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #e5e5e5;
+}
+
+html.dark .popover-item {
+  border-bottom-color: #3a3a3a;
+}
+
+html.dark .popover-name {
+  color: #e5e5e5;
+}
+
+html.dark .popover-time {
+  color: #9ca3af;
+}
+
+/* Thread read avatar counter */
+html.dark .thread-read-avatar.counter-bubble {
+  background: #3a3a3a;
+  color: #e5e5e5;
+}
+
+/* Scrollbar dark mode */
+html.dark .thread-messages::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+html.dark .thread-messages::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+}
+
+html.dark .thread-messages::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4a;
+}
+
+/* Drag overlay dark mode */
+html.dark .thread-drag-overlay {
+  background-color: rgba(26, 26, 26, 0.95);
+}
+
+html.dark .thread-drag-content {
+  color: #10b981;
+}
+
+/* Edit mode dark mode */
+html.dark .thread-edit-cancel {
+  background: #3a3a3a;
+  color: #9ca3af;
+  border-color: #4a4a4a;
+}
+
+html.dark .thread-edit-cancel:hover {
+  background: #4a4a4a;
+  color: #e5e5e5;
+}
+
+html.dark .thread-edit-save {
+  background: #054d36;
+}
+
+html.dark .thread-edit-save:hover:not(:disabled) {
+  background: #065f46;
+}
+
+html.dark .thread-edit-save:disabled {
+  background: #3a3a3a;
+}
+
+html.dark .thread-edited-label {
+  color: #6b7280;
+}
+
+/* Reply preview in thread */
+html.dark .thread-reply-preview {
+  background: #1a1a1a;
+  border-left-color: #054d36;
+}
+
+html.dark .thread-reply-sender {
+  color: #e5e5e5;
+}
+
+html.dark .thread-reply-text {
+  color: #9ca3af;
+}
