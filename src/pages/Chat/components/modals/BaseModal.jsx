@@ -39,7 +39,8 @@ const BaseModal = ({
   };
 
   const handleOverlayClick = (e) => {
-    if (closeOnOverlayClick) {
+    // Solo cerrar si el click fue directamente en el overlay, no en sus hijos
+    if (closeOnOverlayClick && e.target === e.currentTarget) {
       onClose();
     }
   };

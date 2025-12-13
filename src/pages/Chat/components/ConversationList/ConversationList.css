@@ -1,5 +1,30 @@
 /* ConversationList - Estilos mejorados con rem */
 
+/* 🔥 Resaltado de chat seleccionado desde búsqueda */
+.highlighted-chat {
+  background: #fffbeb !important;
+  border: 2px solid #fbbf24 !important;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3) !important;
+  animation: highlightPulse 0.6s ease-in-out;
+}
+
+@keyframes highlightPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7);
+  }
+
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 8px rgba(251, 191, 36, 0);
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+  }
+}
+
 /* Contenedor principal */
 .conversation-list-container {
   background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);

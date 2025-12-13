@@ -3,6 +3,7 @@ import { FaBars, FaStar, FaRegStar, FaChevronDown, FaChevronRight, FaChevronLeft
 import { MessageSquare, Home, Users } from 'lucide-react';
 import clsx from 'clsx';
 import apiService from '../../../../apiService';
+import SearchModal from '../modals/SearchModal';
 import './ConversationList.css';
 
 // --- ICONOS PERSONALIZADOS ---
@@ -69,7 +70,7 @@ const CollapsibleList = ({ title, icon: Icon, children, isOpen, onToggle, onLoad
   const isResizing = useRef(false);
   const startY = useRef(0);
   const startHeight = useRef(0);
-  const lastCheckTime = useRef(0); //  Prevenir checks múltiples
+  const lastCheckTime = useRef(0); // 🔥 Prevenir checks múltiples
   const hasMoreRef = useRef(hasMore);
 
   useEffect(() => {
@@ -85,22 +86,22 @@ const CollapsibleList = ({ title, icon: Icon, children, isOpen, onToggle, onLoad
     document.addEventListener('mouseup', stopResizing);
   }, [height]);
 
-  //  FUNCIÓN PARA VERIFICAR SI NECESITAMOS CARGAR MÁS DATOS (solo después de resize)
+  // 🔥 FUNCIÓN PARA VERIFICAR SI NECESITAMOS CARGAR MÁS DATOS (solo después de resize)
   const checkIfNeedsMoreData = useCallback(() => {
     if (!contentRef.current || !hasMoreRef.current || isLoading || !onLoadMore) return;
 
-    //  Prevenir llamadas múltiples en corto tiempo
+    // 🔥 Prevenir llamadas múltiples en corto tiempo
     const now = Date.now();
     if (now - lastCheckTime.current < 300) return;
 
     const { scrollTop, scrollHeight, clientHeight } = contentRef.current;
 
-    //  Obtener altura actual del contenedor
+    // 🔥 Obtener altura actual del contenedor
     const containerHeight = listRef.current?.offsetHeight || clientHeight;
     const headerHeight = listRef.current?.querySelector('.mx_RoomSublist_header')?.offsetHeight || 36;
     const availableHeight = containerHeight - headerHeight;
 
-    //  MEJORADO: Cargar más si hay espacio vacío o cerca del final
+    // 🔥 MEJORADO: Cargar más si hay espacio vacío o cerca del final
     const hasEmptySpace = scrollHeight < availableHeight;
     const isNearBottom = scrollHeight - scrollTop <= clientHeight + 80;
 
@@ -116,7 +117,7 @@ const CollapsibleList = ({ title, icon: Icon, children, isOpen, onToggle, onLoad
     const deltaY = e.clientY - startY.current;
     let newHeight = startHeight.current + deltaY;
 
-    //  Permitir crecer un poco más para disparar carga de datos
+    // 🔥 Permitir crecer un poco más para disparar carga de datos
     if (innerContentRef.current && listRef.current) {
       const contentHeight = innerContentRef.current.offsetHeight;
       const header = listRef.current.querySelector('.mx_RoomSublist_header');
@@ -138,7 +139,7 @@ const CollapsibleList = ({ title, icon: Icon, children, isOpen, onToggle, onLoad
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', stopResizing);
 
-    //  SIMPLE: Si hay más datos y no está cargando, cargar más
+    // 🔥 SIMPLE: Si hay más datos y no está cargando, cargar más
     if (hasMoreRef.current && onLoadMore && !isLoading) {
       console.log(`🔄 Loading more for "${title}" on resize release`);
       onLoadMore();
@@ -244,26 +245,161 @@ const ConversationList = ({
   const [isSearching, setIsSearching] = useState(false);
   const conversationsListRef = useRef(null);
   const [favoriteRoomCodes, setFavoriteRoomCodes] = useState([]);
-  const [favoriteRooms, setFavoriteRooms] = useState([]); //  NUEVO: Grupos favoritos con datos completos
+  const [favoriteRooms, setFavoriteRooms] = useState([]); // 🔥 NUEVO: Grupos favoritos con datos completos
   const [favoriteConversationIds, setFavoriteConversationIds] = useState([]);
   const [userCache, setUserCache] = useState({});
   const [messageSearchResults, setMessageSearchResults] = useState([]);
   const [showGroups, setShowGroups] = useState(true);
   const [showAssigned, setShowAssigned] = useState(true);
   const searchTimeoutRef = useRef(null);
-  //  NUEVO: Estado para filtrar búsqueda por tipo
+  // 🔥 NUEVO: Estado para filtrar búsqueda por tipo
   const [searchFilter, setSearchFilter] = useState('select_option'); // 'select_option', 'groups', 'favorites', 'assigned', 'messages'
-  //  NUEVO: Estados para resultados de búsqueda desde la API
+  // 🔥 NUEVO: Estado para resaltar chat seleccionado desde búsqueda
+  const [highlightedChatId, setHighlightedChatId] = useState(null);
+  // 🔥 NUEVO: Estados para resultados de búsqueda desde la API
   const [apiSearchResults, setApiSearchResults] = useState({ groups: [], assigned: [] });
   const [isApiSearching, setIsApiSearching] = useState(false);
   const apiSearchTimeoutRef = useRef(null);
+  // 🔥 NUEVO: Estado para el modal de búsqueda
+  const [showSearchModal, setShowSearchModal] = useState(false);
 
-  //  Estados locales para listas ordenadas (se actualizan automáticamente)
+  // 🔥 Estados locales para listas ordenadas (se actualizan automáticamente)
   const [sortedRooms, setSortedRooms] = useState([]);
   const [sortedAssignedConversations, setSortedAssignedConversations] = useState([]);
 
   const isAdmin = ['ADMIN', 'JEFEPISO'].includes(user?.role);
   const canViewMonitoring = ['SUPERADMIN', 'PROGRAMADOR'].includes(user?.role);
+
+  // 🔥 Función para manejar búsqueda desde el modal
+  const handleSearchFromModal = useCallback(async (term, searchType, selectedResult = null) => {
+    console.log(`🔍 Búsqueda desde modal: "${term}" - Tipo: ${searchType}`, selectedResult);
+
+    // Si hay un resultado seleccionado, navegar directamente a él
+    if (selectedResult) {
+      let chatId = null;
+
+      if (selectedResult.type === 'message') {
+        // Navegar al mensaje específico
+        if (selectedResult.roomCode) {
+          // Es un mensaje de grupo
+          const room = myActiveRooms?.find(r => r.roomCode === selectedResult.roomCode);
+          if (room && onRoomSelect) {
+            chatId = `room-${selectedResult.roomCode}`;
+            onRoomSelect(room, selectedResult.id); // Pasar messageId como segundo parámetro
+          }
+        } else {
+          // Es un mensaje directo - buscar en conversaciones asignadas
+          const conversation = assignedConversations?.find(conv =>
+            conv.participants?.some(p => p.toLowerCase().includes(selectedResult.from.toLowerCase()))
+          );
+          if (conversation && onUserSelect) {
+            chatId = `conv-${conversation.id}`;
+            onUserSelect(selectedResult.from, selectedResult.id, conversation);
+          } else if (onUserSelect) {
+            // Si no está en asignadas, abrir chat directo
+            chatId = `user-${selectedResult.from}`;
+            onUserSelect(selectedResult.from, selectedResult.id);
+          }
+        }
+      } else if (selectedResult.type === 'room') {
+        // Navegar al grupo
+        const room = myActiveRooms?.find(r => r.roomCode === selectedResult.roomCode);
+        if (room && onRoomSelect) {
+          chatId = `room-${selectedResult.roomCode}`;
+          onRoomSelect(room);
+        }
+      } else if (selectedResult.type === 'user') {
+        // Navegar a conversación con usuario
+        if (onUserSelect) {
+          chatId = `user-${selectedResult.username}`;
+          onUserSelect(selectedResult.username);
+        }
+      }
+
+      // 🔥 Resaltar el chat en la lista y hacer scroll
+      if (chatId) {
+        setHighlightedChatId(chatId);
+
+        // Hacer scroll al chat en la lista después de un pequeño delay
+        setTimeout(() => {
+          const chatElement = document.getElementById(chatId);
+          if (chatElement && conversationsListRef.current) {
+            chatElement.scrollIntoView({
+              behavior: 'smooth',
+              block: 'center'
+            });
+          }
+        }, 200);
+
+        // Quitar el resaltado después de 3 segundos
+        setTimeout(() => {
+          setHighlightedChatId(null);
+        }, 3000);
+      }
+
+      return 1; // Retornar que se seleccionó 1 resultado
+    }
+
+    // Si NO hay resultado seleccionado, ejecutar búsqueda normal
+    // Actualizar el término de búsqueda según el módulo activo
+    if (activeModule === 'chats' || activeModule === 'monitoring') {
+      setAssignedSearchTerm(term);
+    } else {
+      setSearchTerm(term);
+    }
+
+    // Mapear tipo de búsqueda a filtro
+    const filterMap = {
+      'user': 'assigned',
+      'room': 'groups',
+      'message': 'messages',
+      'general': searchFilter !== 'select_option' ? searchFilter : 'groups'
+    };
+
+    const filter = filterMap[searchType] || 'groups';
+    setSearchFilter(filter);
+
+    // Ejecutar búsqueda
+    let resultCount = 0;
+
+    try {
+      if (searchType === 'room' || searchType === 'general') {
+        // Buscar grupos
+        const isPrivilegedUser = ['ADMIN', 'JEFEPISO', 'PROGRAMADOR', 'SUPERADMIN'].includes(user?.role);
+        let groupsResult;
+        if (isPrivilegedUser) {
+          groupsResult = await apiService.getAdminRooms(1, 50, term);
+          const groups = groupsResult?.data || [];
+          setApiSearchResults(prev => ({ ...prev, groups }));
+          resultCount = groups.length;
+        } else {
+          groupsResult = await apiService.getUserRoomsPaginated(1, 50, term);
+          const groups = groupsResult?.rooms || [];
+          setApiSearchResults(prev => ({ ...prev, groups }));
+          resultCount = groups.length;
+        }
+      }
+
+      if (searchType === 'user') {
+        // Buscar conversaciones asignadas
+        const assignedResult = await apiService.getAssignedConversationsPaginated(1, 50, term);
+        const assigned = assignedResult?.conversations || [];
+        setApiSearchResults(prev => ({ ...prev, assigned }));
+        resultCount = assigned.length;
+      }
+
+      if (searchType === 'message') {
+        // Buscar mensajes
+        const messagesResult = await apiService.searchMessagesByUserId(user.id, term);
+        setMessageSearchResults(messagesResult || []);
+        resultCount = (messagesResult || []).length;
+      }
+    } catch (error) {
+      console.error('Error en búsqueda:', error);
+    }
+
+    return resultCount;
+  }, [activeModule, searchFilter, user, onRoomSelect, onUserSelect, myActiveRooms, assignedConversations]);
 
   const getDisplayName = () => {
     if (!user) return '';
@@ -322,12 +458,12 @@ const ConversationList = ({
       const displayName = getDisplayName();
       if (!displayName || !isMounted) return;
 
-      //  Siempre recargar favoritos para mantener sincronizado
+      // 🔥 Siempre recargar favoritos para mantener sincronizado
       try {
-        // console.log(' Cargando favoritos para:', displayName);
+        // console.log('🔥 Cargando favoritos para:', displayName);
         // Cargar grupos favoritos con datos completos
         const roomsWithData = await apiService.getUserFavoriteRoomsWithData(displayName);
-        // console.log(' Favoritos cargados:', roomsWithData);
+        // console.log('🔥 Favoritos cargados:', roomsWithData);
         if (isMounted) {
           setFavoriteRooms(roomsWithData);
           setFavoriteRoomCodes(roomsWithData.map(r => r.roomCode));
@@ -351,11 +487,11 @@ const ConversationList = ({
     try {
       const result = await apiService.toggleRoomFavorite(displayName, room.roomCode, room.id);
       if (result.isFavorite) {
-        //  Agregar a favoritos con datos completos
+        // 🔥 Agregar a favoritos con datos completos
         setFavoriteRoomCodes(prev => [...prev, room.roomCode]);
         setFavoriteRooms(prev => [...prev, { ...room, isFavorite: true }]);
       } else {
-        //  Quitar de favoritos
+        // 🔥 Quitar de favoritos
         setFavoriteRoomCodes(prev => prev.filter(code => code !== room.roomCode));
         setFavoriteRooms(prev => prev.filter(r => r.roomCode !== room.roomCode));
       }
@@ -428,7 +564,7 @@ const ConversationList = ({
     };
   }, []);
 
-  //  NUEVO: Función para buscar en la API según el filtro seleccionado
+  // 🔥 NUEVO: Función para buscar en la API según el filtro seleccionado
   const handleApiSearch = useCallback((searchValue, filterOverride = null) => {
     if (apiSearchTimeoutRef.current) {
       clearTimeout(apiSearchTimeoutRef.current);
@@ -457,7 +593,7 @@ const ConversationList = ({
         // Buscar grupos si el filtro es 'groups'
         if (currentFilter === 'groups') {
           try {
-            //  Usar la API correcta según el rol del usuario
+            // 🔥 Usar la API correcta según el rol del usuario
             const isPrivilegedUser = ['ADMIN', 'JEFEPISO', 'PROGRAMADOR', 'SUPERADMIN'].includes(user?.role);
             let groupsResult;
             if (isPrivilegedUser) {
@@ -482,7 +618,7 @@ const ConversationList = ({
           }
         }
 
-        //  NUEVO: Buscar mensajes si el filtro es 'messages'
+        // 🔥 NUEVO: Buscar mensajes si el filtro es 'messages'
         if (currentFilter === 'messages') {
           try {
             console.log(`🔎 Buscando mensajes para: "${searchValue}"`);
@@ -523,7 +659,7 @@ const ConversationList = ({
     return conv.participants?.includes(displayName);
   });
 
-  //  CALCULO DE NO LEÍDOS PARA ASIGNADOS (Combinando prop interna + unreadMessages global)
+  // 🔥 CALCULO DE NO LEÍDOS PARA ASIGNADOS (Combinando prop interna + unreadMessages global)
   const unreadAssignedCount = myAssignedConversations.reduce((acc, conv) => {
     // Intentamos obtener el conteo real del socket (unreadMessages)
     // Usamos conv.id (si es por ID) o tratamos de buscar por username del otro participante si fuera necesario
@@ -536,7 +672,7 @@ const ConversationList = ({
 
   const unreadMonitoringCount = monitoringConversations.filter(conv => conv.unreadCount > 0).length;
 
-  //  CALCULO DE NO LEÍDOS PARA GRUPOS
+  // 🔥 CALCULO DE NO LEÍDOS PARA GRUPOS
   const unreadRoomsCount = myActiveRooms?.filter(room => {
     const roomUnread = unreadMessages?.[room.roomCode];
     // Si viene del socket, usarlo. Si no, fallback a propiedad del objeto si existiera (room.unreadCount)
@@ -617,23 +753,12 @@ const ConversationList = ({
             </span>
             <input
               type="text"
-              disabled={searchFilter === 'select_option'}
-              placeholder={searchFilter === 'select_option' ? "Seleccione un filtro para buscar" : "Buscar..."}
-              className="flex-1 bg-transparent border-none text-gray-800 outline-none placeholder:text-gray-400 max-[1280px]:!text-sm max-[1280px]:placeholder:!text-xs max-[1024px]:!text-xs max-[1024px]:placeholder:!text-[11px] max-[768px]:!text-sm max-[768px]:placeholder:!text-xs"
-              style={{ fontSize: '14px', lineHeight: '16px', fontWeight: 400 }}
+              placeholder="Buscar..."
+              className="flex-1 bg-transparent border-none outline-none placeholder:text-gray-400 max-[1280px]:!text-sm max-[1280px]:placeholder:!text-xs max-[1024px]:!text-xs max-[1024px]:placeholder:!text-[11px] max-[768px]:!text-sm max-[768px]:placeholder:!text-xs cursor-pointer"
+              style={{ fontSize: '14px', lineHeight: '16px', fontWeight: 400, color: '#333' }}
               value={activeModule === 'chats' || activeModule === 'monitoring' ? assignedSearchTerm : searchTerm}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (activeModule === 'chats' || activeModule === 'monitoring') {
-                  setAssignedSearchTerm(value);
-                  handleMessageSearch(value);
-                  handleApiSearch(value); //  NUEVO: Buscar en API
-                } else {
-                  setSearchTerm(value);
-                  handleMessageSearch(value);
-                  handleApiSearch(value); //  NUEVO: Buscar en API
-                }
-              }}
+              onClick={() => setShowSearchModal(true)}
+              readOnly
             />
             {((activeModule === 'conversations' && searchTerm) || (activeModule === 'chats' && assignedSearchTerm) || (activeModule === 'monitoring' && assignedSearchTerm)) && (
               <button className="bg-transparent border-none text-gray-400 cursor-pointer p-0.5 flex items-center justify-center rounded-full transition-all duration-200 hover:text-gray-600 active:scale-95"
@@ -684,7 +809,7 @@ const ConversationList = ({
                   onChange={(e) => {
                     const newFilter = e.target.value;
                     setSearchFilter(newFilter);
-                    //  NUEVO: Re-ejecutar búsqueda con el nuevo filtro
+                    // 🔥 NUEVO: Re-ejecutar búsqueda con el nuevo filtro
                     if (assignedSearchTerm.trim().length >= 2) {
                       handleApiSearch(assignedSearchTerm, newFilter);
                     }
@@ -768,13 +893,21 @@ const ConversationList = ({
               onToggle={() => { }}
               defaultHeight={130}
             >
-              {/* Grupos favoritos -  Usando favoriteRooms con datos completos */}
+              {/* Grupos favoritos - 🔥 Usando favoriteRooms con datos completos */}
               {favoriteRooms.map((room) => {
                 const typingUsers = roomTypingUsers[room.roomCode] || [];
                 const isTypingInRoom = typingUsers.length > 0;
                 const roomUnreadCount = unreadMessages?.[room.roomCode] !== undefined ? unreadMessages[room.roomCode] : (room.unreadCount || 0);
+                const chatId = `room-${room.roomCode}`;
+                const isHighlighted = highlightedChatId === chatId;
                 return (
-                  <div key={`fav-room-${room.id}`} className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer ${currentRoomCode === room.roomCode ? 'bg-[#e7f3f0]' : ''}`} style={{ padding: '4px 12px', gap: '6px', minHeight: '40px' }} onClick={() => onRoomSelect && onRoomSelect(room)}>
+                  <div
+                    key={`fav-room-${room.id}`}
+                    id={chatId}
+                    className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer ${currentRoomCode === room.roomCode ? 'bg-[#e7f3f0]' : ''} ${isHighlighted ? 'highlighted-chat' : ''}`}
+                    style={{ padding: '4px 12px', gap: '6px', minHeight: '40px' }}
+                    onClick={() => onRoomSelect && onRoomSelect(room)}
+                  >
                     <div className="relative flex-shrink-0" style={{ width: '32px', height: '32px' }}>
                       <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold" style={{ width: '32px', height: '32px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '14px', backgroundColor: '#A50104' }}>
                         {room.description ? <img src={room.description} alt={room.name} className="w-full h-full object-cover" /> : "🏠"}
@@ -804,8 +937,16 @@ const ConversationList = ({
                 const otherParticipant = participants.find(p => p?.toLowerCase() !== currentUserFullName?.toLowerCase()) || participants[0];
                 const itemUnreadCount = unreadMessages?.[conv.id] !== undefined ? unreadMessages[conv.id] : (conv.unreadCount || 0);
                 const getInitials = (name) => { const parts = name?.split(' ') || []; return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : (name?.[0]?.toUpperCase() || 'U'); };
+                const chatId = `conv-${conv.id}`;
+                const isHighlighted = highlightedChatId === chatId;
                 return (
-                  <div key={`fav-conv-${conv.id}`} className="flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer" style={{ padding: '4px 12px', gap: '6px', minHeight: '40px' }} onClick={() => onUserSelect && onUserSelect(otherParticipant, null, conv)}>
+                  <div
+                    key={`fav-conv-${conv.id}`}
+                    id={chatId}
+                    className={`flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer ${isHighlighted ? 'highlighted-chat' : ''}`}
+                    style={{ padding: '4px 12px', gap: '6px', minHeight: '40px' }}
+                    onClick={() => onUserSelect && onUserSelect(otherParticipant, null, conv)}
+                  >
                     <div className="relative flex-shrink-0" style={{ width: '32px', height: '32px' }}>
                       <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold" style={{ width: '32px', height: '32px', fontSize: '14px', backgroundColor: '#A50104' }}>{getInitials(otherParticipant)}</div>
                     </div>
@@ -848,7 +989,7 @@ const ConversationList = ({
               isLoading={roomsLoading}
             >
               {(() => {
-                //  NUEVO: Si hay búsqueda activa con resultados de API, usar esos resultados
+                // 🔥 NUEVO: Si hay búsqueda activa con resultados de API, usar esos resultados
                 const hasApiSearch = assignedSearchTerm.trim().length >= 2 && apiSearchResults.groups.length > 0;
 
                 if (!myActiveRooms || myActiveRooms.length === 0) {
@@ -862,14 +1003,14 @@ const ConversationList = ({
                   }
                 }
 
-                //  El backend excluye favoritos, pero filtramos aquí también para
+                // 🔥 El backend excluye favoritos, pero filtramos aquí también para
                 // reactividad inmediata cuando marcas un nuevo favorito (myActiveRooms está cacheado)
                 let filteredRooms;
                 if (hasApiSearch) {
                   filteredRooms = apiSearchResults.groups.filter(room => !favoriteRoomCodes.includes(room.roomCode));
                 } else {
                   filteredRooms = (myActiveRooms || [])
-                    .filter(room => !favoriteRoomCodes.includes(room.roomCode)) //  Excluir favoritos
+                    .filter(room => !favoriteRoomCodes.includes(room.roomCode)) // 🔥 Excluir favoritos
                     .filter(room => assignedSearchTerm.trim() === '' || room.name.toLowerCase().includes(assignedSearchTerm.toLowerCase()) || room.roomCode.toLowerCase().includes(assignedSearchTerm.toLowerCase()));
                 }
 
@@ -910,9 +1051,17 @@ const ConversationList = ({
                       const isTypingInRoom = typingUsers.length > 0;
                       const isFavorite = favoriteRoomCodes.includes(room.roomCode);
                       const roomUnreadCount = unreadMessages?.[room.roomCode] !== undefined ? unreadMessages[room.roomCode] : (room.unreadCount || 0);
+                      const chatId = `room-${room.roomCode}`;
+                      const isHighlighted = highlightedChatId === chatId;
 
                       return (
-                        <div key={room.id} className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer ${currentRoomCode === room.roomCode ? 'bg-[#e7f3f0]' : ''}`} style={{ padding: '4px 12px', gap: '6px', minHeight: '40px' }} onClick={() => onRoomSelect && onRoomSelect(room)}>
+                        <div
+                          key={room.id}
+                          id={chatId}
+                          className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer ${currentRoomCode === room.roomCode ? 'bg-[#e7f3f0]' : ''} ${isHighlighted ? 'highlighted-chat' : ''}`}
+                          style={{ padding: '4px 12px', gap: '6px', minHeight: '40px' }}
+                          onClick={() => onRoomSelect && onRoomSelect(room)}
+                        >
                           <div className="relative flex-shrink-0" style={{ width: '32px', height: '32px' }}>
                             <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold" style={{ width: '32px', height: '32px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '14px', backgroundColor: '#A50104' }}>
                               {room.description ? (
@@ -965,7 +1114,7 @@ const ConversationList = ({
               defaultHeight={250}
             >
               {(() => {
-                //  NUEVO: Si hay búsqueda activa con resultados de API, usar esos resultados
+                // 🔥 NUEVO: Si hay búsqueda activa con resultados de API, usar esos resultados
                 const hasApiSearch = assignedSearchTerm.trim().length >= 2 && apiSearchResults.assigned.length > 0;
 
                 // Mostrar indicador de búsqueda
@@ -977,7 +1126,7 @@ const ConversationList = ({
                   );
                 }
 
-                //  NUEVO: Usar resultados de API si hay búsqueda, sino filtrar localmente
+                // 🔥 NUEVO: Usar resultados de API si hay búsqueda, sino filtrar localmente
                 let myConversations;
                 if (hasApiSearch) {
                   myConversations = apiSearchResults.assigned.filter(conv => !favoriteConversationIds.includes(conv.id));
@@ -1052,8 +1201,17 @@ const ConversationList = ({
 
                       const itemUnreadCount = unreadMessages?.[conv.id] !== undefined ? unreadMessages[conv.id] : (conv.unreadCount || 0);
 
+                      const chatId = `conv-${conv.id}`;
+                      const isHighlighted = highlightedChatId === chatId;
+
                       return (
-                        <div key={conv.id} className="flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group overflow-visible relative" style={{ padding: '4px 12px', gap: '6px', minHeight: '40px', display: 'flex', alignItems: 'flex-start', width: '100%', minWidth: 0, position: 'relative' }} onClick={() => { if (onUserSelect) onUserSelect(displayName, null, conv); }}>
+                        <div
+                          key={conv.id}
+                          id={chatId}
+                          className={`flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group overflow-visible relative ${isHighlighted ? 'highlighted-chat' : ''}`}
+                          style={{ padding: '4px 12px', gap: '6px', minHeight: '40px', display: 'flex', alignItems: 'flex-start', width: '100%', minWidth: 0, position: 'relative' }}
+                          onClick={() => { if (onUserSelect) onUserSelect(displayName, null, conv); }}
+                        >
                           <div className="relative flex-shrink-0" style={{ width: '32px', height: '32px' }}>
                             <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold" style={{ width: '32px', height: '32px', fontSize: '14px', backgroundColor: '#A50104' }}>
                               {otherParticipantPicture ? <img src={otherParticipantPicture} alt={displayName} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = getInitials(displayName); }} /> : getInitials(displayName)}
@@ -1202,8 +1360,16 @@ const ConversationList = ({
                   const participant2Name = participants[1] || 'Usuario 2';
                   const getInitials = (name) => { const parts = name.split(' '); if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase(); return name[0]?.toUpperCase() || 'U'; };
                   const isFavorite = favoriteConversationIds.includes(conv.id);
+                  const chatId = `conv-${conv.id}`;
+                  const isHighlighted = highlightedChatId === chatId;
                   return (
-                    <div key={conv.id} className="flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group relative" style={{ padding: '4px 12px', gap: '6px', minHeight: '40px', display: 'flex', alignItems: 'flex-start', width: '100%', minWidth: 0, position: 'relative' }} onClick={() => { if (onUserSelect) { const adminFullName = user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.username; const otherParticipant = participants.find(p => p.toLowerCase().trim() !== adminFullName?.toLowerCase().trim()) || participant2Name; onUserSelect(otherParticipant, null, conv); } }}>
+                    <div
+                      key={conv.id}
+                      id={chatId}
+                      className={`flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group relative ${isHighlighted ? 'highlighted-chat' : ''}`}
+                      style={{ padding: '4px 12px', gap: '6px', minHeight: '40px', display: 'flex', alignItems: 'flex-start', width: '100%', minWidth: 0, position: 'relative' }}
+                      onClick={() => { if (onUserSelect) { const adminFullName = user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.username; const otherParticipant = participants.find(p => p.toLowerCase().trim() !== adminFullName?.toLowerCase().trim()) || participant2Name; onUserSelect(otherParticipant, null, conv); } }}
+                    >
                       <div className="relative flex-shrink-0 cursor-pointer group" style={{ width: '32px', height: '32px' }} title={`${participant1Name} ↔️ ${participant2Name}`}>
                         <div className="relative" style={{ width: '32px', height: '32px' }}>
                           <div className="absolute rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-white font-bold hover:ring-2 hover:ring-purple-400 transition-all" style={{ width: '20px', height: '20px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '9px', top: '0', left: '0', zIndex: 2, cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); if (onUserSelect) onUserSelect(participant1Name, null, { ...conv, selectedParticipant: participant1Name }); }}>{getInitials(participant1Name)}</div>
@@ -1249,6 +1415,15 @@ const ConversationList = ({
           })()}
         </div >
       )}
+
+      {/* Modal de búsqueda */}
+      <SearchModal
+        isOpen={showSearchModal}
+        onClose={() => setShowSearchModal(false)}
+        onSearch={handleSearchFromModal}
+        currentFilter={searchFilter}
+        user={user}
+      />
 
     </div>
   );
