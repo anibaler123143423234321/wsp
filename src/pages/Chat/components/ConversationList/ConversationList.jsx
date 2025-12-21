@@ -263,6 +263,17 @@ const ConversationList = ({
   // 🔥 NUEVO: Estado para el modal de búsqueda
   const [showSearchModal, setShowSearchModal] = useState(false);
 
+  // 🔥 NUEVO: Estados para búsqueda tipo WhatsApp
+  const [whatsappSearchResults, setWhatsappSearchResults] = useState([]);
+  const [whatsappSearchTotal, setWhatsappSearchTotal] = useState(0);
+  const [whatsappSearchHasMore, setWhatsappSearchHasMore] = useState(false);
+  const [whatsappSearchOffset, setWhatsappSearchOffset] = useState(0);
+  const [whatsappSearchGrouped, setWhatsappSearchGrouped] = useState({});
+  const [isWhatsappSearching, setIsWhatsappSearching] = useState(false);
+  const [isLoadingMoreSearch, setIsLoadingMoreSearch] = useState(false);
+  const whatsappSearchTimeoutRef = useRef(null);
+  const searchResultsRef = useRef(null);
+
   // 🔥 Estados locales para listas ordenadas (se actualizan automáticamente)
   const [sortedRooms, setSortedRooms] = useState([]);
   const [sortedAssignedConversations, setSortedAssignedConversations] = useState([]);
@@ -553,6 +564,130 @@ const ConversationList = ({
     }, 500);
   }, [user]);
 
+  // 🔥 NUEVO: Búsqueda tipo WhatsApp - búsqueda inicial
+  const handleWhatsappSearch = useCallback(async (searchValue) => {
+    if (whatsappSearchTimeoutRef.current) {
+      clearTimeout(whatsappSearchTimeoutRef.current);
+    }
+
+    if (!searchValue || searchValue.trim().length === 0) {
+      setWhatsappSearchResults([]);
+      setWhatsappSearchTotal(0);
+      setWhatsappSearchHasMore(false);
+      setWhatsappSearchOffset(0);
+      setWhatsappSearchGrouped({});
+      setIsWhatsappSearching(false);
+      return;
+    }
+
+    // Usar nombre completo del usuario (como espera el backend)
+    const fullName = user?.nombre && user?.apellido
+      ? `${user.nombre} ${user.apellido}`.trim()
+      : user?.fullName || user?.username;
+
+    if (!fullName) {
+      console.error('No se pudo obtener el nombre del usuario');
+      return;
+    }
+
+    whatsappSearchTimeoutRef.current = setTimeout(async () => {
+      setIsWhatsappSearching(true);
+      try {
+        const result = await apiService.searchAllMessages(fullName, searchValue, 15, 0);
+        setWhatsappSearchResults(result.results || []);
+        setWhatsappSearchTotal(result.total || 0);
+        setWhatsappSearchHasMore(result.hasMore || false);
+        setWhatsappSearchOffset(result.nextOffset || 0);
+        setWhatsappSearchGrouped(result.groupedByConversation || {});
+      } catch (error) {
+        console.error('Error en búsqueda WhatsApp:', error);
+        setWhatsappSearchResults([]);
+      } finally {
+        setIsWhatsappSearching(false);
+      }
+    }, 300); // 300ms debounce
+  }, [user]);
+
+  // 🔥 NUEVO: Cargar más resultados de búsqueda WhatsApp
+  const loadMoreWhatsappSearch = useCallback(async () => {
+    if (!whatsappSearchHasMore || isLoadingMoreSearch) return;
+
+    const searchValue = activeModule === 'chats' || activeModule === 'monitoring' ? assignedSearchTerm : searchTerm;
+    if (!searchValue?.trim()) return;
+
+    // Usar nombre completo del usuario (como espera el backend)
+    const fullName = user?.nombre && user?.apellido
+      ? `${user.nombre} ${user.apellido}`.trim()
+      : user?.fullName || user?.username;
+    if (!fullName) return;
+
+    setIsLoadingMoreSearch(true);
+    try {
+      const result = await apiService.searchAllMessages(fullName, searchValue, 15, whatsappSearchOffset);
+      setWhatsappSearchResults(prev => [...prev, ...(result.results || [])]);
+      setWhatsappSearchHasMore(result.hasMore || false);
+      setWhatsappSearchOffset(result.nextOffset || 0);
+    } catch (error) {
+      console.error('Error cargando más resultados:', error);
+    } finally {
+      setIsLoadingMoreSearch(false);
+    }
+  }, [whatsappSearchHasMore, isLoadingMoreSearch, whatsappSearchOffset, user, activeModule, assignedSearchTerm, searchTerm]);
+
+  // 🔥 NUEVO: Handler para scroll en resultados de búsqueda
+  const handleSearchResultsScroll = useCallback((e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    if (scrollHeight - scrollTop <= clientHeight + 100) {
+      loadMoreWhatsappSearch();
+    }
+  }, [loadMoreWhatsappSearch]);
+
+  // 🔥 NUEVO: Navegar a un resultado de búsqueda
+  const handleSearchResultClick = useCallback((result) => {
+    console.log('🔍 handleSearchResultClick:', result);
+    console.log('🔍 myActiveRooms:', myActiveRooms);
+
+    if (result.conversationType === 'group') {
+      // Buscar el room en myActiveRooms
+      let room = myActiveRooms?.find(r => r.roomCode === result.roomCode);
+
+      // Si no se encuentra por roomCode, intentar por conversationId
+      if (!room && result.conversationId) {
+        room = myActiveRooms?.find(r => r.roomCode === result.conversationId);
+      }
+
+      console.log('🔍 Room encontrado:', room);
+
+      if (room && onRoomSelect) {
+        onRoomSelect(room, result.id); // Pasar messageId para hacer scroll
+      } else if (onRoomSelect) {
+        // Si no encontramos el room, crear uno temporal con los datos del resultado
+        console.log('⚠️ Room no encontrado en myActiveRooms, creando temporal');
+        const tempRoom = {
+          roomCode: result.roomCode || result.conversationId,
+          name: result.conversationName,
+        };
+        onRoomSelect(tempRoom, result.id);
+      }
+    } else {
+      // Chat directo
+      console.log('🔍 Chat directo - buscando en assignedConversations:', assignedConversations);
+      if (onUserSelect) {
+        // Buscar en conversaciones asignadas
+        const conversation = assignedConversations?.find(conv =>
+          conv.participants?.some(p =>
+            p.toLowerCase() === result.conversationName?.toLowerCase() ||
+            p.toLowerCase() === result.from?.toLowerCase()
+          )
+        );
+        const targetUser = result.isMyMessage ? result.conversationName : result.from;
+        console.log('🔍 targetUser:', targetUser, 'conversation:', conversation);
+        onUserSelect(targetUser, result.id, conversation);
+      }
+    }
+    // NO limpiar búsqueda - el usuario debe limpiar manualmente el input para salir
+  }, [myActiveRooms, assignedConversations, onRoomSelect, onUserSelect]);
+
   useEffect(() => {
     return () => {
       if (searchTimeoutRef.current) {
@@ -560,6 +695,9 @@ const ConversationList = ({
       }
       if (apiSearchTimeoutRef.current) {
         clearTimeout(apiSearchTimeoutRef.current);
+      }
+      if (whatsappSearchTimeoutRef.current) {
+        clearTimeout(whatsappSearchTimeoutRef.current);
       }
     };
   }, []);
@@ -645,10 +783,11 @@ const ConversationList = ({
     if (!searchTerm.trim()) return true;
     const searchLower = searchTerm.toLowerCase();
     const displayName = conversation.nombre && conversation.apellido ? `${conversation.nombre} ${conversation.apellido}` : conversation.username;
+    const lastMsg = typeof conversation.lastMessage === 'string' ? conversation.lastMessage : (conversation.lastMessage?.message || conversation.lastMessage?.text || '');
     return (
       conversation.username?.toLowerCase().includes(searchLower) ||
       displayName?.toLowerCase().includes(searchLower) ||
-      conversation.lastMessage?.toLowerCase().includes(searchLower)
+      lastMsg.toLowerCase().includes(searchLower)
     );
   }) || [];
 
@@ -753,26 +892,36 @@ const ConversationList = ({
             </span>
             <input
               type="text"
-              placeholder="Buscar..."
-              className="flex-1 bg-transparent border-none outline-none placeholder:text-gray-400 max-[1280px]:!text-sm max-[1280px]:placeholder:!text-xs max-[1024px]:!text-xs max-[1024px]:placeholder:!text-[11px] max-[768px]:!text-sm max-[768px]:placeholder:!text-xs cursor-pointer"
+              placeholder="Buscar conversación..."
+              className="flex-1 bg-transparent border-none outline-none placeholder:text-gray-400 max-[1280px]:!text-sm max-[1280px]:placeholder:!text-xs max-[1024px]:!text-xs max-[1024px]:placeholder:!text-[11px] max-[768px]:!text-sm max-[768px]:placeholder:!text-xs"
               style={{ fontSize: '14px', lineHeight: '16px', fontWeight: 400, color: '#333' }}
               value={activeModule === 'chats' || activeModule === 'monitoring' ? assignedSearchTerm : searchTerm}
-              onClick={() => setShowSearchModal(true)}
-              readOnly
+              onChange={(e) => {
+                const value = e.target.value;
+                if (activeModule === 'chats' || activeModule === 'monitoring') {
+                  setAssignedSearchTerm(value);
+                } else {
+                  setSearchTerm(value);
+                }
+                // 🔥 Búsqueda tipo WhatsApp
+                handleWhatsappSearch(value);
+              }}
             />
             {((activeModule === 'conversations' && searchTerm) || (activeModule === 'chats' && assignedSearchTerm) || (activeModule === 'monitoring' && assignedSearchTerm)) && (
               <button className="bg-transparent border-none text-gray-400 cursor-pointer p-0.5 flex items-center justify-center rounded-full transition-all duration-200 hover:text-gray-600 active:scale-95"
                 onClick={() => {
                   if (activeModule === 'chats' || activeModule === 'monitoring') {
                     setAssignedSearchTerm('');
-                    setMessageSearchResults([]);
-                    setApiSearchResults({ groups: [], assigned: [] });
                   }
                   else {
                     setSearchTerm('');
-                    setMessageSearchResults([]);
-                    setApiSearchResults({ groups: [], assigned: [] });
                   }
+                  // 🔥 Limpiar búsqueda WhatsApp
+                  setWhatsappSearchResults([]);
+                  setWhatsappSearchTotal(0);
+                  setWhatsappSearchGrouped({});
+                  setMessageSearchResults([]);
+                  setApiSearchResults({ groups: [], assigned: [] });
                 }}
               >
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
@@ -782,64 +931,134 @@ const ConversationList = ({
               </button>
             )}
           </div>
-          {(activeModule === 'conversations' || activeModule === 'chats' || activeModule === 'monitoring') && (
+          {/* Botón Búsqueda Avanzada - OCULTO */}
+          {/* {(activeModule === 'conversations' || activeModule === 'chats' || activeModule === 'monitoring') && (
             <div className="flex items-center gap-2 flex-nowrap max-[1280px]:!gap-1 max-[1024px]:!gap-1" style={{ marginTop: '8px' }}>
-              {/* Ordenar por */}
-              <div className="flex items-center gap-1">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" className="text-gray-500">
-                  <path d="M4 6H20M4 12H14M4 18H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <button
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-[#A50104] to-[#c41e22] text-white rounded-lg text-xs font-medium cursor-pointer transition-all duration-200 hover:from-[#8a0103] hover:to-[#a50104] hover:shadow-md active:scale-95"
+                onClick={() => setShowSearchModal(true)}
+                title="Búsqueda avanzada"
+              >
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+                  <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+                  <path d="M20 20L16.5 16.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <path d="M11 8V14M8 11H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 </svg>
-                <select className="bg-transparent border-none text-[#33B8FF] cursor-pointer outline-none max-[1280px]:!text-sm max-[1024px]:!text-xs" style={{ fontWeight: 400, fontSize: '14px', lineHeight: '18px' }} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                  <option value="newest">Newest</option>
-                  <option value="oldest">Oldest</option>
-                  <option value="name">Name</option>
-                </select>
+                <span>Búsqueda avanzada</span>
+              </button>
+            </div>
+          )} */}
+        </div>
+      )}
+
+      {/* =========================================================================
+         🔥 RESULTADOS DE BÚSQUEDA TIPO WHATSAPP
+         ========================================================================= */}
+      {((activeModule === 'chats' || activeModule === 'conversations' || activeModule === 'monitoring') &&
+        (assignedSearchTerm.trim() || searchTerm.trim()) &&
+        (whatsappSearchResults.length > 0 || isWhatsappSearching)) && (
+        <div
+          ref={searchResultsRef}
+          className="flex-1 overflow-y-auto bg-white w-full"
+          style={{ maxHeight: 'calc(100vh - 180px)' }}
+          onScroll={handleSearchResultsScroll}
+        >
+          {/* Header de resultados */}
+          {whatsappSearchTotal > 0 && (
+            <div className="sticky top-0 bg-[#f0f2f5] pl-4 pr-3 py-2 z-10">
+              <span className="text-[13px] text-[#54656f]">
+                {whatsappSearchTotal} mensaje{whatsappSearchTotal !== 1 ? 's' : ''} encontrado{whatsappSearchTotal !== 1 ? 's' : ''}
+              </span>
+            </div>
+          )}
+
+          {/* Loading inicial */}
+          {isWhatsappSearching && whatsappSearchResults.length === 0 && (
+            <div className="flex items-center justify-center py-16">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-6 h-6 border-2 border-gray-200 border-t-[#00a884] rounded-full animate-spin"></div>
+                <span className="text-[13px] text-gray-400">Buscando...</span>
               </div>
-              {/* Separador */}
-              <span className="text-gray-300">|</span>
-              {/* Filtrar por */}
-              <div className="flex items-center gap-1">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" className="text-gray-500">
-                  <path d="M3 6H21M7 12H17M10 18H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <select
-                  className="bg-transparent border-none text-[#33B8FF] cursor-pointer outline-none max-[1280px]:!text-sm max-[1024px]:!text-xs"
-                  style={{ fontWeight: 400, fontSize: '14px', lineHeight: '18px' }}
-                  value={searchFilter}
-                  onChange={(e) => {
-                    const newFilter = e.target.value;
-                    setSearchFilter(newFilter);
-                    // 🔥 NUEVO: Re-ejecutar búsqueda con el nuevo filtro
-                    if (assignedSearchTerm.trim().length >= 2) {
-                      handleApiSearch(assignedSearchTerm, newFilter);
-                    }
-                  }}
-                >
-                  <option value="select_option" disabled>Seleccione filtro...</option>
-                  <option value="groups">Grupos</option>
-                  <option value="favorites">Favoritos</option>
-                  <option value="assigned">Asignados</option>
-                  <option value="messages">Mensajes</option>
-                </select>
-                {searchFilter !== 'select_option' && (
-                  <button
-                    className="bg-transparent border-none text-gray-500 cursor-pointer p-0.5 flex items-center justify-center rounded-full transition-all duration-200 hover:text-red-500 hover:bg-red-50 active:scale-95 flex-shrink-0"
-                    onClick={() => {
-                      setSearchFilter('select_option');
-                      setSearchTerm('');
-                      setAssignedSearchTerm('');
-                      setMessageSearchResults([]);
-                      setApiSearchResults({ groups: [], assigned: [] });
-                    }}
-                    title="Limpiar filtro"
-                  >
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-                      <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.3" />
-                      <path d="M15 9L9 15M9 9L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </div>
+          )}
+
+          {/* Lista de resultados */}
+          <div className="w-full">
+            {whatsappSearchResults.map((result, index) => (
+              <div
+                key={`${result.id}-${index}`}
+                className="flex items-start gap-3 pl-4 pr-3 py-[10px] cursor-pointer hover:bg-[#f5f6f6] active:bg-[#e9edef] transition-colors border-b border-[#e9edef]"
+                onClick={() => handleSearchResultClick(result)}
+              >
+                {/* Avatar */}
+                <div className={`flex-shrink-0 w-[49px] h-[49px] rounded-full flex items-center justify-center text-white text-sm font-medium ${result.conversationType === 'group' ? 'bg-[#00a884]' : 'bg-[#5b67ea]'}`}>
+                  {result.conversationType === 'group' ? (
+                    <svg viewBox="0 0 212 212" width="24" height="24" fill="currentColor">
+                      <path d="M106 0C47.5 0 0 47.5 0 106s47.5 106 106 106 106-47.5 106-106S164.5 0 106 0zm45.2 162.7c-4.4-12.3-16-21.2-29.6-21.2h-31.2c-13.6 0-25.2 8.9-29.6 21.2-16.7-14-27.3-35-27.3-58.7 0-42.4 34.5-76.9 76.9-76.9s76.9 34.5 76.9 76.9c0 23.7-10.7 44.7-27.4 58.7h.1l1.2-.1z"/>
+                      <path d="M106 45.4c-19.8 0-35.9 16.1-35.9 35.9S86.2 117.2 106 117.2s35.9-16.1 35.9-35.9S125.8 45.4 106 45.4z"/>
                     </svg>
-                  </button>
-                )}
+                  ) : (
+                    <span className="text-base">{result.from?.charAt(0)?.toUpperCase() || '?'}</span>
+                  )}
+                </div>
+
+                {/* Contenido */}
+                <div className="flex-1 min-w-0 pr-2">
+                  {/* Primera línea: Nombre + Hora */}
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="font-normal text-[16px] text-[#111b21] truncate max-w-[70%]">
+                      {result.conversationName}
+                    </span>
+                    <span className="text-[12px] text-[#667781] flex-shrink-0">
+                      {result.time}
+                    </span>
+                  </div>
+
+                  {/* Segunda línea: Remitente (en grupos) */}
+                  {result.conversationType === 'group' && (
+                    <div className="text-[14px] text-[#00a884] truncate mb-0.5">
+                      {result.isMyMessage ? 'Tú' : result.from}
+                    </div>
+                  )}
+
+                  {/* Tercera línea: Preview del mensaje */}
+                  <p className="text-[14px] text-[#667781] truncate leading-5"
+                     dangerouslySetInnerHTML={{
+                       __html: result.message?.replace(
+                         new RegExp(`(${(assignedSearchTerm || searchTerm).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'),
+                         '<mark class="bg-[#fef08a] text-[#111b21] rounded-sm">$1</mark>'
+                       ) || (result.fileName ? `📎 ${result.fileName}` : '')
+                     }}
+                  />
+                </div>
               </div>
+            ))}
+          </div>
+
+          {/* Loading más resultados */}
+          {isLoadingMoreSearch && (
+            <div className="flex items-center justify-center py-3">
+              <div className="w-5 h-5 border-2 border-gray-200 border-t-[#00a884] rounded-full animate-spin"></div>
+            </div>
+          )}
+
+          {/* Indicador de fin de resultados */}
+          {!isLoadingMoreSearch && !whatsappSearchHasMore && whatsappSearchResults.length > 0 && (
+            <div className="flex items-center justify-center py-3">
+              <span className="text-[12px] text-gray-400">No hay más resultados</span>
+            </div>
+          )}
+
+          {/* Sin resultados */}
+          {!isWhatsappSearching && whatsappSearchResults.length === 0 && (assignedSearchTerm.trim() || searchTerm.trim()) && (
+            <div className="flex flex-col items-center justify-center py-20 text-center px-6">
+              <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+                <svg viewBox="0 0 24 24" width="28" height="28" className="text-gray-400">
+                  <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                </svg>
+              </div>
+              <div className="text-[14px] text-gray-600 font-medium mb-1">Sin resultados</div>
+              <div className="text-[12px] text-gray-400">Prueba con otra palabra</div>
             </div>
           )}
         </div>
@@ -848,38 +1067,9 @@ const ConversationList = ({
       {/* =========================================================================
          MÓDULO: CHATS / CONVERSACIONES (Grupos + Asignados + Usuarios)
          ========================================================================= */}
-      {(activeModule === 'chats' || activeModule === 'conversations') && (
+      {(activeModule === 'chats' || activeModule === 'conversations') &&
+       !(whatsappSearchResults.length > 0 || isWhatsappSearching) && (
         <div ref={conversationsListRef} className="flex-1 overflow-y-auto bg-white px-4" style={{ maxHeight: 'calc(100vh - 180px)' }} onScroll={handleScroll}>
-
-          {/* Resultados de búsqueda de mensajes */}
-          {assignedSearchTerm.trim() && messageSearchResults.length > 0 && (
-            <div className="mb-4">
-              <div className="text-xs text-gray-500 font-semibold mb-2 px-2" style={{}}>📝 Mensajes encontrados ({messageSearchResults.length})</div>
-              {messageSearchResults.map((msg) => {
-                const isGroupMsg = msg.isGroup;
-                const conversationName = isGroupMsg ? msg.roomCode : msg.to;
-                const messagePreview = msg.message || (msg.fileName ? `📎 ${msg.fileName}` : 'Archivo');
-                return (
-                  <div key={msg.id} className="flex items-start gap-3 p-3 mb-2 bg-red-50 border border-red-200 rounded-lg cursor-pointer hover:bg-red-100 transition-colors" onClick={() => {
-                    if (isGroupMsg) {
-                      const room = myActiveRooms?.find(r => r.roomCode === msg.roomCode);
-                      if (room && onRoomSelect) onRoomSelect(room, msg.id);
-                    } else {
-                      onUserSelect(msg.to, null, msg.id);
-                    }
-                  }}>
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-200 flex items-center justify-center text-lg">{isGroupMsg ? '👥' : '💬'}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1"><span className="font-semibold text-sm text-gray-800" style={{}}>{conversationName}</span><span className="text-xs text-gray-500">{isGroupMsg ? 'Grupo' : 'Chat'}</span></div>
-                      <p className="text-xs text-gray-700 truncate" style={{}}>{messagePreview}</p>
-                      <p className="text-xs text-gray-500 mt-1">{new Date(msg.sentAt).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-                    </div>
-                  </div>
-                );
-              })}
-              <div className="border-t border-gray-200 my-3"></div>
-            </div>
-          )}
 
           {isSearching && <div className="flex items-center justify-center py-8"><div className="text-sm text-gray-500">Buscando mensajes...</div></div>}
 
@@ -1007,22 +1197,19 @@ const ConversationList = ({
                 // reactividad inmediata cuando marcas un nuevo favorito (myActiveRooms está cacheado)
                 let filteredRooms;
                 if (hasApiSearch) {
-                  filteredRooms = apiSearchResults.groups.filter(room => !favoriteRoomCodes.includes(room.roomCode));
+                  filteredRooms = [...apiSearchResults.groups].filter(room => !favoriteRoomCodes.includes(room.roomCode));
                 } else {
-                  filteredRooms = (myActiveRooms || [])
+                  filteredRooms = [...(myActiveRooms || [])]
                     .filter(room => !favoriteRoomCodes.includes(room.roomCode)) // 🔥 Excluir favoritos
                     .filter(room => assignedSearchTerm.trim() === '' || room.name.toLowerCase().includes(assignedSearchTerm.toLowerCase()) || room.roomCode.toLowerCase().includes(assignedSearchTerm.toLowerCase()));
                 }
 
-                // Ordenar: grupos con mensajes no leídos primero
-                filteredRooms = filteredRooms.sort((a, b) => {
-                  const unreadA = unreadMessages?.[a.roomCode] ?? (a.unreadCount || 0);
-                  const unreadB = unreadMessages?.[b.roomCode] ?? (b.unreadCount || 0);
-                  // Los que tienen mensajes no leídos van primero
-                  if (unreadA > 0 && unreadB === 0) return -1;
-                  if (unreadA === 0 && unreadB > 0) return 1;
-                  // Si ambos tienen o ambos no tienen, ordenar por cantidad (más mensajes primero)
-                  return unreadB - unreadA;
+                // Ordenar: SOLO por fecha del último mensaje (más reciente primero)
+                // ❌ NO ordenar por unread count - esto causaba que al hacer clic cambie de posición
+                filteredRooms.sort((a, b) => {
+                  const dateA = new Date(a.lastMessage?.sentAt || a.updatedAt || a.createdAt || 0);
+                  const dateB = new Date(b.lastMessage?.sentAt || b.updatedAt || b.createdAt || 0);
+                  return dateB - dateA;
                 });
 
                 // Mostrar indicador de búsqueda
@@ -1135,7 +1322,8 @@ const ConversationList = ({
                     if (!assignedSearchTerm.trim()) return true;
                     const searchLower = assignedSearchTerm.toLowerCase();
                     const participants = conv.participants || [];
-                    return (conv.name?.toLowerCase().includes(searchLower) || participants.some(p => p?.toLowerCase().includes(searchLower)) || conv.lastMessage?.toLowerCase().includes(searchLower));
+                    const lastMsg = typeof conv.lastMessage === 'string' ? conv.lastMessage : (conv.lastMessage?.message || conv.lastMessage?.text || '');
+                    return (conv.name?.toLowerCase().includes(searchLower) || participants.some(p => p?.toLowerCase().includes(searchLower)) || lastMsg.toLowerCase().includes(searchLower));
                   });
                 }
 
@@ -1312,36 +1500,17 @@ const ConversationList = ({
       {/* =========================================================================
          MÓDULO: MONITOREO (Solo para ADMIN)
          ========================================================================= */}
-      {activeModule === 'monitoring' && canViewMonitoring && (
+      {activeModule === 'monitoring' && canViewMonitoring &&
+       !(whatsappSearchResults.length > 0 || isWhatsappSearching) && (
         <div className="flex-1 overflow-y-auto bg-white px-4 w-full min-w-0">
-          {assignedSearchTerm.trim() && messageSearchResults.length > 0 && (
-            <div className="mb-4">
-              <div className="text-xs text-gray-500 font-semibold mb-2 px-2" style={{}}>📝 Mensajes encontrados ({messageSearchResults.length})</div>
-              {messageSearchResults.map((msg) => {
-                const isGroupMsg = msg.isGroup;
-                const conversationName = isGroupMsg ? msg.roomCode : msg.to;
-                const messagePreview = msg.message || (msg.fileName ? `📎 ${msg.fileName}` : 'Archivo');
-                return (
-                  <div key={msg.id} className="flex items-start gap-3 p-3 mb-2 bg-red-50 border border-red-200 rounded-lg cursor-pointer hover:bg-red-100 transition-colors" onClick={() => { if (isGroupMsg) { const room = myActiveRooms?.find(r => r.roomCode === msg.roomCode); if (room && onRoomSelect) onRoomSelect(room, msg.id); } else { onUserSelect(msg.to, null, msg.id); } }}>
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-200 flex items-center justify-center text-lg">{isGroupMsg ? '👥' : '💬'}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1"><span className="font-semibold text-sm text-gray-800" style={{}}>{conversationName}</span><span className="text-xs text-gray-500">{isGroupMsg ? 'Grupo' : 'Chat'}</span></div>
-                      <p className="text-xs text-gray-700 truncate" style={{}}>{messagePreview}</p>
-                      <p className="text-xs text-gray-500 mt-1">{new Date(msg.sentAt).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-                    </div>
-                  </div>
-                );
-              })}
-              <div className="border-t border-gray-200 my-3"></div>
-            </div>
-          )}
           {isSearching && <div className="flex items-center justify-center py-8"><div className="text-sm text-gray-500">Buscando mensajes...</div></div>}
           {(() => {
             const filteredMonitoring = monitoringConversations.filter(conv => {
               if (!assignedSearchTerm.trim()) return true;
               const searchLower = assignedSearchTerm.toLowerCase();
               const participants = conv.participants || [];
-              return (conv.name?.toLowerCase().includes(searchLower) || participants.some(p => p?.toLowerCase().includes(searchLower)) || conv.lastMessage?.toLowerCase().includes(searchLower));
+              const lastMsg = typeof conv.lastMessage === 'string' ? conv.lastMessage : (conv.lastMessage?.message || conv.lastMessage?.text || '');
+              return (conv.name?.toLowerCase().includes(searchLower) || participants.some(p => p?.toLowerCase().includes(searchLower)) || lastMsg.toLowerCase().includes(searchLower));
             });
             return filteredMonitoring.length > 0 ? (
               <>

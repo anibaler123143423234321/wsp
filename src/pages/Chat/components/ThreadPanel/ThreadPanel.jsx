@@ -10,6 +10,7 @@ import {
   FaCopy, //  NUEVO: Ícono de copiar
   FaReply, //  NUEVO: Ícono de responder
   FaPen, //  NUEVO: Ícono de editar
+  FaArrowLeft, //  NUEVO: Ícono de atrás
 } from "react-icons/fa";
 import EmojiPicker from "emoji-picker-react";
 import apiService from "../../../../apiService";
@@ -32,6 +33,7 @@ const ThreadPanel = ({
   myActiveRooms = [],
   assignedConversations = [],
   user,
+  onBackToThreadsList, //  NUEVO: Callback para volver a la lista de hilos
 }) => {
   // if (!isOpen) return null; //  MOVIDO AL FINAL PARA RESPETAR REGLAS DE HOOKS
   const [threadMessages, setThreadMessages] = useState([]);
@@ -245,27 +247,38 @@ const ThreadPanel = ({
 
     const handleThreadMessage = (newMessage) => {
       console.log('🧵 ThreadPanel recibió threadMessage:', newMessage);
-      console.log('  - threadId del mensaje:', newMessage.threadId);
-      console.log('  - threadId esperado:', message?.id);
 
       // Asegurar comparación laxa por si uno es string y otro number
       if (String(newMessage.threadId) === String(message?.id)) {
-        console.log('✅ ThreadId coincide, procesando mensaje...');
-
         setThreadMessages((prev) => {
-          // Verificar duplicados solo por ID real
-          const messageExists = prev.some((msg) => msg.id === newMessage.id);
+          // Verificar si ya existe (por ID real)
+          const messageExists = prev.some((msg) => msg.id === newMessage.id && !String(msg.id).startsWith('temp_'));
 
           if (messageExists) {
-            console.log('⏭️ Mensaje ya existe (mismo ID), ignorando');
+            console.log('⏭️ Mensaje ya existe, ignorando');
             return prev;
           }
 
-          console.log('✅ Agregando nuevo mensaje al hilo:', newMessage);
+          // 🚀 Buscar y reemplazar mensaje temporal del mismo usuario
+          // (el más reciente con ID temporal que coincida en texto/from)
+          const tempIndex = prev.findIndex(msg =>
+            String(msg.id).startsWith('temp_') &&
+            msg.from === newMessage.from &&
+            (msg.text === newMessage.text || msg.message === newMessage.message || msg.text === newMessage.message)
+          );
+
+          if (tempIndex !== -1) {
+            // Reemplazar mensaje temporal con el real
+            console.log('🔄 Reemplazando mensaje temporal con real:', newMessage.id);
+            const updated = [...prev];
+            updated[tempIndex] = newMessage;
+            return updated;
+          }
+
+          // Si no hay temporal, agregar al final
+          console.log('✅ Agregando nuevo mensaje al hilo:', newMessage.id);
           return [...prev, newMessage];
         });
-      } else {
-        console.log('❌ ThreadId NO coincide');
       }
     };
 
@@ -306,10 +319,15 @@ const ThreadPanel = ({
 
 
   const loadThreadMessages = useCallback(async () => {
-    if (!message?.id) return;
+    // Validar que message.id sea un ID válido (no NaN, no undefined, no null)
+    const threadId = message?.id;
+    if (!threadId || isNaN(Number(threadId)) || String(threadId).startsWith('temp_')) {
+      console.warn('⚠️ ThreadPanel: ID de hilo inválido:', threadId);
+      return;
+    }
     setLoading(true);
     try {
-      const data = await apiService.getThreadMessages(message.id);
+      const data = await apiService.getThreadMessages(threadId);
       setThreadMessages(data);
       // Actualizar el contador con la cantidad real de mensajes cargados
       setCurrentThreadCount(data.length);
@@ -323,6 +341,8 @@ const ThreadPanel = ({
   // useEffect para cargar mensajes cuando se abre el hilo
   useEffect(() => {
     if (message?.id) {
+      // Limpiar mensajes anteriores antes de cargar los nuevos
+      setThreadMessages([]);
       loadThreadMessages();
     }
   }, [loadThreadMessages, message?.id]);
@@ -483,83 +503,107 @@ const ThreadPanel = ({
   const handleSend = async () => {
     if ((!input.trim() && mediaFiles.length === 0) || isSending) return;
 
+    // Guardar valores antes de limpiar
+    const currentInput = input;
+    const currentMediaFiles = [...mediaFiles];
+    const currentReplyingTo = replyingTo;
+
+    // 🚀 Limpiar estado INMEDIATAMENTE para UX rápida
+    setInput("");
+    setMediaFiles([]);
+    setMediaPreviews([]);
+    setReplyingTo(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+
     setIsSending(true);
     try {
-      //  DEBUG: Ver estado de replyingTo
-      console.log('🔍 handleSend - replyingTo:', replyingTo);
-
       // Helper para determinar tipo de medio
       const getMediaType = (file) => {
         if (file.type.startsWith('image/')) return 'image';
         if (file.type.startsWith('video/')) return 'video';
         if (file.type.startsWith('audio/')) return 'audio';
         if (file.type === 'application/pdf') return 'pdf';
-        return 'file'; // Fallback genérico para todo lo demás
+        return 'file';
       };
 
       // Construir datos de respuesta si existen
-      const replyData = replyingTo ? {
-        replyToMessageId: replyingTo.id,
-        replyToSender: replyingTo.from || replyingTo.sender,
-        replyToText: replyingTo.message || replyingTo.text || replyingTo.fileName || "Archivo adjunto",
+      const replyData = currentReplyingTo ? {
+        replyToMessageId: currentReplyingTo.id,
+        replyToSender: currentReplyingTo.from || currentReplyingTo.sender,
+        replyToText: currentReplyingTo.message || currentReplyingTo.text || currentReplyingTo.fileName || "Archivo adjunto",
       } : {};
 
+      // Datos base del mensaje
+      // Para grupos: usar receiver o to del mensaje, o el roomCode como fallback
+      const toValue = message.isGroup
+        ? (message.receiver || message.to || currentRoomCode)
+        : (message.realSender === currentUsername ? message.receiver : message.realSender);
+
+      // Usar roomCode del mensaje si existe, sino usar currentRoomCode
+      const roomCodeValue = message.isGroup ? (message.roomCode || currentRoomCode) : undefined;
+
+      const baseMessageData = {
+        threadId: Number(message.id), // Asegurar que sea número
+        from: currentUsername,
+        to: toValue,
+        isGroup: message.isGroup,
+        roomCode: roomCodeValue,
+        ...replyData,
+      };
+
+      console.log('📤 ThreadPanel enviando mensaje:', baseMessageData);
+
       // 1. Si hay archivos, enviarlos uno por uno
-      if (mediaFiles.length > 0) {
-        for (let i = 0; i < mediaFiles.length; i++) {
-          const file = mediaFiles[i];
-
-          // Subir archivo
-          const uploadResult = await apiService.uploadFile(file, "chat");
-
+      if (currentMediaFiles.length > 0) {
+        for (let i = 0; i < currentMediaFiles.length; i++) {
+          const file = currentMediaFiles[i];
           const mediaType = getMediaType(file);
+
+          // Subir archivo primero
+          const uploadResult = await apiService.uploadFile(file, "chat");
 
           // Construir mensaje
           const messageData = {
-            // Solo adjuntar el texto al primer archivo
-            text: i === 0 ? input : "",
-            threadId: message.id,
-            from: currentUsername,
-            to: message.isGroup
-              ? message.receiver
-              : (message.realSender === currentUsername ? message.receiver : message.realSender),
-            isGroup: message.isGroup,
-            roomCode: message.isGroup ? currentRoomCode : undefined,
+            text: i === 0 ? currentInput : "",
+            ...baseMessageData,
             mediaType: mediaType,
             mediaData: uploadResult.fileUrl,
             fileName: uploadResult.fileName,
             fileSize: uploadResult.fileSize,
-            ...replyData, //  Incluir datos de respuesta
           };
 
-          await onSendMessage(messageData);
+          // 🚀 OPTIMISTIC UPDATE: Agregar inmediatamente con ID temporal
+          const tempId = `temp_${Date.now()}_${i}`;
+          setThreadMessages(prev => [...prev, {
+            ...messageData,
+            id: tempId,
+            message: messageData.text,
+            sentAt: new Date().toISOString(),
+          }]);
+
+          // Enviar (no esperar - fire and forget)
+          onSendMessage(messageData);
         }
       } else {
         // 2. Si solo es texto
         const messageData = {
-          text: input,
-          threadId: message.id,
-          from: currentUsername,
-          to: message.isGroup
-            ? message.receiver
-            : (message.realSender === currentUsername ? message.receiver : message.realSender),
-          isGroup: message.isGroup,
-          roomCode: message.isGroup ? currentRoomCode : undefined,
-          ...replyData, //  Incluir datos de respuesta
+          text: currentInput,
+          ...baseMessageData,
         };
 
-        await onSendMessage(messageData);
-      }
+        // 🚀 OPTIMISTIC UPDATE: Agregar inmediatamente con ID temporal
+        const tempId = `temp_${Date.now()}`;
+        setThreadMessages(prev => [...prev, {
+          ...messageData,
+          id: tempId,
+          message: currentInput,
+          sentAt: new Date().toISOString(),
+        }]);
 
-      // Limpiar estado
-      setInput("");
-      setMediaFiles([]);
-      setMediaPreviews([]);
-      setReplyingTo(null); //  NUEVO: Limpiar respuesta
-
-      // Resetear input de archivo
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        // Enviar (no esperar - fire and forget)
+        onSendMessage(messageData);
       }
 
     } catch (error) {
@@ -579,17 +623,20 @@ const ThreadPanel = ({
     try {
       const uploadResult = await apiService.uploadFile(audioFile, "chat");
 
+      // Para grupos: usar receiver o to del mensaje, o el roomCode como fallback
+      const toValue = message.isGroup
+        ? (message.receiver || message.to || currentRoomCode)
+        : (message.realSender === currentUsername ? message.receiver : message.realSender);
+
+      const roomCodeValue = message.isGroup ? (message.roomCode || currentRoomCode) : undefined;
+
       const messageData = {
         text: "",
-        threadId: message.id,
+        threadId: Number(message.id), // Asegurar que sea número
         from: currentUsername,
-        //  CORREGIDO: Para mensajes de grupo, usar message.receiver (nombre de sala)
-        to: message.isGroup
-          ? message.receiver  // Para grupos, usar receiver (nombre de la sala)
-          : (message.realSender === currentUsername ? message.receiver : message.realSender),
+        to: toValue,
         isGroup: message.isGroup,
-        //  CORREGIDO: Usar currentRoomCode de la sesión actual (prop)
-        roomCode: message.isGroup ? currentRoomCode : undefined,
+        roomCode: roomCodeValue,
         mediaType: "audio",
         mediaData: uploadResult.fileUrl,
         fileName: uploadResult.fileName,
@@ -930,6 +977,11 @@ const ThreadPanel = ({
         </div>
       )}
       <div className="thread-panel-header">
+        {onBackToThreadsList && (
+          <button className="thread-back-btn" onClick={onBackToThreadsList} title="Volver a lista de hilos">
+            <FaArrowLeft />
+          </button>
+        )}
         <div className="thread-panel-title">
           <span>Hilo</span>
         </div>

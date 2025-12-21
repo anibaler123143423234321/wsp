@@ -20,6 +20,18 @@ export default defineConfig({
   define: {
     global: "globalThis",
   },
+  // HMR más robusto - evita que se trabe con cambios frecuentes
+  server: {
+    hmr: {
+      overlay: false, // No mostrar overlay de errores (menos lag)
+      timeout: 5000,  // Más tiempo para reconectar
+    },
+    watch: {
+      usePolling: false,    // Usa eventos nativos del sistema
+      interval: 300,        // Intervalo de polling si se activa
+      ignored: ['**/node_modules/**', '**/.git/**'], // Ignorar carpetas pesadas
+    },
+  },
   build: {
     //  OPTIMIZACIÓN: Reducir tamaño del bundle
     rollupOptions: {

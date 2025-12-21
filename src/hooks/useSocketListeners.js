@@ -246,6 +246,16 @@ export const useSocketListeners = (
             }
             // CASO A: GRUPOS
             if (data.isGroup) {
+                //  Limpiar indicador de typing inmediatamente cuando llega el mensaje
+                if (data.roomCode) {
+                    setRoomTypingUsers(prev => {
+                        const current = prev[data.roomCode] || [];
+                        const filtered = current.filter(u => u.username !== data.from);
+                        if (filtered.length === current.length) return prev;
+                        return { ...prev, [data.roomCode]: filtered };
+                    });
+                }
+
                 //  SIEMPRE agregar mensaje al chat si está abierto (propio o no)
                 if (isChatOpen) {
                     addNewMessage({
@@ -267,10 +277,8 @@ export const useSocketListeners = (
                     });
                 }
 
-                //  SOLO incrementar contador si NO es propio y el chat NO está abierto
-                if (!isOwnMessage && !isChatOpen && data.roomCode) {
-                    setUnreadMessages(prev => ({ ...prev, [data.roomCode]: (prev[data.roomCode] || 0) + 1 }));
-                }
+                //  NO incrementar aquí - el evento 'unreadCountUpdate' del backend se encarga
+                // Esto evita que el contador suba de 2 en 2
 
                 //  SIEMPRE actualizar la lista de conversaciones
                 if (data.roomCode) {
@@ -346,6 +354,11 @@ export const useSocketListeners = (
 
                 // CASO B: CHATS INDIVIDUALES
             } else {
+                //  Limpiar indicador de typing inmediatamente cuando llega el mensaje
+                if (!isOwnMessage) {
+                    setTypingUser(null);
+                }
+
                 //  SIEMPRE agregar mensaje al chat si está abierto
                 console.log('🔍 DEBUG CASO B - isChatOpen:', isChatOpen, 'isOwnMessage:', isOwnMessage);
                 if (isChatOpen) {
@@ -715,6 +728,12 @@ export const useSocketListeners = (
 
         s.on("roomTyping", (data) => {
             const { from, roomCode, isTyping } = data;
+            const currentUserFullName = currentUserFullNameRef.current?.toLowerCase().trim();
+            const fromUser = from?.toLowerCase().trim();
+
+            // No mostrar indicador de typing para el usuario actual
+            if (fromUser === currentUserFullName) return;
+
             setRoomTypingUsers(prev => {
                 const current = prev[roomCode] || [];
                 if (isTyping) {
@@ -736,13 +755,38 @@ export const useSocketListeners = (
             updateMessage(data.messageId, { reactions: data.reactions });
         });
 
+        // Usar un Set para evitar procesar el mismo evento dos veces
+        const processedThreadUpdates = new Set();
+
         s.on("threadCountUpdated", (data) => {
-            //  FIX: Ahora que el backend solo emite a una sala por usuario,
-            // todos deben incrementar el contador (no hay duplicados)
-            updateMessage(data.messageId, (prev) => ({
-                threadCount: (prev.threadCount || 0) + 1,
-                lastReplyFrom: data.lastReplyFrom
-            }));
+            // Crear clave única para este evento
+            const eventKey = `${data.messageId}-${data.threadCount}-${Date.now().toString().slice(0, -3)}`;
+
+            // Si ya procesamos un evento similar en el último segundo, ignorar
+            if (processedThreadUpdates.has(eventKey)) {
+                console.log('⏭️ threadCountUpdated duplicado, ignorando:', eventKey);
+                return;
+            }
+            processedThreadUpdates.add(eventKey);
+
+            // Limpiar eventos antiguos después de 2 segundos
+            setTimeout(() => processedThreadUpdates.delete(eventKey), 2000);
+
+            //  FIX: Usar el valor del backend si existe, sino incrementar
+            updateMessage(data.messageId, (prev) => {
+                // Si el backend envía threadCount, usarlo directamente
+                if (data.threadCount !== undefined) {
+                    return {
+                        threadCount: data.threadCount,
+                        lastReplyFrom: data.lastReplyFrom
+                    };
+                }
+                // Si no, incrementar solo si no hemos procesado este messageId recientemente
+                return {
+                    threadCount: (prev.threadCount || 0) + 1,
+                    lastReplyFrom: data.lastReplyFrom
+                };
+            });
 
             // Variables para las notificaciones
             const currentFullName = currentUserFullNameRef.current;

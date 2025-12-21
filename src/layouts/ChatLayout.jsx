@@ -6,6 +6,7 @@ import ChatHeader from '../pages/Chat/components/ChatHeader/ChatHeader';
 import ChatContent from '../pages/Chat/components/ChatContent/ChatContent';
 import MembersPanel from '../pages/Chat/components/MembersPanel/MembersPanel';
 import ThreadPanel from '../pages/Chat/components/ThreadPanel/ThreadPanel';
+import ThreadsListPanel from '../pages/Chat/components/ThreadsListPanel/ThreadsListPanel';
 import InfoPanel from '../pages/Chat/components/InfoPanel/InfoPanel';
 import ActiveVideoCallBanner from '../pages/Chat/components/ActiveVideoCallBanner/ActiveVideoCallBanner';
 import PinnedMessageBanner from '../pages/Chat/components/PinnedMessageBanner/PinnedMessageBanner';
@@ -44,7 +45,7 @@ const ChatLayout = ({
 
   // Props del socket
   soundsEnabled, onEnableSounds, socket, isTyping, typingUser, stopRingtone,
-  currentUsername,
+  currentUsername, onClearUnreadOnTyping,
 
   // Props de búsqueda
   highlightMessageId, onMessageHighlighted,
@@ -88,12 +89,19 @@ const ChatLayout = ({
   const [showCreatePollModal, setShowCreatePollModal] = React.useState(false);
   const [showInfoPanel, setShowInfoPanel] = React.useState(false);
 
+  // State para el panel de lista de hilos
+  const [showThreadsListPanel, setShowThreadsListPanel] = React.useState(false);
+
   const toggleMembersPanel = () => {
     setShowMembersPanel(!showMembersPanel);
   };
 
   const toggleInfoPanel = () => {
     setShowInfoPanel(!showInfoPanel);
+  };
+
+  const toggleThreadsListPanel = () => {
+    setShowThreadsListPanel(!showThreadsListPanel);
   };
 
   const handleCreatePoll = () => {
@@ -114,6 +122,14 @@ const ChatLayout = ({
   const handleOpenThread = (message) => {
     setThreadMessage(message);
     setShowThreadPanel(true);
+    setShowThreadsListPanel(false); // Cerrar lista de hilos al abrir un hilo específico
+  };
+
+  // Handler para volver a la lista de hilos desde ThreadPanel
+  const handleBackToThreadsList = () => {
+    setShowThreadPanel(false);
+    setThreadMessage(null);
+    setShowThreadsListPanel(true); // Abrir la lista de hilos nuevamente
   };
 
   // Cerrar paneles si cambia el chat
@@ -121,6 +137,7 @@ const ChatLayout = ({
     setShowMembersPanel(false);
     setShowThreadPanel(false);
     setShowInfoPanel(false);
+    setShowThreadsListPanel(false);
   }, [to]);
 
   // Función para obtener el usuario completo con el que se está chateando
@@ -297,6 +314,7 @@ const ChatLayout = ({
             user={user}
             onToggleMembersPanel={toggleMembersPanel}
             onToggleInfoPanel={toggleInfoPanel}
+            onToggleThreadsPanel={toggleThreadsListPanel}
           />
 
           {/*  NUEVO: Banner de videollamada activa */}
@@ -361,6 +379,7 @@ const ChatLayout = ({
             isOtherUserTyping={isTyping}
             typingUser={typingUser}
             roomTypingUsers={roomTypingUsers}
+            onClearUnreadOnTyping={onClearUnreadOnTyping}
             isUploadingFile={isUploadingFile} //  Pasar prop de loading
             isSending={isSending} //  NUEVO: Estado de envío
             onStartVideoCall={onStartVideoCall} //  NUEVO: Handler de videollamada
@@ -384,7 +403,10 @@ const ChatLayout = ({
         <ThreadPanel
           isOpen={showThreadPanel}
           message={threadMessage}
-          onClose={() => setShowThreadPanel(false)}
+          onClose={() => {
+            setShowThreadPanel(false);
+            setThreadMessage(null); // Limpiar mensaje al cerrar
+          }}
           currentUsername={currentUsername}
           socket={socket}
           onSendMessage={onSendThreadMessage}
@@ -393,6 +415,7 @@ const ChatLayout = ({
           myActiveRooms={myActiveRooms} //  NUEVO: Para modal de reenvío
           assignedConversations={assignedConversations} //  NUEVO: Para modal de reenvío
           user={user} //  NUEVO: Para modal de reenvío
+          onBackToThreadsList={handleBackToThreadsList} //  NUEVO: Volver a lista de hilos
         />
 
         {/* Members Panel (Displacement Layout) */}
@@ -426,6 +449,19 @@ const ChatLayout = ({
           onCreatePoll={handleCreatePoll}
           user={user} //  Pass user for permission checks
           onRoomUpdated={onRoomUpdated} //  Pass callback for updates
+        />
+
+        {/* Threads List Panel (Lista de hilos padres) */}
+        <ThreadsListPanel
+          isOpen={showThreadsListPanel}
+          onClose={() => setShowThreadsListPanel(false)}
+          isGroup={isGroup}
+          roomCode={currentRoomCode}
+          currentUsername={currentUsername}
+          to={to}
+          onOpenThread={handleOpenThread}
+          roomUsers={roomUsers}
+          roomName={to}
         />
 
       </div >

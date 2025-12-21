@@ -85,6 +85,9 @@ const ChatPage = () => {
     clearMessages,
     setInitialMessages,
     isLoading: isLoadingMessages,
+    // 🔥 NUEVO: Para búsqueda WhatsApp
+    loadMessagesAroundId,
+    aroundMode, // Indica si estamos en modo "around" (búsqueda)
   } = useMessagePagination(
     chatState.currentRoomCode,
     username,
@@ -103,7 +106,7 @@ const ChatPage = () => {
     socket,
     username,
     chatState,
-    { clearMessages, loadInitialMessages }
+    { clearMessages, loadInitialMessages, loadMessagesAroundId, setHighlightMessageId }
   );
 
   // ===== HOOK DE CONVERSACIONES =====
@@ -307,10 +310,11 @@ const ChatPage = () => {
 
   // Cargar mensajes cuando cambie currentRoomCode
   useEffect(() => {
-    if (chatState.currentRoomCode && username && chatState.isGroup) {
+    // 🔥 No cargar si estamos en modo "around" (búsqueda)
+    if (chatState.currentRoomCode && username && chatState.isGroup && !aroundMode) {
       loadInitialMessages();
     }
-  }, [chatState.currentRoomCode, username, chatState.isGroup, loadInitialMessages]);
+  }, [chatState.currentRoomCode, username, chatState.isGroup, loadInitialMessages, aroundMode]);
 
   // Marcar mensajes como leídos
   const markedRoomsRef = useRef(new Set());
@@ -389,12 +393,14 @@ const ChatPage = () => {
 
   // Cargar mensajes cuando cambie 'to'
   useEffect(() => {
+    // 🔥 No cargar si estamos en modo "around" (búsqueda)
     if (
       chatState.to &&
       username &&
       !chatState.isGroup &&
       !chatState.currentRoomCode &&
-      !chatState.adminViewConversation
+      !chatState.adminViewConversation &&
+      !aroundMode
     ) {
       loadInitialMessages();
     }
@@ -405,6 +411,7 @@ const ChatPage = () => {
     chatState.currentRoomCode,
     loadInitialMessages,
     chatState.adminViewConversation,
+    aroundMode,
   ]);
 
   // Efecto para cargar mensajes en vista admin
@@ -444,7 +451,7 @@ const ChatPage = () => {
     { user, username, isAdmin, soundsEnabled: chatState.soundsEnabled, favoriteRoomCodes: [] } //  Pasar soundsEnabled
   );
 
-  const handleUserSelect = (
+  const handleUserSelect = async (
     userName,
     messageId = null,
     conversationData = null
@@ -500,8 +507,10 @@ const ChatPage = () => {
       chatState.setTo(userName);
     }
 
-    // 4. Manejo de mensaje resaltado
-    if (messageId) {
+    // 4. 🔥 NUEVO: Si hay messageId, cargar mensajes alrededor de ese ID
+    if (messageId && loadMessagesAroundId) {
+      console.log('🔍 handleUserSelect: Cargando mensajes alrededor de ID:', messageId);
+      await loadMessagesAroundId(messageId);
       setHighlightMessageId(messageId);
     } else {
       setHighlightMessageId(null);
@@ -973,6 +982,28 @@ const ChatPage = () => {
     chatState.setReplyingTo(null);
   }, [chatState]);
 
+  // Limpiar mensajes no leídos cuando el usuario empieza a escribir
+  const handleClearUnreadOnTyping = useCallback(() => {
+    if (chatState.isGroup && chatState.currentRoomCode) {
+      // Para grupos, limpiar por roomCode
+      chatState.setUnreadMessages(prev => {
+        if (prev[chatState.currentRoomCode] === 0) return prev;
+        return { ...prev, [chatState.currentRoomCode]: 0 };
+      });
+    } else if (!chatState.isGroup && chatState.to) {
+      // Para chats individuales, buscar conversación
+      const conv = chatState.assignedConversations?.find(c =>
+        c.participants?.some(p => normalizeUsername(p) === normalizeUsername(chatState.to))
+      );
+      if (conv) {
+        chatState.setUnreadMessages(prev => {
+          if (prev[conv.id] === 0) return prev;
+          return { ...prev, [conv.id]: 0 };
+        });
+      }
+    }
+  }, [chatState]);
+
   const handleSendVoiceMessage = useCallback(async (audioFile) => {
     if (!audioFile || !chatState.to) return;
 
@@ -1080,8 +1111,8 @@ const ChatPage = () => {
         fileName: savedMessage.fileName,
       });
 
-      // 2. Incrementar contador en BD
-      await apiService.incrementThreadCount(messageData.threadId);
+      // 2. NO incrementar contador aquí - el backend lo hace al recibir threadCountUpdated
+      // await apiService.incrementThreadCount(messageData.threadId); // REMOVIDO - causaba doble incremento
 
       // 3. Emitir por socket (Esto hará que 'useSocketListeners' reciba el evento y actualice la UI)
       if (socket && socket.connected) {
@@ -1304,18 +1335,6 @@ const ChatPage = () => {
     localStorage.setItem('soundsEnabled', String(newValue));
   }, [chatState.soundsEnabled, chatState]);
 
-  // Estado para el tema (dark/light)
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    return localStorage.getItem('theme') === 'dark';
-  });
-
-  const handleThemeToggle = useCallback(() => {
-    const newIsDark = !isDarkMode;
-    setIsDarkMode(newIsDark);
-    localStorage.setItem('theme', newIsDark ? 'dark' : 'light');
-    document.documentElement.classList.toggle('dark', newIsDark);
-  }, [isDarkMode]);
-
   const handleLoginSuccess = (userData) => {
     localStorage.setItem('user', JSON.stringify(userData));
     localStorage.setItem('token', userData.token || 'mock-token');
@@ -1531,6 +1550,7 @@ const ChatPage = () => {
         onDeleteMessage={handleDeleteMessage}
         isTyping={chatState.typingUser !== null}
         typingUser={chatState.typingUser}
+        onClearUnreadOnTyping={handleClearUnreadOnTyping}
         highlightMessageId={highlightMessageId}
         onMessageHighlighted={() => setHighlightMessageId(null)}
         replyingTo={chatState.replyingTo}
@@ -1619,8 +1639,6 @@ const ChatPage = () => {
         user={user}
         isSoundEnabled={chatState.soundsEnabled}
         onSoundToggle={handleSoundToggle}
-        isDarkMode={isDarkMode}
-        onThemeToggle={handleThemeToggle}
       />
     </>
   );

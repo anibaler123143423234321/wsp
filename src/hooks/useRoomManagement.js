@@ -47,7 +47,7 @@ export const useRoomManagement = (
         roomsLimit,
     } = chatState;
 
-    const { clearMessages, loadInitialMessages } = messagingFunctions;
+    const { clearMessages, loadInitialMessages, loadMessagesAroundId, setHighlightMessageId } = messagingFunctions;
 
     // Función para cargar salas activas con paginación
     const loadMyActiveRooms = useCallback(
@@ -379,6 +379,16 @@ export const useRoomManagement = (
                     });
                 }
 
+                // 🔥 NUEVO: Si hay messageId, cargar mensajes alrededor de ese ID
+                if (messageId && loadMessagesAroundId) {
+                    console.log('🔍 handleRoomSelect: Cargando mensajes alrededor de ID:', messageId);
+                    await loadMessagesAroundId(messageId);
+                    // Establecer el mensaje a resaltar
+                    if (setHighlightMessageId) {
+                        setHighlightMessageId(messageId);
+                    }
+                }
+
                 // En mobile, ocultar sidebar
                 if (window.innerWidth <= 768) {
                     setShowSidebar(false);
@@ -404,6 +414,8 @@ export const useRoomManagement = (
             pendingMentions,
             setPendingMentions,
             setShowSidebar,
+            loadMessagesAroundId,
+            setHighlightMessageId,
         ]
     );
 

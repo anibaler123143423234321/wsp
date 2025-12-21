@@ -1085,6 +1085,34 @@ class ApiService {
     }
   }
 
+  // 🔥 NUEVO: Obtener mensajes alrededor de un messageId genérico (para búsqueda WhatsApp)
+  // Este endpoint detecta automáticamente si es grupo o chat directo
+  async getMessagesAroundById(messageId, before = 25, after = 25) {
+    try {
+      const url = `${this.baseChatUrl}api/messages/around/${messageId}?before=${before}&after=${after}`;
+      console.log('🔍 getMessagesAroundById URL:', url);
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `Error del servidor: ${response.status} - ${JSON.stringify(errorData)}`
+        );
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error al obtener mensajes alrededor del ID:", error);
+      throw error;
+    }
+  }
+
 
   async getThreadMessages(threadId, limit = 20, offset = 0) {
     try {
@@ -1105,6 +1133,54 @@ class ApiService {
       return await response.json();
     } catch (error) {
       console.error("Error al obtener mensajes del hilo:", error);
+      throw error;
+    }
+  }
+
+  // Obtener lista de hilos padres de un grupo/sala
+  async getRoomThreads(roomCode) {
+    try {
+      const response = await fetch(
+        `${this.baseChatUrl}api/messages/room/${roomCode}/threads`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error al obtener hilos de la sala: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error al obtener hilos de la sala:", error);
+      throw error;
+    }
+  }
+
+  // Obtener lista de hilos padres de un chat directo
+  async getUserThreads(from, to) {
+    try {
+      const response = await fetch(
+        `${this.baseChatUrl}api/messages/user/${encodeURIComponent(from)}/${encodeURIComponent(to)}/threads`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error al obtener hilos del chat: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error al obtener hilos del chat:", error);
       throw error;
     }
   }
@@ -1130,6 +1206,28 @@ class ApiService {
     } catch (error) {
       console.error("Error al incrementar contador de hilo:", error);
       throw error;
+    }
+  }
+
+  // 🔥 NUEVO: Obtener lista de quiénes leyeron un mensaje (lazy loading)
+  async getMessageReadBy(messageId) {
+    try {
+      const response = await this.fetchChatApi(
+        `${this.baseChatUrl}api/messages/${messageId}/read-by`,
+        {
+          method: "GET",
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 404) return { readBy: [], readByCount: 0 };
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error al obtener readBy del mensaje:", error);
+      return { readBy: [], readByCount: 0 };
     }
   }
 
@@ -1612,6 +1710,43 @@ class ApiService {
     } catch (error) {
       console.error("Error al buscar mensajes:", error);
       return { data: [], total: 0 };
+    }
+  }
+
+  // 🔥 NUEVO: Búsqueda tipo WhatsApp - buscar en todos los mensajes del usuario
+  async searchAllMessages(username, searchTerm, limit = 15, offset = 0) {
+    try {
+      if (!searchTerm || searchTerm.trim().length === 0) {
+        return { results: [], total: 0, hasMore: false, nextOffset: 0, groupedByConversation: {} };
+      }
+
+      if (!username) {
+        console.error('searchAllMessages: username es requerido');
+        return { results: [], total: 0, hasMore: false, nextOffset: 0, groupedByConversation: {} };
+      }
+
+      const url = `${this.baseChatUrl}api/messages/search-all/${encodeURIComponent(username)}?q=${encodeURIComponent(searchTerm)}&limit=${limit}&offset=${offset}`;
+      console.log('🔍 searchAllMessages URL:', url);
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Error del servidor: ${response.status}`
+        );
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error al buscar mensajes:", error);
+      return { results: [], total: 0, hasMore: false, nextOffset: 0, groupedByConversation: {} };
     }
   }
 

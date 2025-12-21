@@ -9,10 +9,16 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
 
   const [error, setError] = useState(null); //  Estado de error
 
+  // 🔥 NUEVO: Estados para paginación bidireccional (búsqueda)
+  const [hasMoreBefore, setHasMoreBefore] = useState(false);
+  const [hasMoreAfter, setHasMoreAfter] = useState(false);
+  const [oldestLoadedId, setOldestLoadedId] = useState(null);
+  const [newestLoadedId, setNewestLoadedId] = useState(null);
+  const [aroundMode, setAroundMode] = useState(false); // Indica si estamos en modo "around"
+
   const currentOffset = useRef(0);
-  const initialLoadComplete = useRef(false); //  Prevenir carga inmediata post-inicial
-  const loadMoreBlockedUntil = useRef(0); //  NUEVO: Timestamp hasta el cual bloquear loadMoreMessages
-  const MESSAGES_PER_PAGE = 20; // 🚀 Sincronizado con backend
+  const initialLoadComplete = useRef(false);
+  const MESSAGES_PER_PAGE = 10;
 
   // Cargar mensajes iniciales (más recientes)
   const loadInitialMessages = useCallback(async () => {
@@ -94,7 +100,8 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         isSent: msg.from === username,
         isSelf: msg.from === username,
         isRead: msg.isRead || false, // Estado de lectura del mensaje
-        readBy: msg.readBy || [], // Lista de usuarios que leyeron el mensaje
+        readByCount: msg.readByCount || 0, // Cantidad de lectores (lazy loading)
+        readBy: null, // Se carga bajo demanda con getMessageReadBy
         mediaType: msg.mediaType,
         mediaData: msg.mediaData, // Ahora es URL en lugar de Base64
         fileName: msg.fileName,
@@ -146,8 +153,6 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     } finally {
       setIsLoading(false);
       initialLoadComplete.current = true;
-      //  NUEVO: Bloquear loadMoreMessages por 500ms para evitar race condition con scroll
-      loadMoreBlockedUntil.current = Date.now() + 500;
     }
   }, [roomCode, username, to, isGroup]);
 
@@ -157,9 +162,9 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     if (isGroup && !roomCode) return;
     if (!isGroup && !to) return;
     if (!hasMoreMessages || isLoadingMore) return;
-    if (!initialLoadComplete.current) return; //  Esperar a que termine la carga inicial
-    //  NUEVO: Evitar race condition - esperar a que pase el bloqueo temporal post-carga inicial
-    if (Date.now() < loadMoreBlockedUntil.current) return;
+    if (!initialLoadComplete.current) return;
+    // Evitar cargar "más" si el offset es 0 (aún no se cargó inicial)
+    if (currentOffset.current === 0) return;
 
     setIsLoadingMore(true);
 
@@ -229,7 +234,8 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         isSent: msg.from === username,
         isSelf: msg.from === username,
         isRead: msg.isRead || false, // Estado de lectura del mensaje
-        readBy: msg.readBy || [], // Lista de usuarios que leyeron el mensaje
+        readByCount: msg.readByCount || 0, // Cantidad de lectores (lazy loading)
+        readBy: null, // Se carga bajo demanda con getMessageReadBy
         mediaType: msg.mediaType,
         mediaData: msg.mediaData, // Ahora es URL en lugar de Base64
         fileName: msg.fileName,
@@ -425,6 +431,12 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     setMessages([]);
     setHasMoreMessages(true);
     currentOffset.current = 0;
+    // 🔥 Resetear modo "around" para permitir carga normal de mensajes
+    setAroundMode(false);
+    setHasMoreBefore(false);
+    setHasMoreAfter(false);
+    setOldestLoadedId(null);
+    setNewestLoadedId(null);
   }, []);
 
   //  NUEVO: Establecer mensajes iniciales de una vez (para admin view)
@@ -439,6 +451,107 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       setHasMoreMessages(true);
     }
   }, []);
+
+  // 🔥 NUEVO: Cargar mensajes alrededor de un messageId específico (para búsqueda WhatsApp)
+  const loadMessagesAroundId = useCallback(async (messageId) => {
+    if (!messageId) return null;
+
+    setIsLoading(true);
+    setError(null);
+    setAroundMode(true); // Activar modo "around"
+
+    try {
+      console.log('🔍 loadMessagesAroundId: Cargando mensajes alrededor de ID:', messageId);
+      const response = await apiService.getMessagesAroundById(messageId, 25, 25);
+
+      if (!response || response.statusCode === 404) {
+        console.error('❌ Mensaje no encontrado:', messageId);
+        setError('Mensaje no encontrado');
+        return null;
+      }
+
+      let historicalMessages = response.messages || [];
+
+      // Filtrar mensajes de hilo - no deben aparecer en el chat principal
+      historicalMessages = historicalMessages.filter(msg => !msg.threadId);
+
+      // Convertir mensajes de BD al formato del frontend
+      const formattedMessages = historicalMessages.map((msg) => ({
+        sender: msg.from === username ? "Tú" : msg.from,
+        realSender: msg.from,
+        senderRole: msg.senderRole || null,
+        senderNumeroAgente: msg.senderNumeroAgente || null,
+        receiver: msg.groupName || msg.to || username,
+        text: msg.message || "",
+        isGroup: msg.isGroup,
+        time: msg.time || new Date(msg.sentAt).toLocaleTimeString('es-ES', {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false
+        }),
+        isSent: msg.from === username,
+        isSelf: msg.from === username,
+        isRead: msg.isRead || false,
+        readByCount: msg.readByCount || 0,
+        readBy: null,
+        mediaType: msg.mediaType,
+        mediaData: msg.mediaData,
+        fileName: msg.fileName,
+        fileSize: msg.fileSize,
+        id: msg.id,
+        sentAt: msg.sentAt,
+        replyToMessageId: msg.replyToMessageId,
+        replyToSender: msg.replyToSender,
+        replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null,
+        replyToText: msg.replyToText,
+        threadCount: msg.threadCount || 0,
+        lastReplyFrom: msg.lastReplyFrom || null,
+        lastReplyText: msg.lastReplyText || null,
+        isEdited: msg.isEdited || false,
+        editedAt: msg.editedAt,
+        isDeleted: msg.isDeleted || false,
+        deletedBy: msg.deletedBy || null,
+        deletedAt: msg.deletedAt || null,
+        reactions: msg.reactions || [],
+        type: msg.type || null,
+        videoCallUrl: msg.videoCallUrl || null,
+        videoRoomID: msg.videoRoomID || null,
+        metadata: msg.metadata || null,
+        isForwarded: msg.isForwarded || false,
+      }));
+
+      setMessages(formattedMessages);
+
+      // Guardar info de paginación bidireccional
+      setHasMoreBefore(response.hasMoreBefore || false);
+      setHasMoreAfter(response.hasMoreAfter || false);
+      setOldestLoadedId(response.oldestLoadedId || null);
+      setNewestLoadedId(response.newestLoadedId || null);
+
+      // También actualizar hasMoreMessages para compatibilidad
+      setHasMoreMessages(response.hasMoreBefore || false);
+
+      console.log('✅ loadMessagesAroundId: Cargados', formattedMessages.length, 'mensajes');
+      console.log('📊 Paginación:', { hasMoreBefore: response.hasMoreBefore, hasMoreAfter: response.hasMoreAfter });
+
+      return {
+        targetMessageId: response.targetMessageId || messageId,
+        conversationType: response.conversationType,
+        conversationId: response.conversationId,
+        roomCode: response.roomCode,
+        isGroup: response.conversationType === 'group'
+      };
+    } catch (error) {
+      console.error("❌ Error al cargar mensajes alrededor del ID:", error);
+      setMessages([]);
+      setHasMoreMessages(false);
+      setError("No se pudieron cargar los mensajes.");
+      return null;
+    } finally {
+      setIsLoading(false);
+      initialLoadComplete.current = true;
+    }
+  }, [username]);
 
   // Limpiar mensajes cuando cambie el roomCode o el destinatario
   useEffect(() => {
@@ -462,5 +575,12 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     clearMessages,
     setInitialMessages,
     error, //  Retornar estado de error
+    // 🔥 NUEVO: Para búsqueda WhatsApp
+    loadMessagesAroundId,
+    hasMoreBefore,
+    hasMoreAfter,
+    oldestLoadedId,
+    newestLoadedId,
+    aroundMode,
   };
 };

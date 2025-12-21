@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 
 const ThemeToggleButton = ({ className = '', style = {} }) => {
-    const [isDarkMode, setIsDarkMode] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(true);
 
     useEffect(() => {
         // Leer el tema del localStorage al montar el componente
-        // Por defecto: modo claro (light), a menos que el usuario haya guardado 'dark'
         const savedTheme = localStorage.getItem('theme');
-        const isDark = savedTheme === 'dark';
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const isDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
 
         setIsDarkMode(isDark);
         document.documentElement.classList.toggle('dark', isDark);

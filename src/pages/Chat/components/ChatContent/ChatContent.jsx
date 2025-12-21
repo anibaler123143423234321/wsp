@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useLayoutEffect } from "react";
+import { useEffect, useRef, useState, useLayoutEffect, useCallback } from "react";
 import {
   FaPaperPlane,
   FaEdit,
@@ -80,6 +80,75 @@ const EmojiIcon = ({ className, style }) => (
   </svg>
 );
 
+// 🖼️ Componente LazyImage con Intersection Observer
+const LazyImage = ({ src, alt, style, onClick }) => {
+  const imgRef = useRef(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '100px' } // Cargar 100px antes de que sea visible
+    );
+
+    if (imgRef.current) {
+      observer.observe(imgRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={imgRef} style={{ minHeight: '100px', minWidth: '100px' }}>
+      {isVisible ? (
+        <>
+          {!isLoaded && (
+            <div style={{
+              width: '200px',
+              height: '150px',
+              backgroundColor: '#f0f0f0',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#999'
+            }}>
+              Cargando imagen...
+            </div>
+          )}
+          <img
+            src={src}
+            alt={alt}
+            style={{ ...style, display: isLoaded ? 'block' : 'none' }}
+            onClick={onClick}
+            onLoad={() => setIsLoaded(true)}
+          />
+        </>
+      ) : (
+        <div style={{
+          width: '200px',
+          height: '150px',
+          backgroundColor: '#f5f5f5',
+          borderRadius: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#aaa',
+          fontSize: '12px'
+        }}>
+          📷
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Función para determinar el sufijo (Número de Agente o Rol)
 // Se asume que el objeto 'message' tiene las propiedades 'senderNumeroAgente' y 'senderRole'.
 const getSenderSuffix = (message) => {
@@ -155,6 +224,7 @@ const ChatContent = ({
   isOtherUserTyping,
   typingUser,
   roomTypingUsers,
+  onClearUnreadOnTyping,
 
   //  NUEVO: Props para modal de reenvío
   myActiveRooms = [],
@@ -167,7 +237,9 @@ const ChatContent = ({
   const isUserScrollingRef = useRef(false);
   const lastMessageCountRef = useRef(0);
   const previousScrollHeightRef = useRef(0);
-  const hasScrolledToUnreadRef = useRef(false); //  NUEVO: Rastrear si ya hicimos scroll al primer mensaje no leído
+  const previousScrollTopRef = useRef(0); // 🔥 Guardar scrollTop para preservar posición
+  const isLoadingMoreRef = useRef(false); // 🔥 Bandera de carga en progreso
+  const hasScrolledToUnreadRef = useRef(false); // Rastrear si ya hicimos scroll al primer mensaje no leído
   const typingTimeoutRef = useRef(null);
   const emojiPickerRef = useRef(null);
   const reactionPickerRef = useRef(null);
@@ -189,6 +261,7 @@ const ChatContent = ({
   const [expandedMessages, setExpandedMessages] = useState(new Set());
   const [isDragging, setIsDragging] = useState(false);
   const [isRecordingLocal, setIsRecordingLocal] = useState(false);
+  const [hideUnreadSeparator, setHideUnreadSeparator] = useState(false);
 
   // ============================================================
   // ESTADOS - Pickers y menús
@@ -200,6 +273,8 @@ const ChatContent = ({
   const [showMessageInfo, setShowMessageInfo] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [openReadReceiptsId, setOpenReadReceiptsId] = useState(null);
+  const [loadedReadBy, setLoadedReadBy] = useState({}); // Cache de readBy cargados por messageId
+  const [loadingReadBy, setLoadingReadBy] = useState(null); // ID del mensaje que está cargando readBy
 
   // ============================================================
   // ESTADOS - Menciones (@)
@@ -375,54 +450,41 @@ const ChatContent = ({
   // ============================================================
   // EFFECT - Resetear estado al cambiar de chat
   // ============================================================
+  const initialScrollDoneRef = useRef(false);
+
   useEffect(() => {
     setImagePreview(null);
-    //  Resetear el flag de scroll a no leídos cuando cambiamos de chat
     hasScrolledToUnreadRef.current = false;
     lastMessageCountRef.current = 0;
+    isLoadingMoreRef.current = false;
+    firstMessageIdRef.current = null;
+    initialScrollDoneRef.current = false;
+    setHideUnreadSeparator(false); // Resetear al cambiar de chat
   }, [to, currentRoomCode, isGroup]);
 
   // ============================================================
-  // EFFECT - Scroll al primer mensaje no leído (estilo WhatsApp)
+  // EFFECT - Scroll al final cuando terminan de cargar los mensajes
   // ============================================================
   useEffect(() => {
-    // Solo ejecutar si:
-    // 1. No hemos hecho scroll todavía
-    // 2. Hay mensajes cargados
-    // 3. No estamos cargando mensajes
-    if (hasScrolledToUnreadRef.current || messages.length === 0 || isLoadingMessages) return;
+    if (hasScrolledToUnreadRef.current) return;
+    if (messages.length === 0) return;
+    if (isLoadingMessages) return; // Esperar a que termine la carga
     if (!chatHistoryRef.current) return;
 
     const chatHistory = chatHistoryRef.current;
 
-    // Buscar el primer mensaje no leído que NO sea del usuario actual
-    const firstUnreadMessage = messages.find(
-      (msg) => msg.id && msg.sender !== currentUsername && msg.sender !== "Tú" && !msg.isRead
-    );
+    // Pequeño delay para asegurar que el DOM esté completamente renderizado
+    const timeoutId = setTimeout(() => {
+      if (!chatHistoryRef.current) return;
+      if (hasScrolledToUnreadRef.current) return; // Verificar de nuevo
 
-    if (firstUnreadMessage) {
-      //  Primero intentar hacer scroll al separador de no leídos
-      setTimeout(() => {
-        const unreadSeparator = document.getElementById('unread-separator');
-        if (unreadSeparator) {
-          unreadSeparator.scrollIntoView({ behavior: "auto", block: "center" });
-        } else {
-          // Fallback: scroll al primer mensaje no leído
-          const messageElement = document.getElementById(`message-${firstUnreadMessage.id}`);
-          if (messageElement) {
-            messageElement.scrollIntoView({ behavior: "auto", block: "center" });
-          } else {
-            chatHistory.scrollTop = chatHistory.scrollHeight;
-          }
-        }
-        hasScrolledToUnreadRef.current = true;
-      }, 150);
-    } else {
-      //  Si no hay mensajes no leídos, ir al final del chat
       chatHistory.scrollTop = chatHistory.scrollHeight;
       hasScrolledToUnreadRef.current = true;
-    }
-  }, [messages, isLoadingMessages, currentUsername]);
+      initialScrollDoneRef.current = true;
+    }, 50);
+
+    return () => clearTimeout(timeoutId);
+  }, [messages.length, isLoadingMessages]);
 
   // ============================================================
   // EFFECT - Autofocus en el input al entrar a un chat
@@ -683,6 +745,12 @@ const ChatContent = ({
     const cursorPos = e.target.selectionStart;
     setInput(value);
 
+    // Limpiar contador de mensajes no leídos y ocultar separador cuando el usuario empieza a escribir
+    if (value.length === 1) {
+      if (onClearUnreadOnTyping) onClearUnreadOnTyping();
+      setHideUnreadSeparator(true);
+    }
+
     // Detectar menciones con @ solo en grupos
     if (isGroup && roomUsers && roomUsers.length > 0) {
       // Buscar el último @ antes del cursor
@@ -850,13 +918,23 @@ const ChatContent = ({
   // Scroll al mensaje resaltado cuando se selecciona desde la búsqueda
   useEffect(() => {
     if (highlightMessageId && messages.length > 0) {
-      const messageElement = document.getElementById(`message-${highlightMessageId}`);
-      if (messageElement) {
-        messageElement.scrollIntoView({ behavior: "auto", block: "center" });
-        setHighlightedMessageId(highlightMessageId);
-        setHighlightedMessageId(null);
-        onMessageHighlighted?.();
-      }
+      // Pequeño delay para asegurar que el DOM esté renderizado
+      const timeoutId = setTimeout(() => {
+        const messageElement = document.getElementById(`message-${highlightMessageId}`);
+        if (messageElement) {
+          console.log('🔍 Scroll al mensaje:', highlightMessageId);
+          messageElement.scrollIntoView({ behavior: "smooth", block: "center" });
+          setHighlightedMessageId(highlightMessageId);
+
+          // Quitar el highlight después de 5 segundos
+          setTimeout(() => {
+            setHighlightedMessageId(null);
+            onMessageHighlighted?.();
+          }, 5000);
+        }
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
     }
   }, [highlightMessageId, messages, onMessageHighlighted]);
 
@@ -870,6 +948,25 @@ const ChatContent = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Función para cargar readBy bajo demanda (lazy loading)
+  const loadReadByForMessage = async (messageId) => {
+    if (loadedReadBy[messageId]) return; // Ya está cargado
+    if (loadingReadBy === messageId) return; // Ya está cargando
+
+    setLoadingReadBy(messageId);
+    try {
+      const result = await apiService.getMessageReadBy(messageId);
+      setLoadedReadBy(prev => ({
+        ...prev,
+        [messageId]: result.readBy || []
+      }));
+    } catch (error) {
+      console.error('Error al cargar readBy:', error);
+    } finally {
+      setLoadingReadBy(null);
+    }
+  };
 
   // Scroll automático al final para mensajes nuevos
   useEffect(() => {
@@ -956,6 +1053,9 @@ const ChatContent = ({
   // ============================================================
   // HANDLER - Scroll y carga de mensajes antiguos
   // ============================================================
+  const firstMessageIdRef = useRef(null);
+  const loadMoreTriggerRef = useRef(null);
+
   const handleScroll = () => {
     if (!chatHistoryRef.current) return;
 
@@ -963,23 +1063,49 @@ const ChatContent = ({
     const isAtBottom = chatHistory.scrollHeight - chatHistory.scrollTop <= chatHistory.clientHeight + 50;
 
     isUserScrollingRef.current = !isAtBottom;
-
-    // Cargar más mensajes antiguos cuando el usuario llega al tope
-    if (chatHistory.scrollTop < 10 && hasMoreMessages && !isLoadingMore && onLoadMoreMessages) {
-      previousScrollHeightRef.current = chatHistory.scrollHeight;
-      onLoadMoreMessages();
-    }
   };
 
-  // Preservar posición del scroll al cargar mensajes antiguos
+  // Usar IntersectionObserver para detectar cuando llegamos al tope
+  useEffect(() => {
+    if (!loadMoreTriggerRef.current) return;
+    if (!chatHistoryRef.current) return;
+    if (messages.length === 0) return;
+    if (isLoadingMessages) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        // Solo cargar si ya se hizo el scroll inicial (evita carga automática al entrar)
+        if (entry.isIntersecting && initialScrollDoneRef.current && hasMoreMessages && !isLoadingMore && !isLoadingMoreRef.current && onLoadMoreMessages && messages.length > 0) {
+          firstMessageIdRef.current = messages[0].id;
+          isLoadingMoreRef.current = true;
+          onLoadMoreMessages();
+        }
+      },
+      { root: chatHistoryRef.current, threshold: 0.1 }
+    );
+
+    observer.observe(loadMoreTriggerRef.current);
+
+    return () => observer.disconnect();
+  }, [hasMoreMessages, isLoadingMore, onLoadMoreMessages, messages, isLoadingMessages]);
+
+  // Preservar posición: Usar el mensaje ancla para restaurar posición
   useLayoutEffect(() => {
-    if (chatHistoryRef.current && previousScrollHeightRef.current > 0) {
-      const chatHistory = chatHistoryRef.current;
-      const scrollDiff = chatHistory.scrollHeight - previousScrollHeightRef.current;
-      chatHistory.scrollTop = scrollDiff;
-      previousScrollHeightRef.current = 0;
+    if (!isLoadingMoreRef.current) return;
+    if (isLoadingMore) return;
+    if (!chatHistoryRef.current) return;
+    if (!firstMessageIdRef.current) return;
+
+    const anchorElement = document.getElementById(`message-${firstMessageIdRef.current}`);
+
+    if (anchorElement) {
+      anchorElement.scrollIntoView({ behavior: 'instant', block: 'start' });
     }
-  }, [messages]);
+
+    firstMessageIdRef.current = null;
+    isLoadingMoreRef.current = false;
+  }, [messages, isLoadingMore]);
 
   // ============================================================
   // FUNCIONES AUXILIARES - Íconos de archivos
@@ -1499,10 +1625,11 @@ const ChatContent = ({
     return (
       <div
         key={index}
-        className={`message-row ${isGroupStart ? 'group-start' : ''} ${isOwnMessage ? 'is-own' : ''}`}
+        className={`message-row ${isGroupStart ? 'group-start' : ''} ${isOwnMessage ? 'is-own' : ''} ${isHighlighted ? 'highlighted-message' : ''}`}
         id={`message-${message.id}`}
         style={{
-          backgroundColor: isHighlighted ? 'rgba(0, 168, 132, 0.1)' : 'transparent',
+          backgroundColor: isHighlighted ? 'rgba(255, 235, 59, 0.4)' : 'transparent',
+          transition: 'background-color 0.3s ease',
           position: 'relative',
           zIndex: isMenuOpen ? 100 : 1
         }}
@@ -1685,7 +1812,7 @@ const ChatContent = ({
                         {renderTextWithMentions(message.text || message.message)}
                       </div>
                     )}
-                    <img
+                    <LazyImage
                       src={message.mediaData}
                       alt="imagen"
                       style={{
@@ -2025,7 +2152,14 @@ const ChatContent = ({
                       </button>
                     )}
 
-                    {<button className="menu-item" onClick={() => { setShowMessageInfo(message); setShowMessageMenu(null); }}>
+                    {<button className="menu-item" onClick={() => {
+                      setShowMessageInfo(message);
+                      setShowMessageMenu(null);
+                      // Cargar readBy bajo demanda para el modal de info
+                      if (message.readByCount > 0 && !loadedReadBy[message.id]) {
+                        loadReadByForMessage(message.id);
+                      }
+                    }}>
                       <FaInfoCircle className="menu-icon" /> Info. Mensaje
                     </button>}
 
@@ -2066,108 +2200,60 @@ const ChatContent = ({
           )
         }
 
-        {/* === 🛡️ AVATARES DE LECTURA (LÓGICA MODIFICADA: MÁXIMO 3 + CONTADOR) 🛡️ === */}
+        {/* === 🛡️ AVATARES DE LECTURA (LAZY LOADING) 🛡️ === */}
         {
-          message.readBy && message.readBy.length > 0 && (
+          message.readByCount > 0 && (
             <div className="read-by-avatars-container">
 
-              {/* 1. ZONA INTERACTIVA (BOLITAS) */}
+              {/* 1. ZONA INTERACTIVA - Muestra check + contador */}
               <div
                 className="read-receipts-trigger"
                 style={{
-                  // Ajustamos el ancho dinámicamente:
-                  // Si son más de 3, dejamos espacio fijo para 3 bolitas + el contador. 
-                  // Si son menos, calculamos el espacio justo.
-                  width: message.readBy.length > 3 ? '55px' : `${(message.readBy.length * 12) + 6}px`
+                  width: 'auto',
+                  padding: '2px 6px',
+                  cursor: 'pointer'
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setOpenReadReceiptsId(openReadReceiptsId === message.id ? null : message.id);
+                  const newId = openReadReceiptsId === message.id ? null : message.id;
+                  setOpenReadReceiptsId(newId);
+                  // Cargar readBy bajo demanda cuando se abre el popover
+                  if (newId && !loadedReadBy[message.id]) {
+                    loadReadByForMessage(message.id);
+                  }
                 }}
                 title="Ver quién lo ha leído"
               >
-                {(() => {
-                  // Configuración
-                  const MAX_VISIBLE = 3;
-                  const totalReaders = message.readBy.length;
-                  const remainingCount = totalReaders - MAX_VISIBLE;
-                  const showCounter = remainingCount > 0;
-
-                  // Cortamos el array para mostrar solo los necesarios
-                  // Si hay contador, mostramos MAX_VISIBLE. Si no, mostramos todos (que serán <= 3).
-                  const visibleReaders = message.readBy.slice(0, MAX_VISIBLE);
-
-                  return (
-                    <>
-                      {/* A. BOLITA DE CONTADOR (+N) - Se muestra primero (arriba de la pila visualmente) */}
-                      {showCounter && (
-                        <div
-                          className="mini-read-avatar counter-bubble"
-                          style={{
-                            right: '0px',
-                            zIndex: 1,
-                            backgroundColor: '#e5e7eb',
-                            color: '#54656f',
-                            fontSize: '9px',
-                            border: '1px solid #fff'
-                          }}
-                        >
-                          +{remainingCount}
-                        </div>
-                      )}
-
-                      {/* B. AVATARES DE USUARIOS */}
-                      {visibleReaders.map((readerName, idx) => {
-                        // Búsqueda de foto (igual que antes)
-                        let userPic = null;
-                        const searchName = typeof readerName === 'string' ? readerName.toLowerCase().trim() : "";
-                        if (roomUsers && Array.isArray(roomUsers)) {
-                          const u = roomUsers.find(u => {
-                            const uName = (u.username || "").toLowerCase();
-                            const uFull = (u.nombre && u.apellido) ? `${u.nombre} ${u.apellido}`.toLowerCase() : "";
-                            return uName === searchName || uFull === searchName;
-                          });
-                          if (u) userPic = u.picture;
-                        }
-
-                        // Cálculo de posición:
-                        // Si hay contador, desplazamos los avatares a la izquierda (empiezan en 16px).
-                        // Si no hay contador, empiezan en 0px (el idx invertido maneja el stack).
-                        const shift = showCounter ? 16 : 0;
-                        // Stackeamos de derecha a izquierda
-                        const rightPos = shift + ((visibleReaders.length - 1 - idx) * 10);
-
-                        return (
-                          <div
-                            key={idx}
-                            className="mini-read-avatar"
-                            style={{
-                              right: `${rightPos}px`,
-                              zIndex: 1,
-                              ...(userPic && { backgroundImage: `url(${userPic})` }),
-                              ...(!userPic && { background: `linear-gradient(135deg, #ff453a 0%, #ff453a 100%)` })
-                            }}
-                          >
-                            {!userPic && typeof readerName === 'string' && readerName.charAt(0).toUpperCase()}
-                          </div>
-                        );
-                      })}
-                    </>
-                  );
-                })()}
+                {/* Indicador de lectura compacto */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  color: '#53bdeb',
+                  fontSize: '11px'
+                }}>
+                  {/* Doble check azul */}
+                  <svg viewBox="0 0 16 11" height="11" width="16" preserveAspectRatio="xMidYMid meet">
+                    <path fill="currentColor" d="M11.071.653a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178l-6.19 7.636-2.405-2.272a.463.463 0 0 0-.336-.146.47.47 0 0 0-.343.146l-.311.31a.445.445 0 0 0-.14.337c0 .136.047.25.14.343l2.996 2.996a.724.724 0 0 0 .27.18.652.652 0 0 0 .3.07.596.596 0 0 0 .274-.07.716.716 0 0 0 .253-.18L11.071 1.27a.445.445 0 0 0 .14-.337.453.453 0 0 0-.14-.28zm3.486 0a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178L7.682 8.365l-.376-.377-.19.192 1.07 1.07a.724.724 0 0 0 .27.18.652.652 0 0 0 .3.07.596.596 0 0 0 .274-.07.716.716 0 0 0 .253-.18l6.19-7.636a.445.445 0 0 0 .14-.337.453.453 0 0 0-.14-.28z"></path>
+                  </svg>
+                  {/* Contador */}
+                  <span style={{ fontWeight: '500' }}>{message.readByCount}</span>
+                </div>
               </div>
 
-              {/* 2. VENTANA FLOTANTE (POPOVER DETALLADO) - SE MANTIENE IGUAL QUE ANTES */}
-              {
-                openReadReceiptsId === message.id && (
-                  <div className="read-receipts-popover" onClick={(e) => e.stopPropagation()}>
-                    {/* ... El contenido del popover se mantiene igual ... */}
-                    <div className="popover-header">
-                      {message.readBy.length} {message.readBy.length === 1 ? 'persona' : 'personas'}
-                    </div>
-                    <div className="popover-list">
-                      {message.readBy.map((readerName, idx) => {
-                        // ... Lógica de renderizado de lista (mantener la existente) ...
+              {/* 2. VENTANA FLOTANTE (POPOVER) - Carga readBy bajo demanda */}
+              {openReadReceiptsId === message.id && (
+                <div className="read-receipts-popover" onClick={(e) => e.stopPropagation()}>
+                  <div className="popover-header">
+                    {message.readByCount} {message.readByCount === 1 ? 'persona' : 'personas'}
+                  </div>
+                  <div className="popover-list">
+                    {loadingReadBy === message.id ? (
+                      <div className="popover-item" style={{ justifyContent: 'center' }}>
+                        <span style={{ color: '#666', fontSize: '12px' }}>Cargando...</span>
+                      </div>
+                    ) : loadedReadBy[message.id] ? (
+                      loadedReadBy[message.id].map((readerName, idx) => {
                         let userPic = null;
                         let fullName = readerName;
                         const searchName = typeof readerName === 'string' ? readerName.toLowerCase().trim() : "";
@@ -2193,12 +2279,16 @@ const ChatContent = ({
                             </div>
                           </div>
                         );
-                      })}
-                    </div>
+                      })
+                    ) : (
+                      <div className="popover-item" style={{ justifyContent: 'center' }}>
+                        <span style={{ color: '#666', fontSize: '12px' }}>Sin datos</span>
+                      </div>
+                    )}
                   </div>
-                )
-              }
-            </div >
+                </div>
+              )}
+            </div>
           )
         }
       </div >
@@ -2272,6 +2362,9 @@ const ChatContent = ({
           </div>
         ) : (
           <>
+            {/* Elemento invisible para detectar scroll al tope */}
+            <div ref={loadMoreTriggerRef} style={{ height: '1px' }} />
+
             <LoadMoreMessages
               hasMoreMessages={hasMoreMessages}
               isLoadingMore={isLoadingMore}
@@ -2293,8 +2386,9 @@ const ChatContent = ({
                     <div className="date-separator-content">{item.label}</div>
                   </div>
                 );
-              } else if (item.type === "unread-separator") {
+              } else if (item.type === "unread-separator" && !hideUnreadSeparator) {
                 //  NUEVO: Separador de mensajes no leídos estilo WhatsApp
+                // Se oculta cuando el usuario empieza a escribir
                 return (
                   <div key={`unread-${idx}`} className="unread-separator" id="unread-separator">
                     <div className="unread-separator-content">
@@ -2304,6 +2398,9 @@ const ChatContent = ({
                     </div>
                   </div>
                 );
+              } else if (item.type === "unread-separator" && hideUnreadSeparator) {
+                // No renderizar nada si está oculto
+                return null;
               } else {
                 return renderMessage(item.data, item.index);
               }
@@ -3255,9 +3352,11 @@ const ChatContent = ({
                       d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"
                     ></path>
                   </svg>
-                  Leído por ({showMessageInfo.readBy?.length || 0})
+                  Leído por ({showMessageInfo.readByCount || 0})
                 </h4>
-                {showMessageInfo.readBy && showMessageInfo.readBy.length > 0 ? (
+                {loadingReadBy === showMessageInfo.id ? (
+                  <p style={{ fontSize: "13px", color: "#8696a0" }}>Cargando...</p>
+                ) : loadedReadBy[showMessageInfo.id] && loadedReadBy[showMessageInfo.id].length > 0 ? (
                   <div
                     style={{
                       display: "flex",
@@ -3265,11 +3364,8 @@ const ChatContent = ({
                       gap: "8px",
                     }}
                   >
-                    {showMessageInfo.readBy.map((reader, index) => {
-                      // 1. Normalizar el nombre del lector
+                    {loadedReadBy[showMessageInfo.id].map((reader, index) => {
                       const readerName = typeof reader === 'string' ? reader : reader.username || reader.nombre;
-
-                      // 2. BUSCAR EL USUARIO EN LA SALA (Para obtener su foto)
                       let userWithPic = null;
                       if (roomUsers && Array.isArray(roomUsers)) {
                         const search = readerName.toLowerCase().trim();
@@ -3279,8 +3375,6 @@ const ChatContent = ({
                           return uUser === search || uFull === search;
                         });
                       }
-
-                      // 3. Obtener la URL de la foto (si existe)
                       const avatarUrl = userWithPic?.picture;
 
                       return (
@@ -3295,13 +3389,11 @@ const ChatContent = ({
                             borderRadius: "8px",
                           }}
                         >
-                          {/* --- AVATAR CON FOTO --- */}
                           <div
                             style={{
                               width: "32px",
                               height: "32px",
                               borderRadius: "50%",
-                              //  AQUÍ ESTÁ EL CAMBIO CLAVE: Usamos la foto si existe
                               background: avatarUrl
                                 ? `url(${avatarUrl}) center/cover no-repeat`
                                 : "#A50104",
@@ -3315,46 +3407,16 @@ const ChatContent = ({
                               border: "1px solid rgba(0,0,0,0.05)"
                             }}
                           >
-                            {/* Solo mostramos la inicial si NO hay foto */}
                             {!avatarUrl && readerName.charAt(0).toUpperCase()}
                           </div>
-
                           <div style={{ flex: 1 }}>
-                            <p
-                              style={{
-                                margin: 0,
-                                fontSize: "14px",
-                                fontWeight: "500",
-                                color: "#111",
-                              }}
-                            >
+                            <p style={{ margin: 0, fontSize: "14px", fontWeight: "500", color: "#111" }}>
                               {readerName}
                             </p>
                           </div>
-
-                          <div
-                            style={{
-                              fontSize: "16px",
-                              color: "#53bdeb",
-                              display: "flex",
-                              alignItems: "center",
-                            }}
-                          >
-                            {/* Doble Check Azul */}
-                            <svg
-                              viewBox="0 0 18 18"
-                              height="18"
-                              width="18"
-                              preserveAspectRatio="xMidYMid meet"
-                              version="1.1"
-                              x="0px"
-                              y="0px"
-                              enableBackground="new 0 0 18 18"
-                            >
-                              <path
-                                fill="currentColor"
-                                d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"
-                              ></path>
+                          <div style={{ fontSize: "16px", color: "#53bdeb", display: "flex", alignItems: "center" }}>
+                            <svg viewBox="0 0 18 18" height="18" width="18" preserveAspectRatio="xMidYMid meet" version="1.1" x="0px" y="0px" enableBackground="new 0 0 18 18">
+                              <path fill="currentColor" d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"></path>
                             </svg>
                           </div>
                         </div>
@@ -3362,13 +3424,7 @@ const ChatContent = ({
                     })}
                   </div>
                 ) : (
-                  <p
-                    style={{
-                      fontSize: "13px",
-                      color: "#8696a0",
-                      fontStyle: "italic",
-                    }}
-                  >
+                  <p style={{ fontSize: "13px", color: "#8696a0", fontStyle: "italic" }}>
                     Aún no ha sido leído por nadie
                   </p>
                 )}

@@ -39,7 +39,7 @@ export const useSocket = (isAuthenticated, username, user) => {
 
         socket.current = io(socketUrl, {
           transports: ["websocket", "polling"],
-          timeout: 45000, // OPTIMIZADO: 45s - sincronizado con backend connectTimeout
+          timeout: 10000, // OPTIMIZADO: 45s - sincronizado con backend connectTimeout
           path: "/BackendChat/socket.io/", // Ruta específica de tu backend
           //path: "/socket.io/", // Ruta específica de tu backend
           forceNew: true,
@@ -70,13 +70,18 @@ export const useSocket = (isAuthenticated, username, user) => {
           isConnecting.current = false;
           console.log("✅ Socket conectado:", socket.current.id);
 
-          // ✅ CORREGIDO: Enviar username real (ID) no el displayName
-          // El displayName se construye en el backend desde nombre + apellido
+          const displayName =
+            user.nombre && user.apellido
+              ? `${user.nombre} ${user.apellido}`
+              : user.username || user.email;
+
+          //  OPTIMIZADO: Solo enviamos datos del usuario.
+          // Ya NO enviamos la lista gigante de conversaciones.
           socket.current.emit("register", {
-            username: user.username,  // ID real: "73583958"
+            username: displayName,
             userData: {
               id: user.id,
-              username: user.username,  // ID real
+              username: displayName,
               role: user.role || "USER",
               nombre: user.nombre,
               apellido: user.apellido,
@@ -104,12 +109,17 @@ export const useSocket = (isAuthenticated, username, user) => {
           console.log(`🔄 Socket reconectado (intento ${attemptNumber})`);
           isConnecting.current = false;
 
-          // ✅ CORREGIDO: Enviar username real (ID) no el displayName
+          const displayName =
+            user.nombre && user.apellido
+              ? `${user.nombre} ${user.apellido}`
+              : user.username || user.email;
+
+          // Re-registrar usuario de forma ligera
           socket.current.emit("register", {
-            username: user.username || user.email,
+            username: displayName,
             userData: {
               id: user.id,
-              username: user.username || user.email,
+              username: displayName,
               role: user.role || "USER",
               nombre: user.nombre,
               apellido: user.apellido,

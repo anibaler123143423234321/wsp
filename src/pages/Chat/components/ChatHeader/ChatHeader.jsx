@@ -1,4 +1,4 @@
-import { FaArrowLeft, FaUserPlus, FaUserMinus } from 'react-icons/fa';
+import { FaArrowLeft, FaUserPlus, FaUserMinus, FaComments } from 'react-icons/fa';
 // Importamos el nuevo componente
 import VideoCallButton from '../VideoCallButton/VideoCallButton';
 import './ChatHeader.css';
@@ -16,7 +16,8 @@ const ChatHeader = ({
   user,
   onStartVideoCall,
   onToggleMembersPanel,
-  onToggleInfoPanel
+  onToggleInfoPanel,
+  onToggleThreadsPanel
 }) => {
   // No mostrar el header si no hay chat seleccionado
   if (!to) {
@@ -154,6 +155,17 @@ const ChatHeader = ({
               style={{ color: '#ef4444' }}
             >
               <FaUserMinus />
+            </button>
+          )}
+
+          {/* Botón de Hilos */}
+          {onToggleThreadsPanel && (
+            <button
+              className="header-icon-btn threads-btn"
+              onClick={onToggleThreadsPanel}
+              title="Ver hilos"
+            >
+              <FaComments size={20} />
             </button>
           )}
 
