@@ -23,6 +23,7 @@ const ChatLayout = ({
   onShowCreateRoom, onShowJoinRoom, onShowAdminRooms, onShowCreateConversation, onShowManageConversations,
   onShowManageUsers, onShowSystemConfig, myActiveRooms, onRoomSelect, onKickUser,
   userListHasMore, userListLoading, onLoadMoreUsers, roomTypingUsers,
+  favoriteRoomCodes, setFavoriteRoomCodes, lastFavoriteUpdate,
   //  NUEVOS PROPS para paginación real
   assignedPage, assignedTotal, assignedTotalPages, assignedLoading, onLoadAssignedConversations,
   roomsPage, roomsTotal, roomsTotalPages, roomsLoading, onLoadUserRooms, roomsLimit, onRoomsLimitChange, onGoToRoomsPage,
@@ -260,6 +261,9 @@ const ChatLayout = ({
         myActiveRooms={myActiveRooms}
         onRoomSelect={onRoomSelect}
         currentRoomCode={currentRoomCode}
+        favoriteRoomCodes={favoriteRoomCodes}
+        setFavoriteRoomCodes={setFavoriteRoomCodes}
+        lastFavoriteUpdate={lastFavoriteUpdate}
         onKickUser={onKickUser}
         to={to}
         userListHasMore={userListHasMore}

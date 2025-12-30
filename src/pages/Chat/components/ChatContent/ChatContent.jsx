@@ -839,7 +839,7 @@ const ChatContent = ({
   };
 
   const handleMentionSelect = (user) => {
-    const username = typeof user === "string" ? user : user.username || user.nombre || user;
+    const username = typeof user === "string" ? user : (user.displayName || user.username || user.nombre || '');
     const beforeMention = input.substring(0, mentionCursorPosition);
     const afterMention = input.substring(mentionCursorPosition + mentionSearch.length + 1);
     const newInput = `${beforeMention}@${username} ${afterMention}`;
@@ -921,9 +921,60 @@ const ChatContent = ({
       // Pequeño delay para asegurar que el DOM esté renderizado
       const timeoutId = setTimeout(() => {
         const messageElement = document.getElementById(`message-${highlightMessageId}`);
-        if (messageElement) {
+        const chatContainer = chatHistoryRef.current;
+
+        if (messageElement && chatContainer) {
           console.log('🔍 Scroll al mensaje:', highlightMessageId);
-          messageElement.scrollIntoView({ behavior: "smooth", block: "center" });
+
+          // 🔥 MEJORADO: Calcular scroll manual para manejar mensajes al final
+          // Posición actual del mensaje relativa al contenedor
+          const messageOffsetTop = messageElement.offsetTop;
+          const messageHeight = messageElement.offsetHeight;
+          const containerHeight = chatContainer.clientHeight;
+          const scrollHeight = chatContainer.scrollHeight;
+
+          // Calcular posición ideal (centrado)
+          const idealScrollTop = messageOffsetTop - (containerHeight / 2) + (messageHeight / 2);
+
+          // Límites de scroll
+          const maxScrollTop = scrollHeight - containerHeight;
+          const minScrollTop = 0;
+
+          // 🔥 Si el mensaje está cerca del final, el scroll ideal podría exceder el máximo
+          // En ese caso, hacemos scroll al máximo para asegurar visibilidad
+          let targetScrollTop = Math.max(minScrollTop, Math.min(idealScrollTop, maxScrollTop));
+
+          // 🔥 Verificar si el mensaje quedará visible después del scroll
+          const messageTopAfterScroll = messageOffsetTop - targetScrollTop;
+          const messageBottomAfterScroll = messageTopAfterScroll + messageHeight;
+
+          // Si el mensaje no queda completamente visible, ajustar
+          if (messageBottomAfterScroll > containerHeight) {
+            // El mensaje queda cortado abajo - ajustar para que sea visible con margen
+            targetScrollTop = messageOffsetTop - containerHeight + messageHeight + 50; // 50px de margen
+          } else if (messageTopAfterScroll < 0) {
+            // El mensaje queda cortado arriba - ajustar
+            targetScrollTop = messageOffsetTop - 50; // 50px de margen superior
+          }
+
+          // Asegurar que no exceda los límites
+          targetScrollTop = Math.max(minScrollTop, Math.min(targetScrollTop, maxScrollTop));
+
+          console.log('🔍 Scroll calculado:', {
+            messageOffsetTop,
+            idealScrollTop,
+            targetScrollTop,
+            maxScrollTop,
+            containerHeight,
+            scrollHeight
+          });
+
+          // Aplicar scroll suave
+          chatContainer.scrollTo({
+            top: targetScrollTop,
+            behavior: 'smooth'
+          });
+
           setHighlightedMessageId(highlightMessageId);
 
           // Quitar el highlight después de 5 segundos
@@ -932,7 +983,7 @@ const ChatContent = ({
             onMessageHighlighted?.();
           }, 5000);
         }
-      }, 100);
+      }, 150); // 🔥 Aumentar delay ligeramente para asegurar renderizado completo
 
       return () => clearTimeout(timeoutId);
     }
@@ -3134,11 +3185,24 @@ const ChatContent = ({
                   zIndex: 1000,
                 }}
               >
-                {/* Lógica de renderizado de menciones (resumida para el bloque) */}
+                {/* Lógica de renderizado de menciones */}
                 {roomUsers
                   .filter((user) => {
-                    const username = typeof user === "string" ? user : user.username || user.nombre || user;
-                    return username.toLowerCase().includes(mentionSearch) && username !== currentUsername;
+                    // Obtener nombre para búsqueda (soporta múltiples formatos)
+                    let searchName = '';
+                    if (typeof user === "string") {
+                      searchName = user;
+                    } else if (user && typeof user === 'object') {
+                      // Prioridad: displayName > nombre+apellido > username > nombre
+                      searchName = user.displayName
+                        || ((user.nombre && user.apellido) ? `${user.nombre} ${user.apellido}` : '')
+                        || user.username
+                        || user.nombre
+                        || '';
+                    }
+                    if (!searchName) return false;
+                    const searchLower = searchName.toLowerCase();
+                    return searchLower.includes(mentionSearch) && searchName !== currentUsername;
                   })
                   .slice(0, 5)
                   .map((user, index) => (
@@ -3171,10 +3235,10 @@ const ChatContent = ({
                         color: "#fff",
                         fontWeight: "600"
                       }}>
-                        {(typeof user === "object" ? (user.nombre || user.username || "@").charAt(0) : user.charAt(0)).toUpperCase()}
+                        {(typeof user === "object" ? (user.displayName || user.nombre || user.username || "@").charAt(0) : user.charAt(0)).toUpperCase()}
                       </div>
                       <div style={{ color: "#333", fontWeight: "500", fontSize: "14px" }}>
-                        {typeof user === "object" ? (user.nombre && user.apellido ? `${user.nombre} ${user.apellido}` : user.nombre || user.username) : user}
+                        {typeof user === "object" ? (user.displayName || (user.nombre && user.apellido ? `${user.nombre} ${user.apellido}` : user.nombre || user.username)) : user}
                       </div>
                     </div>
                   ))}

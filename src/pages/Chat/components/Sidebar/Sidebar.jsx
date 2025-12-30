@@ -38,6 +38,9 @@ const Sidebar = ({
   sidebarCollapsed,
   onToggleCollapse,
   roomTypingUsers = {},
+  favoriteRoomCodes = [],
+  setFavoriteRoomCodes,
+  lastFavoriteUpdate,
   showSidebar = false,
   assignedPage = 1,
   assignedTotal = 0,
@@ -158,6 +161,9 @@ const Sidebar = ({
             isGroup={isGroup}
             onUserSelect={onUserSelect}
             onRoomSelect={onRoomSelect}
+            favoriteRoomCodes={favoriteRoomCodes}
+            setFavoriteRoomCodes={setFavoriteRoomCodes}
+            lastFavoriteUpdate={lastFavoriteUpdate}
             unreadMessages={unreadMessages}
             onToggleSidebar={onToggleSidebar}
             userListHasMore={userListHasMore}

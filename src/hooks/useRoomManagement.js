@@ -53,6 +53,7 @@ export const useRoomManagement = (
     const loadMyActiveRooms = useCallback(
         async (page = 1, append = false, limitOverride, user) => {
             const parsedLimit = Number(limitOverride ?? roomsLimit) || 50;
+            let loadedRooms = []; // Variable para retornar las salas cargadas
             try {
                 setRoomsLoading(true);
 
@@ -68,6 +69,8 @@ export const useRoomManagement = (
                     const activeRooms = response.data
                         ? response.data.filter((room) => room.isActive)
                         : [];
+
+                    loadedRooms = activeRooms; // Guardar para retornar
 
                     const nextPage = Number(response.page ?? page) || page;
                     const totalRooms =
@@ -94,6 +97,8 @@ export const useRoomManagement = (
                 } else {
                     // Para usuarios normales, usar paginación real
                     const result = await apiService.getUserRoomsPaginated(page, parsedLimit);
+
+                    loadedRooms = result.rooms || []; // Guardar para retornar
 
                     const nextPage = Number(result.page ?? page) || page;
                     const totalRooms =
@@ -130,11 +135,14 @@ export const useRoomManagement = (
                 } catch (countError) {
                     console.warn('⚠️ No se pudieron actualizar contadores:', countError);
                 }
+
+                return loadedRooms; // Retornar las salas cargadas
             } catch (error) {
                 console.error('❌ Error al cargar salas activas:', error);
                 if (!append) {
                     setMyActiveRooms([]);
                 }
+                return []; // Retornar array vacío en caso de error
             } finally {
                 setRoomsLoading(false);
             }

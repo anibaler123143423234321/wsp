@@ -16,8 +16,10 @@ export const useSocketListeners = (
         setRoomUsers, setMyActiveRooms, myActiveRooms, setAssignedConversations, //  Agregado myActiveRooms
         setMonitoringConversations, setUnreadMessages, setPendingMentions,
         setTypingUser, setRoomTypingUsers, setPinnedMessageId,
+        setLastFavoriteUpdate, //  Para notificar actualizaciones a favoritos
         // Refs vitales
-        currentRoomCodeRef, toRef, isGroupRef, currentUserFullNameRef
+        currentRoomCodeRef, toRef, isGroupRef, currentUserFullNameRef,
+        adminViewConversationRef //  Para detectar chat asignado abierto
     } = chatState;
 
     // Desestructurar funciones
@@ -32,6 +34,7 @@ export const useSocketListeners = (
     //  CRÍTICO: Usar ref para tener siempre el valor actualizado
     const soundsEnabledRef = useRef(soundsEnabled);
     const myActiveRoomsRef = useRef(myActiveRooms || []); //  Nuevo Ref
+    const favoriteRoomCodesRef = useRef(favoriteRoomCodes); //  Ref para favoritos
 
     // Actualizar ref cuando cambie soundsEnabled
     useEffect(() => {
@@ -43,16 +46,28 @@ export const useSocketListeners = (
         myActiveRoomsRef.current = myActiveRooms || [];
     }, [myActiveRooms]);
 
+    //  Actualizar ref cuando cambien favoritos
+    useEffect(() => {
+        favoriteRoomCodesRef.current = favoriteRoomCodes;
+    }, [favoriteRoomCodes]);
+
     //  FUNCIÓN DE ORDENAMIENTO IDÉNTICA AL BACKEND
     const sortRoomsByBackendLogic = (rooms, favoriteRoomCodes) => {
+        console.log('🔄 sortRoomsByBackendLogic llamado con', rooms.length, 'salas');
+        console.log('🔄 favoriteRoomCodes:', favoriteRoomCodes);
+
         // Separar favoritas y no favoritas
         const favorites = rooms.filter(r => favoriteRoomCodes.includes(r.roomCode));
         const nonFavorites = rooms.filter(r => !favoriteRoomCodes.includes(r.roomCode));
 
+        console.log('⭐ Favoritos encontrados:', favorites.length, favorites.map(f => f.roomCode));
+
         // Función para ordenar un grupo (CON mensajes primero, SIN mensajes después)
-        const sortGroup = (group) => {
+        const sortGroup = (group, groupName) => {
             const withMessages = group.filter(r => r.lastMessage?.sentAt);
             const withoutMessages = group.filter(r => !r.lastMessage?.sentAt);
+
+            console.log(`🔄 ${groupName}: con mensajes: ${withMessages.length}, sin mensajes: ${withoutMessages.length}`);
 
             // Ordenar CON mensajes por sentAt DESC
             withMessages.sort((a, b) => {
@@ -68,12 +83,16 @@ export const useSocketListeners = (
                 return bDate - aDate;
             });
 
-            return [...withMessages, ...withoutMessages];
+            const result = [...withMessages, ...withoutMessages];
+            if (result.length > 0) {
+                console.log(`🔄 ${groupName} - Primer item:`, result[0].roomCode, result[0].name, 'sentAt:', result[0].lastMessage?.sentAt);
+            }
+            return result;
         };
 
         // Ordenar cada grupo y combinar
-        const sortedFavorites = sortGroup(favorites);
-        const sortedNonFavorites = sortGroup(nonFavorites);
+        const sortedFavorites = sortGroup(favorites, 'FAVORITOS');
+        const sortedNonFavorites = sortGroup(nonFavorites, 'NO-FAVORITOS');
 
         return [...sortedFavorites, ...sortedNonFavorites];
     };
@@ -230,6 +249,10 @@ export const useSocketListeners = (
                 const msgFrom = data.from?.toLowerCase().trim();
                 const msgTo = data.to?.toLowerCase().trim();
 
+                // Verificar también adminViewConversation para chats asignados
+                const adminConv = adminViewConversationRef?.current;
+                const adminConvParticipants = adminConv?.participants?.map(p => p?.toLowerCase().trim()) || [];
+
                 //  DEBUG: Diagnosticar por qué no se abre el chat
                 console.log('🔍 DEBUG isChatOpen (DM):', {
                     chatPartner,
@@ -237,11 +260,19 @@ export const useSocketListeners = (
                     msgTo,
                     match1: chatPartner === msgFrom,
                     match2: chatPartner === msgTo,
-                    conversationId: data.conversationId
+                    conversationId: data.conversationId,
+                    adminConvParticipants
                 });
 
                 if (chatPartner && (chatPartner === msgFrom || chatPartner === msgTo)) {
                     isChatOpen = true;
+                }
+
+                // También verificar si el chat asignado está abierto (modo observador)
+                if (!isChatOpen && adminConvParticipants.length > 0) {
+                    if (adminConvParticipants.includes(msgFrom) && adminConvParticipants.includes(msgTo)) {
+                        isChatOpen = true;
+                    }
                 }
             }
             // CASO A: GRUPOS
@@ -277,8 +308,15 @@ export const useSocketListeners = (
                     });
                 }
 
-                //  NO incrementar aquí - el evento 'unreadCountUpdate' del backend se encarga
-                // Esto evita que el contador suba de 2 en 2
+                //  Incrementar contador si NO estamos en esa sala, NO es mensaje propio
+                // y NO es favorito (los favoritos reciben unreadCountUpdate del backend)
+                const isFavorite = favoriteRoomCodesRef.current.includes(data.roomCode);
+                if (!isChatOpen && !isOwnMessage && !isFavorite) {
+                    setUnreadMessages(prev => ({
+                        ...prev,
+                        [data.roomCode]: (prev[data.roomCode] || 0) + 1
+                    }));
+                }
 
                 //  SIEMPRE actualizar la lista de conversaciones
                 if (data.roomCode) {
@@ -299,7 +337,7 @@ export const useSocketListeners = (
                             }
                             return r;
                         });
-                        return sortRoomsByBackendLogic(updated, favoriteRoomCodes);
+                        return sortRoomsByBackendLogic(updated, favoriteRoomCodesRef.current);
                     });
 
                     //  NOTIFICACIÓN TOAST para grupos (solo si NO es mensaje propio y chat NO está abierto)
@@ -382,38 +420,9 @@ export const useSocketListeners = (
                     });
                 }
 
-                //  Actualizar conversaciones asignadas
-                setAssignedConversations(prev => prev.map(conv => {
-                    if (data.conversationId && conv.id == data.conversationId) {
-                        return {
-                            ...conv,
-                            lastMessage: messageText,
-                            lastMessageTime: data.sentAt || new Date().toISOString(),
-                            lastMessageFrom: data.from,
-                            lastMessageMediaType: data.mediaType,
-                            unreadCount: (!isChatOpen && !isOwnMessage) ? (conv.unreadCount || 0) + 1 : 0
-                        };
-                    }
-
-                    if (!data.conversationId) {
-                        const participants = conv.participants || [];
-                        const participantsLower = participants.map(p => p?.toLowerCase().trim());
-                        const isThisConv = participantsLower.includes(data.from?.toLowerCase().trim()) &&
-                            participantsLower.includes(data.to?.toLowerCase().trim());
-
-                        if (isThisConv) {
-                            return {
-                                ...conv,
-                                lastMessage: messageText,
-                                lastMessageTime: data.sentAt || new Date().toISOString(),
-                                lastMessageFrom: data.from,
-                                lastMessageMediaType: data.mediaType,
-                                unreadCount: (!isChatOpen && !isOwnMessage) ? (conv.unreadCount || 0) + 1 : 0
-                            };
-                        }
-                    }
-                    return conv;
-                }));
+                //  NO actualizar assignedConversations aquí
+                // El evento 'assignedConversationUpdated' del backend se encarga de esto
+                // para evitar incremento doble del contador
 
                 //  NOTIFICACIONES SOLO si NO es mensaje propio y chat NO está abierto
                 if (!isOwnMessage && !isChatOpen) {
@@ -469,9 +478,36 @@ export const useSocketListeners = (
         // =====================================================
         // 4. EVENTOS DE ACTUALIZACIÓN DE CONTADORES (BACKEND)
         // =====================================================
+        console.log('📬 Registrando listener unreadCountUpdate');
         s.on("unreadCountUpdate", (data) => {
-            if ((data.roomCode !== currentRoomCodeRef.current || systemNotifications.canShow()) && data.count > 0) {
-                setUnreadMessages(prev => ({ ...prev, [data.roomCode]: (prev[data.roomCode] || 0) + data.count }));
+            console.log('📬 EVENTO unreadCountUpdate RECIBIDO:', data);
+            // Solo incrementar contador si NO estamos en esa sala
+            const isCurrentRoom = data.roomCode === currentRoomCodeRef.current;
+
+            //  FIX: Si hay lastMessage, significa que llegó un mensaje nuevo
+            // Incrementar en 1 aunque el backend envíe count: 0
+            const incrementCount = data.lastMessage ? Math.max(data.count || 0, 1) : (data.count || 0);
+
+            console.log('📬 unreadCountUpdate:', {
+                roomCode: data.roomCode,
+                isCurrentRoom,
+                hasLastMessage: !!data.lastMessage,
+                incrementCount
+            });
+
+            // Solo incrementar para FAVORITOS (los grupos normales ya incrementan en roomMessage)
+            const isFavorite = favoriteRoomCodesRef.current.includes(data.roomCode);
+
+            if (!isCurrentRoom && incrementCount > 0 && isFavorite) {
+                // Incrementar contador solo para favoritos
+                setUnreadMessages(prev => ({
+                    ...prev,
+                    [data.roomCode]: (prev[data.roomCode] || 0) + incrementCount
+                }));
+            }
+
+            // Sonido para todos (favoritos y no favoritos)
+            if (!isCurrentRoom && incrementCount > 0) {
                 playMessageSound(soundsEnabledRef.current);
 
                 //  NUEVO: Mostrar notificación visual (Toast)
@@ -541,9 +577,31 @@ export const useSocketListeners = (
                 });
             }
 
+            //  SIEMPRE actualizar lastMessage y reordenar (fuera del if anterior)
             if (data.lastMessage) {
-                setMyActiveRooms((prevRooms) =>
-                    prevRooms.map((room) =>
+                console.log('📬 unreadCountUpdate: Actualizando lastMessage para', data.roomCode, 'sentAt:', data.lastMessage.sentAt);
+
+                const newSentAt = data.lastMessage.sentAt || new Date().toISOString();
+
+                //  Si es un favorito, notificar para que ConversationList actualice su estado local
+                if (favoriteRoomCodesRef.current.includes(data.roomCode)) {
+                    console.log('⭐ unreadCountUpdate: Notificando actualización de favorito:', data.roomCode);
+                    setLastFavoriteUpdate({
+                        roomCode: data.roomCode,
+                        lastMessage: {
+                            text: data.lastMessage.text || "",
+                            from: data.lastMessage.from,
+                            time: data.lastMessage.time,
+                            sentAt: newSentAt,
+                            mediaType: data.lastMessage.mediaType || null,
+                            fileName: data.lastMessage.fileName || null
+                        },
+                        timestamp: Date.now() // Para forzar re-render
+                    });
+                }
+
+                setMyActiveRooms((prevRooms) => {
+                    const updated = prevRooms.map((room) =>
                         room.roomCode === data.roomCode
                             ? {
                                 ...room,
@@ -551,14 +609,21 @@ export const useSocketListeners = (
                                     text: data.lastMessage.text || "",
                                     from: data.lastMessage.from,
                                     time: data.lastMessage.time,
-                                    sentAt: data.lastMessage.sentAt,
+                                    sentAt: newSentAt,
                                     mediaType: data.lastMessage.mediaType || null,
                                     fileName: data.lastMessage.fileName || null
                                 }
                             }
                             : room
-                    )
-                );
+                    );
+
+                    console.log('📬 Sala actualizada:', data.roomCode, 'nuevo sentAt:', newSentAt);
+
+                    //  IMPORTANTE: Reordenar para que suba al inicio
+                    const sorted = sortRoomsByBackendLogic(updated, favoriteRoomCodesRef.current);
+                    console.log('📬 unreadCountUpdate: Lista reordenada, primer item:', sorted[0]?.roomCode, sorted[0]?.name);
+                    return sorted;
+                });
             }
         });
 
@@ -567,7 +632,75 @@ export const useSocketListeners = (
         s.on("assignedConversationUpdated", (data) => {
             console.log("💬 assignedConversationUpdated recibido:", data);
 
+            // Verificar si es mensaje propio
+            const currentFullName = currentUserFullNameRef.current;
+            const isOwnMessage = data.lastMessageFrom === username || data.lastMessageFrom === currentFullName;
+
+            // Capturar valores de refs ANTES del setAssignedConversations
+            const adminConv = adminViewConversationRef?.current;
+            const currentTo = toRef.current?.toLowerCase().trim();
+            const currentIsGroup = isGroupRef.current;
+
+            console.log("💬 REFS actuales:", {
+                currentTo,
+                currentIsGroup,
+                adminConvId: adminConv?.id,
+                conversationIdRecibido: data.conversationId
+            });
+
             setAssignedConversations(prev => {
+                // Primero encontrar la conversación para verificar si está abierta
+                const targetConv = prev.find(c => c.id === data.conversationId);
+
+                if (!targetConv) {
+                    console.log("⚠️ No se encontró conversación con id:", data.conversationId);
+                    return prev;
+                }
+
+                console.log("💬 targetConv encontrada:", {
+                    id: targetConv.id,
+                    participants: targetConv.participants,
+                    currentUnreadCount: targetConv.unreadCount
+                });
+
+                let isChatOpen = false;
+
+                if (!currentIsGroup) {
+                    // Verificar por adminViewConversation (modo observador)
+                    if (adminConv?.id === data.conversationId) {
+                        isChatOpen = true;
+                        console.log("💬 isChatOpen=true por adminConv");
+                    } else if (currentTo) {
+                        // Verificar si currentTo es participante de esta conversación
+                        const participants = targetConv.participants || [];
+                        const participantsLower = participants.map(p => p?.toLowerCase().trim());
+                        isChatOpen = participantsLower.includes(currentTo);
+                        console.log("💬 Verificando participantes:", { participantsLower, currentTo, isChatOpen });
+                    }
+                } else {
+                    console.log("💬 currentIsGroup=true, isChatOpen=false");
+                }
+
+                // Incrementar unreadCount solo si NO es mensaje propio y chat NO está abierto
+                const shouldIncrement = !isOwnMessage && !isChatOpen;
+                const newUnreadCount = shouldIncrement ? (targetConv.unreadCount || 0) + 1 : targetConv.unreadCount;
+
+                console.log("💬 DECISIÓN FINAL:", {
+                    isOwnMessage,
+                    isChatOpen,
+                    shouldIncrement,
+                    oldUnreadCount: targetConv.unreadCount,
+                    newUnreadCount
+                });
+
+                // 🔥 CRÍTICO: También actualizar unreadMessages para que el UI se sincronice
+                if (shouldIncrement) {
+                    setUnreadMessages(prev => ({
+                        ...prev,
+                        [data.conversationId]: newUnreadCount
+                    }));
+                }
+
                 // Actualizar la conversación correspondiente
                 const updated = prev.map(conv => {
                     if (conv.id === data.conversationId) {
@@ -576,7 +709,8 @@ export const useSocketListeners = (
                             lastMessage: data.lastMessage,
                             lastMessageTime: data.lastMessageTime,
                             lastMessageFrom: data.lastMessageFrom,
-                            lastMessageMediaType: data.lastMessageMediaType
+                            lastMessageMediaType: data.lastMessageMediaType,
+                            unreadCount: newUnreadCount
                         };
                     }
                     return conv;

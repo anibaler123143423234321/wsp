@@ -2,12 +2,12 @@
 // URLs para CHICLAYO / PIURA
 const API_BASE_URL_CHICLAYO = "https://apisozarusac.com/BackendJava/";
 const API_BASECHAT_URL_CHICLAYO = "https://apisozarusac.com/BackendChat/";
-//const API_BASECHAT_URL_CHICLAYO = "http://localhost:8747/";
+//const API_BASECHAT_URL_CHICLAYO = "http://localhost:8747/"; // Solo para desarrollo local
 
 // URLs para LIMA
 const API_BASE_URL_LIMA = "https://apisozarusac.com/BackendJavaMidas/";
 const API_BASECHAT_URL_LIMA = "https://apisozarusac.com/BackendChat/";
-//const API_BASECHAT_URL_LIMA = "http://localhost:8747/";
+//const API_BASECHAT_URL_LIMA = "http://localhost:8747/"; // Solo para desarrollo local
 
 class ApiService {
   constructor() {
@@ -1729,11 +1729,11 @@ class ApiService {
       console.log('🔍 searchAllMessages URL:', url);
 
       const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       );
 
       if (!response.ok) {

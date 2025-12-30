@@ -129,7 +129,7 @@ const ChatPage = () => {
         const counts = await apiService.getUnreadCounts();
         //console.log("🔢 Unread counts response:", counts); //  DEBUG REQUESTED BY USER
 
-        // 2. Si tienes una estructura específica, adáptala aquí. 
+        // 2. Si tienes una estructura específica, adáptala aquí.
         // Suponiendo que 'counts' es un objeto { "roomCode": 5, "userId": 2 }
         if (counts) {
           chatState.setUnreadMessages(counts);
@@ -282,6 +282,17 @@ const ChatPage = () => {
     [socket, username]
   );
 
+  //  Cargar favoritos ANTES de las salas
+  useEffect(() => {
+    if (!user) return;
+    const displayName = user?.nombre && user?.apellido
+      ? `${user.nombre} ${user.apellido}`
+      : user?.username;
+    if (displayName) {
+      chatState.loadFavoriteRoomCodes(displayName);
+    }
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Efecto para restaurar sala
   useEffect(() => {
     if (!isAuthenticated || !username) return;
@@ -318,22 +329,25 @@ const ChatPage = () => {
 
   // Marcar mensajes como leídos
   const markedRoomsRef = useRef(new Set());
+  const lastMarkedChatRef = useRef(null); // Para trackear el último chat marcado
 
   useEffect(() => {
     // A. Lógica para GRUPOS
     if (chatState.isGroup && chatState.currentRoomCode && messages.length > 0) {
-      if (!markedRoomsRef.current.has(chatState.currentRoomCode)) {
-        markedRoomsRef.current.add(chatState.currentRoomCode);
+      const roomKey = `room:${chatState.currentRoomCode}`;
+      if (lastMarkedChatRef.current !== roomKey) {
+        lastMarkedChatRef.current = roomKey;
         markRoomMessagesAsRead(chatState.currentRoomCode);
       }
     }
 
-    // B.  Lógica para CHATS INDIVIDUALES (Asignados)
-    if (!chatState.isGroup && chatState.to && messages.length > 0 && !chatState.adminViewConversation) {
+    // B. Lógica para CHATS INDIVIDUALES (Asignados)
+    // Quité la condición !chatState.adminViewConversation para que funcione en ambos modos
+    if (!chatState.isGroup && chatState.to && messages.length > 0) {
       const conversationKey = `user:${chatState.to}`;
 
-      if (!markedRoomsRef.current.has(conversationKey)) {
-        markedRoomsRef.current.add(conversationKey);
+      if (lastMarkedChatRef.current !== conversationKey) {
+        lastMarkedChatRef.current = conversationKey;
 
         (async () => {
           try {
@@ -348,7 +362,7 @@ const ChatPage = () => {
               });
             }
 
-            // 3.  RESETEAR CONTADOR LOCAL (CRÍTICO)
+            // 3. RESETEAR CONTADOR LOCAL (CRÍTICO)
             const conversation = chatState.assignedConversations.find(c =>
               c.participants && c.participants.some(p =>
                 p?.toLowerCase().trim() === chatState.to?.toLowerCase().trim()
@@ -356,6 +370,7 @@ const ChatPage = () => {
             );
 
             if (conversation) {
+              console.log('🔄 Reseteando unreadCount para conversación:', conversation.id);
               // Resetear estado de tiempo real
               chatState.setUnreadMessages(prev => ({
                 ...prev,
@@ -381,14 +396,16 @@ const ChatPage = () => {
     messages.length,
     markRoomMessagesAsRead,
     username,
-    socket,
-    chatState.assignedConversations, // Necesario para encontrar la conversación
-    chatState.adminViewConversation
+    socket
+    // NOTA: NO incluir chatState.assignedConversations aquí
+    // porque causa que el efecto se re-ejecute cuando llega un mensaje
+    // y resetea el contador que acabamos de incrementar
   ]);
 
-  // Limpiar caché de marcados cuando cambiamos de chat
+  // Limpiar referencia cuando cambiamos de chat (para permitir re-marcar)
   useEffect(() => {
-    markedRoomsRef.current.clear();
+    // Resetear lastMarkedChatRef cuando cambia el chat para permitir marcar como leído nuevamente
+    lastMarkedChatRef.current = null;
   }, [chatState.to, chatState.currentRoomCode]);
 
   // Cargar mensajes cuando cambie 'to'
@@ -448,7 +465,7 @@ const ChatPage = () => {
       loadMyActiveRooms: roomManagement.loadMyActiveRooms,
       clearMessages
     },
-    { user, username, isAdmin, soundsEnabled: chatState.soundsEnabled, favoriteRoomCodes: [] } //  Pasar soundsEnabled
+    { user, username, isAdmin, soundsEnabled: chatState.soundsEnabled, favoriteRoomCodes: chatState.favoriteRoomCodes } //  Pasar soundsEnabled y favoritos
   );
 
   const handleUserSelect = async (
@@ -525,28 +542,28 @@ const ChatPage = () => {
   const handleGroupSelect = async (group) => {
     //  CRÍTICO: Limpiar INMEDIATAMENTE el estado anterior
     clearMessages(); // Limpiar mensajes primero
-    setAdminViewConversation(null); // Limpiar vista de admin
-    setReplyingTo(null); //  Limpiar estado de respuesta
+    chatState.setAdminViewConversation(null); // Limpiar vista de admin
+    chatState.setReplyingTo(null); //  Limpiar estado de respuesta
     chatState.setPinnedMessageId(group.pinnedMessageId || null);
     setPinnedMessageObject(null); //  Limpiar objeto mensaje fijado
     // Establecer nuevo estado
-    setTo(group.name);
-    setIsGroup(true);
-    setCurrentRoomCode(group.roomCode); // ✅ CORREGIDO: Establecer el roomCode de la nueva sala
-    currentRoomCodeRef.current = group.roomCode; // ✅ CORREGIDO: Actualizar la ref también
+    chatState.setTo(group.name);
+    chatState.setIsGroup(true);
+    chatState.setCurrentRoomCode(group.roomCode); // ✅ CORREGIDO: Establecer el roomCode de la nueva sala
+    chatState.currentRoomCodeRef.current = group.roomCode; // ✅ CORREGIDO: Actualizar la ref también
     setSelectedRoomData(group); //  Guardar datos completos de la sala (incluyendo imagen de favoritos)
 
     //  NUEVO: Cargar usuarios de la sala desde la API (con displayName, role, email, etc.)
     try {
       const response = await apiService.getRoomUsers(group.roomCode);
       if (Array.isArray(response)) {
-        setRoomUsers(response);
+        chatState.setRoomUsers(response);
       } else if (response && typeof response === 'object') {
-        setRoomUsers(response.users || response.data || []);
+        chatState.setRoomUsers(response.users || response.data || []);
       }
     } catch (error) {
       console.error('Error al cargar usuarios de la sala:', error);
-      setRoomUsers(group.members || []); // Fallback a group.members si falla
+      chatState.setRoomUsers(group.members || []); // Fallback a group.members si falla
     }
 
     // 📱 Cerrar sidebar en mobile al seleccionar un grupo
@@ -558,16 +575,16 @@ const ChatPage = () => {
   const handlePersonalNotes = () => {
     //  CRÍTICO: Limpiar INMEDIATAMENTE el estado anterior
     clearMessages(); // Limpiar mensajes primero
-    setRoomUsers([]); // Limpiar usuarios de sala
-    setIsGroup(false);
-    setCurrentRoomCode(null);
-    currentRoomCodeRef.current = null;
-    setAdminViewConversation(null); // Limpiar vista de admin
-    setReplyingTo(null); //  Limpiar estado de respuesta
+    chatState.setRoomUsers([]); // Limpiar usuarios de sala
+    chatState.setIsGroup(false);
+    chatState.setCurrentRoomCode(null);
+    chatState.currentRoomCodeRef.current = null;
+    chatState.setAdminViewConversation(null); // Limpiar vista de admin
+    chatState.setReplyingTo(null); //  Limpiar estado de respuesta
     chatState.setPinnedMessageId(null);
     setPinnedMessageObject(null);
     setSelectedRoomData(null); //  Limpiar datos de sala
-    setTo(username);
+    chatState.setTo(username);
   };
 
   const handleToggleMenu = useCallback(() => {
@@ -652,6 +669,8 @@ const ChatPage = () => {
   const handleNavigateToGroup = async (event) => {
     const { roomCode, groupName, messageId } = event.detail;
 
+    console.log('🔍 handleNavigateToGroup:', { roomCode, groupName, messageId });
+
     // Buscar la sala en myActiveRooms
     let room = null;
 
@@ -662,12 +681,24 @@ const ChatPage = () => {
     }
 
     if (room) {
-      //  Pasar messageId para hacer scroll al mensaje específico
+      console.log('✅ Sala encontrada en myActiveRooms:', room.roomCode);
       await roomManagement.handleRoomSelect(room, messageId);
+    } else if (roomCode) {
+      // Si no está en myActiveRooms, buscar directamente por código
+      console.log('🔍 Sala no en myActiveRooms, buscando por código:', roomCode);
+      try {
+        const roomData = await apiService.getRoomByCode(roomCode);
+        if (roomData) {
+          console.log('✅ Sala obtenida por código:', roomData);
+          await roomManagement.handleRoomSelect(roomData, messageId);
+        } else {
+          console.error("Sala no encontrada por código:", roomCode);
+        }
+      } catch (error) {
+        console.error("Error al buscar sala por código:", error);
+      }
     } else {
-      console.warn("Sala no encontrada en myActiveRooms:", { roomCode, groupName });
-      // Intentar cargar las salas de nuevo
-      await roomManagement.loadMyActiveRooms(1, false);
+      console.error("No se proporcionó roomCode ni se encontró la sala");
     }
   };
 
@@ -676,26 +707,52 @@ const ChatPage = () => {
 
     // Buscar en conversaciones asignadas
     const conversation = chatState.assignedConversations.find((conv) => {
-      return conv.participants && conv.participants.includes(targetUsername);
+      return conv.participants && conv.participants.some(
+        p => p?.toLowerCase().trim() === targetUsername?.toLowerCase().trim()
+      );
     });
 
+    // Limpiar estado previo
+    clearMessages();
+    chatState.setIsGroup(false);
+    chatState.setCurrentRoomCode(null);
+    chatState.currentRoomCodeRef.current = null;
+    chatState.setRoomUsers([]);
+    chatState.setReplyingTo(null);
+
     if (conversation) {
-      // Navegar a la conversación asignada
-      setAdminViewConversation(conversation);
-      setTo(null);
-      setIsGroup(false);
-      setCurrentRoomCode(null);
+      // Usar misma lógica que handleUserSelect para chats asignados
+      const myNameNormalized = normalizeUsername(currentUserFullName);
+      const isParticipant = conversation.participants?.some(
+        p => normalizeUsername(p) === myNameNormalized
+      );
+
+      if (isParticipant) {
+        // MODO PARTICIPANTE - trabajar en el chat
+        chatState.setAdminViewConversation(null);
+        const otherPerson = conversation.participants.find(
+          p => normalizeUsername(p) !== myNameNormalized
+        );
+        chatState.setTo(otherPerson || targetUsername);
+      } else {
+        // MODO OBSERVADOR - monitoreo admin
+        chatState.setAdminViewConversation(conversation);
+        chatState.setTo(targetUsername);
+      }
     } else {
-      // Si no está en asignadas, abrir chat directo
-      setTo(targetUsername);
-      setIsGroup(false);
-      setCurrentRoomCode(null);
-      setAdminViewConversation(null);
+      // Chat directo normal (no asignado)
+      chatState.setAdminViewConversation(null);
+      chatState.setTo(targetUsername);
     }
 
-    //  Si hay messageId, establecer para scroll después de cargar mensajes
+    // Si hay messageId, establecer para scroll después de cargar mensajes
     if (messageId) {
       setHighlightMessageId(messageId);
+    }
+
+    // UX Móvil: cerrar sidebar
+    if (window.innerWidth <= 768) {
+      chatState.setShowSidebar(false);
     }
   };
 
@@ -1507,6 +1564,9 @@ const ChatPage = () => {
         onShowSystemConfig={() => { }}
         unreadMessages={chatState.unreadMessages}
         myActiveRooms={chatState.myActiveRooms}
+        favoriteRoomCodes={chatState.favoriteRoomCodes}
+        setFavoriteRoomCodes={chatState.setFavoriteRoomCodes}
+        lastFavoriteUpdate={chatState.lastFavoriteUpdate}
         onRoomSelect={(room, messageId) => {
           setSelectedRoomData(room); //  Guardar datos de sala para favoritos/imágenes
           roomManagement.handleRoomSelect(room, messageId);
