@@ -231,6 +231,8 @@ const ChatLayout = ({
       {/* Sidebar - Desktop: siempre visible | Mobile: ConversationList siempre visible, LeftSidebar como overlay */}
       <Sidebar
         user={user}
+        soundsEnabled={soundsEnabled}
+        onEnableSounds={onEnableSounds}
         userList={userList}
         groupList={groupList}
         assignedConversations={assignedConversations}

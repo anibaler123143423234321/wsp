@@ -159,6 +159,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -168,6 +169,7 @@
   from {
     transform: translateX(100%);
   }
+
   to {
     transform: translateX(0);
   }
@@ -185,7 +187,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 0; /* Un padding un poco menor que el item normal */
+  padding: 8px 0;
+  /* Un padding un poco menor que el item normal */
 }
 
 /* Etiqueta de texto para el toggle */
@@ -201,8 +204,10 @@
 .toggle-switch {
   position: relative;
   display: inline-block;
-  width: 50px;  /* Ancho del switch */
-  height: 28px; /* Alto del switch */
+  width: 50px;
+  /* Ancho del switch */
+  height: 28px;
+  /* Alto del switch */
 }
 
 /* Oculta el checkbox nativo */
@@ -220,7 +225,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #ccc; /* Color de fondo (apagado) */
+  background-color: #ccc;
+  /* Color de fondo (apagado) */
   transition: .4s;
 }
 
@@ -228,21 +234,27 @@
 .slider:before {
   position: absolute;
   content: "";
-  height: 20px; /* Tamaño del círculo */
-  width: 20px;  /* Tamaño del círculo */
-  left: 4px;    /* Posición inicial (izq) */
-  bottom: 4px;  /* Posición inicial (abajo) */
+  height: 20px;
+  /* Tamaño del círculo */
+  width: 20px;
+  /* Tamaño del círculo */
+  left: 4px;
+  /* Posición inicial (izq) */
+  bottom: 4px;
+  /* Posición inicial (abajo) */
   background-color: white;
   transition: .4s;
 }
 
 /* Estilos cuando está ACTIVADO (checked) */
-input:checked + .slider {
-  background-color: #3B82F6; /* Color azul (encendido) */
+input:checked+.slider {
+  background-color: #3B82F6;
+  /* Color azul (encendido) */
 }
 
-input:checked + .slider:before {
-  transform: translateX(22px); /* Mueve el círculo a la derecha */
+input:checked+.slider:before {
+  transform: translateX(22px);
+  /* Mueve el círculo a la derecha */
 }
 
 /* Versión redondeada */
@@ -252,4 +264,93 @@ input:checked + .slider:before {
 
 .slider.round:before {
   border-radius: 50%;
+}
+
+/* =========================================
+   🌙 DARK MODE STYLES - SETTINGS PANEL
+   ========================================= */
+
+/* Panel principal */
+html.dark .settings-panel {
+  background-color: #1D1F1F !important;
+  /* Coincidir con LeftSidebar */
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.5);
+  border-left: 1px solid #3a3a3a;
+}
+
+/* Header */
+html.dark .settings-header {
+  background-color: #1D1F1F !important;
+  border-bottom-color: #3a3a3a !important;
+}
+
+html.dark .settings-header h2 {
+  color: #ffffff !important;
+}
+
+html.dark .settings-close-btn {
+  color: #9ca3af !important;
+}
+
+html.dark .settings-close-btn:hover {
+  background-color: #2a2a2a !important;
+  color: #ffffff !important;
+}
+
+/* Secciones */
+html.dark .settings-section-header h3 {
+  color: #ffffff !important;
+}
+
+html.dark .settings-section-icon {
+  color: #9ca3af !important;
+}
+
+html.dark .settings-section-content {
+  background-color: #2a2a2a !important;
+  border: 1px solid #3a3a3a;
+}
+
+/* Items */
+html.dark .settings-item {
+  border-bottom-color: #3a3a3a !important;
+}
+
+html.dark .settings-item-label {
+  color: #9ca3af !important;
+}
+
+html.dark .settings-item-value {
+  color: #e5e5e5 !important;
+}
+
+html.dark .settings-toggle-label {
+  color: #e5e5e5 !important;
+}
+
+/* Toggle Switch */
+html.dark .slider {
+  background-color: #4b5563;
+  /* Gris oscuro para estado inactivo */
+}
+
+html.dark input:checked+.slider {
+  background-color: #3B82F6;
+  /* Azul mantenido */
+}
+
+html.dark .slider:before {
+  background-color: #e5e5e5;
+}
+
+/* Info Box */
+html.dark .settings-info-box {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  /* Azul muy tenue */
+  border-left-color: #3B82F6 !important;
+}
+
+html.dark .settings-info-box p {
+  color: #93c5fd !important;
+  /* Azul claro legible */
 }

@@ -2721,6 +2721,48 @@ html.dark .message-text-body {
   color: #e5e5e5 !important;
 }
 
+/* 🔥 Mensajes propios (.is-own) - forzar texto blanco con máxima especificidad */
+html.dark .message-row.is-own .message-text-body,
+html.dark .message-row.is-own .message-text-body *,
+html.dark .message-row.is-own .message-text-body p,
+html.dark .message-row.is-own .message-text-body span,
+html.dark .message-row.is-own .message-text-body div,
+html.dark .is-own .message-text-body,
+html.dark .is-own .message-text-body * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html.dark .message-row.is-own .message-main-content,
+html.dark .message-row.is-own .message-main-content *,
+html.dark .message-row.is-own .message-main-content p,
+html.dark .message-row.is-own .message-main-content span,
+html.dark .message-row.is-own .message-main-content div {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* ULTRA AGRESIVO: Forzar blanco en cualquier elemento hijo de mensaje propio */
+html.dark .message-row.is-own *:not(.sender-name):not(.header-timestamp):not(.message-timestamp-left):not(svg):not(path) {
+  color: #ffffff !important;
+}
+
+/* Forzar color blanco en el texto del mensaje propio directamente */
+html.dark .is-own .message-text-body,
+html.dark .message-row.is-own .message-text-body {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  fill: #ffffff !important;
+  background-color: #005c4b !important;
+  /* Verde oscuro tipo WhatsApp dark */
+}
+
+/* 🔥 SUPER ESPECÍFICO: Override del color #1d1c1d del .message-text-body base */
+html.dark .message-text-body {
+  color: #e5e5e5 !important;
+  -webkit-text-fill-color: #e5e5e5 !important;
+}
+
 /* Sender name */
 html.dark .sender-name {
   color: #ffffff !important;
@@ -2730,6 +2772,74 @@ html.dark .sender-name {
 html.dark .header-timestamp,
 html.dark .message-timestamp-left {
   color: #9ca3af !important;
+}
+
+/* 🔥 Botón de respuestas/hilos */
+html.dark .mx_ThreadSummaryLine {
+  background-color: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+html.dark .mx_ThreadSummaryLine:hover {
+  background-color: #3a3a3a !important;
+  border-color: #4a4a4a !important;
+}
+
+html.dark .mx_ThreadCounter,
+html.dark .mx_ThreadLastReply,
+html.dark .mx_ThreadLastReplyText {
+  color: #e5e5e5 !important;
+}
+
+html.dark .thread-icon-wrapper svg {
+  color: #9ca3af !important;
+}
+
+/* Face pile de hilo */
+html.dark .thread-face-pile {
+  background-color: transparent !important;
+}
+
+/* 🔥 Popover de "Quién ha leído" */
+html.dark .read-receipts-popover {
+  background-color: #2a2a2a !important;
+  border: 1px solid #3a3a3a !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3) !important;
+  color: #e5e5e5 !important;
+}
+
+html.dark .popover-header {
+  border-bottom: 1px solid #3a3a3a !important;
+  color: #ffffff !important;
+}
+
+html.dark .popover-item:hover {
+  background-color: #3a3a3a !important;
+}
+
+html.dark .popover-name {
+  color: #e5e5e5 !important;
+}
+
+html.dark .popover-status {
+  color: #9ca3af !important;
+}
+
+html.dark .popover-avatar-initial {
+  background-color: #3a3a3a !important;
+  color: #e5e5e5 !important;
+}
+
+/* 🔥 Reacciones (Píldoras) */
+html.dark .reaction-pill {
+  background-color: #2a2a2a !important;
+  border: 1px solid #3a3a3a !important;
+  color: #e5e5e5 !important;
+}
+
+html.dark .reaction-pill:hover {
+  background-color: #3a3a3a !important;
 }
 
 /* Action toolbar */
@@ -2796,6 +2906,37 @@ html.dark .message-input::placeholder {
 
 /* Message bubbles for sent/received if applicable */
 html.dark .message-content {
+  color: #e5e5e5 !important;
+}
+
+/* 🔥 Mensajes propios - texto blanco/claro */
+html.dark .message-row p,
+html.dark .message-row span,
+html.dark .message-row div {
+  color: inherit;
+}
+
+/* Forzar texto claro en TODOS los mensajes */
+html.dark .message-row .text-gray-800,
+html.dark .message-row .text-gray-900,
+html.dark .message-row [class*="text-gray-8"],
+html.dark .message-row [class*="text-gray-9"],
+html.dark .message-row [class*="text-[#"],
+html.dark .message-row [style*="color"] {
+  color: #e5e5e5 !important;
+}
+
+/* Mensajes con fondo verde (propios) */
+html.dark [class*="bg-[#d9fdd3]"] *,
+html.dark [class*="bg-green"] *,
+html.dark [style*="background"][style*="d9fdd3"] *,
+html.dark [style*="background"][style*="005c4b"] * {
+  color: #ffffff !important;
+}
+
+/* Directamente al contenedor de texto del mensaje */
+html.dark .flex.items-end .rounded-lg p,
+html.dark .flex.items-end .rounded-xl p {
   color: #e5e5e5 !important;
 }
 

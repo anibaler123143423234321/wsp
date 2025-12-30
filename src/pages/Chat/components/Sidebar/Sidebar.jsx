@@ -54,7 +54,9 @@ const Sidebar = ({
   onLoadUserRooms,
   roomsLimit = 50,
   onRoomsLimitChange,
-  onGoToRoomsPage
+  onGoToRoomsPage,
+  soundsEnabled,
+  onEnableSounds
 }) => {
 
   // Estado para el ancho del sidebar
@@ -148,6 +150,8 @@ const Sidebar = ({
         <div className="h-full flex-1 min-w-0 overflow-hidden">
           <ConversationList
             user={user}
+            soundsEnabled={soundsEnabled}
+            onEnableSounds={onEnableSounds}
             userList={userList}
             assignedConversations={assignedConversations}
             monitoringConversations={monitoringConversations}

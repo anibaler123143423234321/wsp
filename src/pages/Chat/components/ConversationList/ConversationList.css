@@ -840,3 +840,286 @@
     flex: 1 !important;
   }
 }
+
+/* =========================================
+   🌙 DARK MODE STYLES - CONVERSATION LIST
+   ========================================= */
+
+/* Contenedor principal */
+html.dark .conversation-list-container {
+  background: linear-gradient(180deg, #1a1a1a 0%, #111111 100%) !important;
+  border-left-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Header con pestañas */
+html.dark .conversation-list-header {
+  background: linear-gradient(135deg, #1f1f1f 0%, #171717 100%) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Tabs container */
+html.dark .tabs-container {
+  background: #1a1a1a !important;
+}
+
+/* Barra de búsqueda */
+html.dark .search-input {
+  background: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+  color: #e5e5e5 !important;
+}
+
+html.dark .search-input::placeholder {
+  color: #6b7280 !important;
+}
+
+html.dark .search-input:focus {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 0.25rem rgba(220, 38, 38, 0.2), 0 0.25rem 0.75rem rgba(0, 0, 0, 0.3) !important;
+}
+
+html.dark .search-icon {
+  color: #6b7280 !important;
+}
+
+/* Conversation items */
+html.dark .conversation-item {
+  border-bottom-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+html.dark .conversation-item:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+html.dark .conversation-item.active {
+  background: rgba(220, 38, 38, 0.15) !important;
+}
+
+/* Section headers (GRUPOS, ASIGNADOS, etc.) - Clases inline Tailwind */
+html.dark .sticky.bg-\[\#f0f2f5\],
+html.dark [class*="bg-[#f0f2f5]"] {
+  background: #1f1f1f !important;
+}
+
+html.dark .border-\[\#e9edef\],
+html.dark [class*="border-[#e9edef]"] {
+  border-color: #3a3a3a !important;
+}
+
+html.dark .text-\[\#54656f\],
+html.dark [class*="text-[#54656f]"] {
+  color: #9ca3af !important;
+}
+
+/* Headers de sección genéricos */
+html.dark .mx_RoomSublist_header {
+  background: #1f1f1f !important;
+  color: #9ca3af !important;
+}
+
+html.dark .mx_RoomSublist_header:hover {
+  background: #2a2a2a !important;
+  color: #d1d5db !important;
+}
+
+/* Nombres de conversación - textos */
+html.dark .font-semibold.text-gray-800,
+html.dark [class*="text-gray-800"],
+html.dark [class*="text-gray-700"],
+html.dark .text-gray-800,
+html.dark .text-gray-700 {
+  color: #e5e5e5 !important;
+}
+
+html.dark .text-gray-500,
+html.dark .text-gray-600,
+html.dark [class*="text-gray-500"],
+html.dark [class*="text-gray-600"] {
+  color: #9ca3af !important;
+}
+
+/* Timestamps */
+html.dark .conversation-timestamp,
+html.dark .text-xs.text-gray-400,
+html.dark [class*="text-gray-400"] {
+  color: #6b7280 !important;
+}
+
+/* Último mensaje preview */
+html.dark .truncate.text-gray-500,
+html.dark .text-sm.text-gray-500 {
+  color: #9ca3af !important;
+}
+
+/* Badges de notificación */
+html.dark .bg-red-600 {
+  background-color: #dc2626 !important;
+}
+
+/* Tabs inactivos */
+html.dark .bg-white\/90,
+html.dark [class*="bg-white"] {
+  background: #2a2a2a !important;
+}
+
+html.dark button[class*="bg-white"] {
+  background: #2a2a2a !important;
+  color: #e5e5e5 !important;
+}
+
+html.dark button[class*="bg-white"]:hover {
+  background: #3a3a3a !important;
+}
+
+/* Highlighted chat en dark mode */
+html.dark .highlighted-chat {
+  background: rgba(251, 191, 36, 0.15) !important;
+  border-color: #fbbf24 !important;
+}
+
+/* Ver más button */
+html.dark .text-red-600,
+html.dark [class*="text-red-600"] {
+  color: #ef4444 !important;
+}
+
+html.dark .text-red-600:hover {
+  color: #f87171 !important;
+}
+
+/* Scrollbar styles */
+html.dark .conversation-list-scroll::-webkit-scrollbar-track,
+html.dark .overflow-y-auto::-webkit-scrollbar-track {
+  background: #1a1a1a !important;
+}
+
+html.dark .conversation-list-scroll::-webkit-scrollbar-thumb,
+html.dark .overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+html.dark .conversation-list-scroll::-webkit-scrollbar-thumb:hover,
+html.dark .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+/* Favorite button */
+html.dark .favorite-button {
+  color: #6b7280 !important;
+}
+
+html.dark .favorite-button:hover {
+  color: #fbbf24 !important;
+}
+
+/* Timestamp */
+html.dark .conversation-timestamp {
+  color: #9ca3af !important;
+}
+
+/* Online badge border */
+html.dark .online-badge {
+  border-color: #1a1a1a !important;
+}
+
+/* Typing indicator */
+html.dark .typing-indicator {
+  color: #ef4444 !important;
+}
+
+html.dark .typing-dot {
+  background: #ef4444 !important;
+}
+
+/* Resizer handle */
+html.dark .mx_RoomSublist_resizerHandle::after {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Lista scroll area background */
+html.dark .flex-1.overflow-y-auto {
+  background: #1D1F1F !important;
+}
+
+/* Divider lines */
+html.dark .border-b {
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Generic backgrounds */
+html.dark .bg-gray-100,
+html.dark [class*="bg-gray-100"] {
+  background: #2a2a2a !important;
+}
+
+html.dark .bg-gray-50,
+html.dark [class*="bg-gray-50"] {
+  background: #1f1f1f !important;
+}
+
+/* Hover states for gray backgrounds */
+html.dark .hover\:bg-gray-100:hover {
+  background: #3a3a3a !important;
+}
+
+/* 🔥 COLORES HARDCODEADOS EN JSX - Nombres de conversación */
+html.dark .text-\[\#111\],
+html.dark [class*="text-[#111]"],
+html.dark h3.font-semibold[class*="text-[#111]"] {
+  color: #e5e5e5 !important;
+}
+
+html.dark .text-\[\#54656f\],
+html.dark [class*="text-[#54656f]"] {
+  color: #9ca3af !important;
+}
+
+/* Hovers de items de conversación */
+html.dark .hover\:bg-\[\#f5f6f6\]:hover,
+html.dark [class*="hover:bg-[#f5f6f6]"]:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Item seleccionado */
+html.dark .bg-\[\#e7f3f0\],
+html.dark [class*="bg-[#e7f3f0]"] {
+  background: rgba(0, 168, 132, 0.15) !important;
+}
+
+/* Fondo blanco en lista */
+html.dark .bg-white,
+html.dark [class*="overflow-y-auto"][class*="bg-white"] {
+  background: #1a1a1a !important;
+}
+
+/* Headers de sección sticky */
+html.dark .sticky[class*="bg-[#f0f2f5]"],
+html.dark [class*="bg-[#f0f2f5]"] {
+  background: #1f1f1f !important;
+}
+
+html.dark [class*="border-[#e9edef]"] {
+  border-color: #3a3a3a !important;
+}
+
+/* Todos los h3 de nombres en la lista */
+html.dark h3.font-semibold {
+  color: #e5e5e5 !important;
+}
+
+/* Nombre del participante - span de nombre */
+html.dark .truncate.font-semibold,
+html.dark span.font-semibold {
+  color: #e5e5e5 !important;
+}
+
+/* Timestamp de conversaciones */
+html.dark span.text-gray-400 {
+  color: #6b7280 !important;
+}
+
+/* Último mensaje */
+html.dark p.truncate,
+html.dark .text-gray-600.truncate {
+  color: #9ca3af !important;
+}

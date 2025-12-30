@@ -68,6 +68,7 @@ const Login = ({ onLoginSuccess }) => {
               placeholder="Ingrese su usuario"
               className="pl-5"
               style={{ paddingLeft: '1.5rem' }}
+              autoComplete="username"
             />
           </div>
 
@@ -86,6 +87,7 @@ const Login = ({ onLoginSuccess }) => {
                 placeholder="Ingrese su contraseña"
                 className="pl-5"
                 style={{ paddingLeft: '1.5rem' }}
+                autoComplete="current-password"
               />
               <span
                 onClick={() => setShowPassword(!showPassword)}

@@ -249,3 +249,100 @@
         width: 100%;
     }
 }
+
+/* =========================================
+   🌙 DARK MODE STYLES - MEMBERS PANEL
+   ========================================= */
+
+/* Contenedor principal */
+html.dark .members-panel-container {
+    background-color: #1a1a1a !important;
+    border-left-color: #3a3a3a !important;
+}
+
+/* Header */
+html.dark .members-panel-header {
+    background-color: #1f1f1f !important;
+    border-bottom-color: #3a3a3a !important;
+}
+
+html.dark .members-panel-title {
+    color: #ffffff !important;
+}
+
+html.dark .members-panel-close-btn {
+    color: #9ca3af !important;
+}
+
+html.dark .members-panel-close-btn:hover {
+    background-color: #2a2a2a !important;
+    color: #ffffff !important;
+}
+
+/* Content area */
+html.dark .members-panel-content {
+    background-color: #1a1a1a !important;
+}
+
+html.dark .members-list {
+    background-color: #1a1a1a !important;
+}
+
+/* Invite button */
+html.dark .invite-text {
+    color: #ff453a !important;
+}
+
+/* Member tiles */
+html.dark .mx_EntityTile {
+    border-bottom-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+html.dark .mx_EntityTile:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+html.dark .mx_EntityTile:active {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Avatar */
+html.dark .mx_BaseAvatar {
+    background-color: #3a3a3a !important;
+}
+
+html.dark .mx_BaseAvatar_online_indicator {
+    border-color: #1a1a1a !important;
+}
+
+/* Member name */
+html.dark .mx_EntityTile_name {
+    color: #e5e5e5 !important;
+}
+
+/* Role and subtext */
+html.dark .mx_EntityTile_subtext,
+html.dark .mx_EntityTile_role {
+    color: #9ca3af !important;
+}
+
+/* Footer with filter */
+html.dark .members-panel-footer {
+    background-color: #1f1f1f !important;
+    border-top-color: #3a3a3a !important;
+}
+
+html.dark .members-filter-input {
+    background-color: #2a2a2a !important;
+    border-color: #3a3a3a !important;
+    color: #e5e5e5 !important;
+}
+
+html.dark .members-filter-input::placeholder {
+    color: #6b7280 !important;
+}
+
+html.dark .members-filter-input:focus {
+    background-color: #2a2a2a !important;
+    border-color: #ff453a !important;
+}

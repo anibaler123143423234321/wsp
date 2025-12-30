@@ -1537,3 +1537,122 @@
     max-width: 100%;
   }
 }
+
+/* =========================================
+   🌙 DARK MODE STYLES - CHAT HEADER
+   ========================================= */
+
+html.dark .chat-header {
+  background: #1a1a1a !important;
+  border-bottom-color: #3a3a3a !important;
+}
+
+html.dark .chat-title {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  color: #ffffff !important;
+}
+
+html.dark .chat-subtitle {
+  color: #9ca3af !important;
+}
+
+html.dark .chat-avatar {
+  background-color: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+}
+
+html.dark .header-icon-btn {
+  color: #9ca3af !important;
+}
+
+html.dark .header-icon-btn:hover {
+  background: #2a2a2a !important;
+  color: #ffffff !important;
+}
+
+html.dark .room-code {
+  background-color: #2a2a2a !important;
+  color: #9ca3af !important;
+  -webkit-text-fill-color: #9ca3af !important;
+  border-color: #3a3a3a !important;
+}
+
+html.dark .members-panel {
+  background-color: #1a1a1a !important;
+  border-left-color: #3a3a3a !important;
+}
+
+html.dark .members-panel-header {
+  background-color: #1f1f1f !important;
+  border-bottom-color: #3a3a3a !important;
+}
+
+html.dark .members-panel-header h3 {
+  color: #ffffff !important;
+}
+
+html.dark .member-item {
+  border-bottom-color: #2a2a2a !important;
+}
+
+html.dark .member-item:hover {
+  background-color: #2a2a2a !important;
+}
+
+html.dark .member-name {
+  color: #e5e5e5 !important;
+}
+
+html.dark .members-panel-footer {
+  background-color: #1f1f1f !important;
+  border-top-color: #3a3a3a !important;
+}
+
+html.dark .members-filter-input {
+  background-color: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+  color: #e5e5e5 !important;
+}
+
+html.dark .members-filter-input::placeholder {
+  color: #6b7280 !important;
+}
+
+/* Stacked avatars (círculo de miembros) */
+html.dark .stacked-avatar-item {
+  border-color: #1a1a1a !important;
+  background-color: #3a3a3a !important;
+  color: #e5e5e5 !important;
+}
+
+html.dark .stacked-avatar-item[data-color="1"] {
+  background-color: #7f2222 !important;
+  color: #ffadad !important;
+}
+
+html.dark .stacked-avatar-item[data-color="2"] {
+  background-color: #7f6622 !important;
+  color: #fff3ad !important;
+}
+
+html.dark .stacked-avatar-item[data-color="3"] {
+  background-color: #22507f !important;
+  color: #adc8ff !important;
+}
+
+/* Room members pile (contenedor gris del contador) */
+html.dark .room-members-pile {
+  background-color: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+}
+
+html.dark .room-members-pile:hover {
+  background-color: #3a3a3a !important;
+}
+
+/* Número de miembros */
+html.dark .members-count {
+  color: #e5e5e5 !important;
+}

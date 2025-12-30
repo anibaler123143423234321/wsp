@@ -1160,3 +1160,245 @@
   font-style: italic;
   margin-left: 6px;
 }
+
+/* =========================================
+   🌙 DARK MODE STYLES - THREAD PANEL
+   ========================================= */
+
+/* Contenedor principal */
+html.dark .thread-panel-container {
+  background-color: #1a1a1a !important;
+  border-left-color: #3a3a3a !important;
+}
+
+/* Header */
+html.dark .thread-panel-header {
+  background: #1f1f1f !important;
+  border-bottom-color: #3a3a3a !important;
+}
+
+html.dark .thread-panel-title {
+  color: #ffffff !important;
+}
+
+html.dark .thread-back-btn {
+  color: #9ca3af !important;
+}
+
+html.dark .thread-back-btn:hover {
+  background: #2a2a2a !important;
+  color: #ffffff !important;
+}
+
+html.dark .thread-close-btn {
+  color: #9ca3af !important;
+}
+
+html.dark .thread-close-btn:hover {
+  background: #2a2a2a !important;
+  color: #ffffff !important;
+}
+
+/* Mensaje principal del hilo */
+html.dark .thread-main-message {
+  background: #1f1f1f !important;
+  border-bottom-color: #3a3a3a !important;
+}
+
+html.dark .thread-main-message-header strong {
+  color: #9ca3af !important;
+}
+
+html.dark .thread-main-message-time {
+  color: #6b7280 !important;
+}
+
+html.dark .thread-main-message-text {
+  color: #e5e5e5 !important;
+}
+
+html.dark .thread-replies-count {
+  color: #9ca3af !important;
+}
+
+/* Área de mensajes */
+html.dark .thread-messages {
+  background: #1a1a1a !important;
+}
+
+html.dark .thread-loading,
+html.dark .thread-empty {
+  color: #6b7280 !important;
+}
+
+/* Mensajes individuales */
+html.dark .thread-message-header strong {
+  color: #9ca3af !important;
+}
+
+html.dark .thread-message-time {
+  color: #6b7280 !important;
+}
+
+/* Mensajes de otros */
+html.dark .thread-message-other .thread-message-text {
+  background: #2a2a2a !important;
+  color: #e5e5e5 !important;
+}
+
+/* Mensajes propios */
+html.dark .thread-message-own .thread-message-text {
+  background: #005c4b !important;
+  color: #e5e5e5 !important;
+}
+
+/* Input container */
+html.dark .thread-input-container {
+  background: #1f1f1f !important;
+  border-top-color: #3a3a3a !important;
+}
+
+html.dark .thread-input {
+  background: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+  color: #e5e5e5 !important;
+}
+
+html.dark .thread-input:focus {
+  border-color: #00a884 !important;
+}
+
+html.dark .thread-input::placeholder {
+  color: #6b7280 !important;
+}
+
+html.dark .thread-attach-btn,
+html.dark .thread-emoji-btn {
+  color: #9ca3af !important;
+}
+
+html.dark .thread-attach-btn:hover,
+html.dark .thread-emoji-btn:hover {
+  background: #2a2a2a !important;
+  color: #ffffff !important;
+}
+
+/* Preview de medios */
+html.dark .thread-media-preview {
+  background: #2a2a2a !important;
+}
+
+html.dark .thread-media-preview-item {
+  background: #1f1f1f !important;
+  border-color: #3a3a3a !important;
+}
+
+html.dark .thread-preview-name {
+  color: #9ca3af !important;
+}
+
+html.dark .thread-preview-size {
+  color: #6b7280 !important;
+}
+
+/* Dropdown de menciones */
+html.dark .thread-mention-dropdown {
+  background: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+}
+
+html.dark .thread-mention-suggestion:hover,
+html.dark .thread-mention-suggestion.selected {
+  background-color: #3a3a3a !important;
+}
+
+html.dark .mention-name {
+  color: #e5e5e5 !important;
+}
+
+html.dark .mention-role {
+  color: #9ca3af !important;
+}
+
+/* Popover de read receipts */
+html.dark .thread-read-receipts-popover {
+  background: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+}
+
+html.dark .popover-header {
+  background: #1f1f1f !important;
+  border-bottom-color: #3a3a3a !important;
+  color: #9ca3af !important;
+}
+
+html.dark .popover-close-btn {
+  color: #9ca3af !important;
+}
+
+html.dark .popover-close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+}
+
+html.dark .popover-item {
+  border-bottom-color: #3a3a3a !important;
+}
+
+html.dark .popover-name {
+  color: #e5e5e5 !important;
+}
+
+html.dark .popover-time {
+  color: #6b7280 !important;
+}
+
+/* Scrollbar del panel de hilos */
+html.dark .thread-messages::-webkit-scrollbar-track {
+  background: #1a1a1a !important;
+}
+
+html.dark .thread-messages::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+html.dark .thread-messages::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+}
+
+/* Drag overlay */
+html.dark .thread-drag-overlay {
+  background-color: rgba(26, 26, 26, 0.95) !important;
+}
+
+html.dark .thread-drag-content {
+  color: #00a884 !important;
+}
+
+/* Edición de mensajes */
+html.dark .thread-edit-input {
+  background: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+  color: #e5e5e5 !important;
+}
+
+html.dark .thread-edited-label {
+  color: #6b7280 !important;
+}
+
+/* Flechita del popover para dark mode */
+html.dark .thread-read-receipts-popover.position-top::before {
+  border-color: #3a3a3a transparent transparent transparent !important;
+}
+
+html.dark .thread-read-receipts-popover.position-top::after {
+  border-color: #2a2a2a transparent transparent transparent !important;
+}
+
+html.dark .thread-read-receipts-popover.position-bottom::before {
+  border-color: transparent transparent #3a3a3a transparent !important;
+}
+
+html.dark .thread-read-receipts-popover.position-bottom::after {
+  border-color: transparent transparent #1f1f1f transparent !important;
+}

@@ -197,3 +197,77 @@
     z-index: 1000;
   }
 }
+
+/* =========================================
+   🌙 DARK MODE STYLES - THREADS LIST PANEL
+   ========================================= */
+
+/* Panel principal */
+html.dark .threads-list-panel {
+  background-color: #1a1a1a !important;
+  border-left-color: #3a3a3a !important;
+}
+
+/* Header */
+html.dark .threads-list-header {
+  background-color: #1f1f1f !important;
+  border-bottom-color: #3a3a3a !important;
+}
+
+html.dark .threads-list-title {
+  color: #ffffff !important;
+}
+
+html.dark .threads-list-title svg {
+  color: #9ca3af !important;
+}
+
+html.dark .threads-list-close {
+  color: #9ca3af !important;
+}
+
+html.dark .threads-list-close:hover {
+  background-color: #2a2a2a !important;
+  color: #ffffff !important;
+}
+
+/* Contenido */
+html.dark .threads-list-content {
+  background-color: #1a1a1a !important;
+}
+
+/* Estados vacío/loading/error */
+html.dark .threads-list-loading,
+html.dark .threads-list-error,
+html.dark .threads-list-empty {
+  color: #6b7280 !important;
+}
+
+/* Items de la lista */
+html.dark .thread-list-item {
+  background-color: #1f1f1f !important;
+}
+
+html.dark .thread-list-item:hover {
+  background-color: #2a2a2a !important;
+}
+
+/* Nombre del remitente */
+html.dark .thread-item-sender {
+  color: #e5e5e5 !important;
+}
+
+/* Fecha */
+html.dark .thread-item-date {
+  color: #6b7280 !important;
+}
+
+/* Mensaje preview */
+html.dark .thread-item-message {
+  color: #9ca3af !important;
+}
+
+/* Contador de respuestas */
+html.dark .thread-item-count {
+  color: #00a884 !important;
+}

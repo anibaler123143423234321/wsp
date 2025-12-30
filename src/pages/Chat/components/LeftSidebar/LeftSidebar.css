@@ -316,3 +316,13 @@
     padding: 0.5rem !important;
   }
 }
+
+/* =========================================
+   🌙 DARK MODE STYLES - LEFT SIDEBAR
+   ========================================= */
+
+/* Quitar background image en dark mode */
+html.dark .left-sidebar-container {
+  background-image: none !important;
+  background-color: #1D1F1F !important;
+}
