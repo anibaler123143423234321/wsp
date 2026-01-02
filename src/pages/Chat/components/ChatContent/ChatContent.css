@@ -1372,6 +1372,8 @@
   border: none;
   padding: 0 8px;
   min-width: 50px;
+  height: 40px;
+  /* Altura fija para igualar con el micrófono */
   display: flex;
   align-items: center;
   justify-content: center;

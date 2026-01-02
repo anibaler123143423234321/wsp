@@ -12,6 +12,7 @@ import Swal from 'sweetalert2';
 import ChatLayout from '../../layouts/ChatLayout';
 import Login from '../Login/Login';
 import LoadingScreen from './components/LoadingScreen/LoadingScreen';
+import LoginLoadingScreen from '../../components/LoginLoadingScreen/LoginLoadingScreen';
 import ChatModalsContainer from './components/ChatModalsContainer';
 import SettingsPanel from './components/SettingsPanel/SettingsPanel';
 import apiService from "../../apiService"; // <--- AGREGA ESTA LÍNEA
@@ -45,6 +46,11 @@ const ChatPage = () => {
 
   // 1.  NUEVO ESTADO: Guardar el objeto del mensaje fijado
   const [pinnedMessageObject, setPinnedMessageObject] = useState(null);
+
+  // Estado para la pantalla de carga post-login
+  const [isPostLoginLoading, setIsPostLoginLoading] = useState(false);
+  const [loginProgress, setLoginProgress] = useState(0);
+  const [loginLoadingMessage, setLoginLoadingMessage] = useState('Iniciando sesión...');
   const [selectedRoomData, setSelectedRoomData] = useState(null); //  NUEVO: Datos de la sala seleccionada (para favoritos)
 
   // ===== HOOK DE ESTADOS CENTRALIZADOS =====
@@ -1392,11 +1398,69 @@ const ChatPage = () => {
     localStorage.setItem('soundsEnabled', String(newValue));
   }, [chatState.soundsEnabled, chatState]);
 
-  const handleLoginSuccess = (userData) => {
+  const handleLoginSuccess = async (userData) => {
+    // Mostrar pantalla de carga
+    setIsPostLoginLoading(true);
+    setLoginProgress(0);
+    setLoginLoadingMessage('Iniciando sesión...');
+
+    // Guardar datos de usuario
     localStorage.setItem('user', JSON.stringify(userData));
     localStorage.setItem('token', userData.token || 'mock-token');
+
+    // Pequeño delay para mostrar el inicio
+    await new Promise(resolve => setTimeout(resolve, 200));
+    setLoginProgress(20);
+    setLoginLoadingMessage('Conectando...');
+
+    // Trigger auth que activará los hooks de carga
     refreshAuth();
   };
+
+  // Efecto para observar cuando terminan de cargar los datos después del login
+  useEffect(() => {
+    if (!isPostLoginLoading) return;
+
+    // Verificar si ya hay datos cargados
+    const hasConversations = chatState.assignedConversations.length > 0;
+    const hasRooms = chatState.myActiveRooms.length > 0;
+    const isLoading = chatState.assignedLoading || chatState.roomsLoading;
+
+    // Actualizar progreso basado en el estado de carga
+    if (isLoading) {
+      if (chatState.assignedLoading && !chatState.roomsLoading) {
+        setLoginProgress(40);
+        setLoginLoadingMessage('Cargando conversaciones...');
+      } else if (!chatState.assignedLoading && chatState.roomsLoading) {
+        setLoginProgress(60);
+        setLoginLoadingMessage('Cargando salas...');
+      } else {
+        setLoginProgress(30);
+        setLoginLoadingMessage('Sincronizando datos...');
+      }
+    }
+
+    // Cuando ya no está cargando y tenemos datos (o intentó cargar)
+    if (!isLoading && isAuthenticated) {
+      const finishLoading = async () => {
+        setLoginProgress(90);
+        setLoginLoadingMessage('Preparando chat...');
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setLoginProgress(100);
+        setLoginLoadingMessage('¡Listo!');
+        await new Promise(resolve => setTimeout(resolve, 200));
+        setIsPostLoginLoading(false);
+      };
+      finishLoading();
+    }
+  }, [
+    isPostLoginLoading,
+    isAuthenticated,
+    chatState.assignedConversations.length,
+    chatState.myActiveRooms.length,
+    chatState.assignedLoading,
+    chatState.roomsLoading
+  ]);
 
   const handleLogout = async () => {
     try {
@@ -1496,6 +1560,16 @@ const ChatPage = () => {
   // === RENDERIZADO ===
   if (isLoading) {
     return <LoadingScreen message="Verificando sesión..." />;
+  }
+
+  // Pantalla de carga post-login con progreso
+  if (isPostLoginLoading) {
+    return (
+      <LoginLoadingScreen
+        progress={loginProgress}
+        message={loginLoadingMessage}
+      />
+    );
   }
 
   if (!isAuthenticated) {

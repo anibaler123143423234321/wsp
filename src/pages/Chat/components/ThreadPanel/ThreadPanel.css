@@ -99,7 +99,6 @@
 .thread-main-message {
   padding: 16px;
   border-bottom: 2px solid #e0e0e0;
-  background: #f0f2f5;
 }
 
 .thread-main-message-header {
@@ -242,9 +241,12 @@
 }
 
 .thread-input-container {
-  border-top: 1px solid #e0e0e0;
-  padding: 18px 5px;
-  background: white;
+  padding: 5px 8px;
+  background: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   position: relative;
 }
 
@@ -356,23 +358,30 @@
 
 .thread-input-wrapper {
   display: flex;
-  align-items: flex-end;
-  gap: 4px;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: none;
+  border-radius: 24px;
+  padding: 4px 10px;
+  width: 100%;
+  min-height: auto;
 }
 
 .thread-attach-btn {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 6px;
-  color: #666;
-  font-size: 18px;
-  border-radius: 4px;
+  padding: 0;
+  color: #8696a0;
+  border-radius: 50%;
   transition: all 0.2s;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 36px;
+  height: 36px;
 }
 
 .thread-attach-btn:hover {
@@ -390,35 +399,168 @@
   background: none;
   border: none;
   cursor: pointer;
-  padding: 6px;
-  color: #666;
-  font-size: 20px;
-  border-radius: 4px;
+  padding: 0;
+  color: #8696a0;
+  border-radius: 50%;
   transition: all 0.2s;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
 }
 
 .thread-emoji-btn:hover {
   background: #f0f0f0;
-  color: #333;
+  color: #54656f;
 }
 
 .thread-input {
   flex: 1;
-  border: 1px solid #ddd;
-  border-radius: 20px;
-  padding: 8px 14px;
-  font-size: 14px;
+  background: #FAFAFA;
+  /* Igual que ChatContent */
+  border: none;
+  /* Sin borde igual que ChatContent */
+  outline: none;
+  border-radius: 12.83px;
+  /* Igual que ChatContent */
+  padding: 6px 10px;
+  font-size: 14.97px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #000000;
   resize: none;
   max-height: 100px;
+  min-height: 24px;
   overflow-y: auto;
-  font-family: inherit;
-  transition: border-color 0.2s;
+}
+
+.thread-input::placeholder {
+  color: rgba(0, 0, 0, 0.45);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14.97px;
+  font-weight: 400;
 }
 
 .thread-input:focus {
   outline: none;
-  border-color: #1976d2;
+}
+
+/* Estilos para los iconos SVG del input */
+.thread-attach-icon,
+.thread-emoji-icon {
+  width: 24px;
+  height: 24px;
+  color: #8696a0;
+  transition: color 0.2s ease;
+}
+
+.thread-attach-btn:hover:not(.disabled) .thread-attach-icon,
+.thread-emoji-btn:hover:not(:disabled) .thread-emoji-icon {
+  color: #54656f;
+}
+
+/* ===== MENÚ DE ADJUNTAR ESTILO WHATSAPP ===== */
+.thread-attach-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.thread-plus-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: #8696a0;
+  border-radius: 50%;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+}
+
+.thread-plus-btn:hover:not(.disabled) {
+  background: #f0f0f0;
+  color: #54656f;
+}
+
+.thread-plus-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.thread-plus-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+.thread-attach-menu {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  background: #233138;
+  border-radius: 12px;
+  padding: 8px 0;
+  min-width: 180px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  animation: slideUp 0.2s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.thread-attach-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+  color: #e9edef;
+  font-size: 14px;
+}
+
+.thread-attach-menu-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.thread-attach-menu-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.thread-attach-menu-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.thread-attach-menu-icon.photos {
+  background: linear-gradient(135deg, #bf59cf 0%, #7f66ff 100%);
+  color: white;
+}
+
+.thread-attach-menu-icon.document {
+  background: linear-gradient(135deg, #5157ae 0%, #5157ae 100%);
+  color: white;
 }
 
 .thread-send-btn {
@@ -434,8 +576,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
 }
 
 .thread-send-btn:hover:not(:disabled) {
@@ -1401,4 +1543,32 @@ html.dark .thread-read-receipts-popover.position-bottom::before {
 
 html.dark .thread-read-receipts-popover.position-bottom::after {
   border-color: transparent transparent #1f1f1f transparent !important;
+}
+
+/* ===== DARK MODE PARA INPUT DEL HILO ===== */
+html.dark .thread-input-container {
+  background: #1f1f1f !important;
+  border-top-color: #2a2a2a !important;
+}
+
+html.dark .thread-input-wrapper {
+  background: #1f1f1f !important;
+}
+
+html.dark .thread-input {
+  background: #1f1f1f !important;
+  color: #e9edef !important;
+}
+
+html.dark .thread-input::placeholder {
+  color: rgba(233, 237, 239, 0.5) !important;
+}
+
+html.dark .thread-emoji-btn {
+  color: #8696a0 !important;
+}
+
+html.dark .thread-emoji-btn:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #e9edef !important;
 }

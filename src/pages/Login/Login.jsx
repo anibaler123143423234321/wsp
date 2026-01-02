@@ -48,12 +48,12 @@ const Login = ({ onLoginSuccess }) => {
   return (
     <div className="login-card">
       <div className="login-header">
-        <h1 className="welcome-title">BIENVENIDOS</h1>
-        <p className="welcome-subtitle">Al CHAT de +34 Call Center</p>
+        <h1 className="welcome-title">Acceso al Sistema</h1>
+        <p className="welcome-subtitle">AI Chat de +34 Call Center</p>
       </div>
 
       <form onSubmit={handleSubmit} className="login-form">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
             <Label>
               Usuario <span className="text-error-500">*</span>{" "}
@@ -67,7 +67,7 @@ const Login = ({ onLoginSuccess }) => {
               required
               placeholder="Ingrese su usuario"
               className="pl-5"
-              style={{ paddingLeft: '1.5rem' }}
+              style={{ paddingLeft: '1rem' }}
               autoComplete="username"
             />
           </div>
@@ -86,39 +86,44 @@ const Login = ({ onLoginSuccess }) => {
                 required
                 placeholder="Ingrese su contraseña"
                 className="pl-5"
-                style={{ paddingLeft: '1.5rem' }}
+                style={{ paddingLeft: '1rem' }}
                 autoComplete="current-password"
               />
               <span
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
               >
-                {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center justify-center w-full mb-4">
+          {/* Sede Selector - Premium Segmented Control */}
+          <div className="sede-toggle-container">
             <div
-              className="relative flex items-center w-70 h-8 bg-gray-200 rounded-full cursor-pointer p-1"
+              className="sede-toggle"
               onClick={() => setSelectedSede(selectedSede === 'CHICLAYO_PIURA' ? 'LIMA' : 'CHICLAYO_PIURA')}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  setSelectedSede(selectedSede === 'CHICLAYO_PIURA' ? 'LIMA' : 'CHICLAYO_PIURA');
+                }
+              }}
+              aria-label="Seleccionar sede"
             >
-              {/* Toggle Background/Slider */}
-              <div
-                className={`absolute left-1 top-1 bottom-1 w-[calc(50%-4px)] bg-red-600 rounded-full shadow-md transition-all duration-300 ease-in-out ${selectedSede === 'LIMA' ? 'translate-x-full' : 'translate-x-0'
-                  }`}
-              ></div>
+              {/* Slider animado */}
+              <div className={`sede-toggle-slider ${selectedSede === 'LIMA' ? 'lima' : ''}`}></div>
 
-              {/* Text Labels */}
-              <div className={`z-10 flex-1 text-center text-xs font-bold transition-colors duration-300 ${selectedSede === 'CHICLAYO_PIURA' ? 'text-white' : 'text-gray-500'}`}>
+              {/* Opciones */}
+              <div className={`sede-toggle-option ${selectedSede === 'CHICLAYO_PIURA' ? 'active' : ''}`}>
                 CHICLAYO / PIURA
               </div>
-              <div className={`z-10 flex-1 text-center text-xs font-bold transition-colors duration-300 ${selectedSede === 'LIMA' ? 'text-white' : 'text-gray-500'}`}>
+              <div className={`sede-toggle-option ${selectedSede === 'LIMA' ? 'active' : ''}`}>
                 LIMA
               </div>
             </div>
           </div>
-
 
           {error && (
             <div className="error-message">
@@ -133,8 +138,8 @@ const Login = ({ onLoginSuccess }) => {
               className="w-full h-12 text-sm font-bold uppercase bg-red-600 hover:bg-red-700 text-white"
             >
               {loading ? (
-                <span className="flex items-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <span className="button-content">
+                  <div className="loading-spinner"></div>
                   INGRESANDO...
                 </span>
               ) : (

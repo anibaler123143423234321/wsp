@@ -72,22 +72,27 @@ html.dark body {
 @media (max-width: 768px) {
   .login-container {
     padding: 16px;
-    align-items: flex-start;
-    padding-top: 10vh;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    min-height: 100dvh;
+    /* Dynamic viewport height for mobile browsers */
   }
 }
 
 @media (max-width: 480px) {
   .login-container {
     padding: 12px;
-    padding-top: 8vh;
+    align-items: center;
+    justify-content: center;
   }
 }
 
 @media (max-width: 360px) {
   .login-container {
     padding: 8px;
-    padding-top: 5vh;
+    align-items: center;
+    justify-content: center;
   }
 }
 

@@ -1,471 +1,90 @@
-/* Estilos del componente Login */
+/* Estilos del componente Login - Premium Edition */
 
+/* ========================================
+   CARD PRINCIPAL
+   ======================================== */
 .login-card {
   background: white;
   border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-  padding: 1.5rem 2.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
+  padding: 2.5rem 2.5rem;
   width: 100%;
   max-width: 420px;
   min-width: 320px;
   margin: 0 auto;
   position: relative;
+
+  /* Entrada animada */
+  animation: cardEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@media (max-width: 900px) {
-  .login-card {
-    max-width: 340px;
-    min-width: 200px;
-    padding: 1.5rem;
+@keyframes cardEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
   }
 
-  .welcome-title {
-    font-size: 1.3rem;
-  }
-}
-
-@media (max-width: 600px) {
-  .login-card {
-    max-width: 98vw;
-    min-width: 0;
-    padding: 0.7rem;
-    border-radius: 12px;
-  }
-
-  .welcome-title {
-    font-size: 1rem;
-  }
-
-  .welcome-subtitle {
-    font-size: 0.8rem;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
+/* ========================================
+   HEADER / TÍTULOS
+   ======================================== */
 .login-header {
   text-align: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .welcome-title {
   color: #1a1a1a;
-  font-size: 2rem;
-  font-weight: 700;
+  font-size: 1.75rem;
+  font-weight: 600;
   margin: 0 0 0.5rem 0;
-  letter-spacing: 0.5px;
+  letter-spacing: -0.02em;
 }
 
 .welcome-subtitle {
-  color: #666;
-  font-size: 0.95rem;
+  color: #6b7280;
+  font-size: 0.9rem;
   font-weight: 400;
   margin: 0;
+  letter-spacing: 0.01em;
 }
 
+/* ========================================
+   FORMULARIO
+   ======================================== */
 .login-form {
   display: flex;
   flex-direction: column;
 }
 
-.error-message {
-  background-color: rgba(241, 92, 109, 0.1);
-  border: 1px solid rgba(241, 92, 109, 0.3);
-  border-radius: 8px;
-  padding: 12px 16px;
-  color: #f15c6d;
-  font-size: 14px;
-  text-align: center;
-}
-
-/* Botón de login */
-.login-button {
-  height: 48px !important;
-  width: 100% !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-
-  background: #c62d42;
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  text-transform: uppercase;
-}
-
-.login-button:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-.button-content {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  line-height: 1 !important;
-  width: auto !important;
-}
-
-.loading-spinner {
-  width: 20px !important;
-  height: 20px !important;
-  min-width: 20px !important;
-  min-height: 20px !important;
-  max-width: 20px !important;
-  max-height: 20px !important;
-
-  border: 2px solid rgba(255, 255, 255, 0.3) !important;
-  border-top: 2px solid #666 !important;
-  border-radius: 50% !important;
-  margin-right: 10px !important;
-  margin-left: 0 !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-  box-sizing: border-box !important;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.login-button:hover:not(:disabled) {
-  background: #a8253a;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(198, 45, 66, 0.3);
-}
-
-/* Estilos para el selector de sede */
-.sede-buttons-group {
-  display: flex !important;
-  flex-direction: row !important;
-  gap: 0.5rem;
-  width: 100%;
-  justify-content: space-between;
-}
-
-.sede-button {
-  flex: 1 1 48% !important;
-  min-width: 120px !important;
-  padding: 0.7rem 1rem;
-  background: white !important;
-  border: 2px solid #c62d42 !important;
-  border-radius: 6px;
-  color: #c62d42 !important;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  outline: none;
-  -webkit-tap-highlight-color: transparent;
-  display: inline-block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
-.sede-button:hover:not(.active) {
-  border-color: #a02436 !important;
-  background: #fff0f2 !important;
-  color: #a02436 !important;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(198, 45, 66, 0.15);
-}
-
-.sede-button.active {
-  background: #c62d42 !important;
-  border-color: #c62d42 !important;
-  color: white !important;
-  box-shadow: 0 2px 6px rgba(198, 45, 66, 0.3);
-}
-
-.sede-button:focus {
-  outline: none;
-}
-
-.forgot-password {
-  text-align: center;
-}
-
-.forgot-password a {
-  color: #666;
-  text-decoration: none;
-  font-size: 0.9rem;
-  transition: color 0.2s;
-}
-
-.forgot-password a:hover {
-  color: #c62d42;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .login-card {
-    padding: 2rem 1.5rem;
-    margin: 1rem;
-    max-width: calc(100vw - 2rem);
-    min-width: 280px;
-    border-radius: 16px;
-  }
-
-  .welcome-title {
-    font-size: 1.75rem;
-  }
-
-  .welcome-subtitle {
-    font-size: 0.9rem;
-  }
-
-  .login-button {
-    padding: 0.875rem 1.5rem;
-    font-size: 0.95rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .login-card {
-    padding: 1.5rem 1rem;
-    margin: 1rem;
-    max-width: calc(100vw - 2rem);
-    min-width: 260px;
-    border-radius: 14px;
-  }
-
-  .login-header {
-    margin-bottom: 1.5rem;
-  }
-
-  .welcome-title {
-    font-size: 1.5rem;
-  }
-
-  .welcome-subtitle {
-    font-size: 0.85rem;
-  }
-
-  .login-button {
-    padding: 0.75rem 1.25rem;
-    font-size: 0.875rem;
-  }
-
-  .error-message {
-    display: flex;
-    flex-direction: column;
-  }
-}
-
-.error-message {
-  background-color: rgba(241, 92, 109, 0.1);
-  border: 1px solid rgba(241, 92, 109, 0.3);
-  border-radius: 8px;
-  padding: 12px 16px;
-  color: #f15c6d;
-  font-size: 14px;
-  text-align: center;
-}
-
-/* Botón de login */
-.login-button {
-  height: 48px !important;
-  width: 100% !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-
-  background: #c62d42;
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  text-transform: uppercase;
-}
-
-.login-button:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-.button-content {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  line-height: 1 !important;
-  width: auto !important;
-}
-
-.loading-spinner {
-  width: 20px !important;
-  height: 20px !important;
-  min-width: 20px !important;
-  min-height: 20px !important;
-  max-width: 20px !important;
-  max-height: 20px !important;
-
-  border: 2px solid rgba(255, 255, 255, 0.3) !important;
-  border-top: 2px solid #666 !important;
-  border-radius: 50% !important;
-  margin-right: 10px !important;
-  margin-left: 0 !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-  box-sizing: border-box !important;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.login-button:hover:not(:disabled) {
-  background: #a8253a;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(198, 45, 66, 0.3);
-}
-
-/* Estilos para el selector de sede */
-.sede-buttons-group {
-  display: flex !important;
-  flex-direction: row !important;
-  gap: 0.5rem;
-  width: 100%;
-  justify-content: space-between;
-}
-
-.sede-button {
-  flex: 1 1 48% !important;
-  min-width: 120px !important;
-  padding: 0.7rem 1rem;
-  background: white !important;
-  border: 2px solid #c62d42 !important;
-  border-radius: 6px;
-  color: #c62d42 !important;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  outline: none;
-  -webkit-tap-highlight-color: transparent;
-  display: inline-block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
-.sede-button:hover:not(.active) {
-  border-color: #a02436 !important;
-  background: #fff0f2 !important;
-  color: #a02436 !important;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(198, 45, 66, 0.15);
-}
-
-.sede-button.active {
-  background: #c62d42 !important;
-  border-color: #c62d42 !important;
-  color: white !important;
-  box-shadow: 0 2px 6px rgba(198, 45, 66, 0.3);
-}
-
-.sede-button:focus {
-  outline: none;
-}
-
-.forgot-password {
-  text-align: center;
-}
-
-.forgot-password a {
-  color: #666;
-  text-decoration: none;
-  font-size: 0.9rem;
-  transition: color 0.2s;
-}
-
-.forgot-password a:hover {
-  color: #c62d42;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .login-card {
-    padding: 2rem 1.5rem;
-    margin: 1rem;
-    max-width: calc(100vw - 2rem);
-    min-width: 280px;
-    border-radius: 16px;
-  }
-
-  .welcome-title {
-    font-size: 1.75rem;
-  }
-
-  .welcome-subtitle {
-    font-size: 0.9rem;
-  }
-
-  .login-button {
-    padding: 0.875rem 1.5rem;
-    font-size: 0.95rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .login-card {
-    padding: 1.5rem 1rem;
-    margin: 1rem;
-    max-width: calc(100vw - 2rem);
-    min-width: 260px;
-    border-radius: 14px;
-  }
-
-  .login-header {
-    margin-bottom: 1.5rem;
-  }
-
-  .welcome-title {
-    font-size: 1.5rem;
-  }
-
-  .welcome-subtitle {
-    font-size: 0.85rem;
-  }
-
-  .login-button {
-    padding: 0.75rem 1.25rem;
-    font-size: 0.875rem;
-  }
-
-  .error-message {
-    padding: 0.625rem 0.875rem;
-    font-size: 13px;
-  }
-}
-
-/* Forzar fondo blanco en inputs del login (anular dark mode) */
+/* ========================================
+   INPUTS PREMIUM
+   ======================================== */
 .login-card input {
-  background-color: white !important;
+  background-color: #f9fafb !important;
   color: #1a1a1a !important;
+  border: 1.5px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  height: 48px !important;
+  font-size: 0.95rem !important;
+  transition: all 0.2s ease !important;
 }
 
 .login-card input::placeholder {
   color: #9ca3af !important;
+  font-weight: 400;
+}
+
+.login-card input:focus {
+  background-color: white !important;
+  border-color: #c62d42 !important;
+  box-shadow: 0 0 0 3px rgba(198, 45, 66, 0.1) !important;
+  outline: none !important;
 }
 
 .login-card input:disabled {
@@ -473,12 +92,306 @@
   color: #6b7280 !important;
 }
 
+/* Icono del ojo perfectamente alineado */
+.login-card .relative span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  transition: color 0.2s ease;
+}
+
+.login-card .relative span:hover {
+  color: #6b7280;
+}
+
 /* Override autofill background */
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
-input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 30px white inset !important;
-  -webkit-text-fill-color: #000 !important;
+.login-card input:-webkit-autofill,
+.login-card input:-webkit-autofill:hover,
+.login-card input:-webkit-autofill:focus,
+.login-card input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #f9fafb inset !important;
+  -webkit-text-fill-color: #1a1a1a !important;
   transition: background-color 5000s ease-in-out 0s;
+  border-color: #e5e7eb !important;
+}
+
+/* ========================================
+   SELECTOR DE SEDE - Segmented Control Premium
+   ======================================== */
+.sede-toggle-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.sede-toggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: auto;
+  min-width: 250px;
+  height: 40px;
+  background: #f3f4f6;
+  border-radius: 10px;
+  padding: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sede-toggle-slider {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  bottom: 4px;
+  width: calc(50% - 4px);
+  background: #c62d42;
+  border-radius: 8px;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(198, 45, 66, 0.3);
+}
+
+.sede-toggle-slider.lima {
+  transform: translateX(100%);
+}
+
+.sede-toggle-option {
+  flex: 1;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #6b7280;
+  transition: color 0.2s ease;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+.sede-toggle-option.active {
+  color: white;
+}
+
+/* ========================================
+   MENSAJE DE ERROR
+   ======================================== */
+.error-message {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: #dc2626;
+  font-size: 0.875rem;
+  text-align: center;
+  animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+
+/* ========================================
+   BOTÓN PRINCIPAL - CTA Premium
+   ======================================== */
+.login-button,
+.login-card button[type="submit"] {
+  height: 52px !important;
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background: linear-gradient(135deg, #c62d42 0%, #a8253a 100%) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 12px !important;
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em !important;
+  cursor: pointer !important;
+  text-transform: uppercase !important;
+  transition: all 0.25s ease !important;
+  box-shadow: 0 4px 14px rgba(198, 45, 66, 0.35) !important;
+}
+
+.login-button:hover:not(:disabled),
+.login-card button[type="submit"]:hover:not(:disabled) {
+  background: linear-gradient(135deg, #a8253a 0%, #8b1f30 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 20px rgba(198, 45, 66, 0.4) !important;
+}
+
+.login-button:active:not(:disabled),
+.login-card button[type="submit"]:active:not(:disabled) {
+  transform: translateY(0) !important;
+  box-shadow: 0 4px 12px rgba(198, 45, 66, 0.3) !important;
+}
+
+.login-button:disabled,
+.login-card button[type="submit"]:disabled {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%) !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
+
+/* Loading spinner mejorado */
+.button-content {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  line-height: 1 !important;
+  width: auto !important;
+}
+
+.loading-spinner {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
+  border: 2px solid rgba(255, 255, 255, 0.3) !important;
+  border-top: 2px solid white !important;
+  border-radius: 50% !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========================================
+   ENLACE OLVIDÉ CONTRASEÑA
+   ======================================== */
+.forgot-password {
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.forgot-password a {
+  color: #9ca3af;
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 400;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.forgot-password a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background-color: #c62d42;
+  transition: width 0.2s ease;
+}
+
+.forgot-password a:hover {
+  color: #c62d42;
+}
+
+.forgot-password a:hover::after {
+  width: 100%;
+}
+
+/* ========================================
+   RESPONSIVE - Tablet
+   ======================================== */
+@media (max-width: 900px) {
+  .login-card {
+    max-width: 400px;
+    min-width: 300px;
+    padding: 2rem;
+  }
+
+  .welcome-title {
+    font-size: 1.5rem;
+  }
+}
+
+/* ========================================
+   RESPONSIVE - Mobile
+   ======================================== */
+@media (max-width: 600px) {
+  .login-card {
+    max-width: calc(100vw - 32px);
+    min-width: 0;
+    padding: 1.75rem 1.5rem;
+    border-radius: 16px;
+    margin: 0 16px;
+  }
+
+  .welcome-title {
+    font-size: 1.35rem;
+  }
+
+  .welcome-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .sede-toggle {
+    min-width: 200px;
+  }
+
+  .sede-toggle-option {
+    font-size: 0.7rem;
+    padding: 0 8px;
+  }
+}
+
+/* ========================================
+   RESPONSIVE - Small Mobile
+   ======================================== */
+@media (max-width: 380px) {
+  .login-card {
+    padding: 1.5rem 1.25rem;
+    margin: 0 12px;
+  }
+
+  .login-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .welcome-title {
+    font-size: 1.25rem;
+  }
+
+  .sede-toggle {
+    min-width: 180px;
+    height: 36px;
+  }
+
+  .sede-toggle-option {
+    font-size: 0.65rem;
+  }
 }

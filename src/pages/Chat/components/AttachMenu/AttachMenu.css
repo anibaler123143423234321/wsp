@@ -1,0 +1,115 @@
+/* ===== MENÚ DE ADJUNTAR ESTILO WHATSAPP ===== */
+.attach-menu-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.attach-plus-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    color: #8696a0;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+}
+
+.attach-plus-btn:hover:not(.disabled) {
+    background: #f0f0f0;
+    color: #54656f;
+}
+
+.attach-plus-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.attach-plus-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+.attach-menu-dropdown {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 0;
+    background: #233138;
+    border-radius: 12px;
+    padding: 8px 0;
+    min-width: 180px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    animation: attachMenuSlideUp 0.2s ease-out;
+}
+
+@keyframes attachMenuSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.attach-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+    color: #e9edef;
+    font-size: 14px;
+}
+
+.attach-menu-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.attach-menu-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.attach-menu-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.attach-menu-icon.photos {
+    background: linear-gradient(135deg, #bf59cf 0%, #7f66ff 100%);
+    color: white;
+}
+
+.attach-menu-icon.document {
+    background: linear-gradient(135deg, #5157ae 0%, #5157ae 100%);
+    color: white;
+}
+
+.attach-menu-icon.audio {
+    background: linear-gradient(135deg, #f77d00 0%, #ff9500 100%);
+    color: white;
+}
+
+/* ===== DARK MODE ===== */
+html.dark .attach-plus-btn {
+    color: #8696a0;
+}
+
+html.dark .attach-plus-btn:hover:not(.disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    color: #e9edef;
+}
