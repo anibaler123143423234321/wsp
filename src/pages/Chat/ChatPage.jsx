@@ -789,10 +789,14 @@ const ChatPage = () => {
   }, [chatState.myActiveRooms, chatState.assignedConversations]);
 
 
-  const handleSendMessage = async () => {
-    // 1. Prevenir envío si ya se está enviando o si está vacío
+  const handleSendMessage = async (messageData = null) => {
+    // 1. Prevenir envío si ya se está enviando o si está vacío (a menos que venga messageData explícito)
     if (chatState.isSending) return;
-    if ((!input && mediaFiles.length === 0) || !chatState.to) return;
+
+    // Si viene messageData (ej: encuesta), permitimos enviar aunque input esté vacío
+    const isDirectMessage = messageData && (messageData.isPoll || messageData.text);
+
+    if (!isDirectMessage && ((!input && mediaFiles.length === 0) || !chatState.to)) return;
 
     chatState.setIsSending(true);
 
@@ -811,7 +815,7 @@ const ChatPage = () => {
 
       // 4. Subir archivo si existe
       let attachmentData = {};
-      if (mediaFiles.length > 0) {
+      if (mediaFiles.length > 0 && !isDirectMessage) { // Solo si no es mensaje directo especial
         try {
           chatState.setIsUploadingFile(true);
           const file = mediaFiles[0];
@@ -831,7 +835,7 @@ const ChatPage = () => {
       }
 
       // 5. Construir mensaje
-      const messageObj = {
+      let messageObj = {
         from: currentUserFullName,
         fromId: user.id,
         to: chatState.to,
@@ -845,6 +849,24 @@ const ChatPage = () => {
         replyToText: chatState.replyingTo?.text || chatState.replyingTo?.fileName || "Archivo adjunto",
         replyToSenderNumeroAgente: chatState.replyingTo?.senderNumeroAgente || null
       };
+
+      // Si viene data directa (ej: encuesta), mezclamos
+      if (messageData) {
+        messageObj = {
+          ...messageObj,
+          ...messageData,
+          message: messageData.text || messageData.message || "", // Priorizar mensaje del data si existe
+        };
+        // Si es encuesta, aseguramos el tipo
+        if (messageData.isPoll) {
+          messageObj.type = 'poll';
+          // El input debe vaciarse o ignorarse
+          messageObj.message = messageData.poll.question; // Usar pregunta como texto de fallback
+          // ⚡ PERSISTENCIA: Guardar la estructura de la encuesta en mediaData
+          messageObj.mediaData = JSON.stringify(messageData.poll);
+          messageObj.mediaType = 'poll_data'; // Marcador auxiliar
+        }
+      }
 
       // Datos extra si es asignado
       if (assignedConv) {
@@ -1207,6 +1229,48 @@ const ChatPage = () => {
       await showErrorAlert("Error", "No se pudo enviar la respuesta.");
     }
   }, [socket, user, username]);
+  //  HANDLER PARA VOTAR EN ENCUESTA
+  const handlePollVote = useCallback((messageId, optionIndex) => {
+    if (socket && socket.connected) {
+      console.log('🗳️ Emitiendo voto:', { messageId, optionIndex, username });
+      socket.emit('pollVote', { // CORREGIDO: Backend espera 'pollVote'
+        messageId,
+        optionIndex,
+        username,
+        roomCode: chatState.currentRoomCode,
+        to: !chatState.isGroup ? chatState.to : null, // Necesario para chats privados
+        isGroup: chatState.isGroup
+      });
+    } else {
+      showErrorAlert("Sin conexión", "No se puede votar en este momento.");
+    }
+  }, [socket, username, chatState]);
+
+  //  LISTENER PARA ACTUALIZACIONES DE ENCUESTA
+  useEffect(() => {
+    if (!socket) return;
+
+    const onPollUpdated = (updatedPollMessage) => {
+      console.log('🔄 Poll Updated recibido:', updatedPollMessage);
+
+      // Actualizar el mensaje en la lista 'messages'
+      // Usamos el callback de setState para asegurar que tenemos la lista más reciente
+      // Pero 'updateMessage' del hook useMessagePagination ya lo maneja
+
+      updateMessage(updatedPollMessage.id, (prevMsg) => ({
+        ...prevMsg,
+        poll: updatedPollMessage.poll || updatedPollMessage, // Ajustar según lo que envíe el backend
+        // Actualizar mediaData para persistencia visual inmediata
+        mediaData: JSON.stringify(updatedPollMessage.poll || updatedPollMessage)
+      }));
+    };
+
+    socket.on('pollUpdated', onPollUpdated);
+    return () => {
+      socket.off('pollUpdated', onPollUpdated);
+    };
+  }, [socket, updateMessage]);
+
   //  FUNCIÓN RESTAURADA: Iniciar videollamada con Tarjeta UI
   const handleStartVideoCall = useCallback(async () => {
     try {
@@ -1375,17 +1439,7 @@ const ChatPage = () => {
     }
   }, [chatState, socket, username]);
 
-  const handlePollVote = useCallback((messageId, optionIndex) => {
-    if (!socket || !socket.connected) return;
 
-    socket.emit('pollVote', {
-      messageId,
-      optionIndex,
-      username: currentUserFullName,
-      roomCode: chatState.isGroup ? chatState.currentRoomCode : null,
-      to: !chatState.isGroup ? chatState.to : null,
-    });
-  }, [socket, currentUserFullName, chatState]);
 
   const handleEnableSounds = useCallback(() => {
     chatState.setSoundsEnabled(true);

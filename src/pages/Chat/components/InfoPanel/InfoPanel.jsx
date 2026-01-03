@@ -252,12 +252,8 @@ const InfoPanel = ({ isOpen, onClose, chatInfo, onCreatePoll, user, onRoomUpdate
 
                     {/* ... Resto de secciones ... */}
                     <section className="info-section">
-                        <h3 className="info-section-title">Acciones (PROXIMAMENTE)</h3>
+                        <h3 className="info-section-title">Acciones</h3>
                         <div className="info-tools-list">
-                            <ActionRow
-                                icon={<FaPoll />}
-                                text="Crear Encuesta"
-                            />
                             <ActionRow
                                 icon={<FaChalkboardTeacher />}
                                 text="Abrir Pizarra"

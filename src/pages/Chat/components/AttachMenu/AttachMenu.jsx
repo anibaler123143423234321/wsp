@@ -6,9 +6,10 @@ import './AttachMenu.css';
  * @param {Object} props
  * @param {Function} props.onFileSelect - Callback cuando se selecciona un archivo (recibe array de files)
  * @param {Function} props.onFileSelectEvent - Callback alternativo que recibe el evento directamente 
+ * @param {Function} props.onCreatePoll - Callback cuando se quiere crear una encuesta
  * @param {boolean} props.disabled - Si el botón está deshabilitado
  */
-const AttachMenu = ({ onFileSelect, onFileSelectEvent, disabled = false }) => {
+const AttachMenu = ({ onFileSelect, onFileSelectEvent, onCreatePoll, disabled = false }) => {
     const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef(null);
     const photoInputRef = useRef(null);
@@ -125,6 +126,24 @@ const AttachMenu = ({ onFileSelect, onFileSelectEvent, disabled = false }) => {
                         </span>
                         <span>Audio</span>
                     </label>
+
+                    {/* Opción de crear encuesta */}
+                    {onCreatePoll && (
+                        <div
+                            className="attach-menu-item"
+                            onClick={() => {
+                                setShowMenu(false);
+                                onCreatePoll();
+                            }}
+                        >
+                            <span className="attach-menu-icon poll">
+                                <svg viewBox="0 0 24 24" height="24" width="24" fill="none">
+                                    <path d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3ZM9 17H7V10H9V17ZM13 17H11V7H13V17ZM17 17H15V13H17V17Z" fill="currentColor" />
+                                </svg>
+                            </span>
+                            <span>Encuesta</span>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

@@ -230,6 +230,10 @@ const ChatContent = ({
   //  NUEVO: Props para modal de reenvío
   myActiveRooms = [],
   assignedConversations = [],
+
+  //  NUEVO: Props para crear encuesta
+  onOpenPollModal,
+  onPollVote, // Agregado prop onPollVote
 }) => {
   // ============================================================
   // REFS
@@ -1856,7 +1860,25 @@ const ChatContent = ({
                 )}
 
                 {/* CONTENIDO REAL (Texto, Imagen, Video, Archivo) */}
-                {message.mediaType === 'image' ? (
+                {message.type === 'poll' ? (
+                  <PollMessage
+                    poll={(() => {
+                      // Intentar recuperar poll data desde mediaData (persistencia) o usar message directamente (socket en vivo)
+                      let pollData = message.poll || message;
+                      if (message.mediaData && typeof message.mediaData === 'string' && message.mediaData.startsWith('{')) {
+                        try {
+                          pollData = JSON.parse(message.mediaData);
+                        } catch (e) {
+                          console.error('Error parsing poll mediaData:', e);
+                        }
+                      }
+                      return pollData;
+                    })()}
+                    onVote={onPollVote}
+                    currentUsername={currentUsername || user?.username}
+                    messageId={message.id}
+                  />
+                ) : message.mediaType === 'image' ? (
                   <>
                     {/*  FIX: Mostrar texto del mensaje ADEMÁS de la imagen */}
                     {(message.text || message.message) && (
@@ -3037,7 +3059,11 @@ const ChatContent = ({
         <div className={`input-group ${isRecordingLocal ? "recording-mode" : ""}`}>
 
           {/* 1. MENÚ DE ADJUNTAR (estilo WhatsApp) */}
-          <AttachMenu onFileSelectEvent={onFileSelect} disabled={!canSendMessages} />
+          <AttachMenu
+            onFileSelectEvent={onFileSelect}
+            disabled={!canSendMessages}
+            onCreatePoll={onOpenPollModal}
+          />
 
           {/* 2. BOTÓN EMOJI */}
           <div className="emoji-container" style={{ position: "relative" }} ref={emojiPickerRef}>

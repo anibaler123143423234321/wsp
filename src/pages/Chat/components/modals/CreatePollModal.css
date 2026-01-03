@@ -237,3 +237,50 @@
 .poll-modal-content::-webkit-scrollbar-thumb:hover {
     background: #999;
 }
+
+/* Wrapper para input + emoji btn */
+.poll-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.poll-emoji-btn {
+    background: transparent;
+    border: none;
+    color: #8696a0;
+    cursor: pointer;
+    padding: 8px;
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+    font-size: 1.2rem;
+}
+
+.poll-emoji-btn:hover,
+.poll-emoji-btn.active {
+    background-color: rgba(134, 150, 160, 0.1);
+    color: #00a884;
+}
+
+/* Ajustar padding del input para que no se superponga texto con botón emoji */
+.poll-input {
+    padding-right: 40px !important;
+}
+
+/* Contenedor del picker flotante */
+.poll-emoji-picker-container {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+}

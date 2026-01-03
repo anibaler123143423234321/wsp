@@ -7,7 +7,12 @@ const PollMessage = ({ poll, onVote, currentUsername, messageId }) => {
         poll.votes && poll.votes.some(v => v.username === currentUsername)
     );
 
+    if (!poll || !poll.options) {
+        return <div className="poll-message-error">Error al cargar la encuesta</div>;
+    }
+
     const totalVotes = poll.votes ? poll.votes.length : 0;
+    // ... rest of component
 
     const getVotesForOption = (optionIndex) => {
         if (!poll.votes) return 0;

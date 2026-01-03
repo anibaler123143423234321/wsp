@@ -104,6 +104,11 @@
     color: white;
 }
 
+.attach-menu-icon.poll {
+    background: linear-gradient(135deg, #02a698 0%, #25d366 100%);
+    color: white;
+}
+
 /* ===== DARK MODE ===== */
 html.dark .attach-plus-btn {
     color: #8696a0;

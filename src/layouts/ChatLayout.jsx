@@ -403,6 +403,8 @@ const ChatLayout = ({
             user={user} //  NUEVO: Usuario para modal de reenvío
             myActiveRooms={myActiveRooms} //  NUEVO: Grupos para modal de reenvío
             assignedConversations={assignedConversations} //  NUEVO: Chats asignados para modal de reenvío
+            onOpenPollModal={handleCreatePoll} //  NUEVO: Abrir modal de encuesta
+            onPollVote={onPollVote} //  FIX: Pasar prop de votación
           />
         </div>
         {/* Thread Panel (Displacement Layout) */}
