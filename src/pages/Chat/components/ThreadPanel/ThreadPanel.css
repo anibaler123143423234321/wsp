@@ -98,36 +98,43 @@
 
 .thread-main-message {
   padding: 16px;
-  border-bottom: 2px solid #e0e0e0;
+  margin: 12px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border-left: 4px solid #dc2626;
 }
 
 .thread-main-message-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .thread-main-message-header strong {
-  color: #54656F;
   font-size: 14px;
+  font-weight: 600;
 }
 
 .thread-main-message-time {
-  font-size: 12px;
-  color: #999;
+  font-size: 11px;
+  color: #8696a0;
+  background: #f0f2f5;
+  padding: 3px 8px;
+  border-radius: 10px;
 }
 
 .thread-main-message-text {
   color: #333;
   font-size: 14px;
   line-height: 1.5;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   word-wrap: break-word;
 }
 
 .thread-main-message-media {
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .thread-main-message-media img,
@@ -139,9 +146,14 @@
 }
 
 .thread-replies-count {
+  display: inline-block;
   font-size: 12px;
-  color: #666;
-  font-weight: 500;
+  color: #dc2626;
+  font-weight: 600;
+  background: #fef2f2;
+  padding: 4px 10px;
+  border-radius: 12px;
+  margin-top: 4px;
 }
 
 .thread-messages {
@@ -169,6 +181,64 @@
 .thread-message {
   margin-bottom: 16px;
   animation: fadeIn 0.3s ease-out;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+/* Avatar del mensaje en hilo */
+.thread-message-avatar {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.thread-message-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Separador de fecha en hilos */
+.thread-date-separator {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 16px 0;
+  padding: 0 20px;
+  width: 100%;
+}
+
+.thread-date-separator::before,
+.thread-date-separator::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: #e0e0e0;
+}
+
+.thread-date-separator::before {
+  margin-right: 12px;
+}
+
+.thread-date-separator::after {
+  margin-left: 12px;
+}
+
+.thread-date-separator-content {
+  font-size: 12px;
+  padding: 6px 14px;
+  color: #dc2626;
+  font-weight: 600;
+  white-space: nowrap;
+  background-color: #fef2f2;
+  border-radius: 8px;
 }
 
 @keyframes fadeIn {
@@ -1344,15 +1414,13 @@ html.dark .thread-close-btn:hover {
 /* Mensaje principal del hilo */
 html.dark .thread-main-message {
   background: #1f1f1f !important;
-  border-bottom-color: #3a3a3a !important;
-}
-
-html.dark .thread-main-message-header strong {
-  color: #9ca3af !important;
+  border-left-color: #dc2626 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
 }
 
 html.dark .thread-main-message-time {
-  color: #6b7280 !important;
+  color: #9ca3af !important;
+  background: #2d2d2d !important;
 }
 
 html.dark .thread-main-message-text {
@@ -1360,7 +1428,8 @@ html.dark .thread-main-message-text {
 }
 
 html.dark .thread-replies-count {
-  color: #9ca3af !important;
+  color: #f87171 !important;
+  background: rgba(220, 38, 38, 0.15) !important;
 }
 
 /* Área de mensajes */

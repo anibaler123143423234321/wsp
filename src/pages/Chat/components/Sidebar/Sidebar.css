@@ -2,7 +2,7 @@
 .sidebar-responsive-container {
   display: flex;
   flex-direction: row;
-  width: 580px;
+  width: 620px;
   min-width: 170px;
   max-width: 800px;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -17,8 +17,8 @@
 /* En 1400px: ancho completo (ambos sidebars) */
 @media (max-width: 1400px) {
   .sidebar-responsive-container {
-    width: 580px;
-    max-width: 580px;
+    width: 620px;
+    max-width: 620px;
   }
 }
 

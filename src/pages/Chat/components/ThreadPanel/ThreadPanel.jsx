@@ -21,6 +21,72 @@ import AttachMenu from "../AttachMenu/AttachMenu"; //  NUEVO: Menú de adjuntar 
 
 import "./ThreadPanel.css";
 
+// Colores para nombres de usuarios (estilo Slack/Discord)
+const USER_NAME_COLORS = [
+  '#E91E63', '#9C27B0', '#673AB7', '#3F51B5', '#2196F3',
+  '#00BCD4', '#009688', '#4CAF50', '#8BC34A', '#FF9800',
+  '#FF5722', '#795548', '#607D8B', '#F44336', '#00ACC1',
+];
+
+const OWN_USER_COLOR = '#dc2626';
+
+// Función para obtener color consistente basado en el nombre
+const getUserNameColor = (name, isOwnMessage = false) => {
+  if (isOwnMessage) return OWN_USER_COLOR;
+  if (!name) return USER_NAME_COLORS[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return USER_NAME_COLORS[Math.abs(hash) % USER_NAME_COLORS.length];
+};
+
+// Función para formatear fecha del separador
+const formatDateLabel = (sentAt) => {
+  if (!sentAt) return "Hoy";
+  const messageDate = sentAt.split("T")[0];
+  const now = new Date();
+  const todayInPeru = now.toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayInPeru = yesterday.toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
+
+  if (messageDate === todayInPeru) return "Hoy";
+  if (messageDate === yesterdayInPeru) return "Ayer";
+
+  const date = new Date(sentAt);
+  const weekday = date.toLocaleDateString("es-PE", { timeZone: "America/Lima", weekday: "short" });
+  const day = date.toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "numeric" });
+  const month = date.toLocaleDateString("es-PE", { timeZone: "America/Lima", month: "short" });
+  const year = date.toLocaleDateString("es-PE", { timeZone: "America/Lima", year: "numeric" });
+  const weekdayCapitalized = weekday.charAt(0).toUpperCase() + weekday.slice(1).replace('.', '');
+  const monthCapitalized = month.charAt(0).toUpperCase() + month.slice(1).replace('.', '');
+  return `${weekdayCapitalized}, ${day} ${monthCapitalized} ${year}`;
+};
+
+// Función para agrupar mensajes por fecha
+const groupThreadMessagesByDate = (messages) => {
+  const groups = [];
+  let currentDateString = null;
+
+  messages.forEach((msg) => {
+    const sentAt = msg.sentAt || new Date().toISOString();
+    const messageDateString = sentAt.split("T")[0];
+
+    if (currentDateString !== messageDateString) {
+      currentDateString = messageDateString;
+      groups.push({
+        type: "date-separator",
+        date: sentAt,
+        label: formatDateLabel(sentAt),
+      });
+    }
+    groups.push({ type: "message", ...msg });
+  });
+
+  return groups;
+};
+
 const ThreadPanel = ({
   isOpen,
   message,
@@ -993,7 +1059,9 @@ const ThreadPanel = ({
 
       <div className="thread-main-message">
         <div className="thread-main-message-header">
-          <strong>{message.from}</strong>
+          <strong style={{ color: getUserNameColor(message.from, message.from === currentUsername) }}>
+            {message.from}
+          </strong>
           <span className="thread-main-message-time">
             {formatTime(message)}
           </span>
@@ -1089,18 +1157,44 @@ const ThreadPanel = ({
             <p>Sé el primero en responder en este hilo</p>
           </div>
         ) : (
-          threadMessages.map((msg, index) => (
+          groupThreadMessagesByDate(threadMessages).map((item, index) => {
+            // Separador de fecha
+            if (item.type === "date-separator") {
+              return (
+                <div key={`date-${index}`} className="thread-date-separator">
+                  <div className="thread-date-separator-content">{item.label}</div>
+                </div>
+              );
+            }
+
+            // Mensaje normal
+            const msg = item;
+            const isOwnMessage = msg.from === currentUsername;
+            const userColor = getUserNameColor(msg.from, isOwnMessage);
+            const senderPicture = roomUsers.find(u => u.username === msg.from || `${u.nombre} ${u.apellido}` === msg.from)?.picture;
+
+            return (
             <div
               key={msg.id || index}
-              className={`thread-message ${msg.from === currentUsername
-                ? "thread-message-own"
-                : "thread-message-other"
-                }`}
+              className={`thread-message ${isOwnMessage ? "thread-message-own" : "thread-message-other"}`}
             >
-              <div className="thread-message-header">
-                <strong>{msg.from}</strong>
-                <span className="thread-message-time">{formatTime(msg)}</span>
+              {/* Avatar */}
+              <div
+                className="thread-message-avatar"
+                style={{
+                  background: senderPicture
+                    ? `url(${senderPicture}) center/cover no-repeat`
+                    : userColor,
+                }}
+              >
+                {!senderPicture && (msg.from?.[0]?.toUpperCase() || '?')}
               </div>
+
+              <div className="thread-message-content">
+                <div className="thread-message-header">
+                  <strong style={{ color: userColor }}>{msg.from}</strong>
+                  <span className="thread-message-time">{formatTime(msg)}</span>
+                </div>
 
               {/*  NUEVO: Mostrar referencia de respuesta si existe */}
               {msg.replyToMessageId && msg.replyToSender && (
@@ -1467,8 +1561,10 @@ const ThreadPanel = ({
                   </div>
                 )}
               </div>
+              </div>
             </div>
-          ))
+          );
+          })
         )}
         <div ref={messagesEndRef} />
       </div>

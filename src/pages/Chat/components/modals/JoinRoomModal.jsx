@@ -32,11 +32,36 @@ const JoinRoomModal = ({ isOpen, onClose, joinRoomForm, setJoinRoomForm, onJoinR
         />
       </div>
 
-      <div className="modal-actions" style={{ borderTop: '1px solid #e0e0e0' }}>
-        <button type="button" className="btn btn-secondary" onClick={onClose}>
+      <div className="modal-actions" style={{ borderTop: '1px solid #e0e0e0', gap: '12px' }}>
+        <button
+          type="button"
+          onClick={onClose}
+          style={{
+            background: '#f3f4f6',
+            color: '#374151',
+            border: '1px solid #d1d5db',
+            padding: '10px 20px',
+            borderRadius: '10px',
+            fontWeight: 500,
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+        >
           Cancelar
         </button>
-        <button type="submit" className="btn btn-primary">
+        <button
+          type="submit"
+          style={{
+            background: '#22c55e',
+            color: 'white',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '10px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+        >
           Unirse
         </button>
       </div>

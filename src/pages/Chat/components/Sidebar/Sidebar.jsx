@@ -127,7 +127,7 @@ const Sidebar = ({
         {/* LeftSidebar - Siempre visible en desktop */}
         <div className={`
           max-[768px]:hidden h-full flex-shrink-0 overflow-visible
-          ${sidebarCollapsed ? 'w-[90px]' : 'w-[180px]'}
+          ${sidebarCollapsed ? 'w-[90px]' : 'w-[220px]'}
           transition-all duration-300
         `}>
           <LeftSidebar
@@ -147,7 +147,7 @@ const Sidebar = ({
         </div>
 
         {/* ConversationList - Ocupa el resto del espacio */}
-        <div className="h-full flex-1 min-w-0 overflow-hidden">
+        <div className="h-screen flex-1 min-w-0 overflow-hidden">
           <ConversationList
             user={user}
             soundsEnabled={soundsEnabled}

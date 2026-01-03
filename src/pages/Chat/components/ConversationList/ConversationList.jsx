@@ -6,6 +6,29 @@ import apiService from '../../../../apiService';
 import SearchModal from '../modals/SearchModal';
 import './ConversationList.css';
 
+// 🎨 Colores para avatares sin imagen
+const AVATAR_COLORS = [
+  '#E91E63', '#9C27B0', '#673AB7', '#3F51B5', '#2196F3',
+  '#03A9F4', '#00BCD4', '#009688', '#4CAF50', '#8BC34A',
+  '#FF9800', '#FF5722', '#795548', '#607D8B', '#F44336'
+];
+
+// Función para obtener color basado en el nombre
+const getAvatarColor = (name) => {
+  if (!name) return AVATAR_COLORS[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+};
+
+// Función para obtener la primera letra del nombre
+const getFirstLetter = (name) => {
+  if (!name) return '?';
+  return name.trim()[0]?.toUpperCase() || '?';
+};
+
 // --- ICONOS PERSONALIZADOS ---
 
 const CommunityIcon = ({ size = 16, className, style }) => (
@@ -141,7 +164,7 @@ const ConversationList = ({
   const [showAssigned, setShowAssigned] = useState(true);
 
   // 🔥 Estados para controlar "Ver más / Ver menos" en cada sección
-  const INITIAL_ITEMS_TO_SHOW = 5;
+  const INITIAL_ITEMS_TO_SHOW = 20;
   const [favoritesExpanded, setFavoritesExpanded] = useState(false);
   const [groupsExpanded, setGroupsExpanded] = useState(false);
   const [assignedExpanded, setAssignedExpanded] = useState(false);
@@ -826,7 +849,7 @@ const ConversationList = ({
 
   return (
     <div
-      className={`flex flex-col bg-white max-[768px]:w-full max-[768px]:flex-1 conversation-list-responsive ${isCompact ? 'compact-mode' : ''}`}
+      className={`flex flex-col h-screen bg-white max-[768px]:w-full max-[768px]:flex-1 conversation-list-responsive ${isCompact ? 'compact-mode' : ''}`}
       style={{
         borderRight: '1.3px solid #EEEEEE',
         overflowX: 'hidden',
@@ -952,8 +975,7 @@ const ConversationList = ({
         })())) && (
           <div
             ref={searchResultsRef}
-            className="flex-1 overflow-y-auto bg-white w-full"
-            style={{ maxHeight: 'calc(100vh - 180px)' }}
+            className="flex-1 overflow-y-auto bg-white w-full min-h-0"
             onScroll={handleSearchResultsScroll}
           >
             {/* ========== SECCIÓN: CHATS QUE COINCIDEN ========== */}
@@ -1249,7 +1271,7 @@ const ConversationList = ({
           });
           return matchingRooms.length > 0 || matchingConvs.length > 0;
         })()) && (
-          <div ref={conversationsListRef} className="flex-1 overflow-y-auto bg-white px-4" style={{ maxHeight: 'calc(100vh - 180px)' }} onScroll={handleScroll}>
+          <div ref={conversationsListRef} className="flex-1 overflow-y-auto bg-white px-4 min-h-0" onScroll={handleScroll}>
 
             {isSearching && <div className="flex items-center justify-center py-8"><div className="text-sm text-gray-500">Buscando mensajes...</div></div>}
 
@@ -1303,8 +1325,8 @@ const ConversationList = ({
                                 onClick={() => onRoomSelect && onRoomSelect(room)}
                               >
                                 <div className="relative flex-shrink-0" style={{ width: '32px', height: '32px' }}>
-                                  <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold" style={{ width: '32px', height: '32px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '14px', backgroundColor: '#A50104' }}>
-                                    {room.description ? <img src={room.description} alt={room.name} className="w-full h-full object-cover" /> : "🏠"}
+                                  <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold" style={{ width: '32px', height: '32px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '14px', backgroundColor: room.description ? '#A50104' : getAvatarColor(room.name) }}>
+                                    {room.description ? <img src={room.description} alt={room.name} className="w-full h-full object-cover" /> : getFirstLetter(room.name)}
                                   </div>
                                 </div>
                                 <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px', display: isCompact ? 'none' : 'flex' }}>
@@ -1315,10 +1337,11 @@ const ConversationList = ({
                                     </div>
                                     <button onClick={(e) => handleToggleFavorite(room, e)} className="flex-shrink-0 p-1 hover:bg-gray-200 rounded-full transition-colors" style={{ color: '#ff453a' }}><FaStar /></button>
                                   </div>
-                                  <div className="flex items-center justify-between gap-2">
-                                    <p className="text-green-600 italic truncate flex-1" style={{ fontSize: '11px' }}>{isTypingInRoom ? `${typingUsers[0]?.nombre || typingUsers[0]?.username} está escribiendo...` : ''}</p>
-                                    {room.lastMessage?.sentAt && <span className="text-gray-400 flex-shrink-0" style={{ fontSize: '10px' }}>{new Date(room.lastMessage.sentAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}</span>}
-                                  </div>
+                                  {isTypingInRoom && (
+                                    <div className="flex items-center justify-between gap-2">
+                                      <p className="text-green-600 italic truncate flex-1" style={{ fontSize: '11px' }}>{`${typingUsers[0]?.nombre || typingUsers[0]?.username} está escribiendo...`}</p>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             );
@@ -1351,12 +1374,11 @@ const ConversationList = ({
                                     </div>
                                     <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-1 hover:bg-gray-200 rounded-full transition-colors" style={{ color: '#ff453a' }}><FaStar /></button>
                                   </div>
-                                  <div className="flex items-center justify-end gap-2">
-                                    <div className="flex items-center gap-1">
-                                      {conv.lastMessage?.sentAt && <span className="text-gray-400" style={{ fontSize: '10px' }}>{new Date(conv.lastMessage.sentAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}</span>}
-                                      {itemUnreadCount > 0 && <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '18px', height: '18px', fontSize: '10px', fontWeight: 600 }}>{itemUnreadCount > 99 ? '99+' : itemUnreadCount}</div>}
+                                  {itemUnreadCount > 0 && (
+                                    <div className="flex items-center justify-end gap-2">
+                                      <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '18px', height: '18px', fontSize: '10px', fontWeight: 600 }}>{itemUnreadCount > 99 ? '99+' : itemUnreadCount}</div>
                                     </div>
-                                  </div>
+                                  )}
                                 </div>
                               </div>
                             );
@@ -1469,11 +1491,11 @@ const ConversationList = ({
                                 onClick={() => onRoomSelect && onRoomSelect(room)}
                               >
                                 <div className="relative flex-shrink-0" style={{ width: '32px', height: '32px' }}>
-                                  <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold" style={{ width: '32px', height: '32px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '14px', backgroundColor: '#A50104' }}>
+                                  <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold" style={{ width: '32px', height: '32px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '14px', backgroundColor: room.description ? '#A50104' : getAvatarColor(room.name) }}>
                                     {room.description ? (
                                       <img src={room.description} alt={room.name} className="w-full h-full object-cover" />
                                     ) : (
-                                      "🏠"
+                                      getFirstLetter(room.name)
                                     )}
                                   </div>
                                 </div>
@@ -1486,13 +1508,11 @@ const ConversationList = ({
                                     </div>
                                     <button onClick={(e) => handleToggleFavorite(room, e)} className="flex-shrink-0 p-1 hover:bg-gray-200 rounded-full transition-colors" style={{ color: isFavorite ? '#ff453a' : '#9ca3af', fontSize: '16px' }}>{isFavorite ? <FaStar /> : <FaRegStar />}</button>
                                   </div>
-                                  <div className="flex items-center justify-between gap-2">
-                                    {isTypingInRoom ? (
+                                  {isTypingInRoom && (
+                                    <div className="flex items-center justify-between gap-2">
                                       <p className="text-green-600 italic truncate flex items-center gap-1" style={{ fontSize: '11px', lineHeight: '14px', fontWeight: 400 }}>{typingUsers.length === 1 ? `${typingUsers[0].nombre && typingUsers[0].apellido ? `${typingUsers[0].nombre} ${typingUsers[0].apellido}` : (typingUsers[0].nombre || typingUsers[0].username)} está escribiendo...` : `${typingUsers.length} personas están escribiendo...`}</p>
-                                    ) : (
-                                      <p className="text-gray-600 truncate" style={{ fontSize: '11px', lineHeight: '14px', fontWeight: 400 }}>{isAdmin ? <>Código: {room.roomCode}</> : null}</p>)}
-                                    {room.lastMessage?.sentAt && <span className="text-gray-400 flex-shrink-0" style={{ fontSize: '10px' }}>{new Date(room.lastMessage.sentAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}</span>}
-                                  </div>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             );
@@ -1659,15 +1679,7 @@ const ConversationList = ({
                                     </div>
                                     <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-1 rounded-full hover:bg-gray-200 transition-all duration-200" style={{ color: isFavorite ? '#ff453a' : '#9ca3af' }}>{isFavorite ? <FaStar size={14} /> : <FaRegStar size={14} />}</button>
                                   </div>
-                                  <div className="flex items-center justify-end mt-0.5">
-                                    {(conv.lastMessage?.sentAt || conv.updatedAt) && (
-                                      <span className="text-gray-400" style={{ fontSize: '10px' }}>
-                                        {new Date(conv.lastMessage?.sentAt || conv.updatedAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
-                                      </span>
-                                    )}
-                                  </div>
                                 </div>
-
                               </div>
                             );
                           })}
