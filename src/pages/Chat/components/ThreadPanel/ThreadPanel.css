@@ -131,6 +131,27 @@
   line-height: 1.5;
   margin-bottom: 12px;
   word-wrap: break-word;
+  max-height: 80px;
+  overflow-y: auto;
+}
+
+/* Scrollbar estilizado para el mensaje principal */
+.thread-main-message-text::-webkit-scrollbar {
+  width: 4px;
+}
+
+.thread-main-message-text::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.thread-main-message-text::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+.thread-main-message-text::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
 }
 
 .thread-main-message-media {
@@ -1425,6 +1446,14 @@ html.dark .thread-main-message-time {
 
 html.dark .thread-main-message-text {
   color: #e5e5e5 !important;
+}
+
+html.dark .thread-main-message-text::-webkit-scrollbar-track {
+  background: #2d2d2d !important;
+}
+
+html.dark .thread-main-message-text::-webkit-scrollbar-thumb {
+  background: #555 !important;
 }
 
 html.dark .thread-replies-count {

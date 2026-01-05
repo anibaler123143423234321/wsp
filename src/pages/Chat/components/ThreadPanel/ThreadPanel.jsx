@@ -1140,7 +1140,9 @@ const ThreadPanel = ({
             )}
           </div>
         ) : (
-          <div className="thread-main-message-text">{message.text}</div>
+          <div className="thread-main-message-text">
+            {message.text}
+          </div>
         )}
 
         <div className="thread-replies-count">
