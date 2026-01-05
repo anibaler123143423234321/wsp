@@ -159,10 +159,27 @@ const RemoveUsersFromRoomModal = ({ isOpen, onClose, roomCode, roomName, current
               backgroundColor: '#fff'
             }}>
               {removableMembers.map((member, index) => {
-                const username = typeof member === 'string' ? member : member.username;
-                const nombre = typeof member === 'object' ? member.nombre : null;
-                const apellido = typeof member === 'object' ? member.apellido : null;
-                const displayName = nombre && apellido ? `${nombre} ${apellido}` : username;
+                // Handle multiple data formats from different API responses
+                let username, displayName;
+
+                if (typeof member === 'string') {
+                  username = member;
+                  displayName = member;
+                } else if (member && typeof member === 'object') {
+                  // Try to get username from various possible fields
+                  username = member.username || member.displayName || member.nombre || member.id || '';
+
+                  // Build display name from available fields
+                  if (member.nombre && member.apellido) {
+                    displayName = `${member.nombre} ${member.apellido}`;
+                  } else {
+                    displayName = member.displayName || member.nombre || member.username || username;
+                  }
+                } else {
+                  username = '';
+                  displayName = 'Usuario desconocido';
+                }
+
                 const isSelected = selectedUsers.includes(username);
 
                 return (
@@ -205,13 +222,13 @@ const RemoveUsersFromRoomModal = ({ isOpen, onClose, roomCode, roomName, current
                       fontWeight: '600',
                       flexShrink: 0
                     }}>
-                      {displayName.charAt(0).toUpperCase()}
+                      {(displayName || '?').charAt(0).toUpperCase()}
                     </div>
 
                     {/* Info del usuario */}
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: '14px', fontWeight: '600', color: '#000' }}>
-                        {displayName}
+                        {displayName || 'Usuario desconocido'}
                       </div>
                       {username !== displayName && (
                         <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>

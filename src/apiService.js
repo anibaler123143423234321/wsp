@@ -608,19 +608,27 @@ class ApiService {
   // Método para eliminar un usuario de una sala
   async removeUserFromRoom(roomCode, username) {
     try {
+      // Trim the username to handle trailing spaces from displayName
+      const trimmedUsername = username?.trim();
+
+      console.log(`🗑️ Removing user from room: ${roomCode}, username: "${trimmedUsername}"`);
+
       const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/temporary-rooms/${roomCode}/remove-user`,
         {
           method: "POST",
-          body: JSON.stringify({ username }),
+          body: JSON.stringify({ username: trimmedUsername }),
         }
       );
 
+      const result = await response.json();
+
       if (!response.ok) {
-        throw new Error(`Error del servidor: ${response.status}`);
+        console.error("❌ Remove user error response:", result);
+        throw new Error(result.message || result.error || `Error del servidor: ${response.status}`);
       }
 
-      const result = await response.json();
+      console.log("✅ Remove user success:", result);
       return result;
     } catch (error) {
       console.error("Error al eliminar usuario de sala:", error);
@@ -1729,11 +1737,11 @@ class ApiService {
       console.log('🔍 searchAllMessages URL:', url);
 
       const response = await fetch(url, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
       );
 
       if (!response.ok) {

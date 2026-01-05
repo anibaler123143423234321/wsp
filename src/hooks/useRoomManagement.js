@@ -591,9 +591,19 @@ export const useRoomManagement = (
     // Callback cuando se remueven usuarios
     const handleUsersRemoved = useCallback(async () => {
         if (currentRoomCode) {
-            const roomUsers = await apiService.getRoomUsers(currentRoomCode);
-            if (Array.isArray(roomUsers)) {
-                setRoomUsers(roomUsers);
+            try {
+                const response = await apiService.getRoomUsers(currentRoomCode);
+                // API returns { users: [...], totalUsers: N, ... } object
+                let usersArray = [];
+                if (Array.isArray(response)) {
+                    usersArray = response;
+                } else if (response && typeof response === 'object') {
+                    usersArray = response.users || response.data || [];
+                }
+                setRoomUsers(usersArray);
+                console.log('✅ Room users refreshed after removal:', usersArray.length);
+            } catch (error) {
+                console.error('Error refreshing room users:', error);
             }
         }
     }, [currentRoomCode, setRoomUsers]);
