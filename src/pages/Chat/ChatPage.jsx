@@ -289,6 +289,9 @@ const ChatPage = () => {
   );
 
   //  Cargar favoritos ANTES de las salas
+  //  Cargar favoritos ANTES de las salas
+  // REMOVIDO: Se carga en ConversationList para evitar duplicidad
+  /*
   useEffect(() => {
     if (!user) return;
     const displayName = user?.nombre && user?.apellido
@@ -297,7 +300,8 @@ const ChatPage = () => {
     if (displayName) {
       chatState.loadFavoriteRoomCodes(displayName);
     }
-  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.id]); 
+  */
 
   // Efecto para restaurar sala
   useEffect(() => {
@@ -1471,6 +1475,22 @@ const ChatPage = () => {
     refreshAuth();
   };
 
+  //  NUEVO: Detectar restauración de sesión (F5) para mostrar LoadingScreen
+  const hasRestoredSession = useRef(false);
+
+  useEffect(() => {
+    // Si ya terminó de verificar auth (isLoading false) y está autenticado
+    if (!isLoading && isAuthenticated && !hasRestoredSession.current) {
+      hasRestoredSession.current = true;
+
+      // Activar manualmente la pantalla de carga para simular el proceso de login
+      console.log('🔄 Sesión restaurada, activando pantalla de carga...');
+      setIsPostLoginLoading(true);
+      setLoginProgress(10);
+      setLoginLoadingMessage('Restaurando sesión...');
+    }
+  }, [isLoading, isAuthenticated]);
+
   // Efecto para observar cuando terminan de cargar los datos después del login
   useEffect(() => {
     if (!isPostLoginLoading) return;
@@ -1612,12 +1632,15 @@ const ChatPage = () => {
   );
 
   // === RENDERIZADO ===
+
+
   if (isLoading) {
     return <LoadingScreen message="Verificando sesión..." />;
   }
 
   // Pantalla de carga post-login con progreso
-  if (isPostLoginLoading) {
+  // También mostramos esto si estamos autenticados pero aún no hemos "restaurado" la sesión (F5 gap)
+  if (isPostLoginLoading || (!isLoading && isAuthenticated && !hasRestoredSession.current)) {
     return (
       <LoginLoadingScreen
         progress={loginProgress}

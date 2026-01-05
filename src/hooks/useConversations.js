@@ -36,6 +36,7 @@ export const useConversations = (
             }
 
             try {
+                console.log('🔄 useConversations: Loading assigned. Page:', page, 'Append:', append);
                 setAssignedLoading(true);
 
                 const result = await apiService.getAssignedConversationsPaginated(page, 50);
