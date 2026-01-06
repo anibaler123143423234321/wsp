@@ -1259,255 +1259,324 @@ const ThreadPanel = ({
       </div>
 
       <div className="thread-messages">
-        {loading ? (
+        {loading && threadMessages.length === 0 ? (
           <div className="thread-loading">Cargando mensajes...</div>
         ) : threadMessages.length === 0 ? (
           <div className="thread-empty">
             <p>Sé el primero en responder en este hilo</p>
           </div>
         ) : (
-          groupThreadMessagesByDate(threadMessages).map((item, index) => {
-            // Separador de fecha
-            if (item.type === "date-separator") {
-              return (
-                <div key={`date-${index}`} className="thread-date-separator">
-                  <div className="thread-date-separator-content">{item.label}</div>
-                </div>
-              );
-            }
-
-            // Mensaje normal
-            const msg = item;
-            const isOwnMessage = msg.from === currentUsername;
-            const userColor = getUserNameColor(msg.from, isOwnMessage);
-            const senderPicture = roomUsers.find(u => u.username === msg.from || `${u.nombre} ${u.apellido}` === msg.from)?.picture;
-
-            return (
-              <div
-                key={msg.id || index}
-                className={`thread-message ${isOwnMessage ? "thread-message-own" : "thread-message-other"}`}
-              >
-                {/* Avatar */}
-                <div
-                  className="thread-message-avatar"
-                  style={{
-                    background: senderPicture
-                      ? `url(${senderPicture}) center/cover no-repeat`
-                      : userColor,
-                  }}
+          <>
+            {/* 🔥 NUEVO: Botón para cargar más mensajes antiguos */}
+            {hasMoreThreadMessages && (
+              <div className="thread-load-more">
+                <button
+                  onClick={() => loadThreadMessages(true)}
+                  disabled={loading}
+                  className="thread-load-more-btn"
                 >
-                  {!senderPicture && (msg.from?.[0]?.toUpperCase() || '?')}
-                </div>
+                  {loading ? 'Cargando...' : `Cargar más antiguos (${totalThreadMessages - threadMessages.length} restantes)`}
+                </button>
+              </div>
+            )}
+            {groupThreadMessagesByDate(threadMessages).map((item, index) => {
+              // Separador de fecha
+              if (item.type === "date-separator") {
+                return (
+                  <div key={`date-${index}`} className="thread-date-separator">
+                    <div className="thread-date-separator-content">{item.label}</div>
+                  </div>
+                );
+              }
 
-                <div className="thread-message-content">
-                  <div className="thread-message-header">
-                    <strong style={{ color: userColor }}>{msg.from}</strong>
-                    <span className="thread-message-time">{formatTime(msg)}</span>
+              // Mensaje normal
+              const msg = item;
+              const isOwnMessage = msg.from === currentUsername;
+              const userColor = getUserNameColor(msg.from, isOwnMessage);
+              const senderPicture = roomUsers.find(u => u.username === msg.from || `${u.nombre} ${u.apellido}` === msg.from)?.picture;
+
+              return (
+                <div
+                  key={msg.id || index}
+                  className={`thread-message ${isOwnMessage ? "thread-message-own" : "thread-message-other"}`}
+                >
+                  {/* Avatar */}
+                  <div
+                    className="thread-message-avatar"
+                    style={{
+                      background: senderPicture
+                        ? `url(${senderPicture}) center/cover no-repeat`
+                        : userColor,
+                    }}
+                  >
+                    {!senderPicture && (msg.from?.[0]?.toUpperCase() || '?')}
                   </div>
 
-                  {/*  NUEVO: Mostrar referencia de respuesta si existe */}
-                  {msg.replyToMessageId && msg.replyToSender && (
-                    <div className="thread-reply-reference">
-                      <FaReply className="reply-ref-icon" />
-                      <div className="reply-ref-content">
-                        <span className="reply-ref-sender">{msg.replyToSender}</span>
-                        <span className="reply-ref-text">{msg.replyToText || "Mensaje"}</span>
-                      </div>
+                  <div className="thread-message-content">
+                    <div className="thread-message-header">
+                      <strong style={{ color: userColor }}>{msg.from}</strong>
+                      <span className="thread-message-time">{formatTime(msg)}</span>
                     </div>
-                  )}
 
-                  {/* Mostrar contenido multimedia si existe */}
-                  {msg.mediaType === "audio" && msg.mediaData ? (
-                    <div className="thread-message-media">
-                      <AudioPlayer
-                        src={msg.mediaData}
-                        fileName={msg.fileName}
-                        onDownload={handleDownload}
-                        time={msg.time || msg.sentAt}
-                        isOwnMessage={msg.from === currentUsername}
-                        isRead={msg.isRead}
-                        isSent={msg.isSent}
-                        readBy={msg.readBy}
-                      />
-                      {msg.message && (
-                        <div className="thread-message-text">
-                          {renderTextWithMentions(msg.message || msg.text)}
+                    {/*  NUEVO: Mostrar referencia de respuesta si existe */}
+                    {msg.replyToMessageId && msg.replyToSender && (
+                      <div className="thread-reply-reference">
+                        <FaReply className="reply-ref-icon" />
+                        <div className="reply-ref-content">
+                          <span className="reply-ref-sender">{msg.replyToSender}</span>
+                          <span className="reply-ref-text">{msg.replyToText || "Mensaje"}</span>
                         </div>
-                      )}
-                    </div>
-                  ) : msg.mediaType === "image" && msg.mediaData ? (
-                    <div className="thread-message-media">
-                      <img
-                        src={msg.mediaData}
-                        alt={msg.fileName || "Imagen"}
-                        style={{
-                          maxWidth: "180px",
-                          maxHeight: "180px",
-                          borderRadius: "8px",
-                          cursor: "pointer",
-                        }}
-                        onClick={() => handleImageClick(msg.mediaData, msg.fileName || "Imagen")}
-                      />
-                      {msg.message && (
-                        <div className="thread-message-text">
-                          {renderTextWithMentions(msg.message || msg.text)}
-                        </div>
-                      )}
-                    </div>
-                  ) : msg.mediaType === "video" && msg.mediaData ? (
-                    <div className="thread-message-media">
-                      <video
-                        src={msg.mediaData}
-                        controls
-                        style={{
-                          maxWidth: "180px",
-                          maxHeight: "180px",
-                          borderRadius: "8px",
-                        }}
-                      />
-                      {msg.message && (
-                        <div className="thread-message-text">
-                          {renderTextWithMentions(msg.message || msg.text)}
-                        </div>
-                      )}
-                    </div>
-                  ) : (msg.mediaType && msg.mediaData) || (msg.fileName && msg.mediaData) ? (
-                    //  FALLBACK GENÉRICO MEJORADO: Si tiene mediaData, mostrar como archivo
-                    <div className="thread-message-media">
-                      <div
-                        style={{
-                          padding: "8px 12px",
-                          backgroundColor: "#f0f0f0",
-                          borderRadius: "8px",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          cursor: "pointer",
-                        }}
-                        onClick={() => window.open(msg.mediaData, "_blank")}
-                      >
-                        <span>📎</span>
-                        <span style={{ fontSize: "13px" }}>
-                          {msg.fileName || "Archivo adjunto"}
-                        </span>
                       </div>
-                      {msg.message && (
-                        <div className="thread-message-text">
-                          {renderTextWithMentions(msg.message || msg.text)}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    //  EDIT MODE: Si estamos editando este mensaje, mostrar input
-                    editingMessageId === msg.id ? (
-                      <div className="thread-message-edit-mode">
-                        <textarea
-                          className="thread-edit-input"
-                          value={editText}
-                          onChange={(e) => setEditText(e.target.value)}
-                          autoFocus
-                          rows={2}
+                    )}
+
+                    {/* Mostrar contenido multimedia si existe */}
+                    {msg.mediaType === "audio" && msg.mediaData ? (
+                      <div className="thread-message-media">
+                        <AudioPlayer
+                          src={msg.mediaData}
+                          fileName={msg.fileName}
+                          onDownload={handleDownload}
+                          time={msg.time || msg.sentAt}
+                          isOwnMessage={msg.from === currentUsername}
+                          isRead={msg.isRead}
+                          isSent={msg.isSent}
+                          readBy={msg.readBy}
                         />
-                        <div className="thread-edit-actions">
-                          <button className="thread-edit-cancel" onClick={handleCancelEdit}>
-                            Cancelar
-                          </button>
-                          <button className="thread-edit-save" onClick={handleSaveEdit} disabled={!editText.trim()}>
-                            Guardar
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="thread-message-text">
-                        {msg.message || msg.text ? (
-                          <>
+                        {msg.message && (
+                          <div className="thread-message-text">
                             {renderTextWithMentions(msg.message || msg.text)}
-                            {msg.isEdited && <span className="thread-edited-label">(editado)</span>}
-                          </>
-                        ) : (
-                          <span style={{ fontStyle: 'italic', color: '#888' }}>
-                            (Mensaje vacío o archivo no soportado)
-                          </span>
+                          </div>
                         )}
                       </div>
-                    )
-                  )}
-
-                  {/*  NUEVO: Mostrar reacciones (igual que en ChatContent) */}
-                  {msg.reactions && msg.reactions.length > 0 && (
-                    <div className="thread-reactions-row" style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
-                      {Object.entries(msg.reactions.reduce((acc, r) => {
-                        if (!acc[r.emoji]) acc[r.emoji] = [];
-                        acc[r.emoji].push(r.username);
-                        return acc;
-                      }, {})).map(([emoji, users]) => (
-                        <div
-                          key={emoji}
-                          className="reaction-pill"
-                          onClick={() => handleReaction(msg, emoji)}
-                          title={users.join(', ')}
+                    ) : msg.mediaType === "image" && msg.mediaData ? (
+                      <div className="thread-message-media">
+                        <img
+                          src={msg.mediaData}
+                          alt={msg.fileName || "Imagen"}
                           style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '2px',
-                            padding: '2px 6px',
-                            borderRadius: '12px',
-                            cursor: 'pointer',
-                            backgroundColor: '#ffffff',
-                            border: '1px solid #d1d7db',
-                            boxShadow: '0 1px 1px rgba(0, 0, 0, 0.05)',
+                            maxWidth: "180px",
+                            maxHeight: "180px",
+                            borderRadius: "8px",
+                            cursor: "pointer",
                           }}
+                          onClick={() => handleImageClick(msg.mediaData, msg.fileName || "Imagen")}
+                        />
+                        {msg.message && (
+                          <div className="thread-message-text">
+                            {renderTextWithMentions(msg.message || msg.text)}
+                          </div>
+                        )}
+                      </div>
+                    ) : msg.mediaType === "video" && msg.mediaData ? (
+                      <div className="thread-message-media">
+                        <video
+                          src={msg.mediaData}
+                          controls
+                          style={{
+                            maxWidth: "180px",
+                            maxHeight: "180px",
+                            borderRadius: "8px",
+                          }}
+                        />
+                        {msg.message && (
+                          <div className="thread-message-text">
+                            {renderTextWithMentions(msg.message || msg.text)}
+                          </div>
+                        )}
+                      </div>
+                    ) : (msg.mediaType && msg.mediaData) || (msg.fileName && msg.mediaData) ? (
+                      //  FALLBACK GENÉRICO MEJORADO: Si tiene mediaData, mostrar como archivo
+                      <div className="thread-message-media">
+                        <div
+                          style={{
+                            padding: "8px 12px",
+                            backgroundColor: "#f0f0f0",
+                            borderRadius: "8px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            cursor: "pointer",
+                          }}
+                          onClick={() => window.open(msg.mediaData, "_blank")}
                         >
-                          <span style={{ fontSize: '14px' }}>{emoji}</span>
-                          <span style={{ fontSize: '10px', fontWeight: 'bold', marginLeft: '2px', color: '#54656f' }}>{users.length}</span>
+                          <span>📎</span>
+                          <span style={{ fontSize: "13px" }}>
+                            {msg.fileName || "Archivo adjunto"}
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                        {msg.message && (
+                          <div className="thread-message-text">
+                            {renderTextWithMentions(msg.message || msg.text)}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      //  EDIT MODE: Si estamos editando este mensaje, mostrar input
+                      editingMessageId === msg.id ? (
+                        <div className="thread-message-edit-mode">
+                          <textarea
+                            className="thread-edit-input"
+                            value={editText}
+                            onChange={(e) => setEditText(e.target.value)}
+                            autoFocus
+                            rows={2}
+                          />
+                          <div className="thread-edit-actions">
+                            <button className="thread-edit-cancel" onClick={handleCancelEdit}>
+                              Cancelar
+                            </button>
+                            <button className="thread-edit-save" onClick={handleSaveEdit} disabled={!editText.trim()}>
+                              Guardar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="thread-message-text">
+                          {msg.message || msg.text ? (
+                            <>
+                              {renderTextWithMentions(msg.message || msg.text)}
+                              {msg.isEdited && <span className="thread-edited-label">(editado)</span>}
+                            </>
+                          ) : (
+                            <span style={{ fontStyle: 'italic', color: '#888' }}>
+                              (Mensaje vacío o archivo no soportado)
+                            </span>
+                          )}
+                        </div>
+                      )
+                    )}
 
-                  {/*  Read Receipts - Mostrar para TODOS los mensajes si hay lectores */}
-                  {msg.readBy && msg.readBy.length > 0 && (
-                    <div className="thread-read-receipts">
-                      <div
-                        className="thread-read-receipts-trigger"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          //  Cálculo de posición FIXED (coordenadas absolutas en pantalla)
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          // Preferimos ARRIBA (top) para no tapar los mensajes siguientes
-                          const preferTop = rect.top > 180;
-                          const newPosition = preferTop ? 'top' : 'bottom';
-                          setPopoverPosition(newPosition);
+                    {/*  NUEVO: Mostrar reacciones (igual que en ChatContent) */}
+                    {msg.reactions && msg.reactions.length > 0 && (
+                      <div className="thread-reactions-row" style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
+                        {Object.entries(msg.reactions.reduce((acc, r) => {
+                          if (!acc[r.emoji]) acc[r.emoji] = [];
+                          acc[r.emoji].push(r.username);
+                          return acc;
+                        }, {})).map(([emoji, users]) => (
+                          <div
+                            key={emoji}
+                            className="reaction-pill"
+                            onClick={() => handleReaction(msg, emoji)}
+                            title={users.join(', ')}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '2px',
+                              padding: '2px 6px',
+                              borderRadius: '12px',
+                              cursor: 'pointer',
+                              backgroundColor: '#ffffff',
+                              border: '1px solid #d1d7db',
+                              boxShadow: '0 1px 1px rgba(0, 0, 0, 0.05)',
+                            }}
+                          >
+                            <span style={{ fontSize: '14px' }}>{emoji}</span>
+                            <span style={{ fontSize: '10px', fontWeight: 'bold', marginLeft: '2px', color: '#54656f' }}>{users.length}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
-                          // Calcular coordenadas exactas en la pantalla
-                          const coords = {
-                            right: window.innerWidth - rect.right,
-                            top: preferTop ? rect.top - 12 : rect.bottom + 12
-                          };
-                          setPopoverCoords(coords);
-                          setOpenReadReceiptsId(openReadReceiptsId === msg.id ? null : msg.id);
-                        }}
-                        title="Ver quién lo ha leído"
-                      >
-                        {(() => {
-                          const MAX_VISIBLE = 3;
-                          const totalReaders = msg.readBy.length;
-                          const remainingCount = totalReaders - MAX_VISIBLE;
-                          const showCounter = remainingCount > 0;
-                          const visibleReaders = msg.readBy.slice(0, MAX_VISIBLE);
+                    {/*  Read Receipts - Mostrar para TODOS los mensajes si hay lectores */}
+                    {msg.readBy && msg.readBy.length > 0 && (
+                      <div className="thread-read-receipts">
+                        <div
+                          className="thread-read-receipts-trigger"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            //  Cálculo de posición FIXED (coordenadas absolutas en pantalla)
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            // Preferimos ARRIBA (top) para no tapar los mensajes siguientes
+                            const preferTop = rect.top > 180;
+                            const newPosition = preferTop ? 'top' : 'bottom';
+                            setPopoverPosition(newPosition);
 
-                          return (
-                            <div className="thread-read-avatars">
-                              {/* A. BOLITA DE CONTADOR (+N) */}
-                              {showCounter && (
-                                <div className="thread-read-avatar counter-bubble">
-                                  +{remainingCount}
-                                </div>
-                              )}
+                            // Calcular coordenadas exactas en la pantalla
+                            const coords = {
+                              right: window.innerWidth - rect.right,
+                              top: preferTop ? rect.top - 12 : rect.bottom + 12
+                            };
+                            setPopoverCoords(coords);
+                            setOpenReadReceiptsId(openReadReceiptsId === msg.id ? null : msg.id);
+                          }}
+                          title="Ver quién lo ha leído"
+                        >
+                          {(() => {
+                            const MAX_VISIBLE = 3;
+                            const totalReaders = msg.readBy.length;
+                            const remainingCount = totalReaders - MAX_VISIBLE;
+                            const showCounter = remainingCount > 0;
+                            const visibleReaders = msg.readBy.slice(0, MAX_VISIBLE);
 
-                              {/* B. AVATARES DE USUARIOS */}
-                              {visibleReaders.map((reader, idx) => {
+                            return (
+                              <div className="thread-read-avatars">
+                                {/* A. BOLITA DE CONTADOR (+N) */}
+                                {showCounter && (
+                                  <div className="thread-read-avatar counter-bubble">
+                                    +{remainingCount}
+                                  </div>
+                                )}
+
+                                {/* B. AVATARES DE USUARIOS */}
+                                {visibleReaders.map((reader, idx) => {
+                                  const readerUser = roomUsers.find(u =>
+                                    (u.username || u.nombre) === reader
+                                  );
+                                  const readerName = readerUser
+                                    ? (readerUser.nombre && readerUser.apellido
+                                      ? `${readerUser.nombre} ${readerUser.apellido}`
+                                      : readerUser.username || reader)
+                                    : reader;
+
+                                  return (
+                                    <div
+                                      key={idx}
+                                      className="thread-read-avatar"
+                                      title={`Leído por ${readerName}`}
+                                    >
+                                      {readerUser?.picture ? (
+                                        <img src={readerUser.picture} alt={readerName} />
+                                      ) : (
+                                        <div className="thread-read-avatar-placeholder">
+                                          {readerName.charAt(0).toUpperCase()}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
+                        </div>
+
+                        {/*  POPOVER DE DETALLES */}
+                        {openReadReceiptsId === msg.id && (
+                          <div
+                            className={`thread-read-receipts-popover position-${popoverPosition}`}
+                            style={{
+                              right: `${popoverCoords.right}px`,
+                              top: `${popoverCoords.top}px`,
+                              transform: popoverPosition === 'top' ? 'translateY(-100%)' : 'none'
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="popover-header">
+                              <span>{msg.readBy.length} {msg.readBy.length === 1 ? 'persona' : 'personas'}</span>
+                              <button
+                                className="popover-close-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenReadReceiptsId(null);
+                                }}
+                                aria-label="Cerrar"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                            <div className="popover-list">
+                              {msg.readBy.map((reader, idx) => {
                                 const readerUser = roomUsers.find(u =>
                                   (u.username || u.nombre) === reader
                                 );
@@ -1518,159 +1587,104 @@ const ThreadPanel = ({
                                   : reader;
 
                                 return (
-                                  <div
-                                    key={idx}
-                                    className="thread-read-avatar"
-                                    title={`Leído por ${readerName}`}
-                                  >
-                                    {readerUser?.picture ? (
-                                      <img src={readerUser.picture} alt={readerName} />
-                                    ) : (
-                                      <div className="thread-read-avatar-placeholder">
-                                        {readerName.charAt(0).toUpperCase()}
-                                      </div>
-                                    )}
+                                  <div key={idx} className="popover-item">
+                                    <div className="popover-avatar">
+                                      {readerUser?.picture ? (
+                                        <img src={readerUser.picture} alt={readerName} />
+                                      ) : (
+                                        <span className="popover-avatar-initial">
+                                          {readerName.charAt(0).toUpperCase()}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="popover-info">
+                                      <div className="popover-name">{readerName}</div>
+                                      <div className="popover-status">Visto</div>
+                                    </div>
                                   </div>
                                 );
                               })}
                             </div>
-                          );
-                        })()}
+                          </div>
+                        )}
                       </div>
+                    )}
 
-                      {/*  POPOVER DE DETALLES */}
-                      {openReadReceiptsId === msg.id && (
-                        <div
-                          className={`thread-read-receipts-popover position-${popoverPosition}`}
-                          style={{
-                            right: `${popoverCoords.right}px`,
-                            top: `${popoverCoords.top}px`,
-                            transform: popoverPosition === 'top' ? 'translateY(-100%)' : 'none'
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <div className="popover-header">
-                            <span>{msg.readBy.length} {msg.readBy.length === 1 ? 'persona' : 'personas'}</span>
+                    {/*  NUEVO: Botón de menú de opciones */}
+                    <div className="thread-message-actions">
+                      <button
+                        className="thread-message-menu-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowMessageMenu(showMessageMenu === msg.id ? null : msg.id);
+                        }}
+                        title="Opciones"
+                      >
+                        <FaEllipsisV size={12} />
+                      </button>
+
+                      {/* Menú de opciones */}
+                      {showMessageMenu === msg.id && (
+                        <div className="thread-message-menu" ref={messageMenuRef}>
+                          <button
+                            className="menu-item"
+                            onClick={() => handleCopyText(msg)}
+                          >
+                            <FaCopy className="menu-icon" /> Copiar texto
+                          </button>
+                          <button
+                            className="menu-item"
+                            onClick={() => handleReplyTo(msg)}
+                          >
+                            <FaReply className="menu-icon" /> Responder
+                          </button>
+                          <button
+                            className="menu-item"
+                            onClick={() => handleOpenReactionPicker(msg.id)}
+                          >
+                            <FaSmile className="menu-icon" /> Reaccionar
+                          </button>
+                          {/*  NUEVO: Botón de editar - solo para mensajes propios */}
+                          {msg.from === currentUsername && (
                             <button
-                              className="popover-close-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenReadReceiptsId(null);
-                              }}
-                              aria-label="Cerrar"
+                              className="menu-item"
+                              onClick={() => handleStartEdit(msg)}
                             >
-                              ✕
+                              <FaPen className="menu-icon" /> Editar
                             </button>
-                          </div>
-                          <div className="popover-list">
-                            {msg.readBy.map((reader, idx) => {
-                              const readerUser = roomUsers.find(u =>
-                                (u.username || u.nombre) === reader
-                              );
-                              const readerName = readerUser
-                                ? (readerUser.nombre && readerUser.apellido
-                                  ? `${readerUser.nombre} ${readerUser.apellido}`
-                                  : readerUser.username || reader)
-                                : reader;
+                          )}
+                          <div style={{ height: '1px', background: '#eee', margin: '4px 0' }}></div>
+                          <button
+                            className="menu-item"
+                            onClick={() => handleOpenForwardModal(msg)}
+                          >
+                            <FaShare className="menu-icon" /> Reenviar
+                          </button>
+                        </div>
+                      )}
 
-                              return (
-                                <div key={idx} className="popover-item">
-                                  <div className="popover-avatar">
-                                    {readerUser?.picture ? (
-                                      <img src={readerUser.picture} alt={readerName} />
-                                    ) : (
-                                      <span className="popover-avatar-initial">
-                                        {readerName.charAt(0).toUpperCase()}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="popover-info">
-                                    <div className="popover-name">{readerName}</div>
-                                    <div className="popover-status">Visto</div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
+                      {/*  NUEVO: Picker de reacciones */}
+                      {showReactionPicker === msg.id && (
+                        <div className="thread-reaction-picker" ref={reactionPickerRef}>
+                          {['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji) => (
+                            <button
+                              key={emoji}
+                              className="reaction-emoji-btn"
+                              onClick={() => handleReaction(msg, emoji)}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
                         </div>
                       )}
                     </div>
-                  )}
-
-                  {/*  NUEVO: Botón de menú de opciones */}
-                  <div className="thread-message-actions">
-                    <button
-                      className="thread-message-menu-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowMessageMenu(showMessageMenu === msg.id ? null : msg.id);
-                      }}
-                      title="Opciones"
-                    >
-                      <FaEllipsisV size={12} />
-                    </button>
-
-                    {/* Menú de opciones */}
-                    {showMessageMenu === msg.id && (
-                      <div className="thread-message-menu" ref={messageMenuRef}>
-                        <button
-                          className="menu-item"
-                          onClick={() => handleCopyText(msg)}
-                        >
-                          <FaCopy className="menu-icon" /> Copiar texto
-                        </button>
-                        <button
-                          className="menu-item"
-                          onClick={() => handleReplyTo(msg)}
-                        >
-                          <FaReply className="menu-icon" /> Responder
-                        </button>
-                        <button
-                          className="menu-item"
-                          onClick={() => handleOpenReactionPicker(msg.id)}
-                        >
-                          <FaSmile className="menu-icon" /> Reaccionar
-                        </button>
-                        {/*  NUEVO: Botón de editar - solo para mensajes propios */}
-                        {msg.from === currentUsername && (
-                          <button
-                            className="menu-item"
-                            onClick={() => handleStartEdit(msg)}
-                          >
-                            <FaPen className="menu-icon" /> Editar
-                          </button>
-                        )}
-                        <div style={{ height: '1px', background: '#eee', margin: '4px 0' }}></div>
-                        <button
-                          className="menu-item"
-                          onClick={() => handleOpenForwardModal(msg)}
-                        >
-                          <FaShare className="menu-icon" /> Reenviar
-                        </button>
-                      </div>
-                    )}
-
-                    {/*  NUEVO: Picker de reacciones */}
-                    {showReactionPicker === msg.id && (
-                      <div className="thread-reaction-picker" ref={reactionPickerRef}>
-                        {['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji) => (
-                          <button
-                            key={emoji}
-                            className="reaction-emoji-btn"
-                            onClick={() => handleReaction(msg, emoji)}
-                          >
-                            {emoji}
-                          </button>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+            <div ref={messagesEndRef} />
+          </>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       <div className="thread-input-container">
