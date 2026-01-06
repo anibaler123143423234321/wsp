@@ -483,6 +483,17 @@ const ChatPage = () => {
     messageId = null,
     conversationData = null
   ) => {
+    // 🔥 NUEVO: Evitar limpiar chat si ya estamos en el mismo chat asignado
+    // (previene que doble clic accidental limpie el contenido)
+    const normalizedUserName = userName?.toLowerCase().trim();
+    const currentTo = chatState.to?.toLowerCase().trim();
+
+    // Si ya estamos en este chat y no hay messageId específico, no hacer nada
+    if (!chatState.isGroup && !chatState.currentRoomCode && currentTo === normalizedUserName && !messageId) {
+      console.log('⏭️ Ya estás en este chat, ignorando clic duplicado');
+      return;
+    }
+
     // 1. Limpieza usando las funciones de tus hooks
     chatState.setCurrentRoomCode(null);
     chatState.setIsGroup(false);

@@ -141,7 +141,7 @@ const LazyImage = ({ src, alt, style, onClick }) => {
   }, []);
 
   return (
-    <div ref={imgRef} style={{ minHeight: '100px', minWidth: '100px' }}>
+    <div ref={imgRef} style={{ minHeight: isLoaded ? 'auto' : '100px', minWidth: isLoaded ? 'auto' : '100px', lineHeight: 0, display: 'block' }}>
       {isVisible ? (
         <>
           {!isLoaded && (
@@ -1725,7 +1725,9 @@ const ChatContent = ({
           backgroundColor: isHighlighted ? 'rgba(255, 235, 59, 0.4)' : 'transparent',
           transition: 'background-color 0.3s ease',
           position: 'relative',
-          zIndex: isMenuOpen ? 100 : 1
+          zIndex: isMenuOpen ? 100 : 1,
+          marginBottom: '2px', // Reducir espacio entre mensajes
+          paddingBottom: '2px' // Reducir padding interno
         }}
       >
         {/* Checkbox de selección */}
@@ -1928,9 +1930,7 @@ const ChatContent = ({
                       src={message.mediaData}
                       alt="imagen"
                       style={{
-                        maxWidth: '450px',
-                        maxHeight: '400px',
-                        width: 'auto',
+                        width: '322px',
                         height: 'auto',
                         objectFit: 'contain',
                         borderRadius: '8px',
@@ -2050,6 +2050,8 @@ const ChatContent = ({
                       // Doble click para agregar/quitar reacción
                       handleReaction(message, emoji);
                     }}
+                    onMouseEnter={() => setShowReactionUsers(`${message.id}-${emoji}`)}
+                    onMouseLeave={() => setShowReactionUsers(null)}
                   >
                     {emoji} <span style={{ fontSize: '10px', fontWeight: 'bold', marginLeft: '4px' }}>{users.length}</span>
 
@@ -2080,7 +2082,7 @@ const ChatContent = ({
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          padding: '10px 12px',
+                          padding: '6px 10px',
                           borderBottom: '1px solid #f0f0f0',
                           background: '#fafafa'
                         }}>
@@ -2157,7 +2159,7 @@ const ChatContent = ({
 
                         {/* Footer con instrucción */}
                         <div style={{
-                          padding: '8px 12px',
+                          padding: '4px 8px',
                           borderTop: '1px solid #f0f0f0',
                           background: '#fafafa',
                           textAlign: 'center'

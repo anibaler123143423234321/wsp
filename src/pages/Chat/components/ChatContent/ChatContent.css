@@ -554,7 +554,7 @@
 
 /* Separación extra cuando empieza un nuevo grupo de mensajes */
 .message-row.group-start {
-  margin-top: 12px !important;
+  margin-top: 2px !important;
 }
 
 
@@ -1135,7 +1135,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 16px 0;
+  margin: 4px 0;
   padding: 0 20px;
   width: 100%;
 }
@@ -1171,7 +1171,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 16px 0;
+  margin: 4px 0;
   padding: 0 20px;
   width: 100%;
 }
