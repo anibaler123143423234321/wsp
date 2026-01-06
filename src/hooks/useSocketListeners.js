@@ -3,6 +3,33 @@ import Swal from 'sweetalert2';
 import { showSuccessAlert, showErrorAlert } from '../sweetalert2';
 import { systemNotifications } from '../utils/systemNotifications';
 
+// 🔥 Mapa global de IDs temporales → IDs reales
+// Persiste entre re-renders para que el toast pueda acceder al ID real
+const tempIdToRealIdMap = new Map();
+
+// Helper para limpiar IDs antiguos (más de 5 minutos)
+const cleanupOldIds = () => {
+    const now = Date.now();
+    for (const [key, value] of tempIdToRealIdMap.entries()) {
+        if (now - value.timestamp > 5 * 60 * 1000) {
+            tempIdToRealIdMap.delete(key);
+        }
+    }
+};
+
+// Helper para obtener el ID real dado un ID (puede ser temporal o real)
+const getRealMessageId = (id) => {
+    if (!id) return null;
+    const idStr = id.toString();
+    // Si es un ID temporal, buscar el real en el mapa
+    if (idStr.startsWith('temp_')) {
+        const entry = tempIdToRealIdMap.get(idStr);
+        return entry?.realId || null; // Retorna null si aún no tenemos el ID real
+    }
+    // Si no es temporal, es el ID real
+    return id;
+};
+
 
 export const useSocketListeners = (
     socket,
@@ -201,6 +228,23 @@ export const useSocketListeners = (
             }
         });
 
+        // 🔥 NUEVO: Listener para actualizar IDs temporales → reales
+        // El backend envía este evento cuando el mensaje se guarda en BD
+        s.on("messageIdUpdate", (data) => {
+            console.log('🔄 messageIdUpdate recibido:', data);
+            if (data.tempId && data.realId) {
+                tempIdToRealIdMap.set(data.tempId.toString(), {
+                    realId: data.realId,
+                    roomCode: data.roomCode,
+                    timestamp: Date.now()
+                });
+                console.log(`🔄 Mapeado ID temporal ${data.tempId} → ${data.realId}`);
+
+                // Limpiar IDs antiguos periódicamente
+                cleanupOldIds();
+            }
+        });
+
         // =====================================================
         // 3. MENSAJERÍA (CORE)
         // =====================================================
@@ -308,10 +352,9 @@ export const useSocketListeners = (
                     });
                 }
 
-                //  Incrementar contador si NO estamos en esa sala, NO es mensaje propio
-                // y NO es favorito (los favoritos reciben unreadCountUpdate del backend)
-                const isFavorite = favoriteRoomCodesRef.current.includes(data.roomCode);
-                if (!isChatOpen && !isOwnMessage && !isFavorite) {
+                //  Incrementar contador si NO estamos en esa sala y NO es mensaje propio
+                // FIX: También incrementar para favoritos, ya que unreadCountUpdate no siempre llega
+                if (!isChatOpen && !isOwnMessage) {
                     setUnreadMessages(prev => ({
                         ...prev,
                         [data.roomCode]: (prev[data.roomCode] || 0) + 1
@@ -350,8 +393,11 @@ export const useSocketListeners = (
                                 `${data.from}: ${messageText}`,
                                 { tag: `room-${data.roomCode}`, silent: !soundsEnabledRef.current },
                                 () => {
+                                    // 🔥 Usar ID real si está disponible; si es temporal sin ID real, navegar sin centrar en mensaje
+                                    const realId = getRealMessageId(data.id);
+                                    const messageId = realId || (data.id?.toString().startsWith('temp_') ? null : data.id);
                                     window.dispatchEvent(new CustomEvent("navigateToRoom", {
-                                        detail: { roomCode: data.roomCode, messageId: data.id }
+                                        detail: { roomCode: data.roomCode, messageId }
                                     }));
                                 }
                             );
@@ -382,8 +428,11 @@ export const useSocketListeners = (
                             }
                         }).then((result) => {
                             if (result.isConfirmed) {
+                                // 🔥 Usar ID real si está disponible; si es temporal sin ID real, navegar sin centrar en mensaje
+                                const realId = getRealMessageId(data.id);
+                                const messageId = realId || (data.id?.toString().startsWith('temp_') ? null : data.id);
                                 window.dispatchEvent(new CustomEvent("navigateToRoom", {
-                                    detail: { roomCode: data.roomCode, messageId: data.id }
+                                    detail: { roomCode: data.roomCode, messageId }
                                 }));
                             }
                         });
@@ -494,17 +543,8 @@ export const useSocketListeners = (
                 hasLastMessage: !!data.lastMessage,
                 incrementCount
             });
-
-            // Solo incrementar para FAVORITOS (los grupos normales ya incrementan en roomMessage)
-            const isFavorite = favoriteRoomCodesRef.current.includes(data.roomCode);
-
-            if (!isCurrentRoom && incrementCount > 0 && isFavorite) {
-                // Incrementar contador solo para favoritos
-                setUnreadMessages(prev => ({
-                    ...prev,
-                    [data.roomCode]: (prev[data.roomCode] || 0) + incrementCount
-                }));
-            }
+            // NOTA: Ya no incrementamos contador aquí para favoritos porque roomMessage ya lo hace
+            // Esto evita duplicación del contador
 
             // Sonido para todos (favoritos y no favoritos)
             if (!isCurrentRoom && incrementCount > 0) {
