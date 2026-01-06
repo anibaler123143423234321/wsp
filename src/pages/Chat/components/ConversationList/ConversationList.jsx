@@ -612,6 +612,61 @@ const ConversationList = ({
     }, 300); // 300ms debounce
   }, [user]);
 
+  // 🔥 NUEVO: Búsqueda de chats (grupos + asignados) en la API
+  const handleChatsApiSearch = useCallback((searchValue) => {
+    if (apiSearchTimeoutRef.current) {
+      clearTimeout(apiSearchTimeoutRef.current);
+    }
+
+    // Si no hay término de búsqueda, limpiar resultados
+    if (!searchValue || searchValue.trim().length === 0) {
+      setApiSearchResults({ groups: [], assigned: [] });
+      setIsApiSearching(false);
+      return;
+    }
+
+    // Solo buscar si hay más de 1 caracter
+    if (searchValue.trim().length < 2) {
+      return;
+    }
+
+    apiSearchTimeoutRef.current = setTimeout(async () => {
+      setIsApiSearching(true);
+      try {
+        const results = { groups: [], assigned: [] };
+
+        // Buscar grupos en la API
+        try {
+          const isPrivilegedUser = ['ADMIN', 'JEFEPISO', 'PROGRAMADOR', 'SUPERADMIN'].includes(user?.role);
+          let groupsResult;
+          if (isPrivilegedUser) {
+            groupsResult = await apiService.getAdminRooms(1, 50, searchValue);
+            results.groups = groupsResult?.data || [];
+          } else {
+            groupsResult = await apiService.getUserRoomsPaginated(1, 50, searchValue);
+            results.groups = groupsResult?.rooms || [];
+          }
+        } catch (error) {
+          console.error('Error al buscar grupos en API:', error);
+        }
+
+        // Buscar conversaciones asignadas en la API
+        try {
+          const assignedResult = await apiService.getAssignedConversationsPaginated(1, 50, searchValue);
+          results.assigned = assignedResult?.conversations || [];
+        } catch (error) {
+          console.error('Error al buscar asignados en API:', error);
+        }
+
+        setApiSearchResults(results);
+      } catch (error) {
+        console.error('Error en búsqueda de chats API:', error);
+      } finally {
+        setIsApiSearching(false);
+      }
+    }, 300);
+  }, [user]);
+
   // 🔥 NUEVO: Cargar más resultados de búsqueda WhatsApp
   const loadMoreWhatsappSearch = useCallback(async () => {
     if (!whatsappSearchHasMore || isLoadingMoreSearch) return;
@@ -907,8 +962,10 @@ const ConversationList = ({
                 } else {
                   setSearchTerm(value);
                 }
-                // 🔥 Búsqueda tipo WhatsApp
+                // 🔥 Búsqueda tipo WhatsApp (mensajes)
                 handleWhatsappSearch(value);
+                // 🔥 Búsqueda de chats en API (grupos + asignados)
+                handleChatsApiSearch(value);
               }}
             />
             {((activeModule === 'conversations' && searchTerm) || (activeModule === 'chats' && assignedSearchTerm) || (activeModule === 'monitoring' && assignedSearchTerm)) && (
@@ -960,8 +1017,10 @@ const ConversationList = ({
          ========================================================================= */}
       {((activeModule === 'chats' || activeModule === 'conversations' || activeModule === 'monitoring') &&
         (assignedSearchTerm.trim() || searchTerm.trim()) &&
-        (whatsappSearchResults.length > 0 || isWhatsappSearching || (() => {
-          // Verificar si hay chats que coincidan
+        (whatsappSearchResults.length > 0 || isWhatsappSearching || isApiSearching ||
+         apiSearchResults?.groups?.length > 0 || apiSearchResults?.assigned?.length > 0 ||
+         (() => {
+          // Verificar si hay chats locales que coincidan
           const term = (assignedSearchTerm || searchTerm || '').toLowerCase().trim();
           if (!term) return false;
           const matchingRooms = (myActiveRooms || []).filter(room =>
@@ -983,32 +1042,42 @@ const ConversationList = ({
               const term = (assignedSearchTerm || searchTerm || '').toLowerCase().trim();
               if (!term) return null;
 
-              // Filtrar grupos que coinciden por nombre
-              const matchingRooms = (myActiveRooms || []).filter(room =>
+              // Filtrar grupos locales que coinciden por nombre
+              const localMatchingRooms = (myActiveRooms || []).filter(room =>
                 room.name?.toLowerCase().includes(term) || room.roomCode?.toLowerCase().includes(term)
               );
 
-              console.log('🔍 Búsqueda:', term, 'myActiveRooms:', myActiveRooms?.length, 'matchingRooms:', matchingRooms.length);
-              console.log('🔍 Nombres de salas:', myActiveRooms?.map(r => r.name));
+              // 🔥 Combinar con resultados de la API (sin duplicados)
+              const localRoomCodes = new Set(localMatchingRooms.map(r => r.roomCode));
+              const apiRooms = (apiSearchResults?.groups || []).filter(room => !localRoomCodes.has(room.roomCode));
+              const matchingRooms = [...localMatchingRooms, ...apiRooms];
 
-              // Filtrar conversaciones directas que coinciden
-              const matchingConvs = (assignedConversations || []).filter(conv => {
+              // Filtrar conversaciones locales que coinciden
+              const localMatchingConvs = (assignedConversations || []).filter(conv => {
                 const participants = conv.participants || [];
                 const currentUserFullName = user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.username;
                 const otherParticipant = participants.find(p => p?.toLowerCase() !== currentUserFullName?.toLowerCase()) || participants[0];
                 return otherParticipant?.toLowerCase().includes(term);
               });
 
+              // 🔥 Combinar con resultados de la API (sin duplicados)
+              const localConvIds = new Set(localMatchingConvs.map(c => c.id));
+              const apiConvs = (apiSearchResults?.assigned || []).filter(conv => !localConvIds.has(conv.id));
+              const matchingConvs = [...localMatchingConvs, ...apiConvs];
+
               const totalChats = matchingRooms.length + matchingConvs.length;
-              if (totalChats === 0) return null;
+              if (totalChats === 0 && !isApiSearching) return null;
 
               return (
                 <div className="mb-2">
                   {/* Header CHATS */}
-                  <div className="bg-[#f0f2f5] py-2 px-4 border-b border-[#e9edef] text-center">
+                  <div className="bg-[#f0f2f5] py-2 px-4 border-b border-[#e9edef] text-center flex items-center justify-center gap-2">
                     <span className="text-[12px] font-semibold text-[#54656f] uppercase tracking-wide">
-                      Chats ({totalChats})
+                      Chats {totalChats > 0 ? `(${totalChats})` : ''}
                     </span>
+                    {isApiSearching && (
+                      <div className="w-3 h-3 border-2 border-gray-300 border-t-[#00a884] rounded-full animate-spin"></div>
+                    )}
                   </div>
 
                   {/* Lista de grupos que coinciden */}
@@ -1233,10 +1302,12 @@ const ConversationList = ({
                 const participants = conv.participants || [];
                 return participants.some(p => p?.toLowerCase().includes(term));
               });
-              const hasMatchingChats = matchingRooms.length > 0 || matchingConvs.length > 0;
+              // 🔥 Incluir resultados de API
+              const hasMatchingChats = matchingRooms.length > 0 || matchingConvs.length > 0 ||
+                                       apiSearchResults?.groups?.length > 0 || apiSearchResults?.assigned?.length > 0;
 
-              // Solo mostrar "Sin resultados" si no hay mensajes Y no hay chats que coincidan
-              if (!isWhatsappSearching && whatsappSearchResults.length === 0 && !hasMatchingChats && term) {
+              // Solo mostrar "Sin resultados" si no hay mensajes Y no hay chats que coincidan Y no está buscando
+              if (!isWhatsappSearching && !isApiSearching && whatsappSearchResults.length === 0 && !hasMatchingChats && term) {
                 return (
                   <div className="flex flex-col items-center justify-center py-20 text-center px-6">
                     <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mb-3">
@@ -1258,8 +1329,10 @@ const ConversationList = ({
          MÓDULO: CHATS / CONVERSACIONES (Grupos + Asignados + Usuarios)
          ========================================================================= */}
       {(activeModule === 'chats' || activeModule === 'conversations') &&
-        !(whatsappSearchResults.length > 0 || isWhatsappSearching || (() => {
-          // Verificar si hay chats que coincidan (misma lógica que arriba)
+        !(whatsappSearchResults.length > 0 || isWhatsappSearching || isApiSearching ||
+          apiSearchResults?.groups?.length > 0 || apiSearchResults?.assigned?.length > 0 ||
+          (() => {
+          // Verificar si hay chats locales que coincidan (misma lógica que arriba)
           const term = (assignedSearchTerm || searchTerm || '').toLowerCase().trim();
           if (!term) return false;
           const matchingRooms = (myActiveRooms || []).filter(room =>
