@@ -3377,7 +3377,6 @@ const ChatContent = ({
                     const searchLower = searchName.toLowerCase();
                     return searchLower.includes(mentionSearch) && searchName !== currentUsername;
                   })
-                  .slice(0, 5)
                   .map((user, index) => (
                     <div
                       key={index}

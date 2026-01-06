@@ -994,6 +994,39 @@ const ThreadPanel = ({
     setImagePreview(null);
   };
 
+  // NUEVO: Función de descarga robusta (igual que ChatContent)
+  const handleDownload = async (url, fileName) => {
+    if (!url) return;
+
+    try {
+      // 1. Intentamos descargar como Blob para forzar la descarga directa
+      const response = await apiService.fetchWithAuth(url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = fileName || "archivo";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Limpiar memoria
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error("Error al descargar blob, intentando método alternativo:", error);
+
+      // 2. Fallback: Método clásico (si fetch falla por CORS, por ejemplo)
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName || "archivo";
+      link.target = "_blank";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   const formatTime = (msg) => {
     if (!msg) return "";
 
@@ -1078,12 +1111,7 @@ const ThreadPanel = ({
         <ImageViewer
           imagePreview={imagePreview}
           onClose={handleCloseImageViewer}
-          onDownload={(url, fileName) => {
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = fileName || "imagen";
-            link.click();
-          }}
+          onDownload={handleDownload}
         />
       )}
       {isDragging && (
@@ -1124,12 +1152,7 @@ const ThreadPanel = ({
             <AudioPlayer
               src={message.mediaData}
               fileName={message.fileName}
-              onDownload={(src, fileName) => {
-                const link = document.createElement("a");
-                link.href = src;
-                link.download = fileName || "audio";
-                link.click();
-              }}
+              onDownload={handleDownload}
               time={message.time || message.sentAt}
               isOwnMessage={message.from === currentUsername}
               isRead={message.isRead}
@@ -1266,12 +1289,7 @@ const ThreadPanel = ({
                       <AudioPlayer
                         src={msg.mediaData}
                         fileName={msg.fileName}
-                        onDownload={(src, fileName) => {
-                          const link = document.createElement("a");
-                          link.href = src;
-                          link.download = fileName || "audio";
-                          link.click();
-                        }}
+                        onDownload={handleDownload}
                         time={msg.time || msg.sentAt}
                         isOwnMessage={msg.from === currentUsername}
                         isRead={msg.isRead}
@@ -1716,7 +1734,7 @@ const ThreadPanel = ({
         {/*  NUEVO: Dropdown de sugerencias de menciones */}
         {showMentionSuggestions && filteredMembers.length > 0 && (
           <div className="thread-mention-dropdown" ref={mentionDropdownRef}>
-            {filteredMembers.slice(0, 5).map((user, index) => {
+            {filteredMembers.map((user, index) => {
               let displayName = '';
               if (typeof user === "string") {
                 displayName = user;

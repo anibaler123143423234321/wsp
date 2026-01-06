@@ -109,9 +109,13 @@ const ImageViewer = ({ imagePreview, onClose, onDownload }) => {
             {/* Botón de descargar */}
             <button
                 onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
-                    onDownload(imagePreview.url, imagePreview.fileName);
+                    if (onDownload) {
+                        onDownload(imagePreview.url, imagePreview.fileName);
+                    }
                 }}
+                onMouseDown={(e) => e.stopPropagation()}
                 style={{
                     position: "absolute",
                     top: "20px",
@@ -127,16 +131,18 @@ const ImageViewer = ({ imagePreview, onClose, onDownload }) => {
                     alignItems: "center",
                     gap: "8px",
                     transition: "background-color 0.2s",
-                    zIndex: 10001,
+                    zIndex: 10002,
+                    pointerEvents: "auto",
                 }}
                 onMouseEnter={(e) =>
-                    (e.target.style.backgroundColor = "rgba(255, 255, 255, 0.2)")
+                    (e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.2)")
                 }
                 onMouseLeave={(e) =>
-                    (e.target.style.backgroundColor = "rgba(255, 255, 255, 0.1)")
+                    (e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)")
                 }
             >
-                ⬇️ Descargar
+                <span style={{ pointerEvents: "none" }}>⬇️</span>
+                <span style={{ pointerEvents: "none" }}>Descargar</span>
             </button>
 
             {/* Controles de zoom */}
