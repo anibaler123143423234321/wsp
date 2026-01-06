@@ -363,23 +363,46 @@ export const useSocketListeners = (
 
                 //  SIEMPRE actualizar la lista de conversaciones
                 if (data.roomCode) {
+                    const sentAt = data.sentAt || new Date().toISOString();
                     setMyActiveRooms(prev => {
-                        const updated = prev.map(r => {
-                            if (r.roomCode === data.roomCode) {
-                                return {
-                                    ...r,
-                                    lastMessage: {
-                                        text: messageText,
-                                        from: data.from,
-                                        time: timeString,
-                                        sentAt: data.sentAt || new Date().toISOString(),
-                                        mediaType: data.mediaType,
-                                        fileName: data.fileName
-                                    }
-                                };
-                            }
-                            return r;
-                        });
+                        const salaExiste = prev.find(r => r.roomCode === data.roomCode);
+
+                        let updated;
+                        if (salaExiste) {
+                            updated = prev.map(r => {
+                                if (r.roomCode === data.roomCode) {
+                                    return {
+                                        ...r,
+                                        lastMessage: {
+                                            text: messageText,
+                                            from: data.from,
+                                            time: timeString,
+                                            sentAt: sentAt,
+                                            mediaType: data.mediaType,
+                                            fileName: data.fileName
+                                        }
+                                    };
+                                }
+                                return r;
+                            });
+                        } else {
+                            // 🔥 La sala NO existe, agregarla
+                            console.log('📬 newMessage: Sala no encontrada, agregando:', data.roomCode);
+                            const newRoom = {
+                                roomCode: data.roomCode,
+                                name: data.roomName || data.roomCode,
+                                lastMessage: {
+                                    text: messageText,
+                                    from: data.from,
+                                    time: timeString,
+                                    sentAt: sentAt,
+                                    mediaType: data.mediaType,
+                                    fileName: data.fileName
+                                },
+                                isActive: true
+                            };
+                            updated = [newRoom, ...prev];
+                        }
                         return sortRoomsByBackendLogic(updated, favoriteRoomCodesRef.current);
                     });
 
@@ -641,27 +664,60 @@ export const useSocketListeners = (
                 }
 
                 setMyActiveRooms((prevRooms) => {
-                    const updated = prevRooms.map((room) =>
-                        room.roomCode === data.roomCode
-                            ? {
-                                ...room,
-                                lastMessage: {
-                                    text: data.lastMessage.text || "",
-                                    from: data.lastMessage.from,
-                                    time: data.lastMessage.time,
-                                    sentAt: newSentAt,
-                                    mediaType: data.lastMessage.mediaType || null,
-                                    fileName: data.lastMessage.fileName || null
-                                }
-                            }
-                            : room
-                    );
+                    const salaExiste = prevRooms.find(r => r.roomCode === data.roomCode);
+                    console.log('📬 unreadCountUpdate setMyActiveRooms:', {
+                        roomCode: data.roomCode,
+                        salaExiste: !!salaExiste,
+                        prevRoomsLength: prevRooms.length,
+                        newSentAt: newSentAt
+                    });
 
-                    console.log('📬 Sala actualizada:', data.roomCode, 'nuevo sentAt:', newSentAt);
+                    let updated;
+                    if (salaExiste) {
+                        // La sala existe, actualizarla
+                        updated = prevRooms.map((room) =>
+                            room.roomCode === data.roomCode
+                                ? {
+                                    ...room,
+                                    lastMessage: {
+                                        text: data.lastMessage.text || "",
+                                        from: data.lastMessage.from,
+                                        time: data.lastMessage.time,
+                                        sentAt: newSentAt,
+                                        mediaType: data.lastMessage.mediaType || null,
+                                        fileName: data.lastMessage.fileName || null
+                                    }
+                                }
+                                : room
+                        );
+                        // Verificar que se actualizó
+                        const salaActualizada = updated.find(r => r.roomCode === data.roomCode);
+                        console.log('📬 Sala actualizada:', salaActualizada?.roomCode, 'sentAt:', salaActualizada?.lastMessage?.sentAt);
+                    } else {
+                        // 🔥 La sala NO existe en la lista, agregarla al inicio
+                        console.log('📬 Sala no encontrada en lista, agregando:', data.roomCode);
+                        const newRoom = {
+                            roomCode: data.roomCode,
+                            name: data.roomName || data.roomCode,
+                            lastMessage: {
+                                text: data.lastMessage.text || "",
+                                from: data.lastMessage.from,
+                                time: data.lastMessage.time,
+                                sentAt: newSentAt,
+                                mediaType: data.lastMessage.mediaType || null,
+                                fileName: data.lastMessage.fileName || null
+                            },
+                            isActive: true
+                        };
+                        updated = [newRoom, ...prevRooms];
+                    }
 
                     //  IMPORTANTE: Reordenar para que suba al inicio
                     const sorted = sortRoomsByBackendLogic(updated, favoriteRoomCodesRef.current);
-                    console.log('📬 unreadCountUpdate: Lista reordenada, primer item:', sorted[0]?.roomCode, sorted[0]?.name);
+
+                    // Verificar primera sala después de ordenar
+                    console.log('📬 Después de sort, primera sala:', sorted[0]?.roomCode, 'sentAt:', sorted[0]?.lastMessage?.sentAt);
+
                     return sorted;
                 });
             }

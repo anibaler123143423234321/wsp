@@ -1449,6 +1449,10 @@ const ConversationList = ({
                         return dateB - dateA;
                       });
 
+                      // 🔍 DEBUG: Ver primeras 3 salas después de ordenar
+                      const primeras3 = filteredRooms.slice(0, 3).map(r => `${r.roomCode} (sentAt: ${r.lastMessage?.sentAt || 'N/A'})`);
+                      console.log('🔍 ConversationList - Primeras 3 salas:', primeras3.join(' | '));
+
                       // Mostrar indicador de búsqueda
                       if (isApiSearching && assignedSearchTerm.trim().length >= 2) {
                         return (
