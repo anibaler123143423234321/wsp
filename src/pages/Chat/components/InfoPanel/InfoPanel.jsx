@@ -230,11 +230,13 @@ const InfoPanel = ({ isOpen, onClose, chatInfo, onCreatePoll, user, onRoomUpdate
                                     label="Nombre"
                                     value={chatInfo.roomName}
                                 />
-                                <InfoRow
-                                    label="Código de invitación"
-                                    value={chatInfo.roomCode}
-                                    icon={<FaHashtag />}
-                                />
+                                {allowedRoles.includes(userRole) && (
+                                    <InfoRow
+                                        label="Código de invitación"
+                                        value={chatInfo.roomCode}
+                                        icon={<FaHashtag />}
+                                    />
+                                )}
                                 <InfoRow
                                     label="Participantes"
                                     value={`${chatInfo.roomUsers?.length || 0} miembros`}
