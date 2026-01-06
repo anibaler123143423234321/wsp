@@ -335,11 +335,12 @@ const ThreadPanel = ({
             return prev;
           }
 
-          // 🚀 Buscar y reemplazar mensaje temporal del mismo usuario
-          // (el más reciente con ID temporal que coincida en texto/from)
+          // 🚀 Buscar y reemplazar mensaje temporal del mismo usuario EN ESTE HILO
+          // (el más reciente con ID temporal que coincida en threadId, texto/from)
           const tempIndex = prev.findIndex(msg =>
             String(msg.id).startsWith('temp_') &&
             msg.from === newMessage.from &&
+            String(msg.threadId) === String(newMessage.threadId) && // 🔧 FIX: Verificar que sea del mismo hilo
             (msg.text === newMessage.text || msg.message === newMessage.message || msg.text === newMessage.message)
           );
 
@@ -393,8 +394,13 @@ const ThreadPanel = ({
   }, [socket, message?.id, currentUsername]);
 
 
+  // 🔥 NUEVO: Estado para paginación de mensajes del hilo
+  const [hasMoreThreadMessages, setHasMoreThreadMessages] = useState(false);
+  const [totalThreadMessages, setTotalThreadMessages] = useState(0);
+  const [threadOffset, setThreadOffset] = useState(0);
+  const THREAD_PAGE_SIZE = 20;
 
-  const loadThreadMessages = useCallback(async () => {
+  const loadThreadMessages = useCallback(async (loadMore = false) => {
     // Validar que message.id sea un ID válido (no NaN, no undefined, no null)
     const threadId = message?.id;
     if (!threadId || isNaN(Number(threadId)) || String(threadId).startsWith('temp_')) {
@@ -403,25 +409,46 @@ const ThreadPanel = ({
     }
     setLoading(true);
     try {
-      const data = await apiService.getThreadMessages(threadId);
-      setThreadMessages(data);
-      // Actualizar el contador con la cantidad real de mensajes cargados
-      setCurrentThreadCount(data.length);
+      const currentOffset = loadMore ? threadOffset : 0;
+      const response = await apiService.getThreadMessages(threadId, THREAD_PAGE_SIZE, currentOffset);
+
+      // 🔥 El backend ahora devuelve { data, total, hasMore, page, totalPages }
+      const messages = response.data || response; // Compatibilidad con respuesta anterior
+      const hasMore = response.hasMore ?? false;
+      const total = response.total ?? (messages.length || 0);
+
+      if (loadMore) {
+        // Cargar más: agregar al inicio (mensajes anteriores)
+        setThreadMessages(prev => [...messages, ...prev]);
+        setThreadOffset(currentOffset + messages.length);
+      } else {
+        // Carga inicial
+        setThreadMessages(messages);
+        setThreadOffset(messages.length);
+      }
+
+      setHasMoreThreadMessages(hasMore);
+      setTotalThreadMessages(total);
+      // Actualizar el contador con el total real
+      setCurrentThreadCount(total);
     } catch (error) {
       console.error("Error al cargar mensajes del hilo:", error);
     } finally {
       setLoading(false);
     }
-  }, [message?.id]);
+  }, [message?.id, threadOffset]);
 
   // useEffect para cargar mensajes cuando se abre el hilo
   useEffect(() => {
     if (message?.id) {
-      // Limpiar mensajes anteriores antes de cargar los nuevos
+      // Limpiar estado de paginación para el nuevo hilo
       setThreadMessages([]);
-      loadThreadMessages();
+      setThreadOffset(0);
+      setHasMoreThreadMessages(false);
+      setTotalThreadMessages(0);
+      loadThreadMessages(false); // Carga inicial (no loadMore)
     }
-  }, [loadThreadMessages, message?.id]);
+  }, [message?.id]); // Solo depender de message.id, no de loadThreadMessages
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -1027,6 +1054,7 @@ const ThreadPanel = ({
     }
   };
 
+
   const formatTime = (msg) => {
     if (!msg) return "";
 
@@ -1152,7 +1180,12 @@ const ThreadPanel = ({
             <AudioPlayer
               src={message.mediaData}
               fileName={message.fileName}
-              onDownload={handleDownload}
+              onDownload={(src, fileName) => {
+                const link = document.createElement("a");
+                link.href = src;
+                link.download = fileName || "audio";
+                link.click();
+              }}
               time={message.time || message.sentAt}
               isOwnMessage={message.from === currentUsername}
               isRead={message.isRead}
