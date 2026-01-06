@@ -746,8 +746,18 @@ const ThreadPanel = ({
 
       // Filtrar miembros basado en el término de búsqueda
       const filtered = roomUsers.filter(user => {
-        const username = user.username || user.nombre || '';
-        return username.toLowerCase().includes(searchTerm) && username !== currentUsername;
+        let searchName = '';
+        if (typeof user === "string") {
+          searchName = user;
+        } else if (user && typeof user === 'object') {
+          // Prioridad: displayName > nombre+apellido > username > nombre
+          searchName = user.displayName
+            || ((user.nombre && user.apellido) ? `${user.nombre} ${user.apellido}` : '')
+            || user.username
+            || user.nombre
+            || '';
+        }
+        return searchName.toLowerCase().includes(searchTerm) && searchName !== currentUsername;
       });
 
       setFilteredMembers(filtered);
@@ -777,7 +787,16 @@ const ThreadPanel = ({
 
   //  NUEVO: Insertar mención seleccionada
   const insertMention = (user) => {
-    const username = user.username || user.nombre || '';
+    let username = '';
+    if (typeof user === "string") {
+      username = user;
+    } else if (user && typeof user === 'object') {
+      username = user.username
+        || user.displayName
+        || ((user.nombre && user.apellido) ? `${user.nombre} ${user.apellido}` : '')
+        || user.nombre
+        || '';
+    }
     const cursorPos = inputRef.current?.selectionStart || input.length;
     const textBeforeCursor = input.substring(0, cursorPos);
     const textAfterCursor = input.substring(cursorPos);
@@ -1697,11 +1716,17 @@ const ThreadPanel = ({
         {/*  NUEVO: Dropdown de sugerencias de menciones */}
         {showMentionSuggestions && filteredMembers.length > 0 && (
           <div className="thread-mention-dropdown" ref={mentionDropdownRef}>
-            {filteredMembers.map((user, index) => {
-              const username = user.username || user.nombre || '';
-              const displayName = user.nombre && user.apellido
-                ? `${user.nombre} ${user.apellido}`
-                : username;
+            {filteredMembers.slice(0, 5).map((user, index) => {
+              let displayName = '';
+              if (typeof user === "string") {
+                displayName = user;
+              } else if (user && typeof user === 'object') {
+                displayName = user.displayName
+                  || ((user.nombre && user.apellido) ? `${user.nombre} ${user.apellido}` : '')
+                  || user.username
+                  || user.nombre
+                  || '';
+              }
 
               return (
                 <div
