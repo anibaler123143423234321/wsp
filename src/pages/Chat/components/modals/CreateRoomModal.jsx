@@ -25,7 +25,7 @@ const CreateRoomModal = ({ isOpen, onClose, roomForm, setRoomForm, onCreateRoom 
           type="text"
           id="roomName"
           value={roomForm.name}
-          onChange={(e) => setRoomForm({...roomForm, name: e.target.value})}
+          onChange={(e) => setRoomForm({ ...roomForm, name: e.target.value })}
           placeholder="Ej: Reunión de equipo"
           required
           style={{ backgroundColor: '#FFFFFF', color: '#000000', border: '1px solid #d1d7db' }}
@@ -38,7 +38,7 @@ const CreateRoomModal = ({ isOpen, onClose, roomForm, setRoomForm, onCreateRoom 
           type="number"
           id="maxCapacity"
           value={roomForm.maxCapacity}
-          onChange={(e) => setRoomForm({...roomForm, maxCapacity: parseInt(e.target.value)})}
+          onChange={(e) => setRoomForm({ ...roomForm, maxCapacity: parseInt(e.target.value) })}
           min="2"
           max="100"
           required
@@ -46,11 +46,36 @@ const CreateRoomModal = ({ isOpen, onClose, roomForm, setRoomForm, onCreateRoom 
         />
       </div>
 
-      <div className="modal-actions" style={{ borderTop: '1px solid #e0e0e0' }}>
-        <button type="button" className="btn btn-secondary" onClick={onClose}>
+      <div className="modal-actions" style={{ borderTop: '1px solid #e0e0e0', gap: '12px' }}>
+        <button
+          type="button"
+          onClick={onClose}
+          style={{
+            background: '#f3f4f6',
+            color: '#374151',
+            border: '1px solid #d1d5db',
+            padding: '10px 20px',
+            borderRadius: '10px',
+            fontWeight: 500,
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+        >
           Cancelar
         </button>
-        <button type="submit" className="btn btn-primary">
+        <button
+          type="submit"
+          style={{
+            background: 'rgb(165, 1, 4)',
+            color: 'white',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '10px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+        >
           Crear Sala
         </button>
       </div>

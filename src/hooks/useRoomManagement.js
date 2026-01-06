@@ -612,19 +612,27 @@ export const useRoomManagement = (
         try {
             const roomUsersData = await apiService.getRoomUsers(roomCode);
 
-            if (!roomUsersData || roomUsersData.length === 0) {
-                await showErrorAlert('Sala inactiva', 'Esta sala ya no está activa o no existe.');
+            // La API devuelve { users: [...], totalUsers: N, maxCapacity: N }
+            const users = roomUsersData?.users || [];
+            const maxCapacity = roomUsersData?.maxCapacity || 0;
+
+            if (!users || users.length === 0) {
+                await showErrorAlert('Sala vacía', 'No hay usuarios en esta sala.');
                 return;
             }
 
-            // Aquí se crearía el modal personalizado (código existente)
-            // Por ahora solo loguear
-            console.log('Ver usuarios de sala:', roomCode, roomUsersData);
+            // Abrir el modal con los datos
+            chatState.setRoomUsersModalData({
+                roomName: roomName,
+                users: users,
+                maxCapacity: maxCapacity
+            });
+            chatState.setShowRoomUsersModal(true);
         } catch (error) {
             console.error('Error al ver usuarios de sala:', error);
             await showErrorAlert('Error', 'Error al cargar usuarios de la sala');
         }
-    }, []);
+    }, [chatState]);
 
     const handleShowAdminRooms = useCallback(() => {
         chatState.setShowAdminRoomsModal(true);

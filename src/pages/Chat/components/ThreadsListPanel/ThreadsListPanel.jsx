@@ -73,23 +73,35 @@ const ThreadsListPanel = ({
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) {
-      return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-    } else if (diffDays === 1) {
+
+    // Extraer fecha y hora directamente del string ISO sin conversión de zona horaria
+    // Formato: "2026-01-05T13:12:58.000Z"
+    const match = dateString.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (!match) return '';
+
+    const [, year, month, day, hour, minute] = match;
+    const messageDate = new Date(year, month - 1, day); // Solo para comparar días
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    if (messageDate >= today) {
+      return `${hour}:${minute}`;
+    } else if (messageDate >= yesterday) {
       return 'Ayer';
-    } else if (diffDays < 7) {
-      return date.toLocaleDateString('es-ES', { weekday: 'short' });
+    } else if (messageDate >= weekAgo) {
+      const dayNames = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+      return dayNames[messageDate.getDay()];
     } else {
-      return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+      return `${day}/${month}`;
     }
   };
 
   const getUserPicture = (username) => {
-    const user = roomUsers.find(u => u.username === username || 
+    const user = roomUsers.find(u => u.username === username ||
       `${u.nombre} ${u.apellido}` === username);
     return user?.picture;
   };

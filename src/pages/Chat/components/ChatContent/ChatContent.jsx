@@ -308,6 +308,7 @@ const ChatContent = ({
   // ============================================================
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(null);
+  const [showReactionUsers, setShowReactionUsers] = useState(null); // Para mostrar quién reaccionó
   const [showMessageMenu, setShowMessageMenu] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [showMessageInfo, setShowMessageInfo] = useState(null);
@@ -494,6 +495,7 @@ const ChatContent = ({
 
   useEffect(() => {
     setImagePreview(null);
+    setShowReactionUsers(null); // Limpiar popover de reacciones al cambiar de chat
     hasScrolledToUnreadRef.current = false;
     lastMessageCountRef.current = 0;
     isLoadingMoreRef.current = false;
@@ -2028,13 +2030,144 @@ const ChatContent = ({
           {/* REACCIONES (Debajo del texto) */}
           {
             message.reactions && message.reactions.length > 0 && (
-              <div className="reactions-row" style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+              <div className="reactions-row" style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap', position: 'relative' }}>
                 {Object.entries(message.reactions.reduce((acc, r) => {
                   if (!acc[r.emoji]) acc[r.emoji] = [];
                   acc[r.emoji].push(r.username); return acc;
                 }, {})).map(([emoji, users]) => (
-                  <div key={emoji} className="reaction-pill" onClick={() => handleReaction(message, emoji)} title={users.join(', ')}>
+                  <div
+                    key={emoji}
+                    className="reaction-pill"
+                    style={{ position: 'relative', cursor: 'pointer' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Toggle mostrar popover de usuarios
+                      const key = `${message.id}-${emoji}`;
+                      setShowReactionUsers(prev => prev === key ? null : key);
+                    }}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      // Doble click para agregar/quitar reacción
+                      handleReaction(message, emoji);
+                    }}
+                  >
                     {emoji} <span style={{ fontSize: '10px', fontWeight: 'bold', marginLeft: '4px' }}>{users.length}</span>
+
+                    {/* Popover con usuarios que reaccionaron */}
+                    {showReactionUsers === `${message.id}-${emoji}` && (
+                      <div
+                        className="reaction-users-popover"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          position: 'absolute',
+                          bottom: '100%',
+                          left: '0',
+                          transform: 'none',
+                          background: 'white',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+                          padding: '0',
+                          minWidth: '180px',
+                          maxWidth: '280px',
+                          zIndex: 1000,
+                          marginBottom: '6px',
+                          overflow: 'hidden'
+                        }}
+                      >
+                        {/* Header con emoji y botón X */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 12px',
+                          borderBottom: '1px solid #f0f0f0',
+                          background: '#fafafa'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '20px' }}>{emoji}</span>
+                            <span style={{ fontSize: '13px', fontWeight: '600', color: '#333' }}>
+                              {users.length} {users.length === 1 ? 'persona' : 'personas'}
+                            </span>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowReactionUsers(null);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              borderRadius: '50%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#666',
+                              transition: 'background 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.target.style.background = '#eee'}
+                            onMouseLeave={(e) => e.target.style.background = 'none'}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </button>
+                        </div>
+
+                        {/* Lista de usuarios */}
+                        <div style={{ maxHeight: '180px', overflowY: 'auto', padding: '4px 0' }}>
+                          {users.map((username, idx) => (
+                            <div key={idx} style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              padding: '8px 12px',
+                              fontSize: '13px',
+                              color: '#333',
+                              borderBottom: idx < users.length - 1 ? '1px solid #f5f5f5' : 'none',
+                              transition: 'background 0.15s'
+                            }}
+                              onMouseEnter={(e) => e.currentTarget.style.background = '#f9f9f9'}
+                              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                              {/* Avatar pequeño */}
+                              <div style={{
+                                width: '28px',
+                                height: '28px',
+                                borderRadius: '50%',
+                                background: '#A50104',
+                                color: 'white',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                flexShrink: 0
+                              }}>
+                                {username?.charAt(0)?.toUpperCase() || '?'}
+                              </div>
+                              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {username}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Footer con instrucción */}
+                        <div style={{
+                          padding: '8px 12px',
+                          borderTop: '1px solid #f0f0f0',
+                          background: '#fafafa',
+                          textAlign: 'center'
+                        }}>
+                          <span style={{ fontSize: '11px', color: '#888' }}>
+                            Doble click para reaccionar
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -2074,15 +2207,24 @@ const ChatContent = ({
                   <span className="mx_ThreadLastReply">
                     {message.lastReplyFrom ? message.lastReplyFrom : "Ver"}
                   </span>
-                  {/*  NUEVO: Vista previa del último mensaje del hilo */}
+                  {/*  NUEVO: Vista previa del último mensaje del hilo - RESPONSIVO */}
                   {message.lastReplyText && (
-                    <span className="mx_ThreadLastReplyText" title={message.lastReplyText}>
-                      : {message.lastReplyText.length > 25
-                        ? message.lastReplyText.substring(0, 25) + '...'
-                        : message.lastReplyText}
+                    <span
+                      className="mx_ThreadLastReplyText"
+                      title={message.lastReplyText}
+                      style={{
+                        flex: '1 1 auto',
+                        minWidth: 0,
+                        maxWidth: '250px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      : {message.lastReplyText}
                     </span>
                   )}
-                  <FaChevronRight size={10} color="#8696a0" style={{ marginLeft: '4px' }} />
+                  <FaChevronRight size={10} color="#8696a0" style={{ marginLeft: '4px', flexShrink: 0 }} />
                 </div>
 
                 {/* 2. LOS AVATARES (Derecha) - VERSIÓN FORZADA */}

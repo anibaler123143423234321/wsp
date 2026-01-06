@@ -14,6 +14,7 @@ import CreateRoomModal from '../pages/Chat/components/modals/CreateRoomModal';
 import JoinRoomModal from '../pages/Chat/components/modals/JoinRoomModal';
 import CreatePollModal from '../pages/Chat/components/modals/CreatePollModal';
 import AdminRoomsModal from '../pages/Chat/components/modals/AdminRoomsModal';
+import RoomUsersModal from '../pages/Chat/components/modals/RoomUsersModal';
 import './ChatLayout.css';
 
 const ChatLayout = ({
@@ -40,6 +41,7 @@ const ChatLayout = ({
   showCreateRoomModal, setShowCreateRoomModal, roomForm, setRoomForm, onCreateRoom,
   showJoinRoomModal, setShowJoinRoomModal, joinRoomForm, setJoinRoomForm, onJoinRoom,
   showAdminRoomsModal, setShowAdminRoomsModal, onDeleteRoom, onDeactivateRoom, onActivateRoom, onEditRoom, onViewRoomUsers,
+  showRoomUsersModal, setShowRoomUsersModal, roomUsersModalData,
 
   // Props de notificaciones
   unreadMessages,
@@ -521,6 +523,19 @@ const ChatLayout = ({
             isOpen={showCreatePollModal}
             onClose={() => setShowCreatePollModal(false)}
             onCreatePoll={handlePollCreated}
+          />
+        )
+      }
+
+      {/* Modal de Usuarios de Sala */}
+      {
+        showRoomUsersModal && (
+          <RoomUsersModal
+            isOpen={showRoomUsersModal}
+            onClose={() => setShowRoomUsersModal(false)}
+            roomName={roomUsersModalData.roomName}
+            users={roomUsersModalData.users}
+            maxCapacity={roomUsersModalData.maxCapacity}
           />
         )
       }

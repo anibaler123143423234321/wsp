@@ -175,15 +175,13 @@ const AdminRoomsModal = ({ isOpen, onClose, onDeleteRoom, onDeactivateRoom, onAc
           <div className="rooms-list">
             {rooms.map((room) => (
               <div key={room.id} className="room-item" style={{ backgroundColor: '#f5f5f5', border: '1px solid #e0e0e0' }}>
-                <div className="room-info">
-                  <div className="room-name" style={{ color: '#000000' }}>{room.name}</div>
-                  <div className="room-details">
-                    <span className="room-code" style={{ backgroundColor: '#e0e0e0', color: '#000000' }}>Código: {room.roomCode}</span>
-                    <span className="room-capacity" style={{ color: 'ff453a' }}>Capacidad: {room.currentMembers}/{room.maxCapacity}</span>
-                    <span className={`room-status ${room.isActive ? 'active' : 'inactive'}`}>
-                      {room.isActive ? 'Activa' : 'Inactiva'}
-                    </span>
-                  </div>
+                <div className="room-info" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <div className="room-name" style={{ color: '#000000', fontWeight: 600 }}>{room.name}</div>
+                  <span className="room-code" style={{ backgroundColor: '#e0e0e0', color: '#000000', padding: '2px 8px', borderRadius: '4px', fontSize: '12px' }}>Código: {room.roomCode}</span>
+                  <span className="room-capacity" style={{ color: '#666666', fontSize: '12px' }}>Capacidad: {room.currentMembers}/{room.maxCapacity}</span>
+                  <span className={`room-status ${room.isActive ? 'active' : 'inactive'}`}>
+                    {room.isActive ? 'ACTIVA' : 'INACTIVA'}
+                  </span>
                 </div>
                 <div className="room-actions">
                   <button

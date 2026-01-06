@@ -25,7 +25,7 @@ const JoinRoomModal = ({ isOpen, onClose, joinRoomForm, setJoinRoomForm, onJoinR
           type="text"
           id="roomCode"
           value={joinRoomForm.roomCode}
-          onChange={(e) => setJoinRoomForm({...joinRoomForm, roomCode: e.target.value})}
+          onChange={(e) => setJoinRoomForm({ ...joinRoomForm, roomCode: e.target.value })}
           placeholder="Ej: ABC123"
           required
           style={{ backgroundColor: '#FFFFFF', color: '#000000', border: '1px solid #d1d7db' }}
@@ -52,7 +52,7 @@ const JoinRoomModal = ({ isOpen, onClose, joinRoomForm, setJoinRoomForm, onJoinR
         <button
           type="submit"
           style={{
-            background: '#22c55e',
+            background: 'rgb(165, 1, 4)',
             color: 'white',
             border: 'none',
             padding: '10px 20px',

@@ -92,6 +92,8 @@ export const useChatState = () => {
     const [showManageConversationsModal, setShowManageConversationsModal] = useState(false);
     const [showAddUsersToRoomModal, setShowAddUsersToRoomModal] = useState(false);
     const [showRemoveUsersFromRoomModal, setShowRemoveUsersFromRoomModal] = useState(false);
+    const [showRoomUsersModal, setShowRoomUsersModal] = useState(false);
+    const [roomUsersModalData, setRoomUsersModalData] = useState({ roomName: '', users: [], maxCapacity: 0 });
 
     const [createdRoomData, setCreatedRoomData] = useState(null);
     const [editingRoom, setEditingRoom] = useState(null);
@@ -256,6 +258,10 @@ export const useChatState = () => {
         setShowAddUsersToRoomModal,
         showRemoveUsersFromRoomModal,
         setShowRemoveUsersFromRoomModal,
+        showRoomUsersModal,
+        setShowRoomUsersModal,
+        roomUsersModalData,
+        setRoomUsersModalData,
 
         createdRoomData,
         setCreatedRoomData,

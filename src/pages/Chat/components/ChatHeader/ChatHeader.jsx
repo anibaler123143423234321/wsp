@@ -85,12 +85,27 @@ const ChatHeader = ({
             <div className="room-members-wrapper">
               <div className="room-members-pile" onClick={onToggleMembersPanel}>
                 <div className="stacked-avatars">
-                  {roomUsers.slice(0, 3).map((user, index) => {
-                    const username = typeof user === 'string' ? user : user.username;
-                    const picture = typeof user === 'object' ? user.picture : null;
-                    const nombre = typeof user === 'object' ? user.nombre : null;
-                    const apellido = typeof user === 'object' ? user.apellido : null;
-                    const displayName = nombre && apellido ? `${nombre} ${apellido}` : username;
+                  {roomUsers.slice(0, 3).map((member, index) => {
+                    const username = typeof member === 'string' ? member : member.username;
+                    const picture = typeof member === 'object' ? member.picture : null;
+                    const nombre = typeof member === 'object' ? member.nombre : null;
+                    const apellido = typeof member === 'object' ? member.apellido : null;
+                    const memberDisplayName = typeof member === 'object' ? member.displayName : null;
+
+                    // Intentar obtener el mejor nombre disponible
+                    const displayName = nombre && apellido
+                      ? `${nombre} ${apellido}`
+                      : (memberDisplayName || username || 'Usuario');
+
+                    // Obtener iniciales (primera letra del nombre, o primera letra del apellido si existe)
+                    const getInitials = (name) => {
+                      if (!name || name === 'Usuario') return 'U';
+                      const parts = name.split(' ').filter(p => p.length > 0);
+                      if (parts.length >= 2) {
+                        return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+                      }
+                      return name[0]?.toUpperCase() || 'U';
+                    };
 
                     // Determinamos el color para el avatar sin imagen (basado en índice o nombre)
                     const colorIndex = (index % 3) + 1;
@@ -110,7 +125,7 @@ const ChatHeader = ({
                           />
                         ) : (
                           <span className="stacked-avatar-placeholder">
-                            {displayName?.[0]?.toUpperCase() || '?'}
+                            {getInitials(displayName)}
                           </span>
                         )}
                       </span>

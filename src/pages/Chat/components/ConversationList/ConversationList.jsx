@@ -92,17 +92,17 @@ const SectionHeader = ({ title, icon: Icon, isOpen, onToggle, count, isLoading }
       style={{ padding: '10px 16px' }}
       onClick={onToggle}
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {Icon && <Icon size={14} className="text-[#54656f]" />}
-          <span className="text-[12px] font-semibold text-[#54656f] uppercase tracking-wide">
+      <div className="flex items-center justify-between gap-2 min-w-0">
+        <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
+          {Icon && <Icon size={14} className="text-[#54656f] flex-shrink-0" />}
+          <span className="text-[12px] font-semibold text-[#54656f] uppercase tracking-wide truncate">
             {title} {count !== undefined && `(${count})`}
           </span>
           {isLoading && (
-            <div className="animate-spin h-3 w-3 border-2 border-gray-300 border-t-[#00a884] rounded-full ml-2"></div>
+            <div className="animate-spin h-3 w-3 border-2 border-gray-300 border-t-[#00a884] rounded-full flex-shrink-0"></div>
           )}
         </div>
-        <div className="text-[#54656f]">
+        <div className="text-[#54656f] flex-shrink-0">
           {isOpen ? <FaChevronDown className="w-3 h-3" /> : <FaChevronRight className="w-3 h-3" />}
         </div>
       </div>

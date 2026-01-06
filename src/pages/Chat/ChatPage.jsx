@@ -1801,6 +1801,9 @@ const ChatPage = () => {
         }
         onEditRoom={roomManagement.handleEditRoom}
         onViewRoomUsers={roomManagement.handleViewRoomUsers}
+        showRoomUsersModal={chatState.showRoomUsersModal}
+        setShowRoomUsersModal={chatState.setShowRoomUsersModal}
+        roomUsersModalData={chatState.roomUsersModalData}
         selectedRoomData={selectedRoomData} //  Pasar datos seleccionados
       />
 
