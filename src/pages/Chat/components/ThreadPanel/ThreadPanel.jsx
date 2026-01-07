@@ -406,14 +406,10 @@ const ThreadPanel = ({
   }, [socket, message?.id, currentUsername]);
 
 
-  // 🔥 NUEVO: Estado para paginación de mensajes del hilo
-  const [hasMoreThreadMessages, setHasMoreThreadMessages] = useState(false);
+  // 🔥 Estado para mensajes del hilo
   const [totalThreadMessages, setTotalThreadMessages] = useState(0);
-  const [threadOffset, setThreadOffset] = useState(0);
-  const THREAD_PAGE_SIZE = 20;
 
-
-  const loadThreadMessages = useCallback(async (loadMore = false) => {
+  const loadThreadMessages = useCallback(async () => {
     // Validar que message.id sea un ID válido
     const threadId = message?.id;
     if (!threadId || isNaN(Number(threadId)) || String(threadId).startsWith('temp_')) {
@@ -422,59 +418,28 @@ const ThreadPanel = ({
     }
     setLoading(true);
     try {
-      if (loadMore && threadOffset > 0) {
-        // 🔥 CARGAR MÁS ANTIGUOS: offset decrece hacia atrás
-        const olderOffset = Math.max(0, threadOffset - THREAD_PAGE_SIZE);
-        const limit = threadOffset - olderOffset;
+      // 🔥 Carga hasta 100 mensajes del hilo
+      const response = await apiService.getThreadMessages(threadId, 100, 0, 'DESC');
+      const messages = response.data || response;
+      const total = response.total ?? messages.length;
 
-        if (limit <= 0) {
-          setHasMoreThreadMessages(false);
-          setLoading(false);
-          return;
-        }
-
-        // Usamos ASC para los mensajes antiguos
-        const response = await apiService.getThreadMessages(threadId, limit, olderOffset, 'ASC');
-        const messages = response.data || response;
-        const total = response.total ?? totalThreadMessages;
-
-        // Prepend mensajes antiguos al inicio
-        setThreadMessages(prev => [...messages, ...prev]);
-        setThreadOffset(olderOffset);
-        setHasMoreThreadMessages(olderOffset > 0);
-        setTotalThreadMessages(total);
-        setCurrentThreadCount(total);
-      } else {
-        // 🔥 CARGA INICIAL: Una sola llamada con order=DESC
-        // El backend trae los más recientes y los revierte para orden cronológico
-        const response = await apiService.getThreadMessages(threadId, THREAD_PAGE_SIZE, 0, 'DESC');
-        const messages = response.data || response;
-        const total = response.total ?? messages.length;
-
-        setThreadMessages(messages);
-        // Calcular offset de inicio para saber cuántos mensajes quedan atrás
-        const startOffset = Math.max(0, total - THREAD_PAGE_SIZE);
-        setThreadOffset(startOffset);
-        setHasMoreThreadMessages(startOffset > 0);
-        setTotalThreadMessages(total);
-        setCurrentThreadCount(total);
-      }
+      setThreadMessages(messages);
+      setTotalThreadMessages(total);
+      setCurrentThreadCount(total);
     } catch (error) {
       console.error("Error al cargar mensajes del hilo:", error);
     } finally {
       setLoading(false);
     }
-  }, [message?.id, threadOffset, totalThreadMessages]);
+  }, [message?.id]);
 
   // useEffect para cargar mensajes cuando se abre el hilo
   useEffect(() => {
     if (message?.id) {
-      // Limpiar estado de paginación para el nuevo hilo
+      // Limpiar estado para el nuevo hilo
       setThreadMessages([]);
-      setThreadOffset(0);
-      setHasMoreThreadMessages(false);
       setTotalThreadMessages(0);
-      loadThreadMessages(false); // Carga inicial (no loadMore)
+      loadThreadMessages();
     }
   }, [message?.id]); // Solo depender de message.id, no de loadThreadMessages
 
@@ -1295,18 +1260,6 @@ const ThreadPanel = ({
           </div>
         ) : (
           <>
-            {/* 🔥 NUEVO: Botón para cargar más mensajes antiguos */}
-            {hasMoreThreadMessages && (
-              <div className="thread-load-more">
-                <button
-                  onClick={() => loadThreadMessages(true)}
-                  disabled={loading}
-                  className="thread-load-more-btn"
-                >
-                  {loading ? 'Cargando...' : `Cargar más antiguos (${totalThreadMessages - threadMessages.length} restantes)`}
-                </button>
-              </div>
-            )}
             {groupThreadMessagesByDate(threadMessages).map((item, index) => {
               // Separador de fecha
               if (item.type === "date-separator") {
