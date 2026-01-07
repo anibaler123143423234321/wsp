@@ -1018,20 +1018,20 @@ const ConversationList = ({
       {((activeModule === 'chats' || activeModule === 'conversations' || activeModule === 'monitoring') &&
         (assignedSearchTerm.trim() || searchTerm.trim()) &&
         (whatsappSearchResults.length > 0 || isWhatsappSearching || isApiSearching ||
-         apiSearchResults?.groups?.length > 0 || apiSearchResults?.assigned?.length > 0 ||
-         (() => {
-          // Verificar si hay chats locales que coincidan
-          const term = (assignedSearchTerm || searchTerm || '').toLowerCase().trim();
-          if (!term) return false;
-          const matchingRooms = (myActiveRooms || []).filter(room =>
-            room.name?.toLowerCase().includes(term) || room.roomCode?.toLowerCase().includes(term)
-          );
-          const matchingConvs = (assignedConversations || []).filter(conv => {
-            const participants = conv.participants || [];
-            return participants.some(p => p?.toLowerCase().includes(term));
-          });
-          return matchingRooms.length > 0 || matchingConvs.length > 0;
-        })())) && (
+          apiSearchResults?.groups?.length > 0 || apiSearchResults?.assigned?.length > 0 ||
+          (() => {
+            // Verificar si hay chats locales que coincidan
+            const term = (assignedSearchTerm || searchTerm || '').toLowerCase().trim();
+            if (!term) return false;
+            const matchingRooms = (myActiveRooms || []).filter(room =>
+              room.name?.toLowerCase().includes(term) || room.roomCode?.toLowerCase().includes(term)
+            );
+            const matchingConvs = (assignedConversations || []).filter(conv => {
+              const participants = conv.participants || [];
+              return participants.some(p => p?.toLowerCase().includes(term));
+            });
+            return matchingRooms.length > 0 || matchingConvs.length > 0;
+          })())) && (
           <div
             ref={searchResultsRef}
             className="flex-1 overflow-y-auto bg-white w-full min-h-0"
@@ -1304,7 +1304,7 @@ const ConversationList = ({
               });
               // 🔥 Incluir resultados de API
               const hasMatchingChats = matchingRooms.length > 0 || matchingConvs.length > 0 ||
-                                       apiSearchResults?.groups?.length > 0 || apiSearchResults?.assigned?.length > 0;
+                apiSearchResults?.groups?.length > 0 || apiSearchResults?.assigned?.length > 0;
 
               // Solo mostrar "Sin resultados" si no hay mensajes Y no hay chats que coincidan Y no está buscando
               if (!isWhatsappSearching && !isApiSearching && whatsappSearchResults.length === 0 && !hasMatchingChats && term) {
@@ -1332,18 +1332,18 @@ const ConversationList = ({
         !(whatsappSearchResults.length > 0 || isWhatsappSearching || isApiSearching ||
           apiSearchResults?.groups?.length > 0 || apiSearchResults?.assigned?.length > 0 ||
           (() => {
-          // Verificar si hay chats locales que coincidan (misma lógica que arriba)
-          const term = (assignedSearchTerm || searchTerm || '').toLowerCase().trim();
-          if (!term) return false;
-          const matchingRooms = (myActiveRooms || []).filter(room =>
-            room.name?.toLowerCase().includes(term) || room.roomCode?.toLowerCase().includes(term)
-          );
-          const matchingConvs = (assignedConversations || []).filter(conv => {
-            const participants = conv.participants || [];
-            return participants.some(p => p?.toLowerCase().includes(term));
-          });
-          return matchingRooms.length > 0 || matchingConvs.length > 0;
-        })()) && (
+            // Verificar si hay chats locales que coincidan (misma lógica que arriba)
+            const term = (assignedSearchTerm || searchTerm || '').toLowerCase().trim();
+            if (!term) return false;
+            const matchingRooms = (myActiveRooms || []).filter(room =>
+              room.name?.toLowerCase().includes(term) || room.roomCode?.toLowerCase().includes(term)
+            );
+            const matchingConvs = (assignedConversations || []).filter(conv => {
+              const participants = conv.participants || [];
+              return participants.some(p => p?.toLowerCase().includes(term));
+            });
+            return matchingRooms.length > 0 || matchingConvs.length > 0;
+          })()) && (
           <div ref={conversationsListRef} className="flex-1 overflow-y-auto bg-white px-4 min-h-0" onScroll={handleScroll}>
 
             {isSearching && <div className="flex items-center justify-center py-8"><div className="text-sm text-gray-500">Buscando mensajes...</div></div>}
@@ -1515,16 +1515,38 @@ const ConversationList = ({
                       }
 
                       // Ordenar: SOLO por fecha del último mensaje (más reciente primero)
-                      // ❌ NO ordenar por unread count - esto causaba que al hacer clic cambie de posición
                       filteredRooms.sort((a, b) => {
-                        const dateA = new Date(a.lastMessage?.sentAt || a.updatedAt || a.createdAt || 0);
-                        const dateB = new Date(b.lastMessage?.sentAt || b.updatedAt || b.createdAt || 0);
+                        // Helper para obtener la fecha más reciente de una sala
+                        const getDate = (room) => {
+                          const msgDate = room.lastMessage?.sentAt || room.lastMessage?.createdAt || room.lastMessage?.date;
+                          // Intentar crear fecha del mensaje (evitar strings de hora sola como '10:30')
+                          let d1 = 0;
+                          if (msgDate) {
+                            const t = new Date(msgDate).getTime();
+                            if (!isNaN(t)) d1 = t;
+                          }
+
+                          // Intentar fecha de actualización o creación de la sala
+                          let d2 = 0;
+                          if (room.updatedAt) {
+                            const t = new Date(room.updatedAt).getTime();
+                            if (!isNaN(t)) d2 = t;
+                          }
+
+                          let d3 = 0;
+                          if (room.createdAt) {
+                            const t = new Date(room.createdAt).getTime();
+                            if (!isNaN(t)) d3 = t;
+                          }
+
+                          const maxDate = Math.max(d1, d2, d3);
+                          return maxDate;
+                        };
+
+                        const dateA = getDate(a);
+                        const dateB = getDate(b);
                         return dateB - dateA;
                       });
-
-                      // 🔍 DEBUG: Ver primeras 3 salas después de ordenar
-                      const primeras3 = filteredRooms.slice(0, 3).map(r => `${r.roomCode} (sentAt: ${r.lastMessage?.sentAt || 'N/A'})`);
-                      console.log('🔍 ConversationList - Primeras 3 salas:', primeras3.join(' | '));
 
                       // Mostrar indicador de búsqueda
                       if (isApiSearching && assignedSearchTerm.trim().length >= 2) {

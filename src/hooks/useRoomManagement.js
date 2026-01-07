@@ -98,7 +98,7 @@ export const useRoomManagement = (
                     // Para usuarios normales, usar paginación real
                     const result = await apiService.getUserRoomsPaginated(page, parsedLimit);
 
-                    loadedRooms = result.rooms || []; // Guardar para retornar
+                    const activeRooms = result.rooms || []; // Guardar para retornar
 
                     const nextPage = Number(result.page ?? page) || page;
                     const totalRooms =

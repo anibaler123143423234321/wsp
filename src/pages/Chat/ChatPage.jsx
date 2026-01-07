@@ -867,6 +867,21 @@ const ChatPage = () => {
         replyToTextClean = chatState.replyingTo.fileName;
       }
 
+      // 🛡️ FRONTEND CROSS-TALK FIX: Determinar roomCode basado en el NOMBRE visible
+      // Esto asegura "What You See Is What You Get". Si el usuario ve "Grupo A", enviamos al roomCode de "Grupo A".
+      let finalRoomCode = effectiveIsGroup ? chatState.currentRoomCode : undefined;
+
+      if (effectiveIsGroup && chatState.to && chatState.myActiveRooms) {
+        const matchingRoom = chatState.myActiveRooms.find(
+          r => r.name?.trim().toLowerCase() === chatState.to.trim().toLowerCase()
+        );
+
+        if (matchingRoom && matchingRoom.roomCode !== finalRoomCode) {
+          console.log(`🔒 Corrección de Sala: Usando ${matchingRoom.roomCode} para "${chatState.to}" (Estado anterior: ${finalRoomCode})`);
+          finalRoomCode = matchingRoom.roomCode;
+        }
+      }
+
       // 5. Construir mensaje
       let messageObj = {
         from: currentUserFullName,
@@ -874,7 +889,7 @@ const ChatPage = () => {
         to: chatState.to,
         message: String(input || ""), // Asegurar que sea string
         isGroup: effectiveIsGroup,
-        roomCode: effectiveIsGroup ? chatState.currentRoomCode : undefined,
+        roomCode: finalRoomCode,
         ...attachmentData,
         //  DATOS DE RESPUESTA
         replyToMessageId: chatState.replyingTo?.id || null,
@@ -925,8 +940,6 @@ const ChatPage = () => {
           ...messageObj,
           id: savedMessage.id, // Usar ID real
           sentAt: savedMessage.sentAt, // Usar FECHA REAL del servidor
-          isGroup: effectiveIsGroup,
-          roomCode: effectiveIsGroup ? chatState.currentRoomCode : undefined
         });
       }
 
@@ -1145,6 +1158,20 @@ const ChatPage = () => {
       // Si es grupo, SIEMPRE es grupo
       const effectiveIsGroup = chatState.isGroup;
 
+      // 🛡️ FRONTEND CROSS-TALK FIX: Determinar roomCode basado en el NOMBRE visible
+      let finalRoomCode = effectiveIsGroup ? chatState.currentRoomCode : undefined;
+
+      if (effectiveIsGroup && chatState.to && chatState.myActiveRooms) {
+        const matchingRoom = chatState.myActiveRooms.find(
+          r => r.name?.trim().toLowerCase() === chatState.to.trim().toLowerCase()
+        );
+
+        if (matchingRoom && matchingRoom.roomCode !== finalRoomCode) {
+          console.log(`🔒 VoiceAudio Corrección: Usando ${matchingRoom.roomCode} para "${chatState.to}"`);
+          finalRoomCode = matchingRoom.roomCode;
+        }
+      }
+
       // 1. Subir archivo al servidor
       const uploadResult = await apiService.uploadFile(audioFile, "chat");
 
@@ -1159,7 +1186,7 @@ const ChatPage = () => {
         fileName: uploadResult.fileName,
         fileSize: uploadResult.fileSize,
         message: "",
-        roomCode: effectiveIsGroup ? chatState.currentRoomCode : undefined
+        roomCode: finalRoomCode
       };
 
       // Datos extra para asignados
@@ -1273,12 +1300,19 @@ const ChatPage = () => {
   //  HANDLER PARA VOTAR EN ENCUESTA
   const handlePollVote = useCallback((messageId, optionIndex) => {
     if (socket && socket.connected) {
+      // 🛡️ Safe Room Code Logic
+      let voteRoomCode = chatState.currentRoomCode;
+      if (chatState.isGroup && chatState.to && chatState.myActiveRooms) {
+        const room = chatState.myActiveRooms.find(r => r.name?.trim().toLowerCase() === chatState.to.trim().toLowerCase());
+        if (room) voteRoomCode = room.roomCode;
+      }
+
       console.log('🗳️ Emitiendo voto:', { messageId, optionIndex, username });
       socket.emit('pollVote', { // CORREGIDO: Backend espera 'pollVote'
         messageId,
         optionIndex,
         username,
-        roomCode: chatState.currentRoomCode,
+        roomCode: voteRoomCode,
         to: !chatState.isGroup ? chatState.to : null, // Necesario para chats privados
         isGroup: chatState.isGroup
       });

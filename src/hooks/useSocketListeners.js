@@ -80,21 +80,14 @@ export const useSocketListeners = (
 
     //  FUNCIÓN DE ORDENAMIENTO IDÉNTICA AL BACKEND
     const sortRoomsByBackendLogic = (rooms, favoriteRoomCodes) => {
-        console.log('🔄 sortRoomsByBackendLogic llamado con', rooms.length, 'salas');
-        console.log('🔄 favoriteRoomCodes:', favoriteRoomCodes);
-
         // Separar favoritas y no favoritas
         const favorites = rooms.filter(r => favoriteRoomCodes.includes(r.roomCode));
         const nonFavorites = rooms.filter(r => !favoriteRoomCodes.includes(r.roomCode));
-
-        console.log('⭐ Favoritos encontrados:', favorites.length, favorites.map(f => f.roomCode));
 
         // Función para ordenar un grupo (CON mensajes primero, SIN mensajes después)
         const sortGroup = (group, groupName) => {
             const withMessages = group.filter(r => r.lastMessage?.sentAt);
             const withoutMessages = group.filter(r => !r.lastMessage?.sentAt);
-
-            console.log(`🔄 ${groupName}: con mensajes: ${withMessages.length}, sin mensajes: ${withoutMessages.length}`);
 
             // Ordenar CON mensajes por sentAt DESC
             withMessages.sort((a, b) => {
@@ -110,11 +103,7 @@ export const useSocketListeners = (
                 return bDate - aDate;
             });
 
-            const result = [...withMessages, ...withoutMessages];
-            if (result.length > 0) {
-                console.log(`🔄 ${groupName} - Primer item:`, result[0].roomCode, result[0].name, 'sentAt:', result[0].lastMessage?.sentAt);
-            }
-            return result;
+            return [...withMessages, ...withoutMessages];
         };
 
         // Ordenar cada grupo y combinar
@@ -407,7 +396,7 @@ export const useSocketListeners = (
                             console.log('📬 newMessage: Sala no encontrada, agregando:', data.roomCode);
                             const newRoom = {
                                 roomCode: data.roomCode,
-                                name: data.roomName || data.roomCode,
+                                name: data.groupName || data.group || data.roomName || data.roomCode,
                                 lastMessage: {
                                     text: messageText,
                                     from: data.from,
