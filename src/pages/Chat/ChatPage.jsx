@@ -257,14 +257,12 @@ const ChatPage = () => {
 
     window.addEventListener('socketConnected', handleSocketConnected);
     window.addEventListener('socketDisconnected', handleSocketDisconnected);
-    window.addEventListener('socketIdleDisconnect', handleIdleDisconnect);
 
     return () => {
       window.removeEventListener('socketConnected', handleSocketConnected);
       window.removeEventListener('socketDisconnected', handleSocketDisconnected);
-      window.removeEventListener('socketIdleDisconnect', handleIdleDisconnect);
     };
-  }, [chatState, logout]);
+  }, [chatState]);
 
   // Efecto para verificar conexión del socket
   useEffect(() => {

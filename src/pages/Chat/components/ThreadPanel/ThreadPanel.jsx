@@ -20,6 +20,7 @@ import ForwardMessageModal from "../ChatContent/ForwardMessageModal"; //  NUEVO:
 import AttachMenu from "../AttachMenu/AttachMenu"; //  NUEVO: Menú de adjuntar reutilizable
 import ImageViewer from "../ChatContent/ImageViewer"; // NUEVO: Visor de imágenes
 import MediaPreviewList from '../MediaPreviewList/MediaPreviewList'; // Utilidad reutilizable
+import ReactionPicker from '../../../../components/ReactionPicker'; // Componente reutilizable
 import { handleSmartPaste } from "../utils/pasteHandler"; // Utilidad reutilizable
 
 import "./ThreadPanel.css";
@@ -903,6 +904,14 @@ const ThreadPanel = ({
   };
 
   const handleEmojiClick = (emojiData) => {
+    // Si hay un mensaje pendiente para reaccionar (viene del botón "+")
+    if (window.currentReactionMessage) {
+      handleReaction(window.currentReactionMessage, emojiData.emoji);
+      window.currentReactionMessage = null;
+      setShowEmojiPicker(false);
+      return;
+    }
+    // Caso normal: agregar emoji al input
     setInput((prev) => prev + emojiData.emoji);
     setShowEmojiPicker(false);
   };
@@ -1590,15 +1599,57 @@ const ThreadPanel = ({
                       </div>
                     )}
 
-                    {/*  NUEVO: Botón de menú de opciones */}
+                    {/* Toolbar de acciones del mensaje (estilo ChatContent) */}
                     <div className="thread-message-actions">
+                      {/* 1. Botón de Reaccionar (Smile) - Acceso directo */}
+                      <div style={{ position: 'relative' }}>
+                        <button
+                          className="thread-message-menu-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowReactionPicker(showReactionPicker === msg.id ? null : msg.id);
+                            setShowMessageMenu(null);
+                          }}
+                          title="Reaccionar"
+                        >
+                          <FaSmile size={12} />
+                        </button>
+
+                        {/* Picker de reacciones rápidas (Componente Reutilizable) */}
+                        <ReactionPicker
+                          isOpen={showReactionPicker === msg.id}
+                          onClose={() => setShowReactionPicker(null)}
+                          onSelectEmoji={(emoji) => handleReaction(msg, emoji)}
+                          onOpenFullPicker={() => {
+                            setShowReactionPicker(null);
+                            setShowEmojiPicker(true);
+                            window.currentReactionMessage = msg;
+                          }}
+                          position="left"
+                        />
+                      </div>
+
+                      {/* 2. Botón de Responder */}
+                      <button
+                        className="thread-message-menu-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleReplyTo(msg);
+                        }}
+                        title="Responder"
+                      >
+                        <FaReply size={12} />
+                      </button>
+
+                      {/* 3. Botón de menú (3 puntos) */}
                       <button
                         className="thread-message-menu-btn"
                         onClick={(e) => {
                           e.stopPropagation();
                           setShowMessageMenu(showMessageMenu === msg.id ? null : msg.id);
+                          setShowReactionPicker(null);
                         }}
-                        title="Opciones"
+                        title="Más opciones"
                       >
                         <FaEllipsisV size={12} />
                       </button>
@@ -1612,19 +1663,7 @@ const ThreadPanel = ({
                           >
                             <FaCopy className="menu-icon" /> Copiar texto
                           </button>
-                          <button
-                            className="menu-item"
-                            onClick={() => handleReplyTo(msg)}
-                          >
-                            <FaReply className="menu-icon" /> Responder
-                          </button>
-                          <button
-                            className="menu-item"
-                            onClick={() => handleOpenReactionPicker(msg.id)}
-                          >
-                            <FaSmile className="menu-icon" /> Reaccionar
-                          </button>
-                          {/*  NUEVO: Botón de editar - solo para mensajes propios */}
+                          {/* Botón de editar - solo para mensajes propios */}
                           {msg.from === currentUsername && (
                             <button
                               className="menu-item"
@@ -1640,21 +1679,6 @@ const ThreadPanel = ({
                           >
                             <FaShare className="menu-icon" /> Reenviar
                           </button>
-                        </div>
-                      )}
-
-                      {/*  NUEVO: Picker de reacciones */}
-                      {showReactionPicker === msg.id && (
-                        <div className="thread-reaction-picker" ref={reactionPickerRef}>
-                          {['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji) => (
-                            <button
-                              key={emoji}
-                              className="reaction-emoji-btn"
-                              onClick={() => handleReaction(msg, emoji)}
-                            >
-                              {emoji}
-                            </button>
-                          ))}
                         </div>
                       )}
                     </div>

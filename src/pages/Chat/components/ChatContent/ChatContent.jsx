@@ -30,6 +30,7 @@ import apiService from '../../../../apiService';
 import AttachMenu from '../AttachMenu/AttachMenu';
 import MediaPreviewList from '../MediaPreviewList/MediaPreviewList'; // Utilidad reutilizable
 import { handleSmartPaste } from '../utils/pasteHandler'; // Utilidad reutilizable
+import ReactionPicker from '../../../../components/ReactionPicker'; // Componente reutilizable
 
 import "./ChatContent.css";
 
@@ -2019,7 +2020,7 @@ const ChatContent = ({
           {/* REACCIONES (Debajo del texto) */}
           {
             message.reactions && message.reactions.length > 0 && (
-              <div className="reactions-row" style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap', position: 'relative' }}>
+              <div className="reactions-row" style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
                 {Object.entries(message.reactions.reduce((acc, r) => {
                   if (!acc[r.emoji]) acc[r.emoji] = [];
                   acc[r.emoji].push(r.username); return acc;
@@ -2168,38 +2169,18 @@ const ChatContent = ({
                   <FaSmile size={15} />
                 </button>
 
-                {/*  ESTO ES LO QUE FALTABA: EL POPUP DE EMOJIS  */}
-                {showReactionPicker === message.id && (
-                  <div
-                    ref={reactionPickerRef}
-                    className="reaction-picker-popup"
-                  >
-                    {["👍", "❤️", "😂", "😮", "😢", "🙏"].map((emoji) => (
-                      <button
-                        key={emoji}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleReaction(message, emoji);
-                        }}
-                        className="reaction-emoji-btn"
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                    {/* Botón Más (+) */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowReactionPicker(null);
-                        setShowEmojiPicker(true);
-                        window.currentReactionMessage = message;
-                      }}
-                      className="reaction-emoji-btn plus-btn"
-                    >
-                      +
-                    </button>
-                  </div>
-                )}
+                {/* Picker de reacciones rápidas (Componente Reutilizable) */}
+                <ReactionPicker
+                  isOpen={showReactionPicker === message.id}
+                  onClose={() => setShowReactionPicker(null)}
+                  onSelectEmoji={(emoji) => handleReaction(message, emoji)}
+                  onOpenFullPicker={() => {
+                    setShowReactionPicker(null);
+                    setShowEmojiPicker(true);
+                    window.currentReactionMessage = message;
+                  }}
+                  position="left"
+                />
               </div>
 
               {/* 2. Reply */}
@@ -2341,7 +2322,6 @@ const ChatContent = ({
                     loadReadByForMessage(message.id);
                   }
                 }}
-                title="Ver quién lo ha leído"
               >
                 {/* Indicador de lectura compacto */}
                 <div style={{

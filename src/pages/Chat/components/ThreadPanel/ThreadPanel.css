@@ -1123,6 +1123,9 @@
   right: 4px;
   opacity: 0;
   transition: opacity 0.2s;
+  display: flex;
+  gap: 2px;
+  align-items: center;
 }
 
 .thread-message:hover .thread-message-actions {
@@ -1131,9 +1134,11 @@
 
 /*  FIX: Mantener acciones visibles cuando hay menú o picker abierto */
 .thread-message-actions:has(.thread-message-menu),
-.thread-message-actions:has(.thread-reaction-picker) {
+.thread-message-actions:has(.reaction-picker-popup) {
   opacity: 1 !important;
 }
+
+/* Los estilos de .reaction-picker-popup ahora están en el componente reutilizable */
 
 .thread-message-menu-btn {
   background: rgba(255, 255, 255, 0.95);

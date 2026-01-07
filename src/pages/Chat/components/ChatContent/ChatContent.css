@@ -983,18 +983,17 @@
   justify-content: center;
   gap: 4px;
   padding: 4px 8px;
-  /* Un poco más de espacio */
   border-radius: 12px;
   cursor: pointer;
   height: auto;
-  /* Permitir que se ajuste */
   min-height: 24px;
   min-width: 38px;
+  position: relative;
+  z-index: 100;
+  /* 🔥 CRITICAL: Fix hover area overlap */
 
-  /*  AQUÍ ESTABA EL ERROR: Cambiamos a colores oscuros */
   background-color: #ffffff;
   color: #111b21;
-  /* Texto negro/gris oscuro (antes era blanco) */
   border: 1px solid #d1d7db;
 
   transition: transform 0.1s, background-color 0.2s;
@@ -1019,6 +1018,63 @@
   font-weight: 600;
   color: #54656f;
   line-height: 1;
+}
+
+/* Wrapper para el pill con tooltip */
+.reaction-pill-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* Tooltip usando data-tooltip (más confiable) */
+.reaction-pill.has-tooltip {
+  position: relative;
+  cursor: pointer;
+}
+
+.reaction-pill.has-tooltip::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  background-color: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  font-size: 12px;
+  white-space: nowrap;
+  border-radius: 6px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s, visibility 0.15s;
+  z-index: 99999;
+  pointer-events: none;
+  max-width: 250px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+/* Flecha del tooltip */
+.reaction-pill.has-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 3px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.85);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s, visibility 0.15s;
+  z-index: 99999;
+  pointer-events: none;
+}
+
+/* Mostrar tooltip en hover */
+.reaction-pill.has-tooltip:hover::before,
+.reaction-pill.has-tooltip:hover::after {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* Ajuste para modo oscuro (opcional, si tu app tiene clases de tema) */

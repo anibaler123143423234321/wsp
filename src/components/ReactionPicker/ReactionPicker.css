@@ -1,0 +1,140 @@
+/* =========================================
+   ReactionPicker - Componente Reutilizable
+   ========================================= */
+
+.reaction-picker-popup {
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    margin-right: 8px;
+    transform: translateY(-50%);
+    background-color: #ffffff !important;
+    border-radius: 28px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    padding: 8px 12px;
+    display: flex;
+    gap: 4px;
+    z-index: 9999;
+    animation: reactionPickerFadeIn 0.15s ease-out;
+    white-space: nowrap;
+}
+
+/* Posicionamiento - todos al lado izquierdo ahora */
+.reaction-picker-popup.position-left,
+.reaction-picker-popup.position-center,
+.reaction-picker-popup.position-right {
+    top: 50%;
+    right: 100%;
+    left: auto;
+    bottom: auto;
+    margin-right: 8px;
+    transform: translateY(-50%);
+}
+
+/* Botones de emoji */
+.reaction-emoji-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.reaction-emoji-btn:hover {
+    background-color: #f5f5f5;
+    transform: scale(1.2);
+}
+
+/* Botón "+" para más emojis */
+.reaction-emoji-btn.plus-btn {
+    font-size: 18px;
+    color: #8696a0;
+}
+
+.reaction-emoji-btn.plus-btn:hover {
+    background-color: #e9edef;
+}
+
+/* Animación */
+@keyframes reactionPickerFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px) translateX(-85%);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) translateX(-85%);
+    }
+}
+
+.reaction-picker-popup.position-center {
+    animation: reactionPickerFadeInCenter 0.2s ease-out;
+}
+
+@keyframes reactionPickerFadeInCenter {
+    from {
+        opacity: 0;
+        transform: translateY(-4px) translateX(-50%);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) translateX(-50%);
+    }
+}
+
+.reaction-picker-popup.position-right {
+    animation: reactionPickerFadeInRight 0.2s ease-out;
+}
+
+@keyframes reactionPickerFadeInRight {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive - En pantallas pequeñas, usar posición derecha */
+@media (max-width: 500px) {
+
+    .reaction-picker-popup.position-left,
+    .reaction-picker-popup.position-center {
+        left: auto;
+        right: 0;
+        transform: none;
+    }
+
+    .reaction-emoji-btn {
+        font-size: 20px;
+        padding: 4px 6px;
+    }
+}
+
+/* =========================================
+   Dark Mode
+   ========================================= */
+html.dark .reaction-picker-popup {
+    background: #2a2a2a;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+html.dark .reaction-emoji-btn:hover {
+    background-color: #3a3a3a;
+}
+
+html.dark .reaction-emoji-btn.plus-btn {
+    color: #9ca3af;
+}
+
+html.dark .reaction-emoji-btn.plus-btn:hover {
+    background-color: #3a3a3a;
+}
