@@ -1214,6 +1214,8 @@ export const useSocketListeners = (
         return () => {
             //  CRÍTICO: Cleanup de TODOS los event listeners para evitar memory leaks
             // Sin esto, cada re-render agrega nuevos listeners sin remover los anteriores
+            s.off('userStatusChanged'); // 🔥 FIX: Faltaba cleanup - causaba memory leak
+            s.off('messageIdUpdate');   // 🔥 FIX: Faltaba cleanup - causaba memory leak
             s.off('roomJoined');
             s.off('messagePinned');
             s.off('userList');

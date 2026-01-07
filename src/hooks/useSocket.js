@@ -2,10 +2,17 @@ import { useRef, useEffect } from "react";
 import io from "socket.io-client";
 import apiService from "../apiService"; // Asegúrate de que la ruta sea correcta
 
+// 🔥 CONFIGURACIÓN DE INACTIVIDAD
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutos sin actividad = desconexión
+const HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000; // Heartbeat cada 5 minutos
+
 export const useSocket = (isAuthenticated, username, user) => {
   const socket = useRef(null);
   const isConnecting = useRef(false);
   const connectionTimeout = useRef(null);
+  const heartbeatInterval = useRef(null);
+  const idleTimeout = useRef(null);
+  const lastActivityTime = useRef(Date.now());
 
   useEffect(() => {
     // Limpiar timeout anterior si existe
@@ -31,6 +38,41 @@ export const useSocket = (isAuthenticated, username, user) => {
 
     isConnecting.current = true;
 
+    // 🔥 FUNCIÓN: Resetear timer de inactividad
+    const resetIdleTimer = () => {
+      lastActivityTime.current = Date.now();
+
+      // Limpiar timeout anterior
+      if (idleTimeout.current) {
+        clearTimeout(idleTimeout.current);
+      }
+
+      // Solo configurar timeout si la pestaña está visible
+      if (document.visibilityState === 'visible') {
+        idleTimeout.current = setTimeout(() => {
+          if (socket.current?.connected) {
+            console.log("⏰ Desconectando por inactividad (30 min)...");
+
+            // Notificar a la app antes de desconectar
+            window.dispatchEvent(
+              new CustomEvent("socketIdleDisconnect", {
+                detail: { reason: "Desconectado por inactividad (30 min)" },
+              })
+            );
+
+            socket.current.disconnect();
+          }
+        }, IDLE_TIMEOUT_MS);
+      }
+    };
+
+    // 🔥 FUNCIÓN: Manejar actividad del usuario
+    const handleUserActivity = () => {
+      if (socket.current?.connected) {
+        resetIdleTimer();
+      }
+    };
+
     const connectSocket = () => {
       try {
         // Usar variable de entorno o fallback a producción
@@ -39,7 +81,7 @@ export const useSocket = (isAuthenticated, username, user) => {
 
         socket.current = io(socketUrl, {
           transports: ["websocket", "polling"],
-          timeout: 45000, // OPTIMIZADO: 45s - sincronizado con backend connectTimeout
+          timeout: 30000, // 🔥 REDUCIDO: 30s (antes 45s)
           path: "/BackendChat/socket.io/", // Ruta específica de tu backend
           //path: "/socket.io/", // Solo para desarrollo local
           forceNew: true,
@@ -49,8 +91,8 @@ export const useSocket = (isAuthenticated, username, user) => {
           reconnectionDelayMax: 5000,
           randomizationFactor: 0.5,
           autoConnect: true,
-          pingInterval: 15000, // 15s - sincronizado con backend
-          pingTimeout: 7000,   // 7s - sincronizado con backend
+          pingInterval: 15000, // 15s
+          pingTimeout: 7000,   // 7s
         });
 
         // Timeout de seguridad por si la conexión se queda colgada
@@ -60,7 +102,7 @@ export const useSocket = (isAuthenticated, username, user) => {
             isConnecting.current = false;
             socket.current.disconnect();
           }
-        }, 50000); //  OPTIMIZADO: 50s - ligeramente mayor que backend connectTimeout (45s)
+        }, 35000); // 🔥 REDUCIDO: 35s (antes 50s)
 
         // =================================================
         // EVENTO: CONNECT
@@ -93,6 +135,20 @@ export const useSocket = (isAuthenticated, username, user) => {
             },
             // assignedConversations: [] // Eliminado para evitar sobrecarga
           });
+
+          // 🔥 NUEVO: Iniciar heartbeat cada 5 minutos
+          if (heartbeatInterval.current) {
+            clearInterval(heartbeatInterval.current);
+          }
+          heartbeatInterval.current = setInterval(() => {
+            if (socket.current?.connected && document.visibilityState === 'visible') {
+              socket.current.emit('heartbeat');
+              console.log("💓 Heartbeat enviado");
+            }
+          }, HEARTBEAT_INTERVAL_MS);
+
+          // 🔥 NUEVO: Iniciar timer de inactividad
+          resetIdleTimer();
 
           // Notificar a la app que el socket está listo
           window.dispatchEvent(
@@ -130,6 +186,9 @@ export const useSocket = (isAuthenticated, username, user) => {
               numeroAgente: user.numeroAgente || null,
             },
           });
+
+          // 🔥 Reiniciar timer de inactividad en reconexión
+          resetIdleTimer();
         });
 
         // =================================================
@@ -139,6 +198,8 @@ export const useSocket = (isAuthenticated, username, user) => {
           console.log("🔌 Socket desconectado:", reason);
           isConnecting.current = false;
           clearTimeout(connectionTimeout.current);
+          clearInterval(heartbeatInterval.current);
+          clearTimeout(idleTimeout.current);
         });
 
         socket.current.on("connect_error", (error) => {
@@ -150,6 +211,19 @@ export const useSocket = (isAuthenticated, username, user) => {
         socket.current.on("error", (error) => {
           console.error("❌ Error genérico en Socket.IO:", error);
           isConnecting.current = false;
+        });
+
+        // 🔥 NUEVO: Listener para desconexión por inactividad desde el backend
+        socket.current.on("idleDisconnect", (data) => {
+          console.log("⏰ Servidor forzó desconexión por inactividad:", data.message);
+          clearInterval(heartbeatInterval.current);
+          clearTimeout(idleTimeout.current);
+
+          window.dispatchEvent(
+            new CustomEvent("socketIdleDisconnect", {
+              detail: { reason: data.message },
+            })
+          );
         });
 
       } catch (error) {
@@ -174,9 +248,24 @@ export const useSocket = (isAuthenticated, username, user) => {
         if (socket.current && !socket.current.connected) {
           console.log("👀 Pestaña visible, intentando reconectar socket...");
           socket.current.connect();
+        } else if (socket.current?.connected) {
+          // 🔥 NUEVO: Reiniciar timer de inactividad al volver a la pestaña
+          resetIdleTimer();
+        }
+      } else {
+        // 🔥 NUEVO: Pausar timer de inactividad cuando la pestaña está oculta
+        // Pero el socket permanece conectado para recibir notificaciones
+        if (idleTimeout.current) {
+          clearTimeout(idleTimeout.current);
         }
       }
     };
+
+    // 🔥 NUEVO: Listeners para detectar actividad del usuario
+    const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    activityEvents.forEach(event => {
+      window.addEventListener(event, handleUserActivity, { passive: true });
+    });
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -184,8 +273,16 @@ export const useSocket = (isAuthenticated, username, user) => {
     // Cleanup al desmontar el hook
     return () => {
       clearTimeout(connectionTimeout.current);
+      clearInterval(heartbeatInterval.current);
+      clearTimeout(idleTimeout.current);
+
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+
+      // 🔥 Remover listeners de actividad
+      activityEvents.forEach(event => {
+        window.removeEventListener(event, handleUserActivity);
+      });
 
       if (socket.current) {
         console.log("🛑 Desmontando useSocket, desconectando...");
