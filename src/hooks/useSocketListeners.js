@@ -245,6 +245,23 @@ export const useSocketListeners = (
             }
         });
 
+        // 🚀 NUEVO: Listener para actualizaciones de lectura en tiempo real
+        // Actualiza el estado isRead de los mensajes cuando alguien los lee
+        s.on("messageRead", (data) => {
+            console.log('👀 messageRead recibido:', data);
+
+            // Si tenemos la función updateMessage, la usamos
+            if (updateMessage && data.messageId) {
+                // Actualizar el mensaje específico
+                updateMessage(data.messageId, (prevMsg) => ({
+                    ...prevMsg,
+                    isRead: true,
+                    readBy: data.readBy ? [...(prevMsg.readBy || []), ...data.readBy] : prevMsg.readBy,
+                    readAt: data.readAt
+                }));
+            }
+        });
+
         // =====================================================
         // 3. MENSAJERÍA (CORE)
         // =====================================================
@@ -1226,6 +1243,7 @@ export const useSocketListeners = (
             s.off('error');
             s.off('joinRoomError');
             s.off('videoCallEnded');
+            s.off('messageRead');
             s.off('forceDisconnect'); //  NUEVO: Cleanup del listener de desconexión forzada
         };
     }, [socket, username, user]); //  NO incluir soundsEnabled aquí para evitar re-registrar todos los listeners

@@ -382,14 +382,26 @@ const ThreadPanel = ({
       );
     };
 
+    // 🚀 NUEVO: Handler para actualizaciones de lectura
+    const handleMessageRead = (data) => {
+      // console.log('👀 ThreadPanel messageRead:', data);
+      setThreadMessages(prev => prev.map(msg =>
+        msg.id === data.messageId
+          ? { ...msg, isRead: true, readBy: data.readBy, readAt: data.readAt }
+          : msg
+      ));
+    };
+
     socket.on("threadMessage", handleThreadMessage);
     socket.on("threadCountUpdated", handleThreadCountUpdated);
     socket.on("reactionUpdated", handleReactionUpdated);
+    socket.on("messageRead", handleMessageRead);
 
     return () => {
       socket.off("threadMessage", handleThreadMessage);
       socket.off("threadCountUpdated", handleThreadCountUpdated);
       socket.off("reactionUpdated", handleReactionUpdated);
+      socket.off("messageRead", handleMessageRead);
     };
   }, [socket, message?.id, currentUsername]);
 
