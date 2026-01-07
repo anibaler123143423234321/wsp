@@ -255,25 +255,6 @@ const ChatPage = () => {
       chatState.setSocketConnected(false);
     };
 
-    // 🔥 NUEVO: Manejar desconexión por inactividad
-    const handleIdleDisconnect = (event) => {
-      const reason = event.detail?.reason || "Tu sesión ha expirado por inactividad.";
-
-      Swal.fire({
-        title: 'Sesión Cerrada',
-        text: reason,
-        icon: 'warning',
-        confirmButtonText: 'Iniciar Sesión',
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        customClass: {
-          confirmButton: 'btn btn-primary'
-        }
-      }).then(() => {
-        logout(); // Cerrar sesión y redirigir
-      });
-    };
-
     window.addEventListener('socketConnected', handleSocketConnected);
     window.addEventListener('socketDisconnected', handleSocketDisconnected);
     window.addEventListener('socketIdleDisconnect', handleIdleDisconnect);
