@@ -19,6 +19,8 @@ import VoiceRecorder from "../VoiceRecorder/VoiceRecorder";
 import ForwardMessageModal from "../ChatContent/ForwardMessageModal"; //  NUEVO: Modal de reenvío
 import AttachMenu from "../AttachMenu/AttachMenu"; //  NUEVO: Menú de adjuntar reutilizable
 import ImageViewer from "../ChatContent/ImageViewer"; // NUEVO: Visor de imágenes
+import MediaPreviewList from '../MediaPreviewList/MediaPreviewList'; // Utilidad reutilizable
+import { handleSmartPaste } from "../utils/pasteHandler"; // Utilidad reutilizable
 
 import "./ThreadPanel.css";
 
@@ -789,20 +791,17 @@ const ThreadPanel = ({
   };
 
   //  NUEVO: Handler de paste para imágenes
+  //  NUEVO: Handler de paste inteligente
   const handlePaste = async (e) => {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-
-    for (const item of items) {
-      if (item.type.startsWith('image/')) {
-        e.preventDefault();
-        const file = item.getAsFile();
-        if (file) {
-          processFiles([file]);
-        }
-        break;
+    // Usar la utilidad inteligente (fix Excel)
+    // El 2do argumento debe simular el evento {target: {files}} para processFiles
+    // processFiles espera un array directamente, así que adaptamos
+    handleSmartPaste(e, (simulatedEvent) => {
+      const files = simulatedEvent.target.files;
+      if (files && files.length > 0) {
+        processFiles(Array.isArray(files) ? files : Array.from(files));
       }
-    }
+    }, null); // No necesitamos setInput
   };
 
   //  NUEVO: Insertar mención seleccionada
@@ -1688,65 +1687,11 @@ const ThreadPanel = ({
         )}
         {/* Vista previa de archivos */}
         {mediaFiles.length > 0 && (
-          <div className="thread-media-preview">
-            {mediaPreviews.map((preview, index) => {
-              const getFileIcon = (type) => {
-                switch (type) {
-                  case "image":
-                    return "🖼️";
-                  case "pdf":
-                    return "📄";
-                  case "video":
-                    return "🎥";
-                  case "audio":
-                    return "🎵";
-                  case "document":
-                    return "📝";
-                  case "spreadsheet":
-                    return "📊";
-                  default:
-                    return "📎";
-                }
-              };
-
-              return (
-                <div key={index} className="thread-media-preview-item">
-                  {preview.type === "image" ? (
-                    <img
-                      src={preview.data}
-                      alt={preview.name}
-                      className="thread-preview-image"
-                    />
-                  ) : (
-                    <div className="thread-preview-file">
-                      <div className="thread-preview-icon">
-                        {getFileIcon(preview.type)}
-                      </div>
-                      <div className="thread-preview-name">{preview.name}</div>
-                      <div className="thread-preview-size">
-                        {preview.size > 1024 * 1024
-                          ? `${(preview.size / 1024 / 1024).toFixed(1)} MB`
-                          : `${(preview.size / 1024).toFixed(1)} KB`}
-                      </div>
-                    </div>
-                  )}
-                  <button
-                    className="thread-remove-media-btn"
-                    onClick={() => handleRemoveMediaFile(index)}
-                    title="Eliminar archivo"
-                  >
-                    ✕
-                  </button>
-                </div>
-              );
-            })}
-            <button
-              className="thread-cancel-media-btn"
-              onClick={cancelMediaUpload}
-            >
-              Cancelar
-            </button>
-          </div>
+          <MediaPreviewList
+            previews={mediaPreviews}
+            onRemove={handleRemoveMediaFile}
+            onCancel={cancelMediaUpload}
+          />
         )}
 
         {showEmojiPicker && (

@@ -26,8 +26,10 @@ import CopyOptions from "./CopyOptions/CopyOptions";
 import MessageSelectionManager from "./MessageSelectionManager/MessageSelectionManager";
 import ForwardMessageModal from "./ForwardMessageModal"; //  NUEVO: Modal de reenvío
 import PDFViewer from '../../../../components/PDFViewer/PDFViewer'; // Importar el visor de PDF
-import apiService from '../../../../apiService'; //  NUEVO: Para cargar datos de paginación
-import AttachMenu from '../AttachMenu/AttachMenu'; //  NUEVO: Menú de adjuntar reutilizable
+import apiService from '../../../../apiService';
+import AttachMenu from '../AttachMenu/AttachMenu';
+import MediaPreviewList from '../MediaPreviewList/MediaPreviewList'; // Utilidad reutilizable
+import { handleSmartPaste } from '../utils/pasteHandler'; // Utilidad reutilizable
 
 import "./ChatContent.css";
 
@@ -731,25 +733,11 @@ const ChatContent = ({
   const handlePaste = (e) => {
     if (!canSendMessages) return;
 
-    const items = e.clipboardData?.items;
-    if (!items) return;
-
-    const files = [];
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      if (item.kind === "file") {
-        const file = item.getAsFile();
-        if (file) files.push(file);
-      }
-    }
-
-    if (files.length > 0) {
-      e.preventDefault();
-      const syntheticEvent = {
-        target: { files, value: "" },
-      };
-      onFileSelect(syntheticEvent);
-    }
+    // Usar smart paste (fix Excel)
+    // El 2do argumento simula el evento {target: {files}} que espera onFileSelect
+    handleSmartPaste(e, (simulatedEvent) => {
+      onFileSelect(simulatedEvent);
+    }, null); // No necesitamos setInput aquí porque el navegador maneja el texto por defecto
   };
 
   // ============================================================
@@ -3062,64 +3050,11 @@ const ChatContent = ({
 
       <div className="chat-input-container">
         {mediaFiles.length > 0 && (
-          <div className="media-preview">
-            {mediaPreviews.map((preview, index) => {
-              // Función para obtener el ícono según el tipo de archivo
-              const getFileIcon = (type) => {
-                switch (type) {
-                  case "image":
-                    return "🖼️";
-                  case "pdf":
-                    return "📄";
-                  case "video":
-                    return "🎥";
-                  case "audio":
-                    return "🎵";
-                  case "document":
-                    return "📝";
-                  case "spreadsheet":
-                    return "📊";
-                  default:
-                    return "📎";
-                }
-              };
-
-              return (
-                <div key={index} className="media-preview-item">
-                  {preview.type === "image" ? (
-                    <img
-                      src={preview.data}
-                      alt={preview.name}
-                      loading="lazy"
-                      className="preview-image"
-                    />
-                  ) : (
-                    <div className="preview-file">
-                      <div className="preview-icon">
-                        {getFileIcon(preview.type)}
-                      </div>
-                      <div className="preview-name">{preview.name}</div>
-                      <div className="preview-size">
-                        {preview.size > 1024 * 1024
-                          ? `${(preview.size / 1024 / 1024).toFixed(1)} MB`
-                          : `${(preview.size / 1024).toFixed(1)} KB`}
-                      </div>
-                    </div>
-                  )}
-                  <button
-                    className="remove-media-btn"
-                    onClick={() => onRemoveMediaFile(index)}
-                    title="Eliminar archivo"
-                  >
-                    ✕
-                  </button>
-                </div>
-              );
-            })}
-            <button className="cancel-media-btn" onClick={onCancelMediaUpload}>
-              Cancelar
-            </button>
-          </div>
+          <MediaPreviewList
+            previews={mediaPreviews}
+            onRemove={onRemoveMediaFile}
+            onCancel={onCancelMediaUpload}
+          />
         )}
 
         {/* Preview del mensaje al que se está respondiendo */}

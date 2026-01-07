@@ -826,6 +826,12 @@ const ChatPage = () => {
 
 
   const handleSendMessage = async (messageData = null) => {
+    // 🛡️ SANITIZACIÓN CRÍTICA: Si messageData es un Evento (click, keypress), ignorarlo completamente
+    // Esto evita el error "Converting circular structure to JSON" al hacer spread de un Event object
+    if (messageData && (messageData.nativeEvent || messageData.preventDefault || messageData.target || messageData.bubbles !== undefined)) {
+      messageData = null;
+    }
+
     // 1. Prevenir envío si ya se está enviando o si está vacío (a menos que venga messageData explícito)
     if (chatState.isSending) return;
 
@@ -870,19 +876,31 @@ const ChatPage = () => {
         }
       }
 
+      let replyToTextClean = "Archivo adjunto";
+      if (chatState.replyingTo?.text) {
+        // Si es string, usarlo. Si es objeto (React Node), intentar stringify o usar default
+        if (typeof chatState.replyingTo.text === 'string') {
+          replyToTextClean = chatState.replyingTo.text;
+        } else {
+          replyToTextClean = "Mensaje original";
+        }
+      } else if (chatState.replyingTo?.fileName) {
+        replyToTextClean = chatState.replyingTo.fileName;
+      }
+
       // 5. Construir mensaje
       let messageObj = {
         from: currentUserFullName,
         fromId: user.id,
         to: chatState.to,
-        message: input,
+        message: String(input || ""), // Asegurar que sea string
         isGroup: effectiveIsGroup,
         roomCode: effectiveIsGroup ? chatState.currentRoomCode : undefined,
         ...attachmentData,
         //  DATOS DE RESPUESTA
         replyToMessageId: chatState.replyingTo?.id || null,
         replyToSender: chatState.replyingTo?.sender || null,
-        replyToText: chatState.replyingTo?.text || chatState.replyingTo?.fileName || "Archivo adjunto",
+        replyToText: replyToTextClean,
         replyToSenderNumeroAgente: chatState.replyingTo?.senderNumeroAgente || null
       };
 
@@ -913,27 +931,34 @@ const ChatPage = () => {
         if (other) messageObj.actualRecipient = other;
       }
 
-      //  DIFERENCIA CLAVE: Para GRUPOS, el backend guarda. Para INDIVIDUALES, el frontend guarda.
-      if (effectiveIsGroup) {
-        // GRUPO: Solo emitir por socket, el backend guarda y emite de vuelta
-        if (socket && socket.connected) {
-          socket.emit("message", messageObj);
-        }
-      } else {
-        // INDIVIDUAL: Frontend guarda en BD, luego emite por socket
-        const savedMessage = await apiService.createMessage({
-          ...messageObj,
-          to: messageObj.actualRecipient || messageObj.to
-        });
+      // ESTRATEGIA DEFINITIVA: Guardar en BD (POST) -> Obtener ID y Fecha del Servidor -> Emitir Socket -> Mostrar
+      // 1. Guardar en Base de Datos
+      const savedMessage = await apiService.createMessage({
+        ...messageObj,
+        to: messageObj.actualRecipient || messageObj.to
+      });
 
-        if (socket && socket.connected) {
-          socket.emit("message", {
-            ...messageObj,
-            id: savedMessage.id,
-            sentAt: savedMessage.sentAt
-          });
-        }
+      console.log('✅ Mensaje guardado en servidor:', savedMessage);
+
+      // 2. Emitir por Socket (para notificar a otros)
+      if (socket && socket.connected) {
+        socket.emit("message", {
+          ...messageObj,
+          id: savedMessage.id, // Usar ID real
+          sentAt: savedMessage.sentAt, // Usar FECHA REAL del servidor
+          isGroup: effectiveIsGroup,
+          roomCode: effectiveIsGroup ? chatState.currentRoomCode : undefined
+        });
       }
+
+      // 3. Agregar a la UI localmente usando los datos REALES del servidor
+      addNewMessage({
+        ...savedMessage,
+        isSent: true,
+        isSelf: true,
+        sender: "Tú",
+        realSender: currentUserFullName
+      });
 
       //  CONFIAR EN EL BACKEND - No agregar mensaje localmente
       // El socket devolverá el mensaje con el evento 'message' (useSocketListeners lo manejará)
@@ -943,6 +968,7 @@ const ChatPage = () => {
 
     } catch (error) {
       console.error("Error enviando mensaje:", error);
+      showErrorAlert("Error al enviar", error.message || "No se pudo enviar el mensaje por problemas de conexión.");
     } finally {
       chatState.setIsSending(false);
       chatState.setIsUploadingFile(false);

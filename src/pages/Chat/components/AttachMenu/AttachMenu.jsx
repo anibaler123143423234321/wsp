@@ -73,7 +73,7 @@ const AttachMenu = ({ onFileSelect, onFileSelectEvent, onCreatePoll, disabled = 
             {/* Menú desplegable de adjuntar */}
             {showMenu && (
                 <div className="attach-menu-dropdown">
-                    <label className="attach-menu-item" onClick={() => photoInputRef.current?.click()}>
+                    <label className="attach-menu-item">
                         <input
                             ref={photoInputRef}
                             type="file"
@@ -91,7 +91,7 @@ const AttachMenu = ({ onFileSelect, onFileSelectEvent, onCreatePoll, disabled = 
                         <span>Fotos y videos</span>
                     </label>
 
-                    <label className="attach-menu-item" onClick={() => documentInputRef.current?.click()}>
+                    <label className="attach-menu-item">
                         <input
                             ref={documentInputRef}
                             type="file"
@@ -109,7 +109,7 @@ const AttachMenu = ({ onFileSelect, onFileSelectEvent, onCreatePoll, disabled = 
                         <span>Documento</span>
                     </label>
 
-                    <label className="attach-menu-item" onClick={() => audioInputRef.current?.click()}>
+                    <label className="attach-menu-item">
                         <input
                             ref={audioInputRef}
                             type="file"
