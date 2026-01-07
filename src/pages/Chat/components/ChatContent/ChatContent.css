@@ -1,3 +1,6 @@
+/* Import shared ChatInput styles */
+@import '../../../../components/ChatInput/ChatInput.css';
+
 /* Drag & Drop Overlay - Mejorado con rem */
 .drag-overlay {
   position: absolute;
@@ -142,12 +145,12 @@
   }
 
   .chat-input-container {
-    padding: 12px 8px;
+    padding: 5px 8px;
   }
 
   .input-group {
-    padding: 8px 14px;
-    gap: 10px;
+    padding: 4px 10px;
+    gap: 8px;
   }
 
   .message-input {
@@ -174,12 +177,12 @@
   }
 
   .chat-input-container {
-    padding: 10px 6px;
+    padding: 5px 8px;
   }
 
   .input-group {
-    padding: 8px 12px;
-    gap: 10px;
+    padding: 4px 10px;
+    gap: 8px;
   }
 
   .message-input {
@@ -225,21 +228,21 @@
   }
 
   .chat-input-container {
-    padding: 8px 6px;
+    padding: 5px 8px;
   }
 
   .input-group {
-    padding: 4px 8px;
-    padding-top: 6px;
-    gap: 6px;
+    padding: 4px 10px;
+    padding-top: 4px;
+    gap: 8px;
     height: auto;
     min-height: auto;
-    align-items: flex-start;
+    align-items: center;
   }
 
   .message-input {
-    font-size: 13px;
-    padding: 6px 8px;
+    font-size: 14px;
+    padding: 6px 10px;
     width: 100%;
   }
 
@@ -1280,7 +1283,7 @@
   gap: 8px;
 }
 
-/* Contenedor de input */
+/* Contenedor de input - SINCRONIZADO CON ThreadPanel */
 .chat-input-container {
   padding: 5px 8px;
   background: #ffffff;
@@ -1288,6 +1291,7 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  position: relative;
 }
 
 .input-group {
@@ -1302,79 +1306,34 @@
   min-height: auto;
 }
 
-
-/* 3. Ajuste específico para alinear Clip (1), Emoji (2) y Micro (3) */
-.btn-attach,
-.input-group>div:nth-child(2),
-/* Contenedor del Emoji */
-.input-group>div:nth-child(3)
-
-/* Contenedor del Micro (VoiceRecorder) */
-  {
+/* Selector para el botón de emoji y adjuntar (dentro del wrapper si existe) */
+.input-group>div:first-of-type,
+.input-group>div:nth-child(2) {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 36px;
-  /* Altura fija para forzar alineación */
-  width: 36px;
-  /* Ancho fijo */
-  margin-bottom: 0;
-  /* Pegados al fondo del flex-end */
-  padding-bottom: 0px;
-  /*  PEQUEÑO EMPUJÓN para alinearlos visualmente al centro del texto */
-  align-self: center;
-  /* Asegura que bajen */
+  margin: 0;
+  padding: 0;
 }
 
-/* Asegurar que el botón dentro del div de emoji ocupe el espacio */
-.input-group>div:nth-child(2) .btn-attach {
-  height: 100% !important;
-  width: 100% !important;
-  padding: 0 !important;
-  /* Quitamos el padding doble */
-  margin: 0 !important;
-  align-self: stretch !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  /* Mantenemos el círculo al hacer hover */
-}
-
-/* Opcional: Ajustar ligeramente el tamaño del SVG del emoji si se ve pequeño/grande */
-.input-group>div:nth-child(2) .btn-attach svg {
-  width: 24px;
-  height: 24px;
-}
-
-.input-group:hover {
-  background: #ffffff;
-}
-
-.input-group:focus-within {
-  background: #ffffff;
-}
-
+/* Input de mensaje - SINCRONIZADO CON ThreadPanel .thread-input */
 .message-input {
-  font-size: 10.5px !important;
-  flex: 1 1 auto;
+  flex: 1;
   background: #FAFAFA;
   border: none;
   outline: none;
-  color: #000000;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-size: 14.97px;
-  font-weight: 400;
-  font-style: normal;
-  line-height: 1.4;
-  letter-spacing: 0%;
-  padding: 6px 10px;
-  min-height: 24px;
-  max-height: 150px;
-  width: 100%;
   border-radius: 12.83px;
+  padding: 6px 10px;
+  font-size: 14.97px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #000000;
   resize: none;
+  max-height: 100px;
+  min-height: 24px;
   overflow-y: auto;
+  width: 100%;
 }
 
 .message-input::placeholder {
@@ -1382,35 +1341,37 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 14.97px;
   font-weight: 400;
-  line-height: 100%;
-  letter-spacing: 0%;
 }
 
-.message-input:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  background-color: #f3f4f6;
-}
-
-.message-input:disabled::placeholder {
-  color: rgba(0, 0, 0, 0.3);
-  font-style: italic;
+.message-input:focus {
+  outline: none;
 }
 
 /* Botón de adjuntar */
 .btn-attach {
   background: transparent;
   border: none;
-  color: #6b7280;
+  color: #8696a0;
   cursor: pointer;
-  padding: 8px;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
   flex-shrink: 0;
   border-radius: 50%;
-  align-self: center;
+  width: 32px;
+  height: 32px;
+}
+
+.btn-attach:hover:not(.disabled) {
+  background: #f0f0f0;
+  color: #54656f;
+}
+
+.attach-icon {
+  width: 24px;
+  height: 24px;
 }
 
 .btn-attach:hover:not(.disabled) {
@@ -1427,8 +1388,8 @@
 }
 
 .attach-icon {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   color: #8696a0;
   transition: color 0.2s ease;
 }
@@ -1459,7 +1420,7 @@
   border: none;
   padding: 0 8px;
   min-width: 50px;
-  height: 40px;
+  height: 32px;
   /* Altura fija para igualar con el micrófono */
   display: flex;
   align-items: center;
@@ -1625,21 +1586,21 @@
   }
 
   .chat-input-container {
-    padding: 10px 12px;
+    padding: 5px 8px;
   }
 
   .input-group {
     padding: 4px 10px;
-    padding-top: 6px;
+    padding-top: 4px;
     gap: 8px;
     height: auto;
     min-height: auto;
-    align-items: flex-start;
+    align-items: center;
   }
 
   .message-input {
     font-size: 14px;
-    padding: 6px 8px;
+    padding: 6px 10px;
     width: 100%;
   }
 
@@ -1681,13 +1642,13 @@
 /* Estilos adicionales para móviles pequeños */
 @media (max-width: 480px) {
   .input-group {
-    padding: 4px 6px;
-    padding-top: 6px;
+    padding: 0 6px;
+    padding-top: 2px;
     gap: 4px;
     min-height: auto;
     height: auto;
     border-radius: 25px;
-    align-items: flex-start;
+    align-items: center;
   }
 
   .message-input {
@@ -1719,19 +1680,19 @@
   }
 
   .chat-input-container {
-    padding: 6px 4px;
+    padding: 5px 8px;
   }
 }
 
 /* Estilos para pantallas muy pequeñas */
 @media (max-width: 360px) {
   .input-group {
-    padding: 3px 4px;
-    padding-top: 6px;
+    padding: 0 4px;
+    padding-top: 2px;
     gap: 3px;
     min-height: auto;
     height: auto;
-    align-items: flex-start;
+    align-items: center;
   }
 
   .message-input {
@@ -1757,7 +1718,7 @@
   }
 
   .chat-input-container {
-    padding: 4px 2px;
+    padding: 5px 8px;
   }
 }
 
@@ -1868,99 +1829,7 @@
 }
 
 /*  Chat Header Styles */
-.chat-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
-  min-height: 60px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
 
-.chat-header-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-}
-
-.chat-header-avatar {
-  flex-shrink: 0;
-}
-
-.chat-header-details {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.chat-header-name {
-  font-size: 16px;
-  font-weight: 500;
-  color: #111b21;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.chat-header-status {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.chat-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.chat-header-button {
-  flex-shrink: 0;
-}
-
-/* Responsive para chat header */
-@media (max-width: 768px) {
-  .chat-header {
-    padding: 8px 12px;
-    min-height: 55px;
-  }
-
-  .chat-header-name {
-    font-size: 15px;
-  }
-
-  .chat-header-info {
-    gap: 10px;
-  }
-}
-
-@media (max-width: 480px) {
-  .chat-header {
-    padding: 6px 10px;
-    min-height: 50px;
-  }
-
-  .chat-header-name {
-    font-size: 14px;
-  }
-
-  .chat-header-info {
-    gap: 8px;
-  }
-
-  .chat-header-avatar {
-    width: 35px !important;
-    height: 35px !important;
-    font-size: 14px !important;
-  }
-}
 
 /* ==============================================
     ESTILOS MODO GRABACIÓN - CORREGIDO Y LIMPIO
@@ -2149,14 +2018,14 @@
   align-items: center;
   gap: 0;
   /* El gap lo manejamos internamente */
-  margin-top: 6px;
+  margin-top: 0px;
 
   /* Estilo base de la cápsula */
   background-color: #ffffff;
-  /* Fondo blanco limpio */
-  padding: 4px 8px;
+  /* Padding inicial ajustado COMPACTO */
+  padding: 2px 8px;
   /* Padding inicial ajustado */
-  border-radius: 18px;
+  border-radius: 14px;
   /* Bien redondeado */
 
   cursor: pointer;
@@ -2194,6 +2063,7 @@
   position: relative;
   display: flex;
   align-items: center;
+  margin-right: 6px;
 }
 
 .thread-notification-dot {
@@ -2210,7 +2080,7 @@
 .mx_ThreadCounter {
   color: #54656f;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 /* --- PARTE EXPANDIBLE (DETALLES) --- */
@@ -2242,7 +2112,7 @@
   width: 1px;
   height: 12px;
   background-color: #d1d5db;
-  margin-right: 8px;
+  margin: 0 6px;
 }
 
 .thread-last-user {
@@ -2273,7 +2143,7 @@
 
 /*  NUEVO: Texto del último mensaje del hilo */
 .mx_ThreadLastReplyText {
-  font-size: 11px;
+  font-size: 10px;
   color: #6b7280;
   font-weight: 400;
   font-style: italic;
@@ -2361,7 +2231,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 6px;
+  margin-top: 0px;
   width: fit-content;
   position: relative;
   z-index: 5;
@@ -2373,16 +2243,16 @@
   align-items: center;
   flex-direction: row-reverse;
   /*  FORZAR TAMAÑO: Asegura que el contenedor nunca mida 0 */
-  min-width: 26px;
-  min-height: 26px;
+  min-width: 18px;
+  min-height: 18px;
   margin-left: 4px;
   /* Separarlo un poco del botón */
 }
 
 /* El círculo del avatar */
 .thread-mini-avatar {
-  width: 26px;
-  height: 26px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background-size: cover;
   background-position: center;
@@ -3194,17 +3064,17 @@ html.dark .mention-span.mention-other {
 
   /* Input area más compacto */
   .chat-input-container {
-    padding: 4px 6px;
+    padding: 5px 8px;
   }
 
   .input-group {
-    padding: 3px 8px;
-    gap: 6px;
+    padding: 4px 10px;
+    gap: 8px;
   }
 
   .message-input {
-    font-size: 13px !important;
-    padding: 5px 8px;
+    font-size: 14px !important;
+    padding: 6px 10px;
   }
 
   .btn-attach {
@@ -3402,24 +3272,24 @@ html.dark .mention-span.mention-other {
 
   /* Input area mínimo */
   .chat-input-container {
-    padding: 3px 4px;
+    padding: 5px 8px;
   }
 
   .input-group {
-    padding: 2px 6px;
-    gap: 4px;
-    border-radius: 18px;
+    padding: 4px 10px;
+    gap: 8px;
+    border-radius: 24px;
   }
 
   .message-input {
-    font-size: 12px !important;
-    padding: 4px 6px;
-    min-height: 20px;
-    border-radius: 10px;
+    font-size: 14px !important;
+    padding: 6px 10px;
+    min-height: 24px;
+    border-radius: 12.83px;
   }
 
   .message-input::placeholder {
-    font-size: 12px !important;
+    font-size: 14px !important;
   }
 
   .btn-attach {

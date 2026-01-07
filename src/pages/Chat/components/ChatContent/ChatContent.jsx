@@ -2072,7 +2072,65 @@ const ChatContent = ({
 
                   {/*  CAMBIO: Si hay nombre lo muestra, si no, muestra una flechita discreta */}
                   <div className="thread-vertical-line"></div>
-                  <span className="mx_ThreadLastReply">
+                  {/* AVATAR MOVIDO AL LADO DEL NOMBRE */}
+                  <div style={{ marginLeft: '3px', marginRight: '4px', display: 'flex', alignItems: 'center' }}>
+                    {(() => {
+                      // 1. Obtener un nombre seguro (si viene null, usamos "Usuario")
+                      const rawName = message.lastReplyFrom;
+                      const displayName = rawName ? rawName.trim() : "?";
+
+                      // 2. Intentar buscar la foto en roomUsers (si hay lista)
+                      let foundUser = null;
+                      if (roomUsers && Array.isArray(roomUsers) && rawName) {
+                        const searchName = rawName.toLowerCase();
+                        foundUser = roomUsers.find(u => {
+                          const uName = (u.username || "").toLowerCase();
+                          const uFull = (u.nombre && u.apellido) ? `${u.nombre} ${u.apellido}`.toLowerCase() : "";
+                          return uName === searchName || uFull === searchName;
+                        });
+                      }
+
+                      // 3. Intentar buscar foto en historial de mensajes (Plan B)
+                      let avatarUrl = foundUser?.picture;
+                      if (!avatarUrl && messages && rawName) {
+                        const msgMatch = messages.find(m =>
+                          (m.sender === rawName || m.realSender === rawName) && m.senderPicture
+                        );
+                        if (msgMatch) avatarUrl = msgMatch.senderPicture;
+                      }
+
+                      // === RENDERIZADO (SIN EXCUSAS) ===
+
+                      // CASO A: Tenemos foto -> La mostramos
+                      if (avatarUrl) {
+                        return (
+                          <div
+                            className="thread-mini-avatar"
+                            style={{ backgroundImage: `url(${avatarUrl})` }}
+                            title={`Última respuesta de: ${displayName}`}
+                          />
+                        );
+                      }
+
+                      // CASO B: No hay foto (picture = null) -> Mostramos la INICIAL
+                      // Generamos un color consistente basado en el nombre
+                      const colors = ['#f56565', '#ed8936', '#ecc94b', '#48bb78', '#38b2ac', '#4299e1', '#667eea', '#9f7aea', '#ed64a6'];
+                      const charCode = displayName.charCodeAt(0) || 0;
+                      const colorIndex = charCode % colors.length;
+                      const bgColor = colors[colorIndex];
+
+                      return (
+                        <div
+                          className="thread-mini-avatar placeholder"
+                          style={{ background: bgColor }}
+                          title={`Última respuesta de: ${displayName}`}
+                        >
+                          {displayName.charAt(0).toUpperCase()}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  <span className="mx_ThreadLastReply" style={{ color: getUserNameColor(message.lastReplyFrom, message.lastReplyFrom === currentUsername) }}>
                     {message.lastReplyFrom ? message.lastReplyFrom : "Ver"}
                   </span>
                   {/*  NUEVO: Vista previa del último mensaje del hilo - RESPONSIVO */}
@@ -2095,64 +2153,7 @@ const ChatContent = ({
                   <FaChevronRight size={10} color="#8696a0" style={{ marginLeft: '4px', flexShrink: 0 }} />
                 </div>
 
-                {/* 2. LOS AVATARES (Derecha) - VERSIÓN FORZADA */}
-                <div className="thread-face-pile">
-                  {(() => {
-                    // 1. Obtener un nombre seguro (si viene null, usamos "Usuario")
-                    const rawName = message.lastReplyFrom;
-                    const displayName = rawName ? rawName.trim() : "?";
 
-                    // 2. Intentar buscar la foto en roomUsers (si hay lista)
-                    let foundUser = null;
-                    if (roomUsers && Array.isArray(roomUsers) && rawName) {
-                      const searchName = rawName.toLowerCase();
-                      foundUser = roomUsers.find(u => {
-                        const uName = (u.username || "").toLowerCase();
-                        const uFull = (u.nombre && u.apellido) ? `${u.nombre} ${u.apellido}`.toLowerCase() : "";
-                        return uName === searchName || uFull === searchName;
-                      });
-                    }
-
-                    // 3. Intentar buscar foto en historial de mensajes (Plan B)
-                    let avatarUrl = foundUser?.picture;
-                    if (!avatarUrl && messages && rawName) {
-                      const msgMatch = messages.find(m =>
-                        (m.sender === rawName || m.realSender === rawName) && m.senderPicture
-                      );
-                      if (msgMatch) avatarUrl = msgMatch.senderPicture;
-                    }
-
-                    // === RENDERIZADO (SIN EXCUSAS) ===
-
-                    // CASO A: Tenemos foto -> La mostramos
-                    if (avatarUrl) {
-                      return (
-                        <div
-                          className="thread-mini-avatar"
-                          style={{ backgroundImage: `url(${avatarUrl})` }}
-                          title={`Última respuesta de: ${displayName}`}
-                        />
-                      );
-                    }
-
-                    // CASO B: No hay foto (picture = null) -> Mostramos la INICIAL
-                    // Generamos un color consistente basado en el nombre
-                    const colors = ['#f56565', '#ed8936', '#ecc94b', '#48bb78', '#38b2ac', '#4299e1', '#667eea', '#9f7aea', '#ed64a6'];
-                    const charCode = displayName.charCodeAt(0) || 0;
-                    const colorIndex = charCode % colors.length;
-                    const bgColor = colors[colorIndex];
-
-                    return (
-                      <div
-                        className="thread-mini-avatar placeholder"
-                        style={{ background: bgColor }}
-                        title={`Última respuesta de: ${displayName}`}
-                      >
-                        {displayName.charAt(0).toUpperCase()}
-                      </div>
-                    );
-                  })()}
-                </div>
 
               </div>
             )

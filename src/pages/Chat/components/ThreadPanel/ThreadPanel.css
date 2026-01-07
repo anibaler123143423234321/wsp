@@ -1,3 +1,6 @@
+/* Import shared ChatInput styles */
+@import '../../../../components/ChatInput/ChatInput.css';
+
 .thread-panel-container {
   width: 450px;
   height: 100%;
@@ -41,7 +44,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
+  height: 50px;
+  padding: 0 16px;
   border-bottom: 1px solid #e0e0e0;
   background: #ffffff;
   gap: 12px;
