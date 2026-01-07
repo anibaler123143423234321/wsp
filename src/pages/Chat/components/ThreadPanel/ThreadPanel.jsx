@@ -400,8 +400,9 @@ const ThreadPanel = ({
   const [threadOffset, setThreadOffset] = useState(0);
   const THREAD_PAGE_SIZE = 20;
 
+
   const loadThreadMessages = useCallback(async (loadMore = false) => {
-    // Validar que message.id sea un ID válido (no NaN, no undefined, no null)
+    // Validar que message.id sea un ID válido
     const threadId = message?.id;
     if (!threadId || isNaN(Number(threadId)) || String(threadId).startsWith('temp_')) {
       console.warn('⚠️ ThreadPanel: ID de hilo inválido:', threadId);
@@ -409,34 +410,49 @@ const ThreadPanel = ({
     }
     setLoading(true);
     try {
-      const currentOffset = loadMore ? threadOffset : 0;
-      const response = await apiService.getThreadMessages(threadId, THREAD_PAGE_SIZE, currentOffset);
+      if (loadMore && threadOffset > 0) {
+        // 🔥 CARGAR MÁS ANTIGUOS: offset decrece hacia atrás
+        const olderOffset = Math.max(0, threadOffset - THREAD_PAGE_SIZE);
+        const limit = threadOffset - olderOffset;
 
-      // 🔥 El backend ahora devuelve { data, total, hasMore, page, totalPages }
-      const messages = response.data || response; // Compatibilidad con respuesta anterior
-      const hasMore = response.hasMore ?? false;
-      const total = response.total ?? (messages.length || 0);
+        if (limit <= 0) {
+          setHasMoreThreadMessages(false);
+          setLoading(false);
+          return;
+        }
 
-      if (loadMore) {
-        // Cargar más: agregar al inicio (mensajes anteriores)
+        // Usamos ASC para los mensajes antiguos
+        const response = await apiService.getThreadMessages(threadId, limit, olderOffset, 'ASC');
+        const messages = response.data || response;
+        const total = response.total ?? totalThreadMessages;
+
+        // Prepend mensajes antiguos al inicio
         setThreadMessages(prev => [...messages, ...prev]);
-        setThreadOffset(currentOffset + messages.length);
+        setThreadOffset(olderOffset);
+        setHasMoreThreadMessages(olderOffset > 0);
+        setTotalThreadMessages(total);
+        setCurrentThreadCount(total);
       } else {
-        // Carga inicial
-        setThreadMessages(messages);
-        setThreadOffset(messages.length);
-      }
+        // 🔥 CARGA INICIAL: Una sola llamada con order=DESC
+        // El backend trae los más recientes y los revierte para orden cronológico
+        const response = await apiService.getThreadMessages(threadId, THREAD_PAGE_SIZE, 0, 'DESC');
+        const messages = response.data || response;
+        const total = response.total ?? messages.length;
 
-      setHasMoreThreadMessages(hasMore);
-      setTotalThreadMessages(total);
-      // Actualizar el contador con el total real
-      setCurrentThreadCount(total);
+        setThreadMessages(messages);
+        // Calcular offset de inicio para saber cuántos mensajes quedan atrás
+        const startOffset = Math.max(0, total - THREAD_PAGE_SIZE);
+        setThreadOffset(startOffset);
+        setHasMoreThreadMessages(startOffset > 0);
+        setTotalThreadMessages(total);
+        setCurrentThreadCount(total);
+      }
     } catch (error) {
       console.error("Error al cargar mensajes del hilo:", error);
     } finally {
       setLoading(false);
     }
-  }, [message?.id, threadOffset]);
+  }, [message?.id, threadOffset, totalThreadMessages]);
 
   // useEffect para cargar mensajes cuando se abre el hilo
   useEffect(() => {

@@ -1122,10 +1122,10 @@ class ApiService {
   }
 
 
-  async getThreadMessages(threadId, limit = 20, offset = 0) {
+  async getThreadMessages(threadId, limit = 20, offset = 0, order = 'ASC') {
     try {
       const response = await fetch(
-        `${this.baseChatUrl}api/messages/thread/${threadId}?limit=${limit}&offset=${offset}`,
+        `${this.baseChatUrl}api/messages/thread/${threadId}?limit=${limit}&offset=${offset}&order=${order}`,
         {
           method: "GET",
           headers: {

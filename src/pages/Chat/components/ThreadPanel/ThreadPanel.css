@@ -1675,3 +1675,47 @@ html.dark .thread-emoji-btn:hover {
   background: rgba(255, 255, 255, 0.1) !important;
   color: #e9edef !important;
 }
+
+/* ===== BOTÓN CARGAR MÁS MENSAJES ===== */
+.thread-load-more {
+  display: flex;
+  justify-content: center;
+  padding: 8px 16px;
+  margin-bottom: 12px;
+}
+
+.thread-load-more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: transparent;
+  color: #dc2626;
+  border: 1px dashed #dc2626;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.thread-load-more-btn:hover:not(:disabled) {
+  background: #fef2f2;
+  border-style: solid;
+}
+
+.thread-load-more-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Dark mode */
+html.dark .thread-load-more-btn {
+  color: #f87171;
+  border-color: #f87171;
+}
+
+html.dark .thread-load-more-btn:hover:not(:disabled) {
+  background: rgba(248, 113, 113, 0.1);
+}
