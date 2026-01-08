@@ -941,7 +941,7 @@ const ConversationList = ({
 
       {/* Barra de búsqueda */}
       {!isCompact && (
-        <div className="bg-white flex flex-col max-[1280px]:!px-2 max-[1280px]:!py-1 max-[1024px]:!px-1.5 max-[1024px]:!py-0.5 max-[768px]:!px-3 max-[768px]:!py-1.5" style={{ paddingTop: '6px', paddingLeft: '12px', paddingRight: '12px', paddingBottom: '6px' }}>
+        <div className="bg-white flex flex-col justify-center max-[1280px]:!px-2 max-[1024px]:!px-1.5 max-[768px]:!px-3" style={{ height: '49px', paddingLeft: '12px', paddingRight: '12px', borderBottom: '1px solid #e0e0e0' }}>
           <div className="relative flex items-center bg-[#E8E8E8] overflow-hidden max-[1280px]:!w-full max-[1280px]:!h-9 max-[1280px]:!px-2.5 max-[1280px]:!py-1.5 max-[1280px]:!gap-1.5 max-[1024px]:!h-8 max-[1024px]:!px-2 max-[1024px]:!py-1 max-[1024px]:!gap-1 max-[768px]:!w-full max-[768px]:!h-9 max-[768px]:!px-2.5 max-[768px]:!py-1.5 max-[768px]:!gap-1.5" style={{ width: '100%', height: '34px', borderRadius: '10px', paddingTop: '6px', paddingRight: '10px', paddingBottom: '6px', paddingLeft: '10px', gap: '8px' }}>
             <span className="text-gray-500 flex-shrink-0" style={{ display: 'flex', alignItems: 'center' }}>
               <svg viewBox="0 0 24 24" height="18" width="18" fill="none" className="text-gray-500">

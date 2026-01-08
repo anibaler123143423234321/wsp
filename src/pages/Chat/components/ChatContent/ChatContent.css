@@ -144,18 +144,7 @@
     overflow-wrap: break-word;
   }
 
-  .chat-input-container {
-    padding: 5px 8px;
-  }
-
-  .input-group {
-    padding: 4px 10px;
-    gap: 8px;
-  }
-
-  .message-input {
-    font-size: 14px;
-  }
+  /* Bloque de media query eliminado */
 }
 
 @media (max-width: 1024px) {
@@ -176,18 +165,7 @@
     overflow-wrap: break-word;
   }
 
-  .chat-input-container {
-    padding: 5px 8px;
-  }
-
-  .input-group {
-    padding: 4px 10px;
-    gap: 8px;
-  }
-
-  .message-input {
-    font-size: 13px;
-  }
+  /* Bloque de media query eliminado */
 }
 
 /*  AÑADIDO: Contenedor para el nuevo SVG de "está escribiendo..." */
@@ -213,7 +191,7 @@
 
   .chat-history {
     padding: 8px 4px;
-    max-height: calc(100vh - 70px);
+    /* max-height removed */
   }
 
   .message-content {
@@ -227,24 +205,7 @@
     height: 32px;
   }
 
-  .chat-input-container {
-    padding: 5px 8px;
-  }
-
-  .input-group {
-    padding: 4px 10px;
-    padding-top: 4px;
-    gap: 8px;
-    height: auto;
-    min-height: auto;
-    align-items: center;
-  }
-
-  .message-input {
-    font-size: 14px;
-    padding: 6px 10px;
-    width: 100%;
-  }
+  /* Bloque de media query eliminado */
 
   .btn-send {
     font-size: 11px;
@@ -304,7 +265,7 @@
 
   .chat-history {
     padding: 8px 6px;
-    max-height: calc(100vh - 80px);
+    /* max-height removed */
   }
 }
 
@@ -331,7 +292,7 @@
 
   .chat-history {
     padding: 4px 2px;
-    max-height: calc(100vh - 60px);
+    /* max-height removed */
   }
 }
 
@@ -391,7 +352,7 @@
   background: transparent;
   /* Asegurar que no crezca más allá del contenedor */
   min-height: 0;
-  max-height: calc(100vh - 120px);
+  /* max-height removed to allow flex to control height */
   width: 100%;
   box-sizing: border-box;
   position: relative;
@@ -1283,120 +1244,7 @@
   gap: 8px;
 }
 
-/* Contenedor de input - SINCRONIZADO CON ThreadPanel */
-.chat-input-container {
-  padding: 5px 8px;
-  background: #ffffff;
-  border-top: 1px solid #e5e7eb;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  position: relative;
-}
-
-.input-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #ffffff;
-  border: none;
-  border-radius: 24px;
-  padding: 4px 10px;
-  width: 100%;
-  min-height: auto;
-}
-
-/* Selector para el botón de emoji y adjuntar (dentro del wrapper si existe) */
-.input-group>div:first-of-type,
-.input-group>div:nth-child(2) {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  padding: 0;
-}
-
-/* Input de mensaje - SINCRONIZADO CON ThreadPanel .thread-input */
-.message-input {
-  flex: 1;
-  background: #FAFAFA;
-  border: none;
-  outline: none;
-  border-radius: 12.83px;
-  padding: 6px 10px;
-  font-size: 14.97px;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-weight: 400;
-  line-height: 1.4;
-  color: #000000;
-  resize: none;
-  max-height: 100px;
-  min-height: 24px;
-  overflow-y: auto;
-  width: 100%;
-}
-
-.message-input::placeholder {
-  color: rgba(0, 0, 0, 0.45);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-size: 14.97px;
-  font-weight: 400;
-}
-
-.message-input:focus {
-  outline: none;
-}
-
-/* Botón de adjuntar */
-.btn-attach {
-  background: transparent;
-  border: none;
-  color: #8696a0;
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-}
-
-.btn-attach:hover:not(.disabled) {
-  background: #f0f0f0;
-  color: #54656f;
-}
-
-.attach-icon {
-  width: 24px;
-  height: 24px;
-}
-
-.btn-attach:hover:not(.disabled) {
-  background: rgba(0, 168, 132, 0.1);
-}
-
-.btn-attach:active:not(.disabled) {
-  transform: scale(0.95);
-}
-
-.btn-attach.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.attach-icon {
-  width: 20px;
-  height: 20px;
-  color: #8696a0;
-  transition: color 0.2s ease;
-}
-
-.btn-attach:hover:not(.disabled) .attach-icon {
-  color: ff453a;
-}
+/* CSS del input original eliminado - reemplazado por ChatInput.jsx */
 
 .btn {
   padding: 0;
@@ -1585,45 +1433,7 @@
     padding: 15px;
   }
 
-  .chat-input-container {
-    padding: 5px 8px;
-  }
-
-  .input-group {
-    padding: 4px 10px;
-    padding-top: 4px;
-    gap: 8px;
-    height: auto;
-    min-height: auto;
-    align-items: center;
-  }
-
-  .message-input {
-    font-size: 14px;
-    padding: 6px 10px;
-    width: 100%;
-  }
-
-  .btn-send {
-    font-size: 13px;
-    min-width: 42px;
-    padding: 0 6px;
-  }
-
-  .send-text {
-    display: none;
-  }
-
-  .send-icon {
-    display: inline;
-    width: 18px;
-    height: 18px;
-  }
-
-  .attach-icon {
-    width: 22px;
-    height: 22px;
-  }
+  /* CSS del input original media query eliminado */
 
   .welcome-screen {
     padding: 20px;
@@ -1639,87 +1449,14 @@
   }
 }
 
-/* Estilos adicionales para móviles pequeños */
-@media (max-width: 480px) {
-  .input-group {
-    padding: 0 6px;
-    padding-top: 2px;
-    gap: 4px;
-    min-height: auto;
-    height: auto;
-    border-radius: 25px;
-    align-items: center;
-  }
+/* CSS del input original media query eliminado */
 
-  .message-input {
-    font-size: 13px;
-    padding: 4px 6px;
-    width: 100%;
-  }
+/* CSS del input original media query eliminado */
 
-  .btn-send {
-    font-size: 12px;
-    gap: 4px;
-    min-width: 32px;
-    padding: 0 2px;
-  }
-
-  .send-text {
-    display: none;
-  }
-
-  .send-icon {
-    display: inline;
-    width: 16px;
-    height: 16px;
-  }
-
-  .attach-icon {
-    width: 18px;
-    height: 18px;
-  }
-
-  .chat-input-container {
-    padding: 5px 8px;
-  }
-}
 
 /* Estilos para pantallas muy pequeñas */
 @media (max-width: 360px) {
-  .input-group {
-    padding: 0 4px;
-    padding-top: 2px;
-    gap: 3px;
-    min-height: auto;
-    height: auto;
-    align-items: center;
-  }
-
-  .message-input {
-    font-size: 12px;
-    padding: 3px 4px;
-    width: 100%;
-  }
-
-  .btn-send {
-    font-size: 11px;
-    min-width: 28px;
-    padding: 0 2px;
-  }
-
-  .send-icon {
-    width: 14px;
-    height: 14px;
-  }
-
-  .attach-icon {
-    width: 16px;
-    height: 16px;
-  }
-
-  .chat-input-container {
-    padding: 5px 8px;
-  }
+  /* CSS del input original media query eliminado */
 }
 
 /* Indicador de "está escribiendo..." */
@@ -1835,51 +1572,7 @@
     ESTILOS MODO GRABACIÓN - CORREGIDO Y LIMPIO
    ============================================== */
 
-/* 1. Contenedor principal en modo grabación */
-.input-group.recording-mode {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  /* Separa los elementos a los extremos */
-  padding: 0 16px !important;
-  background-color: #ffffff !important;
-  /* Fondo blanco solido */
-  width: 100% !important;
-  border-radius: 24px;
-  /* Mantiene la forma redondeada */
-  border: 1px solid #e5e7eb;
-  /* Borde sutil para definir el área */
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-}
-
-/* 2. Ocultar elementos de texto normales */
-.input-group.recording-mode .btn-attach,
-.input-group.recording-mode .emoji-container,
-.input-group.recording-mode .text-input-container,
-.input-group.recording-mode .btn-send {
-  display: none !important;
-}
-
-/* 3. Estilo para el componente VoiceRecorder (el div hijo #3) */
-.input-group.recording-mode>div:nth-child(3) {
-  display: flex !important;
-  width: 100% !important;
-  height: 100% !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  /* Asegura que X y Enviar estén separados */
-  gap: 15px;
-  /* Espacio entre elementos */
-}
-
-/* 4. Asegurar que los textos dentro del grabador se vean bien */
-.input-group.recording-mode span,
-.input-group.recording-mode div {
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-}
+/* Estilos de grabación originales eliminados */
 
 /* ==============================================
     NUEVO DISEÑO DE ARCHIVOS (Estilo WhatsApp)
@@ -3063,28 +2756,7 @@ html.dark .mention-span.mention-other {
   }
 
   /* Input area más compacto */
-  .chat-input-container {
-    padding: 5px 8px;
-  }
-
-  .input-group {
-    padding: 4px 10px;
-    gap: 8px;
-  }
-
-  .message-input {
-    font-size: 14px !important;
-    padding: 6px 10px;
-  }
-
-  .btn-attach {
-    padding: 6px;
-  }
-
-  .attach-icon {
-    width: 20px;
-    height: 20px;
-  }
+  /* CSS del input original media query eliminado */
 
   /* Emojis y reacciones */
   .reaction-picker-popup {
@@ -3270,42 +2942,7 @@ html.dark .mention-span.mention-other {
     height: 28px !important;
   }
 
-  /* Input area mínimo */
-  .chat-input-container {
-    padding: 5px 8px;
-  }
-
-  .input-group {
-    padding: 4px 10px;
-    gap: 8px;
-    border-radius: 24px;
-  }
-
-  .message-input {
-    font-size: 14px !important;
-    padding: 6px 10px;
-    min-height: 24px;
-    border-radius: 12.83px;
-  }
-
-  .message-input::placeholder {
-    font-size: 14px !important;
-  }
-
-  .btn-attach {
-    padding: 4px;
-  }
-
-  .attach-icon {
-    width: 18px;
-    height: 18px;
-  }
-
-  .btn-send {
-    min-width: 35px;
-    padding: 0 4px;
-    font-size: 12px;
-  }
+  /* CSS del input original media query eliminado */
 
   /* Emojis */
   .reaction-emoji-btn {

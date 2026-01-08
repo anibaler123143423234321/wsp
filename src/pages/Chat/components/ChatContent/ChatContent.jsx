@@ -31,6 +31,7 @@ import AttachMenu from '../AttachMenu/AttachMenu';
 import MediaPreviewList from '../MediaPreviewList/MediaPreviewList'; // Utilidad reutilizable
 import { handleSmartPaste } from '../utils/pasteHandler'; // Utilidad reutilizable
 import ReactionPicker from '../../../../components/ReactionPicker'; // Componente reutilizable
+import ChatInput from '../../../../components/ChatInput/ChatInput'; //  NUEVO: Componente reutilizable de input
 
 import "./ChatContent.css";
 
@@ -2906,372 +2907,78 @@ const ChatContent = ({
         )}
       </div>
 
-      <div className="chat-input-container">
-        {mediaFiles.length > 0 && (
-          <MediaPreviewList
-            previews={mediaPreviews}
-            onRemove={onRemoveMediaFile}
-            onCancel={onCancelMediaUpload}
-          />
-        )}
+      <ChatInput
+        value={editingMessageId ? editText : input}
+        onChange={editingMessageId ? (e) => setEditText(e.target.value) : handleInputChange}
+        onSend={editingMessageId ? handleSaveEdit : onSendMessage}
+        onKeyDown={handleKeyPress}
+        placeholder="Escribe un mensaje"
+        disabled={isRecordingLocal || isRecording || isUploadingFile}
+        canSendMessages={canSendMessages}
 
-        {/* Preview del mensaje al que se está respondiendo */}
-        {replyingTo && (
-          <div
-            style={{
-              backgroundColor: "#d1f4dd",
-              borderLeft: "3px solid ff453a",
-              padding: "8px 12px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "8px",
-            }}
-          >
-            <div style={{ flex: 1 }}>
-              <div
-                style={{
-                  color: "ff453a",
-                  fontSize: "12px",
-                  fontWeight: "600",
-                  marginBottom: "2px",
-                }}
-              >
-                Respondiendo a {replyingTo.sender}
-              </div>
-              <div
-                style={{
-                  color: "#1f2937",
-                  fontSize: "13px",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {replyingTo.text || "Archivo multimedia"}
-              </div>
-            </div>
-            <button
-              onClick={onCancelReply}
-              style={{
-                backgroundColor: "transparent",
-                border: "none",
-                color: "ff453a",
-                cursor: "pointer",
-                fontSize: "18px",
-                padding: "4px 8px",
-                display: "flex",
-                alignItems: "center",
-              }}
-              title="Cancelar respuesta"
-            >
-              <FaTimes />
-            </button>
-          </div>
-        )}
+        /* Handlers de Archivos y Medios */
+        onFileSelect={onFileSelect}
+        onEmojiClick={handleEmojiClick}
+        onSendAudio={onSendVoiceMessage}
+        mediaFiles={mediaFiles}
+        mediaPreviews={mediaPreviews}
+        onRemoveMediaFile={onRemoveMediaFile}
+        onCancelMediaUpload={onCancelMediaUpload}
 
-        {/*  NUEVO: Banner de edición de mensaje */}
-        {editingMessageId && (
-          <div
-            style={{
-              backgroundColor: "#fff3cd",
-              borderLeft: "3px solid #ffc107",
-              padding: "8px 12px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "8px",
-            }}
-          >
-            <div style={{ flex: 1 }}>
-              <div
-                style={{
-                  color: "#856404",
-                  fontSize: "12px",
-                  fontWeight: "600",
-                  marginBottom: "2px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                }}
-              >
-                <FaEdit size={12} />
-                Editando mensaje
-              </div>
-              <div
-                style={{
-                  color: "#6c757d",
-                  fontSize: "13px",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {editText || "Mensaje original"}
-              </div>
-            </div>
-            <button
-              onClick={handleCancelEdit}
-              style={{
-                backgroundColor: "transparent",
-                border: "none",
-                color: "#856404",
-                cursor: "pointer",
-                fontSize: "18px",
-                padding: "4px 8px",
-                display: "flex",
-                alignItems: "center",
-              }}
-              title="Cancelar edición"
-            >
-              <FaTimes />
-            </button>
-          </div>
-        )}
+        /* Estados de Carga */
+        isUploading={isUploadingFile}
+        isSending={isSending}
+        isRecording={isRecording || isRecordingLocal}
 
-        <div className={`input-group ${isRecordingLocal ? "recording-mode" : ""}`}>
+        /* Respuesta y Edición */
+        replyingTo={replyingTo}
+        onCancelReply={onCancelReply}
+        editingMessage={editingMessageId} /* ChatInput usa truthiness */
+        editText={editText}
+        onEditTextChange={setEditText}
+        onCancelEdit={handleCancelEdit}
+        onSaveEdit={handleSaveEdit}
+        isEditingLoading={isEditingLoading}
 
-          {/* 1. MENÚ DE ADJUNTAR (estilo WhatsApp) */}
-          <AttachMenu
-            onFileSelectEvent={onFileSelect}
-            disabled={!canSendMessages}
-            onCreatePoll={onOpenPollModal}
-          />
+        /* Refs */
+        inputRef={inputRef}
 
-          {/* 2. BOTÓN EMOJI */}
-          <div className="emoji-container" style={{ position: "relative" }} ref={emojiPickerRef}>
-            <button
-              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className={`btn-attach ${!canSendMessages ? "disabled" : ""}`}
-              disabled={!canSendMessages}
-              title="Emojis"
-            >
-              <EmojiIcon className="attach-icon" />
-            </button>
+        /* Grabación (Sync de estado local) */
+        onRecordingStart={() => setIsRecordingLocal(true)}
+        onRecordingStop={() => setIsRecordingLocal(false)}
 
-            {showEmojiPicker && (
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: "50px",
-                  left: "0",
-                  zIndex: 1000,
-                }}
-              >
-                <EmojiPicker
-                  onEmojiClick={handleEmojiClick}
-                  width={320}
-                  height={400}
-                  theme="light"
-                  searchPlaceholder="Buscar emoji..."
-                  previewConfig={{ showPreview: false }}
-                />
-              </div>
-            )}
-          </div>
+        /* Paste */
+        onPaste={handlePaste}
 
-          {/* 3. INPUT DE TEXTO */}
-          <div className="text-input-container" style={{ position: "relative", flex: 1 }}>
-            {/* Overlay de carga al subir archivo */}
-            {isUploadingFile && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  backgroundColor: "rgba(255, 255, 255, 0.8)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  zIndex: 10,
-                  borderRadius: "12px",
-                  color: "ff453a",
-                  fontWeight: "500",
-                  fontSize: "14px",
-                  backdropFilter: "blur(2px)",
-                }}
-              >
-                <div
-                  style={{
-                    width: "16px",
-                    height: "16px",
-                    border: "2px solid ff453a",
-                    borderRightColor: "transparent",
-                    borderRadius: "50%",
-                    animation: "spin 0.75s linear infinite",
-                    marginRight: "8px",
-                  }}
-                ></div>
-                Subiendo archivo...
-              </div>
-            )}
+        /* Polls */
+        onOpenPollModal={onOpenPollModal}
 
-            <textarea
-              ref={inputRef}
-              value={editingMessageId ? editText : input}
-              onChange={(e) => {
-                if (editingMessageId) {
-                  setEditText(e.target.value);
-                } else {
-                  handleInputChange(e);
-                }
-              }}
-              onKeyDown={handleKeyPress}
-              placeholder={
-                isUploadingFile
-                  ? "Subiendo archivo..."
-                  : canSendMessages
-                    ? editingMessageId
-                      ? "Edita tu mensaje..."
-                      : "Escribe un mensaje"
-                    : "Solo puedes monitorear esta conversación"
+        /* Menciones */
+        isGroup={isGroup}
+        showMentionSuggestions={showMentionSuggestions}
+        mentionSearch={mentionSearch}
+        mentionSuggestions={
+          /* Lógica de filtrado movida aquí */
+          isGroup && roomUsers
+            ? roomUsers.filter((user) => {
+              let searchName = '';
+              if (typeof user === "string") {
+                searchName = user;
+              } else if (user && typeof user === 'object') {
+                searchName = user.displayName
+                  || ((user.nombre && user.apellido) ? `${user.nombre} ${user.apellido}` : '')
+                  || user.username
+                  || user.nombre
+                  || '';
               }
-              className="message-input"
-              disabled={isRecording || !canSendMessages || isUploadingFile}
-            />
-
-            {/* Sugerencias de menciones (solo si aplica) */}
-            {showMentionSuggestions && isGroup && roomUsers && roomUsers.length > 0 && (
-              <div
-                className="mention-suggestions"
-                style={{
-                  position: "absolute",
-                  bottom: "100%",
-                  left: "0",
-                  right: "0",
-                  maxHeight: "200px",
-                  overflowY: "auto",
-                  backgroundColor: "#fff",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "8px",
-                  boxShadow: "0 -4px 12px rgba(0, 0, 0, 0.1)",
-                  marginBottom: "8px",
-                  zIndex: 1000,
-                }}
-              >
-                {/* Lógica de renderizado de menciones */}
-                {roomUsers
-                  .filter((user) => {
-                    // Obtener nombre para búsqueda (soporta múltiples formatos)
-                    let searchName = '';
-                    if (typeof user === "string") {
-                      searchName = user;
-                    } else if (user && typeof user === 'object') {
-                      // Prioridad: displayName > nombre+apellido > username > nombre
-                      searchName = user.displayName
-                        || ((user.nombre && user.apellido) ? `${user.nombre} ${user.apellido}` : '')
-                        || user.username
-                        || user.nombre
-                        || '';
-                    }
-                    if (!searchName) return false;
-                    const searchLower = searchName.toLowerCase();
-                    return searchLower.includes(mentionSearch) && searchName !== currentUsername;
-                  })
-                  .map((user, index) => (
-                    <div
-                      key={index}
-                      onClick={() => handleMentionSelect(user)}
-                      style={{
-                        padding: "10px 16px",
-                        cursor: "pointer",
-                        borderBottom: "1px solid #f3f4f6",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        color: "#333", //  FIX: Color de texto explícito
-                        backgroundColor: "#fff",
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f0f7ff"}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#fff"}
-                    >
-                      {/* Avatar simple para la sugerencia */}
-                      <div style={{
-                        width: "28px",
-                        height: "28px",
-                        borderRadius: "50%",
-                        background: "#1976d2",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "12px",
-                        color: "#fff",
-                        fontWeight: "600"
-                      }}>
-                        {(typeof user === "object" ? (user.displayName || user.nombre || user.username || "@").charAt(0) : user.charAt(0)).toUpperCase()}
-                      </div>
-                      <div style={{ color: "#333", fontWeight: "500", fontSize: "14px" }}>
-                        {typeof user === "object" ? (user.displayName || (user.nombre && user.apellido ? `${user.nombre} ${user.apellido}` : user.nombre || user.username)) : user}
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            )}
-          </div>
-
-          {/* 4. BOTÓN ENVIAR O MICRÓFONO (estilo WhatsApp) */}
-          {/* Mostrar micrófono cuando no hay texto, botón enviar cuando hay texto */}
-          {(!input.trim() && mediaFiles.length === 0 && !editingMessageId) ? (
-            /* MICRÓFONO - cuando no hay texto */
-            <VoiceRecorder
-              onSendAudio={onSendVoiceMessage}
-              canSendMessages={canSendMessages}
-              onRecordingStart={() => setIsRecordingLocal(true)}
-              onRecordingStop={() => setIsRecordingLocal(false)}
-            />
-          ) : (
-            /* BOTÓN ENVIAR - cuando hay texto o archivos */
-            <button
-              onClick={editingMessageId ? handleSaveEdit : onSendMessage}
-              className="btn-send"
-              disabled={
-                editingMessageId
-                  ? !editText.trim() || isEditingLoading
-                  : ((!input.trim() && mediaFiles.length === 0) ||
-                    !canSendMessages ||
-                    isUploadingFile ||
-                    isSending)
-              }
-              title={
-                editingMessageId
-                  ? isEditingLoading
-                    ? "Guardando..."
-                    : "Guardar cambios"
-                  : isSending
-                    ? "Enviando..."
-                    : isUploadingFile
-                      ? "Subiendo archivo..."
-                      : !canSendMessages
-                        ? "Solo lectura"
-                        : "Enviar mensaje"
-              }
-            >
-              {editingMessageId ? (
-                <>
-                  <span className="send-text">
-                    {isEditingLoading ? "Guardando..." : "Guardar cambios"}
-                  </span>
-                  <FaEdit className="send-icon" />
-                </>
-              ) : isUploadingFile || isSending ? (
-                <>
-                  <span className="send-text">{isUploadingFile ? "Subiendo..." : "Enviando..."}</span>
-                  <div className="send-icon" style={{ animation: "pulse 1s infinite", opacity: 0.7 }}>
-                    <FaPaperPlane />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <span className="send-text">Enviar mensaje</span>
-                  <FaPaperPlane className="send-icon" />
-                </>
-              )}
-            </button>
-          )}
-        </div>
-      </div>
+              if (!searchName) return false;
+              const searchLower = searchName.toLowerCase();
+              return searchLower.includes(mentionSearch) && searchName !== currentUsername;
+            })
+            : []
+        }
+        onMentionSelect={handleMentionSelect}
+      />
 
       {/* Modal de información de lectura */}
       {showMessageInfo && (
