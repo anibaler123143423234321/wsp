@@ -10,7 +10,9 @@
 }
 
 .members-panel-header {
-    padding: 14.5px 20px;
+    height: 50px;
+    /* Altura fija igual a ThreadPanel/ThreadsListPanel */
+    padding: 0 12px;
     background: #ffffff;
     color: #1f2937;
     display: flex;
@@ -21,7 +23,8 @@
 
 .members-panel-title {
     margin: 0;
-    font-size: 16px;
+    font-size: 15px;
+    /* Reducido para match */
     font-weight: 600;
     color: #111b21;
 }
@@ -30,18 +33,22 @@
     background: transparent;
     border: none;
     color: #54656f;
-    font-size: 20px;
+    font-size: 18px;
+    /* Icono más pequeño */
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 8px;
+    padding: 6px;
+    /* Padding reducido */
     border-radius: 50%;
     transition: background 0.2s;
 }
 
 .members-panel-close-btn:hover {
     background-color: #f0f2f5;
+    /* Color hover consistente */
+    color: #111b21;
 }
 
 .members-panel-content {

@@ -32,6 +32,7 @@ import MediaPreviewList from '../MediaPreviewList/MediaPreviewList'; // Utilidad
 import { handleSmartPaste } from '../utils/pasteHandler'; // Utilidad reutilizable
 import ReactionPicker from '../../../../components/ReactionPicker'; // Componente reutilizable
 import ChatInput from '../../../../components/ChatInput/ChatInput'; //  NUEVO: Componente reutilizable de input
+import AddReactionButton from '../../../../components/AddReactionButton/AddReactionButton'; // Componente reutilizable botón +
 
 import "./ChatContent.css";
 
@@ -905,19 +906,18 @@ const ChatContent = ({
       if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
         setShowEmojiPicker(false);
       }
-      if (reactionPickerRef.current && !reactionPickerRef.current.contains(event.target)) {
-        setShowReactionPicker(null);
-      }
+      // Nota: ReactionPicker maneja su propio cierre con delay interno de 100ms
+      // No interferir aquí ya que el ref nunca se pasa al componente hijo
     };
 
-    if (showEmojiPicker || showReactionPicker) {
+    if (showEmojiPicker) {
       document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [showEmojiPicker, showReactionPicker]);
+  }, [showEmojiPicker]);
 
   // ============================================================
   // HANDLER - Reacciones a mensajes
@@ -2021,7 +2021,7 @@ const ChatContent = ({
           {/* REACCIONES (Debajo del texto) */}
           {
             message.reactions && message.reactions.length > 0 && (
-              <div className="reactions-row" style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
+              <div className="reactions-row" style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
                 {Object.entries(message.reactions.reduce((acc, r) => {
                   if (!acc[r.emoji]) acc[r.emoji] = [];
                   acc[r.emoji].push(r.username); return acc;
@@ -2039,6 +2039,14 @@ const ChatContent = ({
                     {emoji} <span style={{ fontSize: '10px', fontWeight: 'bold', marginLeft: '4px' }}>{users.length}</span>
                   </div>
                 ))}
+                {/* Botón "+" para agregar más reacciones (Abre directo el picker completo) */}
+                <AddReactionButton
+                  onClick={() => {
+                    // Abrir directamente el picker global
+                    setShowEmojiPicker(true);
+                    window.currentReactionMessage = message;
+                  }}
+                />
               </div>
             )
           }
@@ -2906,6 +2914,31 @@ const ChatContent = ({
           </>
         )}
       </div>
+
+      {/* Emoji Picker Global para Reacciones completas */}
+      {showEmojiPicker && (
+        <div
+          ref={emojiPickerRef}
+          style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 10000,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+            borderRadius: '12px'
+          }}
+        >
+          <EmojiPicker
+            onEmojiClick={handleEmojiClick}
+            autoFocusSearch={false}
+            width={320}
+            height={400}
+            searchPlaceholder="Buscar emoji..."
+            previewConfig={{ showPreview: false }}
+          />
+        </div>
+      )}
 
       <ChatInput
         value={editingMessageId ? editText : input}

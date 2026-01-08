@@ -41,15 +41,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 50px;
-  /* Matched to ChatHeader */
-  padding: 0 16px;
-  /* Matched to ChatHeader content */
+  height: 46px;
+  /* Reducido de 50px */
+  padding: 0 12px;
   border-bottom: 1px solid #e0e0e0;
   background: #ffffff;
-  gap: 12px;
+  gap: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  /* Matched to ChatHeader */
   z-index: 10;
 }
 
@@ -57,8 +55,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border: none;
   background: transparent;
   border-radius: 50%;
@@ -77,20 +75,21 @@
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  font-size: 16px;
+  font-size: 15px;
+  /* Reducido ligeramente */
   color: #333;
   flex: 1;
 }
 
 .thread-icon {
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .thread-close-btn {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px;
+  padding: 6px;
   color: #666;
   font-size: 18px;
   border-radius: 4px;
@@ -103,41 +102,43 @@
 }
 
 .thread-main-message {
-  padding: 16px;
-  margin: 12px;
+  padding: 10px;
+  /* Más compacto */
+  margin: 6px;
   background: #fff;
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  border-left: 4px solid #dc2626;
+  border-left: 3px solid #dc2626;
 }
 
 .thread-main-message-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 .thread-main-message-header strong {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
 }
 
 .thread-main-message-time {
-  font-size: 11px;
+  font-size: 10px;
   color: #8696a0;
   background: #f0f2f5;
-  padding: 3px 8px;
-  border-radius: 10px;
+  padding: 2px 5px;
+  border-radius: 6px;
 }
 
 .thread-main-message-text {
   color: #333;
-  font-size: 14px;
-  line-height: 1.5;
-  margin-bottom: 12px;
+  font-size: 13px;
+  line-height: 1.35;
+  margin-bottom: 6px;
   word-wrap: break-word;
-  max-height: 80px;
+  max-height: 70px;
+  /* Menos altura max */
   overflow-y: auto;
 }
 
@@ -161,32 +162,34 @@
 }
 
 .thread-main-message-media {
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 
 .thread-main-message-media img,
 .thread-main-message-media video {
-  max-width: 200px;
-  max-height: 200px;
+  max-width: 160px;
+  /* Imagen principal más pequeña */
+  max-height: 160px;
   border-radius: 8px;
   object-fit: cover;
 }
 
 .thread-replies-count {
   display: inline-block;
-  font-size: 12px;
+  font-size: 11px;
   color: #dc2626;
   font-weight: 600;
   background: #fef2f2;
-  padding: 4px 10px;
-  border-radius: 12px;
-  margin-top: 4px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  margin-top: 2px;
 }
 
 .thread-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 8px;
+  /* Padding reducido */
   background: #f0f2f5;
 }
 
@@ -197,34 +200,36 @@
   align-items: center;
   height: 100%;
   color: #999;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .thread-empty p {
   text-align: center;
-  padding: 20px;
+  padding: 16px;
 }
 
 .thread-message {
-  margin-bottom: 16px;
+  margin-bottom: 4px;
+  /* Aún menos margen */
   animation: fadeIn 0.3s ease-out;
   display: flex;
-  gap: 10px;
+  gap: 6px;
   align-items: flex-start;
 }
 
 /* Avatar del mensaje en hilo */
 .thread-message-avatar {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
+  width: 28px;
+  /* Avatar más pequeño */
+  height: 28px;
+  min-width: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .thread-message-content {
@@ -237,8 +242,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 16px 0;
-  padding: 0 20px;
+  margin: 10px 0;
+  padding: 0 12px;
   width: 100%;
 }
 
@@ -251,21 +256,21 @@
 }
 
 .thread-date-separator::before {
-  margin-right: 12px;
+  margin-right: 8px;
 }
 
 .thread-date-separator::after {
-  margin-left: 12px;
+  margin-left: 8px;
 }
 
 .thread-date-separator-content {
-  font-size: 12px;
-  padding: 6px 14px;
+  font-size: 10px;
+  padding: 2px 8px;
   color: #dc2626;
   font-weight: 600;
   white-space: nowrap;
   background-color: #fef2f2;
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 @keyframes fadeIn {
@@ -284,44 +289,45 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .thread-message-header strong {
-  font-size: 13px;
+  font-size: 12px;
+  /* Texto nombre más pequeño */
   color: #54656F;
 }
 
 .thread-message-time {
-  font-size: 11px;
+  font-size: 9px;
   color: #999;
 }
 
 .thread-message-text {
-  font-size: 14px;
-  line-height: 1.4;
-  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.3;
+  padding: 6px 10px;
   border-radius: 8px;
   word-wrap: break-word;
   max-width: 100%;
 }
 
 .thread-message-media {
-  margin-top: 4px;
+  margin-top: 2px;
   max-width: 100%;
 }
 
 .thread-message-media img,
 .thread-message-media video {
-  max-width: 180px;
-  max-height: 180px;
-  border-radius: 8px;
-  margin-bottom: 4px;
+  max-width: 160px;
+  max-height: 160px;
+  border-radius: 6px;
+  margin-bottom: 2px;
   object-fit: cover;
 }
 
 .thread-message-media .thread-message-text {
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .thread-message-own .thread-message-header strong {
@@ -338,7 +344,7 @@
 }
 
 .thread-input-container {
-  padding: 5px 8px;
+  padding: 4px 8px;
   background: #ffffff;
   border-top: 1px solid #e5e7eb;
   display: flex;
@@ -351,20 +357,20 @@
 .thread-media-preview {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 8px;
+  gap: 6px;
+  padding: 6px;
   background: #f8f9fa;
   border-radius: 8px;
-  margin-bottom: 8px;
-  max-height: 150px;
+  margin-bottom: 4px;
+  max-height: 120px;
   overflow-y: auto;
 }
 
 .thread-media-preview-item {
   position: relative;
-  width: 80px;
-  height: 80px;
-  border-radius: 8px;
+  width: 64px;
+  height: 64px;
+  border-radius: 6px;
   overflow: hidden;
   background: white;
   border: 1px solid #e0e0e0;
@@ -382,17 +388,17 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  padding: 4px;
+  padding: 2px;
   text-align: center;
 }
 
 .thread-preview-icon {
-  font-size: 24px;
-  margin-bottom: 4px;
+  font-size: 20px;
+  margin-bottom: 2px;
 }
 
 .thread-preview-name {
-  font-size: 9px;
+  font-size: 8px;
   color: #666;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -402,26 +408,26 @@
 }
 
 .thread-preview-size {
-  font-size: 8px;
+  font-size: 7px;
   color: #999;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .thread-remove-media-btn {
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: 1px;
+  right: 1px;
   background: rgba(0, 0, 0, 0.6);
   color: white;
   border: none;
   border-radius: 50%;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 10px;
+  font-size: 9px;
   transition: background 0.2s;
 }
 

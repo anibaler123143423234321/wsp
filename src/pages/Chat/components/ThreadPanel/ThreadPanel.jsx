@@ -21,6 +21,7 @@ import AttachMenu from "../AttachMenu/AttachMenu"; //  NUEVO: Menú de adjuntar 
 import ImageViewer from "../ChatContent/ImageViewer"; // NUEVO: Visor de imágenes
 import MediaPreviewList from '../MediaPreviewList/MediaPreviewList'; // Utilidad reutilizable
 import ReactionPicker from '../../../../components/ReactionPicker'; // Componente reutilizable
+import AddReactionButton from '../../../../components/AddReactionButton/AddReactionButton'; // Componente reutilizable botón +
 import { handleSmartPaste } from "../utils/pasteHandler"; // Utilidad reutilizable
 
 import "./ThreadPanel.css";
@@ -1437,7 +1438,7 @@ const ThreadPanel = ({
 
                     {/*  NUEVO: Mostrar reacciones (igual que en ChatContent) */}
                     {msg.reactions && msg.reactions.length > 0 && (
-                      <div className="thread-reactions-row" style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
+                      <div className="thread-reactions-row" style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
                         {Object.entries(msg.reactions.reduce((acc, r) => {
                           if (!acc[r.emoji]) acc[r.emoji] = [];
                           acc[r.emoji].push(r.username);
@@ -1465,6 +1466,14 @@ const ThreadPanel = ({
                             <span style={{ fontSize: '10px', fontWeight: 'bold', marginLeft: '2px', color: '#54656f' }}>{users.length}</span>
                           </div>
                         ))}
+                        {/* Botón "+" para agregar más reacciones (Abre directo el picker completo) */}
+                        <AddReactionButton
+                          onClick={() => {
+                            // Abrir directamente el picker global
+                            setShowEmojiPicker(true);
+                            window.currentReactionMessage = msg;
+                          }}
+                        />
                       </div>
                     )}
 

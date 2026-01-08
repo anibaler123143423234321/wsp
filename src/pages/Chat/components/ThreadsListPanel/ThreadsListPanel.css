@@ -24,7 +24,8 @@
   align-items: center;
   justify-content: space-between;
   height: 50px;
-  padding: 0 16px;
+  /* Reducido de 50px */
+  padding: 0 12px;
   border-bottom: 1px solid #e0e0e0;
   background-color: #ffffff;
 }
@@ -32,24 +33,28 @@
 .threads-list-title {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   font-weight: 600;
-  font-size: 16px;
+  font-size: 15px;
+  /* Reducido */
   color: #111b21;
 }
 
 .threads-list-title svg {
   color: #54656f;
+  font-size: 18px;
+  /* Icono más pequeño */
 }
 
 .threads-list-close {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px;
+  padding: 6px;
   border-radius: 50%;
   color: #54656f;
   transition: background-color 0.2s;
+  font-size: 18px;
 }
 
 .threads-list-close:hover {
@@ -59,7 +64,8 @@
 .threads-list-content {
   flex: 1;
   overflow-y: auto;
-  padding: 8px;
+  padding: 6px;
+  /* Padding reducido */
   background-color: #f0f2f5;
 }
 
@@ -70,10 +76,10 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;
+  padding: 30px 16px;
   color: #667781;
   text-align: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .threads-list-loading .spinner {
@@ -103,25 +109,30 @@
 .threads-list-items {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 1px;
+  /* Gap mínimo absoluto */
 }
 
 .thread-list-item {
   display: flex;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 8px;
+  gap: 8px;
+  /* Menor gap */
+  padding: 6px 8px;
+  /* Padding ultra-reducido */
+  border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.2s;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
 }
 
 .thread-list-item:hover {
-  background-color: #f0f2f5;
+  background-color: #f5f6f6;
 }
 
 .thread-item-avatar {
-  width: 48px;
-  height: 48px;
+  width: 32px;
+  /* Reducido a 32px (ultra-compacto) */
+  height: 32px;
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
@@ -140,7 +151,8 @@
 .thread-item-avatar span {
   color: white;
   font-weight: 600;
-  font-size: 18px;
+  font-size: 13px;
+  /* Fuente ajustada */
 }
 
 .thread-item-content {
@@ -148,45 +160,54 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0px;
+  /* Sin gap extra */
+  justify-content: center;
 }
 
 .thread-item-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: baseline;
+  /* Alinear texto base */
 }
 
 .thread-item-sender {
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
+  /* Texto compacto */
   color: #111b21;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.2;
 }
 
 .thread-item-date {
-  font-size: 12px;
+  font-size: 10px;
+  /* Fecha mínima */
   color: #667781;
   flex-shrink: 0;
 }
 
 .thread-item-message {
-  font-size: 13px;
+  font-size: 12px;
   color: #667781;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.25;
 }
 
 .thread-item-count {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 3px;
+  font-size: 10px;
+  /* Count minimalista */
   color: #00a884;
   font-weight: 500;
+  margin-top: 1px;
 }
 
 @media (max-width: 768px) {
@@ -235,6 +256,7 @@ html.dark .threads-list-close:hover {
 /* Contenido */
 html.dark .threads-list-content {
   background-color: #1a1a1a !important;
+  border: none !important;
 }
 
 /* Estados vacío/loading/error */
@@ -247,6 +269,7 @@ html.dark .threads-list-empty {
 /* Items de la lista */
 html.dark .thread-list-item {
   background-color: #1f1f1f !important;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2) !important;
 }
 
 html.dark .thread-list-item:hover {

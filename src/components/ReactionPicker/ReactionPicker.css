@@ -4,10 +4,6 @@
 
 .reaction-picker-popup {
     position: absolute;
-    top: 50%;
-    right: 100%;
-    margin-right: 8px;
-    transform: translateY(-50%);
     background-color: #ffffff !important;
     border-radius: 28px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
@@ -15,20 +11,40 @@
     display: flex;
     gap: 4px;
     z-index: 9999;
-    animation: reactionPickerFadeIn 0.15s ease-out;
     white-space: nowrap;
 }
 
-/* Posicionamiento - todos al lado izquierdo ahora */
-.reaction-picker-popup.position-left,
-.reaction-picker-popup.position-center,
-.reaction-picker-popup.position-right {
+/* Posicionamiento - lado izquierdo */
+.reaction-picker-popup.position-left {
     top: 50%;
     right: 100%;
     left: auto;
     bottom: auto;
     margin-right: 8px;
     transform: translateY(-50%);
+    animation: reactionPickerFadeIn 0.15s ease-out;
+}
+
+.reaction-picker-popup.position-center {
+    top: 50%;
+    right: 100%;
+    left: auto;
+    bottom: auto;
+    margin-right: 8px;
+    transform: translateY(-50%);
+    animation: reactionPickerFadeInCenter 0.15s ease-out;
+}
+
+/* Posicionamiento para picker inline (desde fila de reacciones) - ARRIBA del botón */
+.reaction-picker-popup.position-right {
+    top: auto !important;
+    bottom: 100% !important;
+    right: 0 !important;
+    left: auto !important;
+    margin-right: 0 !important;
+    margin-bottom: 8px;
+    transform: none !important;
+    /* animation removida para evitar saltos */
 }
 
 /* Botones de emoji */
@@ -62,44 +78,36 @@
 @keyframes reactionPickerFadeIn {
     from {
         opacity: 0;
-        transform: translateY(-4px) translateX(-85%);
+        transform: translateY(-40%);
     }
 
     to {
         opacity: 1;
-        transform: translateY(0) translateX(-85%);
+        transform: translateY(-50%);
     }
-}
-
-.reaction-picker-popup.position-center {
-    animation: reactionPickerFadeInCenter 0.2s ease-out;
 }
 
 @keyframes reactionPickerFadeInCenter {
     from {
         opacity: 0;
-        transform: translateY(-4px) translateX(-50%);
+        transform: translateY(-40%) translateX(-50%);
     }
 
     to {
         opacity: 1;
-        transform: translateY(0) translateX(-50%);
+        transform: translateY(-50%) translateX(-50%);
     }
-}
-
-.reaction-picker-popup.position-right {
-    animation: reactionPickerFadeInRight 0.2s ease-out;
 }
 
 @keyframes reactionPickerFadeInRight {
     from {
         opacity: 0;
-        transform: translateY(-4px);
+        transform: none;
     }
 
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: none;
     }
 }
 
