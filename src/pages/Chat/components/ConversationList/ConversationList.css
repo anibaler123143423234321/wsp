@@ -1123,3 +1123,26 @@ html.dark p.truncate,
 html.dark .text-gray-600.truncate {
   color: #9ca3af !important;
 }
+
+/* Selected Conversation Style */
+.selected-conversation {
+  background: rgba(244, 67, 54, 0.08) !important;
+  /* Soft red background */
+  border-left: 4px solid #F44336 !important;
+  /* Solid red accent border */
+  transition: all 0.2s ease;
+}
+
+.selected-conversation:hover {
+  background: rgba(244, 67, 54, 0.12) !important;
+}
+
+/* Dark mode override for selected conversation */
+html.dark .selected-conversation {
+  background: rgba(244, 67, 54, 0.15) !important;
+  border-left-color: #F44336 !important;
+}
+
+html.dark .selected-conversation:hover {
+  background: rgba(244, 67, 54, 0.2) !important;
+}

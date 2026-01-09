@@ -146,7 +146,8 @@ const ConversationList = ({
   roomsLoading = false,
   onLoadUserRooms,
   onGoToRoomsPage,
-  isCompact = false  // <- AGREGAR ESTA LÍNEA
+  isCompact = false,
+  to //  <- AGREGAR ESTA LÍNEA
 }) => {
   const [activeModule, setActiveModule] = useState('chats');
   const [searchTerm, setSearchTerm] = useState('');
@@ -1393,7 +1394,7 @@ const ConversationList = ({
                               <div
                                 key={`fav-room-${room.id}`}
                                 id={chatId}
-                                className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer ${currentRoomCode === room.roomCode ? 'bg-[#e7f3f0]' : ''} ${isHighlighted ? 'highlighted-chat' : ''}`}
+                                className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer ${currentRoomCode === room.roomCode ? 'selected-conversation' : ''} ${isHighlighted ? 'highlighted-chat' : ''}`}
                                 style={{ padding: '4px 12px', gap: '6px', minHeight: '40px' }}
                                 onClick={() => onRoomSelect && onRoomSelect(room)}
                               >
@@ -1428,11 +1429,12 @@ const ConversationList = ({
                             const getInitials = (name) => { const parts = name?.split(' ') || []; return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : (name?.[0]?.toUpperCase() || 'U'); };
                             const chatId = `conv-${conv.id}`;
                             const isHighlighted = highlightedChatId === chatId;
+                            const isSelected = (!isGroup && to && otherParticipant?.toLowerCase().trim() === to?.toLowerCase().trim()) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
                             return (
                               <div
                                 key={`fav-conv-${conv.id}`}
                                 id={chatId}
-                                className={`flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer ${isHighlighted ? 'highlighted-chat' : ''}`}
+                                className={`flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer ${isSelected ? 'selected-conversation' : ''} ${isHighlighted ? 'highlighted-chat' : ''}`}
                                 style={{ padding: '4px 12px', gap: '6px', minHeight: '40px' }}
                                 onClick={() => onUserSelect && onUserSelect(otherParticipant, null, conv)}
                               >
@@ -1442,7 +1444,7 @@ const ConversationList = ({
                                 <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '4px', display: isCompact ? 'none' : 'flex' }}>
                                   <div className="flex items-center justify-between gap-2">
                                     <div className="flex flex-col gap-1 flex-1 min-w-0">
-                                      <span className="flex-shrink-0 text-yellow-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px' }}><FaStar size={10} /> CHAT</span>
+                                      <span className="flex-shrink-0 text-yellow-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px' }}><FaStar size={10} /> CHAT ASIGNADO</span>
                                       <h3 className="font-semibold text-[#111] truncate" style={{ fontSize: '11.5px', fontWeight: 600 }}>{otherParticipant}</h3>
                                     </div>
                                     <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-1 hover:bg-gray-200 rounded-full transition-colors" style={{ color: '#ff453a' }}><FaStar /></button>
@@ -1585,7 +1587,7 @@ const ConversationList = ({
                               <div
                                 key={room.id}
                                 id={chatId}
-                                className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer ${currentRoomCode === room.roomCode ? 'bg-[#e7f3f0]' : ''} ${isHighlighted ? 'highlighted-chat' : ''}`}
+                                className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer ${currentRoomCode === room.roomCode ? 'selected-conversation' : ''} ${isHighlighted ? 'highlighted-chat' : ''}`}
                                 style={{ padding: '4px 12px', gap: '6px', minHeight: '40px' }}
                                 onClick={() => onRoomSelect && onRoomSelect(room)}
                               >
@@ -1755,11 +1757,13 @@ const ConversationList = ({
                             const chatId = `conv-${conv.id}`;
                             const isHighlighted = highlightedChatId === chatId;
 
+                            const isSelected = (!isGroup && to && participants.some(p => p?.toLowerCase().trim() === to?.toLowerCase().trim())) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
+
                             return (
                               <div
                                 key={conv.id}
                                 id={chatId}
-                                className={`flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group overflow-visible relative ${isHighlighted ? 'highlighted-chat' : ''}`}
+                                className={`flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group overflow-visible relative ${isSelected ? 'selected-conversation' : ''} ${isHighlighted ? 'highlighted-chat' : ''}`}
                                 style={{ padding: '4px 12px', gap: '6px', minHeight: '40px', display: 'flex', alignItems: 'flex-start', width: '100%', minWidth: 0, position: 'relative' }}
                                 onClick={() => { if (onUserSelect) onUserSelect(displayName, null, conv); }}
                               >

@@ -188,6 +188,7 @@ const Sidebar = ({
             onRoomsLimitChange={onRoomsLimitChange}
             onGoToRoomsPage={onGoToRoomsPage}
             isCompact={isCompactMode}
+            to={to}
           />
         </div>
 
