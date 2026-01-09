@@ -60,7 +60,9 @@ const Sidebar = ({
 }) => {
 
   // Estado para el ancho del sidebar
-  const [sidebarWidth, setSidebarWidth] = useState(sidebarCollapsed ? 450 : 540);
+  const initialWidth = sidebarCollapsed ? 450 : 540;
+  const [sidebarWidth, setSidebarWidth] = useState(initialWidth);
+  const maxWidth = useRef(initialWidth); // 🔥 Ancho máximo = ancho inicial
 
   // Modo compacto cuando el ancho es menor a 300px
   const isCompactMode = sidebarWidth <= 300;
@@ -94,7 +96,8 @@ const Sidebar = ({
     if (!isResizing.current) return;
     const deltaX = e.clientX - startX.current;
     const newWidth = startWidth.current + deltaX;
-    if (newWidth >= 170 && newWidth <= 800) {
+    // 🔥 Usamos maxWidth.current como límite máximo en lugar de 800
+    if (newWidth >= 170 && newWidth <= maxWidth.current) {
       setSidebarWidth(newWidth);
     }
   }, []);

@@ -1402,6 +1402,12 @@ const ConversationList = ({
                                   <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold" style={{ width: '32px', height: '32px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '14px', backgroundColor: room.description ? '#A50104' : getAvatarColor(room.name) }}>
                                     {room.description ? <img src={room.description} alt={room.name} className="w-full h-full object-cover" /> : getFirstLetter(room.name)}
                                   </div>
+                                  {/* 🔥 Badge de no leídos para modo compacto */}
+                                  {isCompact && roomUnreadCount > 0 && (
+                                    <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '16px', height: '16px', fontSize: '9px', fontWeight: 'bold', padding: '0 3px' }}>
+                                      {roomUnreadCount > 99 ? '99+' : roomUnreadCount}
+                                    </div>
+                                  )}
                                 </div>
                                 <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px', display: isCompact ? 'none' : 'flex' }}>
                                   <div className="flex items-center justify-between gap-2">
@@ -1440,6 +1446,12 @@ const ConversationList = ({
                               >
                                 <div className="relative flex-shrink-0" style={{ width: '32px', height: '32px' }}>
                                   <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold" style={{ width: '32px', height: '32px', fontSize: '14px', backgroundColor: '#A50104' }}>{getInitials(otherParticipant)}</div>
+                                  {/* 🔥 Badge de no leídos para modo compacto */}
+                                  {isCompact && itemUnreadCount > 0 && (
+                                    <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '16px', height: '16px', fontSize: '9px', fontWeight: 'bold', padding: '0 3px' }}>
+                                      {itemUnreadCount > 99 ? '99+' : itemUnreadCount}
+                                    </div>
+                                  )}
                                 </div>
                                 <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '4px', display: isCompact ? 'none' : 'flex' }}>
                                   <div className="flex items-center justify-between gap-2">
@@ -1599,6 +1611,12 @@ const ConversationList = ({
                                       getFirstLetter(room.name)
                                     )}
                                   </div>
+                                  {/* 🔥 Badge de no leídos para modo compacto */}
+                                  {isCompact && roomUnreadCount > 0 && (
+                                    <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '16px', height: '16px', fontSize: '9px', fontWeight: 'bold', padding: '0 3px' }}>
+                                      {roomUnreadCount > 99 ? '99+' : roomUnreadCount}
+                                    </div>
+                                  )}
                                 </div>
                                 <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px', display: isCompact ? 'none' : 'flex' }}>
                                   <div className="flex items-center justify-between gap-2">
@@ -1772,6 +1790,12 @@ const ConversationList = ({
                                     {otherParticipantPicture ? <img src={otherParticipantPicture} alt={displayName} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = getInitials(displayName); }} /> : getInitials(displayName)}
                                   </div>
                                   <div className="absolute bottom-0 right-0 rounded-full border-2 border-white" style={{ width: '12px', height: '12px', backgroundColor: isOtherParticipantOnline ? '#10b981' : '#9ca3af' }} title={isOtherParticipantOnline ? 'En línea' : 'Desconectado'} />
+                                  {/* 🔥 Badge de no leídos para modo compacto */}
+                                  {isCompact && itemUnreadCount > 0 && (
+                                    <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '16px', height: '16px', fontSize: '9px', fontWeight: 'bold', padding: '0 3px' }}>
+                                      {itemUnreadCount > 99 ? '99+' : itemUnreadCount}
+                                    </div>
+                                  )}
                                 </div>
                                 <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px', display: isCompact ? 'none' : 'flex' }}>
                                   <div className="flex items-center justify-between gap-2">
