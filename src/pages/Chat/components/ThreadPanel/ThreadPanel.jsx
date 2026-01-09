@@ -23,6 +23,8 @@ import MediaPreviewList from '../MediaPreviewList/MediaPreviewList'; // Utilidad
 import ReactionPicker from '../../../../components/ReactionPicker'; // Componente reutilizable
 import AddReactionButton from '../../../../components/AddReactionButton/AddReactionButton'; // Componente reutilizable botón +
 import { handleSmartPaste } from "../utils/pasteHandler"; // Utilidad reutilizable
+import { useMessageSelection } from "../../../../hooks/useMessageSelection"; //  NUEVO: Hook de selección
+import MessageSelectionManager from "../ChatContent/MessageSelectionManager/MessageSelectionManager"; //  NUEVO: Barra de selección
 
 import "./ThreadPanel.css";
 
@@ -144,6 +146,35 @@ const ThreadPanel = ({
   //  NUEVO: Estados para edición de mensajes
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editText, setEditText] = useState("");
+
+  // ============================================================
+  // ESTADOS - Selección múltiple (Usando Hook Personalizado)
+  // ============================================================
+  const {
+    isSelectionMode,
+    selectedMessages,
+    handleEnterSelectionMode: handleEnterSelectionModeHook,
+    handleToggleMessageSelection,
+    handleCancelSelection,
+    setIsSelectionMode,
+    setSelectedMessages
+  } = useMessageSelection();
+
+  //  NUEVO: Manejar Ctrl+Click (o Click en modo selección)
+  const handleMessageClick = (e, msg) => {
+    // Si estamos en modo selección O se presiona Ctrl/Cmd
+    if (isSelectionMode || e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      handleToggleMessageSelection(msg.id);
+      setShowMessageMenu(null); // Asegurar que se cierre el menú
+    }
+  };
+
+  const handleCopyList = () => {
+    setIsSelectionMode(false);
+    setSelectedMessages([]);
+  };
 
   // NUEVO: Estado para el visor de imágenes
   const [imagePreview, setImagePreview] = useState(null);
@@ -1136,6 +1167,18 @@ const ThreadPanel = ({
       onDrop={handleDrop}
       onPaste={handleContainerPaste} //  NUEVO: Paste handler en el div
     >
+      {/*  NUEVO: Barra de selección de mensajes - MOVIDO AL TOPE PERO DEBAJO DEL HEADER */}
+      {isSelectionMode && (
+        <div style={{ position: 'absolute', top: '50px', left: 0, width: '100%', zIndex: 2000 }}>
+          <MessageSelectionManager
+            selectedMessages={selectedMessages}
+            allMessages={threadMessages}
+            onCopyList={handleCopyList}
+            onCancel={handleCancelSelection}
+          />
+        </div>
+      )}
+
       {/* Renderizar Image Viewer si hay una imagen seleccionada */}
       {imagePreview && (
         <ImageViewer
@@ -1166,7 +1209,10 @@ const ThreadPanel = ({
         </button>
       </div>
 
-      <div className="thread-main-message">
+      <div
+        className="thread-main-message"
+        style={{ marginTop: isSelectionMode ? '54px' : '6px' }}
+      >
         <div className="thread-main-message-header">
           <strong style={{ color: getUserNameColor(message.from, message.from === currentUsername) }}>
             {message.from}
@@ -1289,7 +1335,17 @@ const ThreadPanel = ({
                 <div
                   key={msg.id || index}
                   className={`thread-message ${isOwnMessage ? "thread-message-own" : "thread-message-other"}`}
+                  onClick={(e) => handleMessageClick(e, msg)} //  NUEVO: Handler para selección
+                  style={{
+                    cursor: (isSelectionMode || 'pointer') // Mostrar puntero
+                  }}
                 >
+                  {/* Visual checkbox indicator if needed, similar to ChatContent */}
+                  {isSelectionMode && (
+                    <div className="message-checkbox-wrapper" onClick={(e) => { e.stopPropagation(); handleToggleMessageSelection(msg.id); }} style={{ margin: '0 8px' }}>
+                      <input type="checkbox" checked={selectedMessages.includes(msg.id)} onChange={() => { }} />
+                    </div>
+                  )}
                   {/* Avatar */}
                   <div
                     className="thread-message-avatar"
@@ -1718,6 +1774,7 @@ const ThreadPanel = ({
             </button>
           </div>
         )}
+
         {/* Vista previa de archivos */}
         {mediaFiles.length > 0 && (
           <MediaPreviewList
