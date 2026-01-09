@@ -33,7 +33,7 @@ import { handleSmartPaste } from '../utils/pasteHandler'; // Utilidad reutilizab
 import ReactionPicker from '../../../../components/ReactionPicker'; // Componente reutilizable
 import ChatInput from '../../../../components/ChatInput/ChatInput'; //  NUEVO: Componente reutilizable de input
 import AddReactionButton from '../../../../components/AddReactionButton/AddReactionButton'; // Componente reutilizable botón +
-
+import { useMessageSelection } from '../../../../hooks/useMessageSelection'; // Hook personalizado
 import "./ChatContent.css";
 
 // Función para formatear tiempo
@@ -331,10 +331,17 @@ const ChatContent = ({
   const [mentionCursorPosition, setMentionCursorPosition] = useState(0);
 
   // ============================================================
-  // ESTADOS - Selección múltiple
+  // ESTADOS - Selección múltiple (Usando Hook Personalizado)
   // ============================================================
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [selectedMessages, setSelectedMessages] = useState([]);
+  const {
+    isSelectionMode,
+    selectedMessages,
+    handleEnterSelectionMode: handleEnterSelectionModeHook,
+    handleToggleMessageSelection,
+    handleCancelSelection,
+    setIsSelectionMode,
+    setSelectedMessages
+  } = useMessageSelection();
 
   //  NUEVOS ESTADOS - Modal de reenvío
   const [showForwardModal, setShowForwardModal] = useState(false);
@@ -356,23 +363,24 @@ const ChatContent = ({
   // HANDLERS - Selección múltiple de mensajes
   // ============================================================
   const handleEnterSelectionMode = () => {
-    setIsSelectionMode(true);
-    setSelectedMessages([]);
+    handleEnterSelectionModeHook();
     setShowMessageMenu(null);
   };
 
-  const handleToggleMessageSelection = (messageId) => {
-    setSelectedMessages(prev =>
-      prev.includes(messageId)
-        ? prev.filter(id => id !== messageId)
-        : [...prev, messageId]
-    );
+  //  NUEVO: Manejar Ctrl+Click (o Click en modo selección)
+  const handleMessageClick = (e, message) => {
+    // Si estamos en modo selección O se presiona Ctrl/Cmd
+    if (isSelectionMode || e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      handleToggleMessageSelection(message.id);
+      setShowMessageMenu(null); // Asegurar que se cierre el menú
+    }
   };
 
-  const handleCancelSelection = () => {
-    setIsSelectionMode(false);
-    setSelectedMessages([]);
-  };
+  // const handleToggleMessageSelection = (messageId) => { ... } // Reemplazado por el hook
+
+  // const handleCancelSelection = () => { ... } // Reemplazado por el hook
 
   const handleCopyList = () => {
     setIsSelectionMode(false);
@@ -1718,8 +1726,10 @@ const ChatContent = ({
           position: 'relative',
           zIndex: isMenuOpen ? 100 : 1,
           marginBottom: '2px', // Reducir espacio entre mensajes
-          paddingBottom: '2px' // Reducir padding interno
+          paddingBottom: '2px', // Reducir padding interno
+          cursor: (isSelectionMode || 'pointer') // Mostrar puntero si se puede seleccionar (?) - Mejor dejar default
         }}
+        onClick={(e) => handleMessageClick(e, message)} //  NUEVO: Click handler para selección
       >
         {/* Checkbox de selección */}
         {isSelectionMode && (
