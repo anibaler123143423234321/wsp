@@ -346,6 +346,16 @@ const ChatPage = () => {
     if (chatState.isGroup && chatState.currentRoomCode && messages.length > 0) {
       const roomKey = `room:${chatState.currentRoomCode}`;
       if (lastMarkedChatRef.current !== roomKey) {
+
+        // 🔥 OPTIMIZACIÓN: Verificar si realmente hay mensajes no leídos en el grupo
+        const roomUnread = chatState.unreadMessages?.[chatState.currentRoomCode] || 0;
+
+        if (roomUnread === 0) {
+          lastMarkedChatRef.current = roomKey;
+          return;
+        }
+
+        console.log(`📝 Marcando grupo como leído. Unread: ${roomUnread}`);
         lastMarkedChatRef.current = roomKey;
         markRoomMessagesAsRead(chatState.currentRoomCode);
       }
@@ -357,6 +367,33 @@ const ChatPage = () => {
       const conversationKey = `user:${chatState.to}`;
 
       if (lastMarkedChatRef.current !== conversationKey) {
+
+        // 🔥 OPTIMIZACIÓN: Verificar si realmente hay mensajes no leídos antes de llamar a la API
+        const conversation = chatState.assignedConversations.find(c =>
+          c.participants && c.participants.some(p =>
+            p?.toLowerCase().trim() === chatState.to?.toLowerCase().trim()
+          )
+        );
+
+        if (conversation) {
+          // Obtener conteo actual (Socket o DB)
+          const currentUnreadCount = chatState.unreadMessages?.[conversation.id] !== undefined
+            ? chatState.unreadMessages[conversation.id]
+            : (conversation.unreadCount || 0);
+
+          // Si el conteo es 0, NO hacemos nada (evitamos API call innecesario)
+          if (currentUnreadCount === 0) {
+            // Marcamos como "visitado" en ref para no chequear en cada render, pero no llamamos API
+            lastMarkedChatRef.current = conversationKey;
+            return;
+          }
+
+          console.log(`📝 Marcando chat como leído. Unread: ${currentUnreadCount}`);
+        } else {
+          // Si nos abren desde URL o búsqueda y no está en assignedConversations cargados, 
+          // asumimos que podría haber no leídos y dejamos pasar (safe fallback)
+        }
+
         lastMarkedChatRef.current = conversationKey;
 
         (async () => {
@@ -373,12 +410,6 @@ const ChatPage = () => {
             }
 
             // 3. RESETEAR CONTADOR LOCAL (CRÍTICO)
-            const conversation = chatState.assignedConversations.find(c =>
-              c.participants && c.participants.some(p =>
-                p?.toLowerCase().trim() === chatState.to?.toLowerCase().trim()
-              )
-            );
-
             if (conversation) {
               console.log('🔄 Reseteando unreadCount para conversación:', conversation.id);
               // Resetear estado de tiempo real
