@@ -1727,7 +1727,8 @@
 
   cursor: pointer;
   width: fit-content;
-  max-width: 100%;
+  max-width: 350px;
+  /*  Limitar ancho máximo del contenedor del hilo */
   height: 24px;
   /*  Altura fija para evitar expansión vertical */
   min-height: 24px;
@@ -1845,6 +1846,11 @@
   color: #374151;
   font-weight: 500;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
+  /*  Limitar ancho del nombre */
+  flex-shrink: 1;
 }
 
 /*  NUEVO: Texto del último mensaje del hilo */
@@ -1856,7 +1862,11 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 150px;
+  max-width: 120px;
+  /*  Reducido para truncar antes */
+  flex-shrink: 1;
+  display: inline-block;
+  /*  Necesario para que ellipsis funcione */
 }
 
 /* ============================================================
@@ -2619,6 +2629,30 @@ html.dark .mention-span.mention-other {
 /* Desktop pequeño - Pantallas entre 900px y 1280px */
 @media (max-width: 1280px) and (min-width: 901px) {
 
+  /*  Reducir padding lateral para aprovechar espacio */
+  .chat-history {
+    padding: 10px 8px;
+  }
+
+  .message-row {
+    padding: 2px 8px 2px 0;
+  }
+
+  .message-gutter {
+    width: 50px;
+    min-width: 50px;
+    padding-right: 8px;
+  }
+
+  .slack-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .message-main-content {
+    max-width: calc(100% - 60px);
+  }
+
   /* Threads compactos para desktop pequeño */
   .mx_ThreadSummaryLine {
     padding: 4px 8px;
@@ -2663,6 +2697,30 @@ html.dark .mention-span.mention-other {
 
 /* Desktop muy pequeño - Pantallas entre 768px y 900px */
 @media (max-width: 900px) and (min-width: 769px) {
+
+  /*  Reducir padding lateral para aprovechar espacio */
+  .chat-history {
+    padding: 8px 6px;
+  }
+
+  .message-row {
+    padding: 2px 6px 2px 0;
+  }
+
+  .message-gutter {
+    width: 45px;
+    min-width: 45px;
+    padding-right: 6px;
+  }
+
+  .slack-avatar {
+    width: 30px;
+    height: 30px;
+  }
+
+  .message-main-content {
+    max-width: calc(100% - 55px);
+  }
 
   /* Threads más compactos */
   .mx_ThreadSummaryLine {
@@ -2717,15 +2775,25 @@ html.dark .mention-span.mention-other {
 
 /* Tablets y pantallas medianas */
 @media (max-width: 768px) {
+
+  /*  Reducir padding lateral */
+  .chat-history {
+    padding: 6px 4px;
+  }
+
   .message-row {
-    padding: 2px 8px 2px 0 !important;
-    padding-right: 30px !important;
+    padding: 2px 4px 2px 0 !important;
+    padding-right: 20px !important;
   }
 
   .message-gutter {
-    width: 45px;
-    min-width: 45px;
-    padding-right: 8px;
+    width: 40px;
+    min-width: 40px;
+    padding-right: 6px;
+  }
+
+  .message-main-content {
+    max-width: calc(100% - 50px);
   }
 
   .slack-avatar {
