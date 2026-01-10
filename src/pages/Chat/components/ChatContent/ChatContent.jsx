@@ -14,6 +14,7 @@ import {
   FaDownload,
   FaChevronRight,
   FaShare, //  NUEVO: Ícono para reenviar
+  FaChevronUp, // NUEVO: Para botón Load Newer Messages
 } from "react-icons/fa";
 import EmojiPicker from "emoji-picker-react";
 import LoadMoreMessages from "../LoadMoreMessages/LoadMoreMessages";
@@ -249,6 +250,8 @@ const ChatContent = ({
   isSending,
   hasMoreMessages,
   onLoadMoreMessages,
+  hasMoreAfter, // NUEVO
+  onLoadMoreMessagesAfter, // NUEVO
 
   // Props de usuario/sala
   to,
@@ -2452,6 +2455,15 @@ const ChatContent = ({
         className="chat-history"
         ref={chatHistoryRef}
         onScroll={handleScroll}
+        onWheel={(e) => {
+          // 🔥 FIX: Permitir cargar mensajes anteriores con rueda del mouse
+          // incluso si no hay suficiente contenido para scroll (overflow)
+          if (e.deltaY < 0 && chatHistoryRef.current && chatHistoryRef.current.scrollTop === 0) {
+            if (hasMoreMessages && !isLoadingMore) {
+              onLoadMoreMessages();
+            }
+          }
+        }}
       >
         {/*  Mostrar spinner de carga inicial */}
         {isLoadingMessages ? (
@@ -2532,6 +2544,53 @@ const ChatContent = ({
                 return renderMessage(item.data, item.index);
               }
             })}
+
+            {/* 🔥 BOTÓN PARA CARGAR MENSAJES MÁS RECIENTES (FORWARD PAGINATION) */}
+            {hasMoreAfter && (
+              <div
+                className="load-more-container" // Reutilizamos clase
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  margin: '10px 0',
+                  zIndex: 5
+                }}
+              >
+                <button
+                  className="load-more-btn" // Reutilizamos clase
+                  onClick={onLoadMoreMessagesAfter}
+                  disabled={isLoadingMore}
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 16px',
+                    borderRadius: '24px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#54656f',
+                    fontSize: '0.9rem',
+                    fontWeight: 500
+                  }}
+                >
+                  {isLoadingMore ? (
+                    <>
+                      <span className="loading-spinner"></span>
+                      Cargando recientes...
+                    </>
+                  ) : (
+                    <>
+                      <span className="load-icon" style={{ transform: 'rotate(180deg)' }}>
+                        <FaChevronUp />
+                      </span>
+                      Cargar mensajes recientes
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
 
             {/* ===  INDICADOR DE "ESTÁ ESCRIBIENDO"  === */}
             {((!isGroup && isOtherUserTyping && typingUser) ||

@@ -34,6 +34,7 @@ const ChatLayout = ({
   onSendMessage, onFileSelect, onRecordAudio, onStopRecording, isRecording,
   mediaFiles, mediaPreviews, onCancelMediaUpload, onRemoveMediaFile, onLeaveRoom, onToggleMenu,
   onEditMessage, onDeleteMessage, hasMoreMessages, isLoadingMore, isLoadingMessages, onLoadMoreMessages,
+  hasMoreAfter, onLoadMoreMessagesAfter, // NUEVO
   messagesError, onRetryMessages, //  Props de error y reintento
   onStartCall, onStartVideoCall, hasCamera, canSendMessages, adminViewConversation,
 
@@ -374,6 +375,8 @@ const ChatLayout = ({
             isLoadingMore={isLoadingMore}
             isLoadingMessages={isLoadingMessages} //  Estado de carga inicial
             onLoadMoreMessages={onLoadMoreMessages}
+            hasMoreAfter={hasMoreAfter} // NUEVO
+            onLoadMoreMessagesAfter={onLoadMoreMessagesAfter} // NUEVO
             messagesError={messagesError} //  Error de carga
             onRetryMessages={onRetryMessages} //  Función para reintentar
             socket={socket}

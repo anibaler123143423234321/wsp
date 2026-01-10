@@ -94,6 +94,8 @@ const ChatPage = () => {
     // 🔥 NUEVO: Para búsqueda WhatsApp
     loadMessagesAroundId,
     aroundMode, // Indica si estamos en modo "around" (búsqueda)
+    hasMoreAfter, // Vienen del hook
+    loadMoreMessagesAfter, // Vienen del hook
   } = useMessagePagination(
     chatState.currentRoomCode,
     username,
@@ -1882,6 +1884,8 @@ const ChatPage = () => {
         isLoadingMore={isLoadingMore}
         isLoadingMessages={effectiveIsLoadingMessages}
         onLoadMoreMessages={loadMoreMessages}
+        hasMoreAfter={hasMoreAfter} // NUEVO
+        onLoadMoreMessagesAfter={loadMoreMessagesAfter} // NUEVO
         onToggleMenu={handleToggleMenu}
         socketConnected={chatState.socketConnected}
         soundsEnabled={chatState.soundsEnabled}

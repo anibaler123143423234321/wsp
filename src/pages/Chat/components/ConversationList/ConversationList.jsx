@@ -1436,6 +1436,34 @@ const ConversationList = ({
                             const chatId = `conv-${conv.id}`;
                             const isHighlighted = highlightedChatId === chatId;
                             const isSelected = (!isGroup && to && otherParticipant?.toLowerCase().trim() === to?.toLowerCase().trim()) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
+
+                            // 🔥 LÓGICA AGREGADA: Estado en línea e imagen de perfil (igual que en Asignados)
+                            let isOtherParticipantOnline = false;
+                            let otherParticipantPicture = null;
+
+                            if (otherParticipant) {
+                              const otherParticipantNormalized = otherParticipant.toLowerCase().trim();
+                              // Buscar en userList
+                              const otherUser = userList.find(u => {
+                                const uFullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : u.username;
+                                const uUsername = u.username;
+                                return uFullName?.toLowerCase().trim() === otherParticipantNormalized ||
+                                  uUsername?.toLowerCase().trim() === otherParticipantNormalized;
+                              });
+
+                              if (otherUser) {
+                                otherParticipantPicture = otherUser.picture || null;
+                                isOtherParticipantOnline = otherUser.isOnline === true;
+                              } else {
+                                // Fallback a userCache
+                                const cachedUser = userCache[otherParticipantNormalized];
+                                if (cachedUser) {
+                                  otherParticipantPicture = cachedUser.picture || null;
+                                  isOtherParticipantOnline = cachedUser.isOnline === true;
+                                }
+                              }
+                            }
+
                             return (
                               <div
                                 key={`fav-conv-${conv.id}`}
@@ -1445,7 +1473,13 @@ const ConversationList = ({
                                 onClick={() => onUserSelect && onUserSelect(otherParticipant, null, conv)}
                               >
                                 <div className="relative flex-shrink-0" style={{ width: '32px', height: '32px' }}>
-                                  <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold" style={{ width: '32px', height: '32px', fontSize: '14px', backgroundColor: '#A50104' }}>{getInitials(otherParticipant)}</div>
+                                  <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold" style={{ width: '32px', height: '32px', fontSize: '14px', backgroundColor: '#A50104' }}>
+                                    {otherParticipantPicture ? <img src={otherParticipantPicture} alt={otherParticipant} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = getInitials(otherParticipant); }} /> : getInitials(otherParticipant)}
+                                  </div>
+
+                                  {/* 🔥 Indicador de estado para favoritos */}
+                                  <div className="absolute bottom-0 right-0 rounded-full border-2 border-white" style={{ width: '12px', height: '12px', backgroundColor: isOtherParticipantOnline ? '#10b981' : '#9ca3af' }} title={isOtherParticipantOnline ? 'En línea' : 'Desconectado'} />
+
                                   {/* 🔥 Badge de no leídos para modo compacto */}
                                   {isCompact && itemUnreadCount > 0 && (
                                     <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '16px', height: '16px', fontSize: '9px', fontWeight: 'bold', padding: '0 3px' }}>

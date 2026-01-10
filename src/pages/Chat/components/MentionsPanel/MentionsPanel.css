@@ -13,7 +13,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
+    padding: 0 16px;
+    height: 50px;
+    /* Fixed height 50px */
     border-bottom: 1px solid #f0f2f5;
     background-color: #ffffff;
 }
@@ -127,16 +129,20 @@
 
 /* List Items */
 .mentions-list {
-    padding: 12px;
+    padding: 4px;
+    /* Reduced from 8px */
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 2px;
+    /* Reduced from 4px */
 }
 
 .mention-item {
     display: flex;
-    gap: 12px;
-    padding: 12px;
+    gap: 6px;
+    /* Reduced from 8px */
+    padding: 6px 8px;
+    /* Reduced from 8px 10px */
     background-color: #ffffff;
     border-radius: 12px;
     /* Más redondeado */
@@ -157,8 +163,10 @@
 
 .mention-avatar {
     flex-shrink: 0;
-    width: 40px;
-    height: 40px;
+    width: 24px;
+    /* Reduced from 32px */
+    height: 24px;
+    /* Reduced from 32px */
     border-radius: 50%;
     background-color: #dfe1e5;
     display: flex;
@@ -174,7 +182,8 @@
 }
 
 .mention-avatar span {
-    font-size: 16px;
+    font-size: 11px;
+    /* Reduced from 14px */
     font-weight: 600;
     color: #54656f;
 }
@@ -194,7 +203,8 @@
 }
 
 .mention-sender {
-    font-size: 14px;
+    font-size: 12px;
+    /* Reduced from 13px */
     font-weight: 600;
     color: #111b21;
     overflow: hidden;
@@ -215,7 +225,8 @@
 }
 
 .mention-text {
-    font-size: 14px;
+    font-size: 12px;
+    /* Reduced from 13px */
     color: #374151;
     line-height: 1.4;
     /* Truncar texto largo */
@@ -225,9 +236,11 @@
     overflow: hidden;
     background-color: #fff1f2;
     /* Fondo muy suave rosado para el texto */
-    padding: 6px 8px;
-    border-radius: 6px;
-    margin-top: 2px;
+    padding: 2px 4px;
+    /* Reduced from 4px 6px */
+    border-radius: 4px;
+    /* Reduced from 6px */
+    margin-top: 1px;
 }
 
 .mention-footer {

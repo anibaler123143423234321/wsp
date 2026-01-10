@@ -321,6 +321,112 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     }
   }, [roomCode, username, to, isGroup, hasMoreMessages, isLoadingMore, aroundMode, oldestLoadedId]);
 
+  // 🔥 CARGAR MENSAJES NUEVOS (hacia abajo, forward pagination)
+  const loadMoreMessagesAfter = useCallback(async () => {
+    if (isGroup && !roomCode) return;
+    if (!isGroup && !to) return;
+    if (!aroundMode) return; // Solo tiene sentido en modo around
+    if (!hasMoreAfter) return; // Ya no hay más mensajes nuevos
+    if (isLoadingMore) return;
+    if (!newestLoadedId) return;
+
+    setIsLoadingMore(true);
+    console.log(`📜 Cargando mensajes DESPUÉS del ID: ${newestLoadedId}`);
+
+    try {
+      let response;
+      if (isGroup) {
+        response = await apiService.getRoomMessagesAfterId(roomCode, newestLoadedId, MESSAGES_PER_PAGE);
+      } else {
+        response = await apiService.getUserMessagesAfterId(username, to, newestLoadedId, MESSAGES_PER_PAGE);
+      }
+
+      // Manejar respuesta
+      let forwardMessages = Array.isArray(response) ? response : (response?.data || []);
+
+      // Filtrar hilos
+      forwardMessages = forwardMessages.filter(msg => !msg.threadId);
+
+      const backendHasMore = response?.hasMore;
+
+      if (forwardMessages.length === 0) {
+        setHasMoreAfter(false);
+        setIsLoadingMore(false);
+        return;
+      }
+
+      // Convertir formato
+      const formattedMessages = forwardMessages.map((msg) => ({
+        sender: msg.from === username ? "Tú" : msg.from,
+        realSender: msg.from,
+        senderRole: msg.senderRole || null,
+        senderNumeroAgente: msg.senderNumeroAgente || null,
+        receiver: msg.groupName || msg.to || username,
+        text: msg.message || "",
+        isGroup: msg.isGroup,
+        time: msg.time || new Date(msg.sentAt).toLocaleTimeString('es-ES', { hour: "2-digit", minute: "2-digit", hour12: false }),
+        isSent: msg.from === username,
+        isSelf: msg.from === username,
+        isRead: msg.isRead || false,
+        readByCount: msg.readByCount || 0,
+        readBy: null,
+        mediaType: msg.mediaType,
+        mediaData: msg.mediaData,
+        fileName: msg.fileName,
+        fileSize: msg.fileSize,
+        id: msg.id,
+        sentAt: msg.sentAt,
+        replyToMessageId: msg.replyToMessageId,
+        replyToSender: msg.replyToSender,
+        replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null,
+        replyToText: msg.replyToText,
+        threadCount: msg.threadCount || 0,
+        lastReplyFrom: msg.lastReplyFrom || null,
+        lastReplyText: msg.lastReplyText || null,
+        isEdited: msg.isEdited || false,
+        editedAt: msg.editedAt,
+        isDeleted: msg.isDeleted || false,
+        deletedBy: msg.deletedBy || null,
+        deletedAt: msg.deletedAt || null,
+        reactions: msg.reactions || [],
+        type: msg.type || null,
+        videoCallUrl: msg.videoCallUrl || null,
+        videoRoomID: msg.videoRoomID || null,
+        metadata: msg.metadata || null,
+        isForwarded: msg.isForwarded || false,
+      }));
+
+      // AGREGAR AL FINAL
+      setMessages((prevMessages) => {
+        const existingIds = new Set(prevMessages.map(m => m.id));
+        const newMessages = formattedMessages.filter(m => !existingIds.has(m.id));
+
+        // Actualizar newestLoadedId con el último mensaje RECIBIDO del backend (independiente de si era duplicado)
+        if (formattedMessages.length > 0) {
+          const lastMsg = formattedMessages[formattedMessages.length - 1];
+          // Solo actualizar si el ID es mayor al actual (por seguridad, aunque debería serlo por query ASC)
+          if (lastMsg && lastMsg.id && (!newestLoadedId || lastMsg.id > newestLoadedId)) {
+            console.log(`📍 Forward Pagination: Avanzando cursor newestLoadedId de ${newestLoadedId} a ${lastMsg.id}`);
+            setNewestLoadedId(lastMsg.id);
+          }
+        }
+
+        return [...prevMessages, ...newMessages];
+      });
+
+      if (backendHasMore !== undefined) {
+        setHasMoreAfter(backendHasMore);
+      } else if (forwardMessages.length < MESSAGES_PER_PAGE) {
+        setHasMoreAfter(false);
+      }
+
+    } catch (error) {
+      console.error("❌ Error al cargar mensajes futuros:", error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [roomCode, username, to, isGroup, hasMoreAfter, isLoadingMore, aroundMode, newestLoadedId]);
+
   // Agregar nuevo mensaje (para mensajes en tiempo real)
   const addNewMessage = useCallback((message) => {
     console.log('📨 addNewMessage recibido:', { id: message.id, text: message.text || message.message });
@@ -599,6 +705,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     isLoadingMore,
     loadInitialMessages,
     loadMoreMessages,
+    loadMoreMessagesAfter,
     addNewMessage,
     updateMessage,
     clearMessages,

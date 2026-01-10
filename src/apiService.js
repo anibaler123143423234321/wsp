@@ -2025,6 +2025,48 @@ class ApiService {
     }
   }
 
+  // 🔥 NUEVO: Obtener mensajes de sala DESPUÉS de un ID específico (Forward Pagination)
+  async getRoomMessagesAfterId(roomCode, afterId, limit = 20) {
+    try {
+      if (!roomCode || !afterId) return { data: [] };
+
+      const response = await fetch(
+        `${this.baseChatUrl}api/messages/room/${roomCode}/after/${afterId}?limit=${limit}`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      if (!response.ok) throw new Error(`Error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Error al obtener mensajes room after ID:", error);
+      return { data: [] };
+    }
+  }
+
+  // 🔥 NUEVO: Obtener mensajes privados DESPUÉS de un ID específico (Forward Pagination)
+  async getUserMessagesAfterId(username, to, afterId, limit = 20) {
+    try {
+      if (!username || !to || !afterId) return { data: [] };
+
+      const response = await fetch(
+        `${this.baseChatUrl}api/messages/user/${encodeURIComponent(username)}/${encodeURIComponent(to)}/after/${afterId}?limit=${limit}`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      if (!response.ok) throw new Error(`Error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Error al obtener mensajes user after ID:", error);
+      return { data: [] };
+    }
+  }
+
   // ===== MÉTODOS PARA OBTENER USUARIOS DEL BACKEND JAVA =====
 
   // Obtener lista de usuarios del backend Java con paginación
