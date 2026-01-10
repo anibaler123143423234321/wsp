@@ -24,6 +24,7 @@ export const useConversations = (
         setMonitoringTotalPages,
         setMonitoringLoading,
         setUnreadMessages,
+        setUnreadCountsLoaded,
         setIsAdminViewLoading,
         setInitialMessages,
     } = chatState;
@@ -130,11 +131,13 @@ export const useConversations = (
         try {
             const counts = await apiService.getUnreadCounts();
             setUnreadMessages(counts || {});
+            setUnreadCountsLoaded(true); // 🔥 Marcar que los contadores ya están cargados
         } catch (error) {
             console.error('❌ Error al cargar conteos de mensajes no leídos:', error);
             setUnreadMessages({});
+            setUnreadCountsLoaded(true); // Marcar como cargado incluso en error (vacío)
         }
-    }, [isAuthenticated, username, setUnreadMessages]);
+    }, [isAuthenticated, username, setUnreadMessages, setUnreadCountsLoaded]);
 
     // Función para cargar mensajes en vista de admin
     const loadAdminViewMessages = useCallback(

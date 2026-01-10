@@ -62,6 +62,7 @@ export const useChatState = () => {
 
     // ===== ESTADOS ADICIONALES =====
     const [unreadMessages, setUnreadMessages] = useState({});
+    const [unreadCountsLoaded, setUnreadCountsLoaded] = useState(false); // 🔥 Flag para saber si los contadores ya cargaron
     const [socketConnected, setSocketConnected] = useState(false);
     const [soundsEnabled, setSoundsEnabled] = useState(() => {
         const saved = localStorage.getItem('soundsEnabled');
@@ -208,6 +209,8 @@ export const useChatState = () => {
         // Estados adicionales
         unreadMessages,
         setUnreadMessages,
+        unreadCountsLoaded,
+        setUnreadCountsLoaded,
         socketConnected,
         setSocketConnected,
         soundsEnabled,

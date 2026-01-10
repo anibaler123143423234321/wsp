@@ -344,81 +344,70 @@ const ChatPage = () => {
   useEffect(() => {
     // A. Lógica para GRUPOS
     if (chatState.isGroup && chatState.currentRoomCode && messages.length > 0) {
-      const roomKey = `room:${chatState.currentRoomCode}`;
+      // 🔥 Usar key que incluye messages.length para re-marcar cuando llegan nuevos mensajes
+      const roomKey = `room:${chatState.currentRoomCode}:${messages.length}`;
       if (lastMarkedChatRef.current !== roomKey) {
-
-        // 🔥 OPTIMIZACIÓN: Verificar si realmente hay mensajes no leídos en el grupo
-        const roomUnread = chatState.unreadMessages?.[chatState.currentRoomCode] || 0;
-
-        if (roomUnread === 0) {
-          lastMarkedChatRef.current = roomKey;
-          return;
-        }
-
-        console.log(`📝 Marcando grupo como leído. Unread: ${roomUnread}`);
         lastMarkedChatRef.current = roomKey;
-        markRoomMessagesAsRead(chatState.currentRoomCode);
+
+        // 🔥 OPTIMIZACIÓN: Solo skipear si ya cargaron los contadores Y es 0
+        const roomUnreadCount = chatState.unreadMessages?.[chatState.currentRoomCode] || 0;
+
+        if (chatState.unreadCountsLoaded && roomUnreadCount === 0) {
+          console.log(`⏭️ Skip markRoomMessagesAsRead - contador ya es 0 (loaded: true)`);
+        } else {
+          console.log(`📝 Marcando grupo como leído. Unread: ${roomUnreadCount}, Loaded: ${chatState.unreadCountsLoaded}`);
+          markRoomMessagesAsRead(chatState.currentRoomCode);
+        }
       }
     }
 
     // B. Lógica para CHATS INDIVIDUALES (Asignados)
     // Quité la condición !chatState.adminViewConversation para que funcione en ambos modos
     if (!chatState.isGroup && chatState.to && messages.length > 0) {
-      const conversationKey = `user:${chatState.to}`;
+      // 🔥 Usar key que incluye messages.length para re-marcar cuando llegan nuevos mensajes
+      const conversationKey = `user:${chatState.to}:${messages.length}`;
 
       if (lastMarkedChatRef.current !== conversationKey) {
+        lastMarkedChatRef.current = conversationKey;
 
-        // 🔥 OPTIMIZACIÓN: Verificar si realmente hay mensajes no leídos antes de llamar a la API
+        // 🔥 OPTIMIZACIÓN: Buscar conversación para verificar contador
         const conversation = chatState.assignedConversations.find(c =>
           c.participants && c.participants.some(p =>
             p?.toLowerCase().trim() === chatState.to?.toLowerCase().trim()
           )
         );
 
-        if (conversation) {
-          // Obtener conteo actual (Socket o DB)
-          const currentUnreadCount = chatState.unreadMessages?.[conversation.id] !== undefined
-            ? chatState.unreadMessages[conversation.id]
-            : (conversation.unreadCount || 0);
+        const chatUnreadCount = conversation
+          ? (chatState.unreadMessages?.[conversation.id] ?? conversation.unreadCount ?? 0)
+          : 0;
 
-          // Si el conteo es 0, NO hacemos nada (evitamos API call innecesario)
-          if (currentUnreadCount === 0) {
-            // Marcamos como "visitado" en ref para no chequear en cada render, pero no llamamos API
-            lastMarkedChatRef.current = conversationKey;
-            return;
-          }
-
-          console.log(`📝 Marcando chat como leído. Unread: ${currentUnreadCount}`);
-        } else {
-          // Si nos abren desde URL o búsqueda y no está en assignedConversations cargados, 
-          // asumimos que podría haber no leídos y dejamos pasar (safe fallback)
+        // Solo skipear si ya cargaron los contadores Y es 0
+        if (chatState.unreadCountsLoaded && chatUnreadCount === 0) {
+          console.log(`⏭️ Skip markConversationAsRead - contador ya es 0 (loaded: true)`);
+          return;
         }
 
-        lastMarkedChatRef.current = conversationKey;
+        console.log(`📝 Marcando chat como leído. Unread: ${chatUnreadCount}, Loaded: ${chatState.unreadCountsLoaded}`);
 
         (async () => {
           try {
             // 1. Marcar en Backend
-            await apiService.markConversationAsRead(username, chatState.to);
+            await apiService.markConversationAsRead(currentUserFullName, chatState.to);
 
             // 2. Emitir Socket
             if (socket && socket.connected) {
               socket.emit('markConversationAsRead', {
-                from: username,
+                from: currentUserFullName,
                 to: chatState.to
               });
             }
 
-            // 3. RESETEAR CONTADOR LOCAL (CRÍTICO)
+            // 3. RESETEAR CONTADOR LOCAL
             if (conversation) {
-              console.log('🔄 Reseteando unreadCount para conversación:', conversation.id);
-              // Resetear estado de tiempo real
               chatState.setUnreadMessages(prev => ({
                 ...prev,
                 [conversation.id]: 0
               }));
-
-              // Resetear lista estática
               chatState.setAssignedConversations(prev => prev.map(c =>
                 c.id === conversation.id ? { ...c, unreadCount: 0 } : c
               ));
