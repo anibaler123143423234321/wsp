@@ -34,7 +34,7 @@ export const useSocket = (isAuthenticated, username, user) => {
     const connectSocket = () => {
       try {
         // Usar variable de entorno o fallback a producción
-        //const socketUrl = import.meta.env.VITE_SOCKET_URL || "https://apisozarusac.com";
+        const socketUrl = import.meta.env.VITE_SOCKET_URL || "https://apisozarusac.com";
         //const socketUrl = "http://localhost:8747"; // Solo para desarrollo local
 
         socket.current = io(socketUrl, {
