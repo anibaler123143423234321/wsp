@@ -163,38 +163,56 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     if (!isGroup && !to) return;
     if (!hasMoreMessages || isLoadingMore) return;
     if (!initialLoadComplete.current) return;
-    // Evitar cargar "más" si el offset es 0 (aún no se cargó inicial)
-    if (currentOffset.current === 0) return;
+    // Evitar cargar "más" si el offset es 0 (aún no se cargó inicial), salvo en modo around
+    if (currentOffset.current === 0 && !aroundMode) return;
 
     setIsLoadingMore(true);
 
     try {
       let response;
 
-      if (isGroup) {
-        //  Cargar más mensajes de sala/grupo ordenados por ID
-        response = await apiService.getRoomMessagesOrderedById(
-          roomCode,
-          MESSAGES_PER_PAGE,
-          currentOffset.current,
-          isGroup //  Pasar isGroup
-        );
+      // 🔄 LÓGICA DIFERENCIADA: Paginación normal (Offset) vs Paginación "Around" (Cursor ID)
+      if (aroundMode) {
+        // --- MODO AROUND (Cargar ANTES de oldestLoadedId) ---
+        if (!oldestLoadedId) {
+          console.warn("⚠️ aroundMode activo pero sin oldestLoadedId");
+          setIsLoadingMore(false);
+          return;
+        }
+
+        console.log(`📜 Cargando mensajes ANTES del ID: ${oldestLoadedId}`);
+
+        if (isGroup) {
+          response = await apiService.getRoomMessagesBeforeId(roomCode, oldestLoadedId, MESSAGES_PER_PAGE);
+        } else {
+          response = await apiService.getUserMessagesBeforeId(username, to, oldestLoadedId, MESSAGES_PER_PAGE);
+        }
+
       } else {
-        //  Cargar más mensajes entre usuarios ordenados por ID
-        response = await apiService.getUserMessagesOrderedById(
-          username,
-          to,
-          MESSAGES_PER_PAGE,
-          currentOffset.current,
-          isGroup, //  Pasar isGroup
-          roomCode //  Pasar roomCode (aunque sea null/undefined)
-        );
+        // --- MODO NORMAL (Offset) ---
+        if (isGroup) {
+          response = await apiService.getRoomMessagesOrderedById(
+            roomCode,
+            MESSAGES_PER_PAGE,
+            currentOffset.current,
+            isGroup
+          );
+        } else {
+          response = await apiService.getUserMessagesOrderedById(
+            username,
+            to,
+            MESSAGES_PER_PAGE,
+            currentOffset.current,
+            isGroup,
+            roomCode
+          );
+        }
       }
 
       //  Manejar respuesta paginada del backend
       let historicalMessages = Array.isArray(response) ? response : (response?.data || []);
 
-      //  FIX: Filtrar mensajes de hilo - no deben aparecer en el chat principal
+      //  FIX: Filtrar mensajes de hilo
       historicalMessages = historicalMessages.filter(msg => !msg.threadId);
 
       const backendHasMore = response?.hasMore;
@@ -211,16 +229,18 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       }
 
       if (historicalMessages.length === 0) {
+        // Si no hay más mensajes, marcar hasMore como false
         setHasMoreMessages(false);
+        if (aroundMode) setHasMoreBefore(false);
         return;
       }
 
       // Convertir mensajes de BD al formato del frontend
       const formattedMessages = historicalMessages.map((msg) => ({
-        sender: msg.from === username ? " Tú" : msg.from,
-        realSender: msg.from, //  Nombre real del remitente (sin convertir a "Tú")
-        senderRole: msg.senderRole || null, //  Incluir role del remitente
-        senderNumeroAgente: msg.senderNumeroAgente || null, //  Incluir numeroAgente del remitente
+        sender: msg.from === username ? "Tú" : msg.from,
+        realSender: msg.from,
+        senderRole: msg.senderRole || null,
+        senderNumeroAgente: msg.senderNumeroAgente || null,
         receiver: msg.groupName || msg.to || username,
         text: msg.message || "",
         isGroup: msg.isGroup,
@@ -233,64 +253,73 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
           }),
         isSent: msg.from === username,
         isSelf: msg.from === username,
-        isRead: msg.isRead || false, // Estado de lectura del mensaje
-        readByCount: msg.readByCount || 0, // Cantidad de lectores (lazy loading)
-        readBy: null, // Se carga bajo demanda con getMessageReadBy
+        isRead: msg.isRead || false,
+        readByCount: msg.readByCount || 0,
+        readBy: null,
         mediaType: msg.mediaType,
-        mediaData: msg.mediaData, // Ahora es URL en lugar de Base64
+        mediaData: msg.mediaData,
         fileName: msg.fileName,
-        fileSize: msg.fileSize, // Tamaño del archivo en bytes
+        fileSize: msg.fileSize,
         id: msg.id,
         sentAt: msg.sentAt,
-        // Campos de respuesta
         replyToMessageId: msg.replyToMessageId,
-        replyToSender: msg.replyToSender, //  Mantener el valor original de la BD
-        replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null, //  Incluir numeroAgente del remitente original
+        replyToSender: msg.replyToSender,
+        replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null,
         replyToText: msg.replyToText,
-        // Campos de hilos
         threadCount: msg.threadCount || 0,
         lastReplyFrom: msg.lastReplyFrom || null,
-        lastReplyText: msg.lastReplyText || null, //  NUEVO: Texto del último mensaje del hilo
-        // Campos de edición
+        lastReplyText: msg.lastReplyText || null,
         isEdited: msg.isEdited || false,
         editedAt: msg.editedAt,
-        //  Campos de eliminación
         isDeleted: msg.isDeleted || false,
         deletedBy: msg.deletedBy || null,
         deletedAt: msg.deletedAt || null,
-        //  Campos de reacciones
         reactions: msg.reactions || [],
-        //  NUEVO: Campos de videollamada
         type: msg.type || null,
         videoCallUrl: msg.videoCallUrl || null,
         videoRoomID: msg.videoRoomID || null,
         metadata: msg.metadata || null,
-        //  NUEVO: Campo de reenvío
         isForwarded: msg.isForwarded || false,
       }));
 
-      // Agregar mensajes más antiguos al inicio (estilo WhatsApp)
-      //  Filtrar duplicados por ID antes de agregar
+      // Agregar mensajes más antiguos al inicio
       setMessages((prevMessages) => {
         const existingIds = new Set(prevMessages.map(m => m.id));
         const newMessages = formattedMessages.filter(m => !existingIds.has(m.id));
+
+        // 🔥 Actualizar oldestLoadedId con el ID más antiguo del nuevo lote
+        if (aroundMode && newMessages.length > 0) {
+          // Como vienen ordenados cronológicamente (más antiguo al inicio), 
+          // el ID más pequeño debería ser el primero O el último dependiendo de cómo lo ordene el backend.
+          // findByRoomBeforeId devuelve ordenado cronológicamente (ASC por fecha, o sea ID ascendente).
+          // Entonces el mensaje [0] es el más antiguo.
+          const firstMsg = newMessages[0];
+          if (firstMsg && firstMsg.id) {
+            setOldestLoadedId(firstMsg.id); // Actualizar cursor
+          }
+        }
+
         return [...newMessages, ...prevMessages];
       });
-      currentOffset.current += MESSAGES_PER_PAGE;
 
-      // MEJORADO: Usar hasMore del backend si está disponible, sino estimar
+      if (!aroundMode) {
+        currentOffset.current += MESSAGES_PER_PAGE;
+      }
+
+      // MEJORADO: Usar hasMore del backend si está disponible
       if (backendHasMore !== undefined) {
         setHasMoreMessages(backendHasMore);
+        if (aroundMode) setHasMoreBefore(backendHasMore);
       } else if (historicalMessages.length < MESSAGES_PER_PAGE) {
         setHasMoreMessages(false);
+        if (aroundMode) setHasMoreBefore(false);
       }
     } catch (error) {
       console.error("❌ Error al cargar más mensajes:", error);
-      // setHasMoreMessages(false); //  No deshabilitar paginación por error, permitir reintentar
     } finally {
       setIsLoadingMore(false);
     }
-  }, [roomCode, username, to, isGroup, hasMoreMessages, isLoadingMore]);
+  }, [roomCode, username, to, isGroup, hasMoreMessages, isLoadingMore, aroundMode, oldestLoadedId]);
 
   // Agregar nuevo mensaje (para mensajes en tiempo real)
   const addNewMessage = useCallback((message) => {

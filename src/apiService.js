@@ -1,13 +1,13 @@
 // Servicio para conectar con la API (múltiples backends según sede)
 // URLs para CHICLAYO / PIURA
 const API_BASE_URL_CHICLAYO = "https://apisozarusac.com/BackendJava/";
-const API_BASECHAT_URL_CHICLAYO = "https://apisozarusac.com/BackendChat/";
-//const API_BASECHAT_URL_CHICLAYO = "http://localhost:8747/"; // Solo para desarrollo local
+//const API_BASECHAT_URL_CHICLAYO = "https://apisozarusac.com/BackendChat/";
+const API_BASECHAT_URL_CHICLAYO = "http://localhost:8747/"; // Solo para desarrollo local
 
 // URLs para LIMA
 const API_BASE_URL_LIMA = "https://apisozarusac.com/BackendJavaMidas/";
-const API_BASECHAT_URL_LIMA = "https://apisozarusac.com/BackendChat/";
-//const API_BASECHAT_URL_LIMA = "http://localhost:8747/"; // Solo para desarrollo local
+//const API_BASECHAT_URL_LIMA = "https://apisozarusac.com/BackendChat/";
+const API_BASECHAT_URL_LIMA = "http://localhost:8747/"; // Solo para desarrollo local
 
 class ApiService {
   constructor() {
@@ -1721,6 +1721,42 @@ class ApiService {
     }
   }
 
+  // Método para buscar menciones
+  async searchMentions(username, roomCode, limit = 20, offset = 0) {
+    if (!username) return { data: [] };
+
+    const queryParams = new URLSearchParams({
+      username,
+      limit: limit.toString(),
+      offset: offset.toString()
+    });
+
+    if (roomCode) {
+      queryParams.append('roomCode', roomCode);
+    }
+
+    try {
+      const response = await fetch(`${this.baseChatUrl}api/messages/mentions?${queryParams.toString()}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Error del servidor: ${response.status}`
+        );
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error al buscar menciones:", error);
+      return { data: [], total: 0 };
+    }
+  }
+
   // 🔥 NUEVO: Búsqueda tipo WhatsApp - buscar en todos los mensajes del usuario
   async searchAllMessages(username, searchTerm, limit = 15, offset = 0) {
     try {
@@ -1946,6 +1982,46 @@ class ApiService {
     } catch (error) {
       console.error("Error al marcar conversación como leída:", error);
       throw error;
+    }
+  }
+
+
+  // 🔥 NUEVO: Obtener mensajes de sala ANTES de un ID específico
+  async getRoomMessagesBeforeId(roomCode, beforeId, limit = 20) {
+    try {
+      if (!roomCode || !beforeId) return { data: [] };
+
+      const response = await fetch(`${this.baseChatUrl}api/messages/room/${encodeURIComponent(roomCode)}/before/${beforeId}?limit=${limit}`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) throw new Error(`Error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Error al obtener mensajes room before ID:", error);
+      return { data: [] };
+    }
+  }
+
+  // 🔥 NUEVO: Obtener mensajes privados ANTES de un ID específico
+  async getUserMessagesBeforeId(username, to, beforeId, limit = 20) {
+    try {
+      if (!username || !to || !beforeId) return { data: [] };
+
+      const response = await fetch(
+        `${this.baseChatUrl}api/messages/user/${encodeURIComponent(username)}/${encodeURIComponent(to)}/before/${beforeId}?limit=${limit}`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      if (!response.ok) throw new Error(`Error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Error al obtener mensajes user before ID:", error);
+      return { data: [] };
     }
   }
 

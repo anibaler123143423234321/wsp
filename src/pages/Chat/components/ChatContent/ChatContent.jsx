@@ -40,8 +40,8 @@ import "./ChatContent.css";
 const formatTime = (time) => {
   if (!time) return "";
 
-  // Si ya es una cadena de tiempo formateada (HH:MM), devolverla tal como está
-  if (typeof time === "string" && /^\d{2}:\d{2}$/.test(time)) {
+  // Si ya es una cadena de tiempo formateada (HH:MM o HH:MM AM/PM), devolverla tal como está
+  if (typeof time === "string" && /^(\d{1,2}:\d{2})(\s?[AaPp][Mm])?$/.test(time)) {
     return time;
   }
 
@@ -1715,10 +1715,18 @@ const ChatContent = ({
     // ============================================================
     // 2. RENDERIZADO (ROW LAYOUT - TIPO SLACK)
     // ============================================================
+
+    // Detectar si el mensaje contiene una mención al usuario actual
+    const normalizeText = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+    const messageContainsMention = currentUsername && messageText &&
+      messageText.includes("@") &&
+      normalizeText(messageText).includes(normalizeText(`@${currentUsername}`));
+
     return (
       <div
         key={index}
-        className={`message-row ${isGroupStart ? 'group-start' : ''} ${isOwnMessage ? 'is-own' : ''} ${isHighlighted ? 'highlighted-message' : ''}`}
+        className={`message-row ${isGroupStart ? 'group-start' : ''} ${isOwnMessage ? 'is-own' : ''} ${isHighlighted ? 'highlighted-message' : ''} ${messageContainsMention ? 'message-mentioned' : ''}`}
+
         id={`message-${message.id}`}
         style={{
           backgroundColor: isHighlighted ? 'rgba(255, 235, 59, 0.4)' : 'transparent',

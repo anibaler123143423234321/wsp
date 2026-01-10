@@ -3254,3 +3254,26 @@ html.dark .mention-span.mention-other {
     font-size: 7.5px !important;
   }
 }
+
+/* ============================================================
+   ESTILOS PARA MENSAJES CON MENCIÓN AL USUARIO ACTUAL
+   ============================================================ */
+
+.message-row.message-mentioned {
+  background-color: #fce7f3 !important;
+  /* Rosado suave */
+  border-left: 3px solid #be185d;
+  /* Borde rosado oscuro */
+  transition: background-color 0.3s ease;
+}
+
+.message-row.message-mentioned:hover {
+  background-color: #fbcfe8 !important;
+  /* Rosado un poco más oscuro al hover */
+}
+
+/* Eliminar el fondo verde/blanco de la burbuja cuando está mencionado para que se vea el fondo de la fila */
+.message-row.message-mentioned .message-text-body {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}

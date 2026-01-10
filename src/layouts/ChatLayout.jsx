@@ -80,6 +80,7 @@ const ChatLayout = ({
   //  Props de actualización de sala
   onRoomUpdated,
   selectedRoomData, //  NUEVO: Datos de sala seleccionada (fallback)
+  onGoToMessage, //  NUEVO: Callback para ir a mensaje
 }) => {
   // State para el panel de miembros (lifted from ChatHeader)
   const [showMembersPanel, setShowMembersPanel] = React.useState(false);
@@ -459,6 +460,7 @@ const ChatLayout = ({
           onCreatePoll={handleCreatePoll}
           user={user} //  Pass user for permission checks
           onRoomUpdated={onRoomUpdated} //  Pass callback for updates
+          onGoToMessage={onGoToMessage} //  Pass callback for mentions navigation
         />
 
         {/* Threads List Panel (Lista de hilos padres) */}

@@ -707,6 +707,45 @@ const ChatPage = () => {
     }
   };
 
+  const handleGoToMessage = async (mention) => {
+    console.log('🚀 handleGoToMessage:', mention);
+
+    // 1. Cerrar paneles laterales si estamos en mobile
+    if (window.innerWidth <= 768) {
+      chatState.setShowSidebar(false);
+    }
+
+    try {
+      if (mention.isGroup && mention.roomCode) {
+        // === ES GRUPO ===
+        // Buscar sala en mis salas activas
+        let room = chatState.myActiveRooms.find(r => r.roomCode === mention.roomCode);
+
+        // Si no está, buscar en API
+        if (!room) {
+          try {
+            room = await apiService.getRoomByCode(mention.roomCode);
+          } catch (e) { console.error('Error buscando sala:', e); }
+        }
+
+        if (room) {
+          // Usar roomManagement para cambiar de sala y saltar al mensaje
+          // handleRoomSelect maneja la lógica de cargar mensajes y hacer scroll (via loadMessagesAroundId)
+          await roomManagement.handleRoomSelect(room, mention.id);
+        } else {
+          showErrorAlert('No se pudo encontrar la sala de esta mención');
+        }
+      } else {
+        // === ES PRIVADO ===
+        // Navegar al chat con el usuario que me mencionó
+        // 'mention.from' es el remitente.
+        await handleUserSelect(mention.from, mention.id);
+      }
+    } catch (error) {
+      console.error('Error al navegar a la mención:', error);
+    }
+  };
+
   const handleNavigateToGroup = async (event) => {
     const { roomCode, groupName, messageId } = event.detail;
 
@@ -1818,6 +1857,7 @@ const ChatPage = () => {
         userListLoading={chatState.userListLoading}
         onLoadMoreUsers={loadMoreUsers}
         roomTypingUsers={chatState.roomTypingUsers}
+        onGoToMessage={handleGoToMessage} //  NUEVO: Manejar navegación a menciones
         // Props del chat
         to={chatState.to}
         isGroup={chatState.isGroup}
