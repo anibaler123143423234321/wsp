@@ -647,6 +647,10 @@ const ThreadPanel = ({
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+    // Resetear altura del textarea
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+    }
 
     setIsSending(true);
     try {
@@ -789,6 +793,12 @@ const ThreadPanel = ({
   const handleInputChange = (e) => {
     const value = e.target.value;
     setInput(value);
+
+    // Auto-resize del textarea
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 300) + 'px';
+    }
 
     // Detectar @ en la posición del cursor
     const cursorPos = e.target.selectionStart;

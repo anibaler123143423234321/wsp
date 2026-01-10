@@ -535,7 +535,7 @@
   line-height: 1.4;
   color: #000000;
   resize: none;
-  max-height: 100px;
+  max-height: 300px;
   min-height: 24px;
   overflow-y: auto;
 }
