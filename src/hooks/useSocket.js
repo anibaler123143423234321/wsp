@@ -35,13 +35,13 @@ export const useSocket = (isAuthenticated, username, user) => {
       try {
         // Usar variable de entorno o fallback a producción
         //const socketUrl = import.meta.env.VITE_SOCKET_URL || "https://apisozarusac.com";
-        const socketUrl = "http://localhost:8747"; // Solo para desarrollo local
+        //const socketUrl = "http://localhost:8747"; // Solo para desarrollo local
 
         socket.current = io(socketUrl, {
           transports: ["websocket", "polling"],
           timeout: 30000, // OPTIMIZADO: 45s - sincronizado con backend connectTimeout
-          //path: "/BackendChat/socket.io/", // Ruta específica de tu backend
-          path: "/socket.io/", // Solo para desarrollo local
+          path: "/BackendChat/socket.io/", // Ruta específica de tu backend
+          //path: "/socket.io/", // Solo para desarrollo local
           forceNew: true,
           reconnection: true,
           reconnectionAttempts: Infinity,
