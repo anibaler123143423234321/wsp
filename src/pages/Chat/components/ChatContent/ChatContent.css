@@ -1709,6 +1709,10 @@
 .mx_ThreadSummaryLine {
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
+  /*  Evitar wrap del contenido */
+  white-space: nowrap;
+  /*  Evitar múltiples líneas */
   gap: 0;
   /* El gap lo manejamos internamente */
   margin-top: 0px;
@@ -1724,6 +1728,10 @@
   cursor: pointer;
   width: fit-content;
   max-width: 100%;
+  height: 24px;
+  /*  Altura fija para evitar expansión vertical */
+  min-height: 24px;
+  /*  Altura mínima garantizada */
 
   /* Sombra suave para que resalte sobre el fondo gris del chat */
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
@@ -1774,6 +1782,11 @@
   color: #54656f;
   font-weight: 600;
   font-size: 11px;
+  white-space: nowrap;
+  /*  Evitar que el texto se parta */
+  line-height: 1;
+  flex-shrink: 0;
+  /*  No reducir este elemento */
 }
 
 /* --- PARTE EXPANDIBLE (DETALLES) --- */
@@ -2602,6 +2615,105 @@ html.dark .mention-span.mention-other {
 /* ============================================================
    📱 RESPONSIVE MÓVIL - ESTILOS OPTIMIZADOS
    ============================================================ */
+
+/* Desktop pequeño - Pantallas entre 900px y 1280px */
+@media (max-width: 1280px) and (min-width: 901px) {
+
+  /* Threads compactos para desktop pequeño */
+  .mx_ThreadSummaryLine {
+    padding: 4px 8px;
+    gap: 4px;
+    font-size: 11px;
+    max-height: 28px;
+    align-items: center;
+  }
+
+  .thread-face-pile {
+    min-width: 20px;
+    min-height: 20px;
+  }
+
+  .thread-mini-avatar {
+    width: 20px !important;
+    height: 20px !important;
+    border-radius: 50%;
+    border-width: 1.5px;
+    font-size: 8px;
+  }
+
+  .mx_ThreadCounter {
+    font-size: 11px !important;
+    line-height: 1;
+  }
+
+  .mx_ThreadLastReply,
+  .mx_ThreadLastReplyText {
+    font-size: 10px !important;
+  }
+
+  .thread-icon-wrapper {
+    margin-right: 4px;
+  }
+
+  .thread-vertical-line {
+    height: 10px;
+    margin: 0 4px;
+  }
+}
+
+/* Desktop muy pequeño - Pantallas entre 768px y 900px */
+@media (max-width: 900px) and (min-width: 769px) {
+
+  /* Threads más compactos */
+  .mx_ThreadSummaryLine {
+    padding: 3px 6px;
+    gap: 3px;
+    font-size: 10px;
+    max-height: 26px;
+    align-items: center;
+  }
+
+  .thread-face-pile {
+    min-width: 18px;
+    min-height: 18px;
+  }
+
+  .thread-mini-avatar {
+    width: 18px !important;
+    height: 18px !important;
+    border-radius: 50%;
+    border-width: 1px;
+    font-size: 7px;
+  }
+
+  .mx_ThreadCounter {
+    font-size: 10px !important;
+    line-height: 1;
+  }
+
+  .mx_ThreadLastReply,
+  .mx_ThreadLastReplyText {
+    font-size: 9px !important;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .thread-icon-wrapper {
+    margin-right: 3px;
+  }
+
+  .thread-icon-wrapper svg {
+    width: 11px !important;
+    height: 11px !important;
+  }
+
+  .thread-vertical-line {
+    height: 8px;
+    margin: 0 3px;
+  }
+}
 
 /* Tablets y pantallas medianas */
 @media (max-width: 768px) {
