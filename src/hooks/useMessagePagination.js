@@ -42,7 +42,8 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
           roomCode,
           MESSAGES_PER_PAGE,
           0,
-          isGroup //  Pasar isGroup
+          isGroup, //  Pasar isGroup
+          username //  Pasar username para validación
         );
       } else {
         //  Cargar mensajes entre usuarios ordenados por ID (para evitar problemas con sentAt corrupto)
@@ -195,7 +196,8 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
             roomCode,
             MESSAGES_PER_PAGE,
             currentOffset.current,
-            isGroup
+            isGroup,
+            username // Pasar username para validación
           );
         } else {
           response = await apiService.getUserMessagesOrderedById(

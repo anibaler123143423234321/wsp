@@ -1964,7 +1964,7 @@ const ChatContent = ({
                       onClick={() => setImagePreview({ url: message.mediaData, fileName: message.fileName })}
                     />
                   </>
-                ) : message.mediaType === 'video' ? (
+                ) : message.mediaType === 'video' && !/\.(mp3|wav|ogg|m4a|aac|opus|flac)$/i.test(message.fileName || "") ? (
                   <>
                     {/*  FIX: Mostrar texto del mensaje ADEMÁS del video */}
                     {(message.text || message.message) && (
@@ -1986,7 +1986,7 @@ const ChatContent = ({
                       }}
                     />
                   </>
-                ) : message.mediaType === 'audio' ? (
+                ) : (message.mediaType === 'audio' || (message.mediaType === 'video' && /\.(mp3|wav|ogg|m4a|aac|opus|flac)$/i.test(message.fileName || ""))) ? (
                   <>
                     {/*  FIX: Mostrar texto del mensaje ADEMÁS del audio */}
                     {(message.text || message.message) && (
@@ -1994,7 +1994,26 @@ const ChatContent = ({
                         {renderTextWithMentions(message.text || message.message)}
                       </div>
                     )}
-                    <AudioPlayer src={message.mediaData} fileName={message.fileName} />
+                    <div style={{
+                      backgroundColor: isOwnMessage ? '#e1f4d6' : '#e1f4d6',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
+                      display: 'inline-block',
+                      maxWidth: 'fit-content',
+                      ...(isOwnMessage ? { borderBottomRightRadius: '4px' } : { borderBottomLeftRadius: '4px' })
+                    }}>
+                      <AudioPlayer
+                        src={message.mediaData}
+                        time={message.sentAt || message.time}
+                        isOwnMessage={isOwnMessage}
+                        userPicture={isOwnMessage ? user?.picture : message.senderPicture}
+                        isSent={true}
+                        isRead={message.isRead}
+                        readBy={message.readBy}
+                        senderName={message.sender}
+                      />
+                    </div>
                   </>
                 ) : message.mediaType && message.mediaData ? (
                   // ARCHIVOS GENÉRICOS (PDF, Word, Excel, etc.)

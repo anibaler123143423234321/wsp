@@ -1,6 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { FaPlay, FaPause, FaMicrophone } from 'react-icons/fa';
-import './AudioPlayer.css';
 
 const AudioPlayer = ({
   src,
@@ -137,43 +136,65 @@ const AudioPlayer = ({
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className={`wa-audio-wrapper ${isOwnMessage ? 'own' : 'other'}`}>
-      <audio ref={audioRef} src={src} preload="metadata" crossorigin="anonymous" />
+    <div className={`flex items-center gap-2 rounded-lg w-full relative group ${isOwnMessage
+      ? 'flex-row-reverse'
+      : 'flex-row'
+      }`}>
+      <audio ref={audioRef} src={src} preload="metadata" crossOrigin="anonymous" />
 
-      <div className="wa-avatar-section">
-        <div className="wa-avatar-circle">
-          {userPicture ? (
-            <img src={userPicture} alt="User" onError={(e) => e.target.style.display = 'none'} />
-          ) : (
-            <div className="wa-avatar-placeholder">
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="#fff">
-                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-              </svg>
+      {/* AVATAR SECTION - Visible ONLY for OWN messages (Received uses gutter avatar) */}
+      {isOwnMessage && (
+        <div className="relative shrink-0 w-[45px] h-[45px]">
+          <div className="w-[45px] h-[45px] rounded-full overflow-hidden bg-gray-200 border border-gray-100 shadow-sm">
+            {userPicture ? (
+              <img
+                src={userPicture}
+                alt="User"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "https://ui-avatars.com/api/?name=User&background=random";
+                }}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gray-300">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="#fff">
+                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                </svg>
+              </div>
+            )}
+          </div>
+
+          {/* MIC BADGE - Only for own messages */}
+          {isOwnMessage && (
+            <div className="absolute bottom-0 -right-0.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white border-2 shadow-sm z-10 bg-green-500 border-green-50">
+              <FaMicrophone size={10} />
             </div>
           )}
         </div>
-        <div className={`wa-mic-badge ${isOwnMessage ? 'green' : 'blue'}`}>
-          <FaMicrophone />
-        </div>
-      </div>
+      )}
 
-      <div className="wa-controls-section">
-        <div className="wa-upper-controls">
-          <button className="wa-play-button" onClick={togglePlay}>
-            {isPlaying ? <FaPause /> : <FaPlay style={{ marginLeft: '2px' }} />}
+      {/* CONTROLS SECTION */}
+      <div className="flex-1 flex flex-col justify-center gap-1 min-w-0">
+        <div className="flex items-center gap-3">
+          <button
+            className="text-gray-500 hover:text-gray-700 transition-colors cursor-pointer w-6 h-6 flex items-center justify-center shrink-0"
+            onClick={togglePlay}
+          >
+            {isPlaying ? <FaPause size={18} /> : <FaPlay size={18} className="ml-0.5" />}
           </button>
 
-          <div className="wa-waveform-wrapper">
-            <div className="wa-waveform-bars">
+          <div className="flex-1 flex items-center h-[30px] cursor-pointer relative overflow-hidden">
+            <div className="flex items-center justify-between w-full h-full gap-[2px]">
               {waveformBars.map((height, index) => {
-                // Lógica visual de progreso
                 const barPosition = (index / waveformBars.length) * 100;
                 const isPlayed = barPosition < progressPercent;
 
                 return (
                   <div
                     key={index}
-                    className={`wa-bar ${isPlayed ? 'played' : ''}`}
+                    className={`w-[3px] rounded-full transition-colors duration-100 pointer-events-none ${isPlayed ? 'bg-gray-600' : 'bg-gray-300'
+                      }`}
                     style={{ height: `${height}%` }}
                   />
                 );
@@ -187,26 +208,26 @@ const AudioPlayer = ({
               max={duration || 100}
               value={currentTime}
               onChange={handleSeek}
-              className="wa-seek-slider-hidden"
+              className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer z-10 m-0"
             />
           </div>
         </div>
 
-        <div className="wa-audio-footer">
-          <span className="wa-duration">
+        <div className="flex justify-between items-center text-[11px] text-gray-500 pr-1 mt-0.5">
+          <span className="ml-[34px] font-medium tabular-nums">
             {formatTime(duration > 0 ? (duration - currentTime) : duration)}
           </span>
 
-          <div className="wa-meta">
-            <span className="wa-time">{formatMessageTime(time)}</span>
+          <div className="flex items-center gap-1">
+            <span className="text-[11px] text-gray-500">{formatMessageTime(time)}</span>
             {isOwnMessage && (
-              <span className={`wa-ticks ${isRead || (readBy && readBy.length > 0) ? 'read' : ''}`}>
+              <span className={`flex items-center ${isRead || (readBy && readBy.length > 0) ? 'text-blue-400' : 'text-gray-400'}`}>
                 {isSent ? (
-                  <svg viewBox="0 0 18 18" height="16" width="16" preserveAspectRatio="xMidYMid meet" fill="currentColor">
+                  <svg viewBox="0 0 18 18" height="15" width="15" preserveAspectRatio="xMidYMid meet" fill="currentColor">
                     <path d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.039L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"></path>
                   </svg>
                 ) : (
-                  <span style={{ fontSize: '10px' }}>⏳</span>
+                  <span className="text-xs">⏳</span>
                 )}
               </span>
             )}

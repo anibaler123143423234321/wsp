@@ -243,7 +243,30 @@ export const useRoomManagement = (
             }
         } catch (error) {
             console.error('Error al unirse a sala:', error);
-            await showErrorAlert('Error', 'Error al unirse a la sala: ' + error.message);
+
+            // 🔥 NUEVO: Manejo de solicitudes pendientes
+            const errorMessage = error.response?.data?.message || error.message || '';
+            const isPendingError =
+                errorMessage.includes('pendiente') ||
+                errorMessage.includes('Solicitud enviada') ||
+                errorMessage.includes('aprobación');
+
+            if (isPendingError) {
+                const Swal = (await import('sweetalert2')).default;
+                await Swal.fire({
+                    icon: 'warning',
+                    title: 'Solicitud Enviada',
+                    text: 'Tu solicitud para unirte a esta sala está pendiente de aprobación por un administrador.',
+                    confirmButtonText: 'Entendido',
+                    confirmButtonColor: '#ffc107' // Color amarillo de warning
+                });
+                // Cerrar modal y limpiar formulario para que no siga intentando
+                setShowJoinRoomModal(false);
+                setJoinRoomForm({ roomCode: '' });
+                return;
+            }
+
+            await showErrorAlert('Error', 'Error al unirse a la sala: ' + errorMessage);
         }
     }, [
         joinRoomForm,

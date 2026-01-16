@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FaTimes, FaUserPlus } from 'react-icons/fa';
 import apiService from '../../../../apiService';
 import './MembersPanel.css';
+import PendingRequestsList from '../PendingRequestsList';
 
 const MembersPanel = ({
     isOpen,
@@ -15,6 +16,7 @@ const MembersPanel = ({
 }) => {
     const [filterText, setFilterText] = useState('');
     const [roomUsers, setRoomUsers] = useState([]);
+    const [pendingMembers, setPendingMembers] = useState([]); // Nuevo estado
     const [isLoading, setIsLoading] = useState(false);
 
     //  NUEVO: Escuchar eventos de socket para actualizar isOnline en tiempo real
@@ -38,12 +40,24 @@ const MembersPanel = ({
             }));
         };
 
+        const handleAdminJoinRequest = (data) => {
+            if (data.roomCode === currentRoomCode) {
+                // Agregar a pendientes si no está
+                setPendingMembers(prev => {
+                    if (prev.includes(data.username)) return prev;
+                    return [...prev, data.username];
+                });
+            }
+        };
+
         socket.on('userStatusChanged', handleUserStatusChanged);
+        socket.on('adminJoinRequest', handleAdminJoinRequest);
 
         return () => {
             socket.off('userStatusChanged', handleUserStatusChanged);
+            socket.off('adminJoinRequest', handleAdminJoinRequest);
         };
-    }, [socket, isOpen]);
+    }, [socket, isOpen, currentRoomCode]);
 
     //  Helper: Buscar picture en userList o propRoomUsers por displayName
     const findPicture = (displayName) => {
@@ -79,36 +93,46 @@ const MembersPanel = ({
     // isOnline viene correcto de la API, solo necesitamos añadir picture
     useEffect(() => {
         if (isOpen && currentRoomCode) {
-            const loadRoomUsers = async () => {
-                setIsLoading(true);
-                try {
-                    const response = await apiService.getRoomUsers(currentRoomCode);
-                    let apiUsers = [];
-
-                    if (Array.isArray(response)) {
-                        apiUsers = response;
-                    } else if (response && response.users) {
-                        apiUsers = response.users;
-                    }
-
-                    // Solo añadir picture (isOnline ya viene correcto de la API)
-                    const enrichedUsers = apiUsers.map(apiUser => ({
-                        ...apiUser,
-                        picture: apiUser.picture || findPicture(apiUser.displayName)
-                    }));
-
-                    setRoomUsers(enrichedUsers);
-                } catch (error) {
-                    console.error('Error al cargar usuarios de la sala:', error);
-                    setRoomUsers(propRoomUsers || []);
-                } finally {
-                    setIsLoading(false);
-                }
-            };
             loadRoomUsers();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, currentRoomCode]); // Solo recargar cuando se abre o cambia la sala, NO por cambios de socket
+
+    const loadRoomUsers = async () => {
+        setIsLoading(true);
+        try {
+            const response = await apiService.getRoomUsers(currentRoomCode);
+            let apiUsers = [];
+
+            if (Array.isArray(response)) {
+                apiUsers = response;
+            } else if (response && response.users) {
+                apiUsers = response.users;
+            }
+
+            // Recuperar pendientes si existen (depende de qué devuelva getRoomUsers o necesitamos endpoint endpoint)
+            // Por ahora, asumimos que getRoomUsers podría devolver pendingMembers si modificamos el backend, o llamamos a getRoomByCode
+            const roomInfo = await apiService.getRoomByCode(currentRoomCode);
+            if (roomInfo && roomInfo.pendingMembers) {
+                setPendingMembers(roomInfo.pendingMembers);
+            } else {
+                setPendingMembers([]);
+            }
+
+            // Solo añadir picture (isOnline ya viene correcto de la API)
+            const enrichedUsers = apiUsers.map(apiUser => ({
+                ...apiUser,
+                picture: apiUser.picture || findPicture(apiUser.displayName)
+            }));
+
+            setRoomUsers(enrichedUsers);
+        } catch (error) {
+            console.error('Error al cargar usuarios de la sala:', error);
+            setRoomUsers(propRoomUsers || []);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -140,6 +164,8 @@ const MembersPanel = ({
         );
     }) || [];
 
+    const isAdmin = user && ['ADMIN', 'JEFEPISO', 'PROGRAMADOR', 'COORDINADOR', 'SUPERADMIN'].includes(user.role);
+
     return (
         <div className="members-panel-container">
             <div className="members-panel-header">
@@ -150,6 +176,16 @@ const MembersPanel = ({
             </div>
 
             <div className="members-panel-content">
+
+                {/* 🔥 NUEVO: Lista de solicitudes pendientes (Solo Admin) */}
+                {isAdmin && (
+                    <PendingRequestsList
+                        roomCode={currentRoomCode}
+                        pendingMembers={pendingMembers}
+                        onUpdate={loadRoomUsers}
+                    />
+                )}
+
                 {onAddUsersToRoom && user && ['ADMIN', 'JEFEPISO', 'PROGRAMADOR', 'COORDINADOR'].includes(user.role) && (
                     <button className="members-panel-invite-btn" onClick={onAddUsersToRoom}>
                         <div className="invite-icon-wrapper">

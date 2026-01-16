@@ -217,6 +217,50 @@ export const useSocketListeners = (
             }
         });
 
+        // 🔥 NUEVO: Manejo de solicitudes de ingreso y expulsiones
+        s.on("userApproved", (data) => {
+            console.log('✅ userApproved:', data);
+            Swal.fire({
+                icon: 'success',
+                title: '¡Solicitud Aprobada!',
+                text: data.message || `Has sido aceptado en la sala ${data.roomCode}`,
+                timer: 4000,
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false
+            });
+            // Recargar mis salas activas para que aparezca la nueva sala
+            if (loadMyActiveRooms) loadMyActiveRooms(1);
+        });
+
+        s.on("joinRequestRejected", (data) => {
+            console.log('❌ joinRequestRejected:', data);
+            Swal.fire({
+                icon: 'error',
+                title: 'Solicitud Rechazada',
+                text: data.message || `Tu solicitud para unirte a ${data.roomCode} fue rechazada.`,
+            });
+        });
+
+        s.on("removedFromRoom", (data) => {
+            console.log('🚫 removedFromRoom:', data);
+            Swal.fire({
+                icon: 'warning',
+                title: 'Eliminado de la sala',
+                text: data.message || `Has sido eliminado de la sala ${data.roomCode}`,
+            });
+
+            // Recargar lista de salas
+            if (loadMyActiveRooms) loadMyActiveRooms(1);
+
+            // Si el usuario está viendo esa sala en este momento, sacarlo
+            if (currentRoomCodeRef.current === data.roomCode) {
+                if (clearMessages) clearMessages();
+                // Emitir evento para cerrar chat en ChatPage (manejado por handleEscKey o similar)
+                window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+            }
+        });
+
         // 🔥 NUEVO: Listener para actualizar IDs temporales → reales
         // El backend envía este evento cuando el mensaje se guarda en BD
         s.on("messageIdUpdate", (data) => {

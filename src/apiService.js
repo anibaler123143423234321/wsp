@@ -587,6 +587,7 @@ class ApiService {
   }
 
   // Método para unirse a sala
+  // Método para unirse a sala
   async joinRoom(data) {
     try {
       const response = await this.fetchChatApi(
@@ -597,10 +598,54 @@ class ApiService {
         }
       );
 
+      // Si no es OK, lanzar el error con detalles para que lo capture el hook
+      if (!response.ok) {
+        const errorData = await response.json();
+        const error = new Error(errorData.message || `Error ${response.status}`);
+        error.response = { data: errorData }; // Adjuntar respuesta para validación
+        throw error;
+      }
+
       const result = await response.json();
       return result;
     } catch (error) {
       console.error("Error al unirse a sala:", error);
+      throw error;
+    }
+  }
+
+  // Método para aprobar solicitud de ingreso
+  async approveJoinRequest(roomCode, username) {
+    try {
+      const response = await this.fetchChatApi(
+        `${this.baseChatUrl}api/temporary-rooms/${roomCode}/approve-join`,
+        {
+          method: "POST",
+          body: JSON.stringify({ username }),
+        }
+      );
+      if (!response.ok) throw new Error("Error al aprobar usuario");
+      return await response.json();
+    } catch (error) {
+      console.error("Error approving join request:", error);
+      throw error;
+    }
+  }
+
+  // Método para rechazar solicitud de ingreso
+  async rejectJoinRequest(roomCode, username) {
+    try {
+      const response = await this.fetchChatApi(
+        `${this.baseChatUrl}api/temporary-rooms/${roomCode}/reject-join`,
+        {
+          method: "POST",
+          body: JSON.stringify({ username }),
+        }
+      );
+      if (!response.ok) throw new Error("Error al rechazar usuario");
+      return await response.json();
+    } catch (error) {
+      console.error("Error rejecting join request:", error);
       throw error;
     }
   }
@@ -1007,12 +1052,13 @@ class ApiService {
   }
 
   // 🔥 NUEVO: Obtener mensajes de una sala ordenados por ID (para evitar problemas con sentAt corrupto)
-  async getRoomMessagesOrderedById(roomCode, limit = 10, offset = 0, isGroup = true) {
+  async getRoomMessagesOrderedById(roomCode, limit = 10, offset = 0, isGroup = true, username = null) {
     try {
       let url = `${this.baseChatUrl}api/messages/room/${roomCode}/by-id?limit=${limit}&offset=${offset}`;
 
       // 🔥 Agregar parámetros de filtro
       if (isGroup !== undefined) url += `&isGroup=${isGroup}`;
+      if (username) url += `&username=${encodeURIComponent(username)}`;
 
       const response = await fetch(
         url,
