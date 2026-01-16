@@ -1224,10 +1224,16 @@ export const useSocketListeners = (
 
                     // 🔥 FIX: Actualizar readByCount para que coincida con readBy.length
                     const readByArray = data.readBy || [];
+
+                    // 🔥 NUEVO: Si el backend envió readByData con información completa, usarla
+                    // readByData es un array de objetos o strings:  [{ username, nombre, apellido, picture }, ...]
+                    const readByData = data.readByData || readByArray;
+
                     return {
                         ...prevMessage,
                         isRead: true,
-                        readBy: readByArray,
+                        readBy: readByArray, // Array de usernames para compatibilidad
+                        readByData, // ✅ Array con datos completos para el popover
                         readByCount: readByArray.length, // ✅ Sincronizar contador
                         readAt: data.readAt
                     };
