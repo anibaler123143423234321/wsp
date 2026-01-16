@@ -383,6 +383,25 @@ export const useSocketListeners = (
 
                 //  SIEMPRE agregar mensaje al chat si está abierto (propio o no)
                 if (isChatOpen) {
+                    // 🔥 FIX READ RECEIPTS: Si el usuario ESTÁ VIENDO el chat y NO es mensaje propio,
+                    // agregarlo automáticamente a readBy[] para que el contador sea correcto desde el inicio
+                    let readBy = data.readBy || [];
+                    let readByCount = data.readByCount || 0;
+
+                    if (!isOwnMessage) {
+                        // Verificar si el usuario ya está en readBy (normalizado)
+                        const alreadyRead = readBy.some(
+                            u => u?.toLowerCase().trim() === username?.toLowerCase().trim()
+                        );
+
+                        if (!alreadyRead) {
+                            // Agregar al usuario actual porque ESTÁ VIENDO el mensaje
+                            readBy = [...readBy, username];
+                            readByCount = readBy.length;
+                            console.log(`✅ [AUTO-READ] Usuario ${username} agregado a readBy (está viendo el chat). Total: ${readByCount}`);
+                        }
+                    }
+
                     addNewMessage({
                         ...data,
                         id: data.id,
@@ -398,7 +417,9 @@ export const useSocketListeners = (
                         type: data.type,
                         videoCallUrl: data.videoCallUrl,
                         videoRoomID: data.videoRoomID,
-                        metadata: data.metadata
+                        metadata: data.metadata,
+                        readBy: readBy, // ✅ Usar readBy actualizado
+                        readByCount: readByCount, // ✅ Usar contador actualizado
                     });
                 }
 
