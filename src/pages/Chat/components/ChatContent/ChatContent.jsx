@@ -2524,26 +2524,42 @@ const ChatContent = ({
                       <div className="popover-item" style={{ justifyContent: 'center' }}>
                         <span style={{ color: '#666', fontSize: '12px' }}>Cargando...</span>
                       </div>
-                    ) : loadedReadBy[message.id] ? (
-                      loadedReadBy[message.id].map((readerName, idx) => {
+                    ) : (message.readByData || loadedReadBy[message.id] || message.readBy) ? (
+                      (message.readByData || loadedReadBy[message.id] || message.readBy).map((readerItem, idx) => {
                         let userPic = null;
-                        let fullName = readerName;
-                        const searchName = typeof readerName === 'string' ? readerName.toLowerCase().trim() : "";
-                        if (roomUsers && Array.isArray(roomUsers)) {
-                          const u = roomUsers.find(u => {
-                            const uName = (u.username || "").toLowerCase();
-                            const uFull = (u.nombre && u.apellido) ? `${u.nombre} ${u.apellido}`.toLowerCase() : "";
-                            return uName === searchName || uFull === searchName;
-                          });
-                          if (u) {
-                            userPic = u.picture;
-                            fullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : u.username;
+                        let fullName = "";
+                        let username = "";
+
+                        // Manejar si es objeto (readByData) o string (readBy/loadedReadBy antiguo)
+                        if (typeof readerItem === 'object' && readerItem !== null) {
+                          username = readerItem.username;
+                          fullName = readerItem.nombre && readerItem.apellido ? `${readerItem.nombre} ${readerItem.apellido}` : readerItem.username;
+                          userPic = readerItem.picture;
+                        } else {
+                          username = readerItem;
+                          fullName = readerItem;
+                        }
+
+                        // Intentar enriquecer con roomUsers si falta info (fallback)
+                        if (!userPic || !fullName || fullName === username) {
+                          const searchName = username?.toLowerCase().trim();
+                          if (roomUsers && Array.isArray(roomUsers)) {
+                            const u = roomUsers.find(u => {
+                              const uName = (u.username || "").toLowerCase();
+                              const uFull = (u.nombre && u.apellido) ? `${u.nombre} ${u.apellido}`.toLowerCase() : "";
+                              return uName === searchName || uFull === searchName;
+                            });
+                            if (u) {
+                              userPic = u.picture || userPic;
+                              fullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : (u.username || fullName);
+                            }
                           }
                         }
+
                         return (
                           <div key={idx} className="popover-item">
                             <div className="popover-avatar">
-                              {userPic ? <img src={userPic} alt={fullName} /> : <span className="popover-avatar-initial">{typeof readerName === 'string' ? readerName.charAt(0).toUpperCase() : "?"}</span>}
+                              {userPic ? <img src={userPic} alt={fullName} /> : <span className="popover-avatar-initial">{fullName ? fullName.charAt(0).toUpperCase() : "?"}</span>}
                             </div>
                             <div className="popover-info">
                               <div className="popover-name">{fullName}</div>
