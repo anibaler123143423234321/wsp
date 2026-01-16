@@ -632,6 +632,27 @@ class ApiService {
     }
   }
 
+  // 🔥 NUEVO: Método para agregar usuario directamente a sala (bypassing pending) - Para admins
+  async addUserDirectlyToRoom(roomCode, username) {
+    try {
+      const response = await this.fetchChatApi(
+        `${this.baseChatUrl}api/temporary-rooms/${roomCode}/add-user`,
+        {
+          method: "POST",
+          body: JSON.stringify({ username }),
+        }
+      );
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al agregar usuario");
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error adding user directly:", error);
+      throw error;
+    }
+  }
+
   // Método para rechazar solicitud de ingreso
   async rejectJoinRequest(roomCode, username) {
     try {

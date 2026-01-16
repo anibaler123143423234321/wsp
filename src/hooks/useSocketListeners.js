@@ -964,6 +964,12 @@ export const useSocketListeners = (
         });
 
         s.on("addedToRoom", (data) => {
+            // 🔥 CLUSTER FIX: Filtrar por username porque server.emit envía a TODOS
+            const currentFullName = currentUserFullNameRef.current;
+            if (data.username !== username && data.username !== currentFullName) {
+                return; // Este evento no es para este usuario
+            }
+
             if (currentRoomCodeRef.current !== data.roomCode) {
                 showSuccessAlert("Agregado a sala", data.message);
             }
@@ -971,6 +977,12 @@ export const useSocketListeners = (
         });
 
         s.on("removedFromRoom", (data) => {
+            // 🔥 CLUSTER FIX: Filtrar por username porque server.emit envía a TODOS
+            const currentFullName = currentUserFullNameRef.current;
+            if (data.username !== username && data.username !== currentFullName) {
+                return; // Este evento no es para este usuario
+            }
+
             if (currentRoomCodeRef.current === data.roomCode) {
                 chatState.setTo('');
                 chatState.setIsGroup(false);

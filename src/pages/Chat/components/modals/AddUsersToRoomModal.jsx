@@ -235,10 +235,9 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
       for (const username of selectedUsers) {
         try {
           // console.log(`➕ Agregando usuario: ${username}`);
-          const result = await apiService.joinRoom({
-            roomCode: roomCode,
-            username: username
-          });
+          // 🔥 MODIFICADO: Usar addUserDirectlyToRoom en lugar de joinRoom
+          // Esto bypasses el pending approval y agrega usuarios directameente
+          const result = await apiService.addUserDirectlyToRoom(roomCode, username);
           results.push({ username, success: true, result });
           // console.log(`✅ Usuario ${username} agregado exitosamente`);
         } catch (error) {
