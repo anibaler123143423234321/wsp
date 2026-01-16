@@ -1694,7 +1694,7 @@ const ChatContent = ({
     const userColor = getUserNameColor(message.sender, isOwnMessage);
 
     const isMenuOpen = showMessageMenu === message.id;
-    const isHighlighted = highlightedMessageId === message.id;
+    const isHighlighted = String(highlightedMessageId) === String(message.id);
 
     // Si es mensaje de sistema, retornamos diseño simple centrado
     if (message.type === "info" || message.type === "error") {
@@ -1725,6 +1725,8 @@ const ChatContent = ({
       messageText.includes("@") &&
       normalizeText(messageText).includes(normalizeText(`@${currentUsername}`));
 
+    if (isHighlighted) console.log('🎨 Rendering highlight for message:', message.id);
+
     return (
       <div
         key={index}
@@ -1733,9 +1735,10 @@ const ChatContent = ({
         id={`message-${message.id}`}
         style={{
           backgroundColor: isHighlighted ? 'rgba(255, 235, 59, 0.4)' : 'transparent',
-          transition: 'background-color 0.3s ease',
+          boxShadow: isHighlighted ? '0 0 10px rgba(255, 235, 59, 0.8)' : 'none', // Refuerzo visual
+          transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
           position: 'relative',
-          zIndex: isMenuOpen ? 100 : 1,
+          zIndex: isMenuOpen || isHighlighted ? 100 : 1, // Elevar z-index si está resaltado
           marginBottom: '2px', // Reducir espacio entre mensajes
           paddingBottom: '2px', // Reducir padding interno
           cursor: (isSelectionMode || 'pointer') // Mostrar puntero si se puede seleccionar (?) - Mejor dejar default
@@ -1862,17 +1865,15 @@ const ChatContent = ({
                   <div
                     onClick={(e) => {
                       e.stopPropagation();
-                      // Intentar encontrar el mensaje en el DOM
-                      const el = document.getElementById(`message-${message.replyToMessageId}`);
-                      if (el) {
-                        el.scrollIntoView({ behavior: 'auto', block: 'center' });
+
+                      // Siempre delegar al padre para manejar resaltado y scroll consistente
+                      if (onMessageHighlighted) {
+                        onMessageHighlighted(message.replyToMessageId);
                       } else {
-                        // Si no está en el DOM, intentar cargarlo (Lógica pendiente de conectar con hook de paginación)
-                        console.log(`Mensaje ${message.replyToMessageId} no encontrado en vista actual. Se requiere búsqueda en historial.`);
-                        if (onMessageHighlighted) {
-                          // Usamos el prop existente para intentar navegar/cargar
-                          // Esto asume que el padre manejará la lógica de buscar si no está cargado
-                          onMessageHighlighted(message.replyToMessageId);
+                        // Fallback por si la prop no existe
+                        const el = document.getElementById(`message-${message.replyToMessageId}`);
+                        if (el) {
+                          el.scrollIntoView({ behavior: 'auto', block: 'center' });
                         }
                       }
                     }}
@@ -1896,7 +1897,17 @@ const ChatContent = ({
                       fontWeight: 'bold',
                       lineHeight: '1.2'
                     }}>
-                      {message.replyToSender || "Usuario"}
+                      {(() => {
+                        const originalMsg = messages.find(m => m.id === message.replyToMessageId);
+                        const senderName = originalMsg ? originalMsg.realSender : message.replyToSender;
+
+                        const normalize = (txt) => txt ? String(txt).toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
+
+                        // Si el sender es "Tú" o coincide con mi usuario, mostrar "Tú"
+                        const isMe = normalize(senderName) === normalize(currentUsername) || senderName === 'Tú';
+
+                        return isMe ? 'Tú' : senderName || 'Usuario';
+                      })()}
                     </span>
                     <span style={{
                       color: '#54656f',

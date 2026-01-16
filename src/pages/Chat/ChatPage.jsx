@@ -1763,6 +1763,38 @@ const ChatPage = () => {
     [roomManagement, user]
   );
 
+  // Handle message highlight requests (Reply click or Search result)
+  const handleProcessMessageHighlight = useCallback(async (messageId) => {
+    // If no ID is provided, it means we just want to clear the highlight (e.g. timeout)
+    if (!messageId) {
+      setHighlightMessageId(null);
+      return;
+    }
+
+    console.log("📍 Processing message highlight request:", messageId);
+
+    // 1. Check if message is already loaded in the current list
+    const isLoaded = messages.some(m => m.id === messageId);
+
+    if (isLoaded) {
+      console.log("✅ Message already loaded locally. Highlighting...");
+      setHighlightMessageId(messageId);
+    } else {
+      console.log("⚠️ Message NOT loaded. Fetching context around ID...");
+      if (loadMessagesAroundId) {
+        try {
+          await loadMessagesAroundId(messageId);
+          // After loading, set highlight.
+          setHighlightMessageId(messageId);
+        } catch (error) {
+          console.error("❌ Error loading message context:", error);
+        }
+      } else {
+        console.warn("❌ loadMessagesAroundId function not available");
+      }
+    }
+  }, [messages, loadMessagesAroundId]);
+
   // === RENDERIZADO ===
 
 
@@ -1898,7 +1930,7 @@ const ChatPage = () => {
         typingUser={chatState.typingUser}
         onClearUnreadOnTyping={handleClearUnreadOnTyping}
         highlightMessageId={highlightMessageId}
-        onMessageHighlighted={() => setHighlightMessageId(null)}
+        onMessageHighlighted={handleProcessMessageHighlight}
         replyingTo={chatState.replyingTo}
         onCancelReply={handleCancelReply}
         onAddUsersToRoom={roomManagement.handleAddUsersToRoom}
