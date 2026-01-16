@@ -1200,10 +1200,14 @@ export const useSocketListeners = (
                         JSON.stringify(prevMessage.readBy) === JSON.stringify(data.readBy)) {
                         return null; // Sin cambios - updateMessage ignora este caso
                     }
+
+                    // 🔥 FIX: Actualizar readByCount para que coincida con readBy.length
+                    const readByArray = data.readBy || [];
                     return {
                         ...prevMessage,
                         isRead: true,
-                        readBy: data.readBy,
+                        readBy: readByArray,
+                        readByCount: readByArray.length, // ✅ Sincronizar contador
                         readAt: data.readAt
                     };
                 });
