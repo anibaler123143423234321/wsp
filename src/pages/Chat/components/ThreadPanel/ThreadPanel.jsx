@@ -667,7 +667,24 @@ const ThreadPanel = ({
       const replyData = currentReplyingTo ? {
         replyToMessageId: currentReplyingTo.id,
         replyToSender: currentReplyingTo.from || currentReplyingTo.sender,
-        replyToText: currentReplyingTo.message || currentReplyingTo.text || currentReplyingTo.fileName || "Archivo adjunto",
+        replyToText: (() => {
+          // Priorizar: texto del mensaje > nombre de archivo > emoji según tipo de medio
+          if (currentReplyingTo.message || currentReplyingTo.text) {
+            return currentReplyingTo.message || currentReplyingTo.text;
+          } else if (currentReplyingTo.fileName) {
+            return currentReplyingTo.fileName;
+          } else if (currentReplyingTo.mediaType) {
+            const mediaTypeMap = {
+              'image': '📷 Foto',
+              'video': '🎥 Video',
+              'audio': '🎵 Audio',
+              'file': '📎 Archivo',
+              'pdf': '📄 PDF'
+            };
+            return mediaTypeMap[currentReplyingTo.mediaType] || "📎 Archivo adjunto";
+          }
+          return "Archivo adjunto";
+        })(),
       } : {};
 
       // Datos base del mensaje
@@ -1374,16 +1391,136 @@ const ThreadPanel = ({
                       <span className="thread-message-time">{formatTime(msg)}</span>
                     </div>
 
-                    {/*  NUEVO: Mostrar referencia de respuesta si existe */}
-                    {msg.replyToMessageId && msg.replyToSender && (
-                      <div className="thread-reply-reference">
-                        <FaReply className="reply-ref-icon" />
-                        <div className="reply-ref-content">
-                          <span className="reply-ref-sender">{msg.replyToSender}</span>
-                          <span className="reply-ref-text">{msg.replyToText || "Mensaje"}</span>
+                    {/*  Vista previa de respuesta mejorada con soporte visual */}
+                    {msg.replyToMessageId && msg.replyToSender && (() => {
+                      // Buscar el mensaje original para obtener mediaData
+                      const originalMsg = threadMessages.find(m => m.id === msg.replyToMessageId);
+                      const hasMedia = originalMsg?.mediaData || originalMsg?.mediaType;
+
+                      return (
+                        <div
+                          className="thread-reply-reference"
+                          style={{
+                            display: 'flex',
+                            flexDirection: hasMedia ? 'row' : 'column',
+                            gap: hasMedia ? '8px' : '4px',
+                            alignItems: hasMedia ? 'center' : 'flex-start',
+                            padding: '6px 8px',
+                            backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                            borderLeft: '3px solid #00a884',
+                            borderRadius: '4px',
+                            marginBottom: '6px'
+                          }}
+                        >
+                          {/* Icono y texto */}
+                          <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
+                            <FaReply className="reply-ref-icon" />
+                            <div className="reply-ref-content" style={{ flex: 1, minWidth: 0 }}>
+                              <span className="reply-ref-sender">{msg.replyToSender}</span>
+                              <span className="reply-ref-text" style={{
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                display: 'block'
+                              }}>
+                                {msg.replyToText || originalMsg?.text || originalMsg?.message || originalMsg?.fileName || "Mensaje"}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Vista previa de media (si existe) */}
+                          {hasMedia && originalMsg && (
+                            <div style={{ flexShrink: 0 }}>
+                              {originalMsg.mediaType === 'image' ? (
+                                // Miniatura de imagen
+                                <img
+                                  src={originalMsg.mediaData}
+                                  alt="preview"
+                                  style={{
+                                    width: '40px',
+                                    height: '40px',
+                                    objectFit: 'cover',
+                                    borderRadius: '4px',
+                                    border: '1px solid rgba(0, 0, 0, 0.1)'
+                                  }}
+                                />
+                              ) : originalMsg.mediaType === 'video' && !/\.(mp3|wav|ogg|m4a|aac|opus|flac)$/i.test(originalMsg.fileName || "") ? (
+                                // Miniatura de video con ícono
+                                <div style={{ position: 'relative', width: '40px', height: '40px' }}>
+                                  <video
+                                    src={originalMsg.mediaData}
+                                    style={{
+                                      width: '100%',
+                                      height: '100%',
+                                      objectFit: 'cover',
+                                      borderRadius: '4px',
+                                      border: '1px solid rgba(0, 0, 0, 0.1)'
+                                    }}
+                                  />
+                                  <div style={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: '16px',
+                                    height: '16px',
+                                    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                  }}>
+                                    <div style={{
+                                      width: 0,
+                                      height: 0,
+                                      borderLeft: '5px solid white',
+                                      borderTop: '3px solid transparent',
+                                      borderBottom: '3px solid transparent',
+                                      marginLeft: '2px'
+                                    }} />
+                                  </div>
+                                </div>
+                              ) : (originalMsg.mediaType === 'audio' || (originalMsg.mediaType === 'video' && /\.(mp3|wav|ogg|m4a|aac|opus|flac)$/i.test(originalMsg.fileName || ""))) ? (
+                                // Ícono de audio
+                                <div style={{
+                                  width: '40px',
+                                  height: '40px',
+                                  backgroundColor: '#e1f4d6',
+                                  borderRadius: '4px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  border: '1px solid rgba(0, 0, 0, 0.1)'
+                                }}>
+                                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00a884" strokeWidth="2">
+                                    <path d="M9 18V5l12-2v13M9 13l12-2" />
+                                    <circle cx="6" cy="18" r="3" />
+                                    <circle cx="18" cy="16" r="3" />
+                                  </svg>
+                                </div>
+                              ) : (
+                                // Ícono de archivo genérico
+                                <div style={{
+                                  width: '40px',
+                                  height: '40px',
+                                  backgroundColor: '#f0f0f0',
+                                  borderRadius: '4px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  border: '1px solid rgba(0, 0, 0, 0.1)'
+                                }}>
+                                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
+                                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+                                    <polyline points="13 2 13 9 20 9" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {/* Mostrar contenido multimedia si existe */}
                     {msg.mediaType === "audio" && msg.mediaData ? (

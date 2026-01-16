@@ -760,7 +760,8 @@ const ChatContent = ({
   // ============================================================
   const handleStartEdit = (message) => {
     setEditingMessageId(message.id);
-    setEditText(message.text);
+    // Usar message.message como fallback si message.text no existe (común en mensajes de audio/archivos)
+    setEditText(message.text || message.message || "");
     setEditFile(null);
   };
 
@@ -783,6 +784,17 @@ const ChatContent = ({
       }
     }
   };
+
+  // ============================================================
+  // EFFECT - Limpiar estado de edición al cambiar de chat
+  // ============================================================
+  useEffect(() => {
+    // Limpiar estado de edición cuando cambia el chat actual
+    if (editingMessageId) {
+      handleCancelEdit();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [to, currentRoomCode]); // Se ejecuta cuando cambia el destinatario o la sala
 
   // ============================================================
   // HANDLER - Input de texto y menciones
@@ -1860,67 +1872,167 @@ const ChatContent = ({
                 )}
 
                 {/* PREVIEW DE RESPUESTA */}
-                {/* PREVIEW DE RESPUESTA ESTILO WHATSAPP */}
-                {message.replyToMessageId && (
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
+                {/* PREVIEW DE RESPUESTA ESTILO WHATSAPP CON SOPORTE VISUAL */}
+                {message.replyToMessageId && (() => {
+                  // Buscar el mensaje original para obtener mediaData
+                  const originalMsg = messages.find(m => m.id === message.replyToMessageId);
+                  const hasMedia = originalMsg?.mediaData || originalMsg?.mediaType;
 
-                      // Siempre delegar al padre para manejar resaltado y scroll consistente
-                      if (onMessageHighlighted) {
-                        onMessageHighlighted(message.replyToMessageId);
-                      } else {
-                        // Fallback por si la prop no existe
-                        const el = document.getElementById(`message-${message.replyToMessageId}`);
-                        if (el) {
-                          el.scrollIntoView({ behavior: 'auto', block: 'center' });
+                  return (
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+
+                        // Siempre delegar al padre para manejar resaltado y scroll consistente
+                        if (onMessageHighlighted) {
+                          onMessageHighlighted(message.replyToMessageId);
+                        } else {
+                          // Fallback por si la prop no existe
+                          const el = document.getElementById(`message-${message.replyToMessageId}`);
+                          if (el) {
+                            el.scrollIntoView({ behavior: 'auto', block: 'center' });
+                          }
                         }
-                      }
-                    }}
-                    style={{
-                      backgroundColor: 'rgba(0, 0, 0, 0.05)',
-                      borderRadius: '8px',
-                      padding: '6px 10px',
-                      marginBottom: '6px',
-                      cursor: 'pointer',
-                      borderLeft: '4px solid #00a884', // Color verde WhatsApp
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '2px',
-                      position: 'relative',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    <span style={{
-                      color: '#00a884', // Mismo color del borde
-                      fontSize: '12px',
-                      fontWeight: 'bold',
-                      lineHeight: '1.2'
-                    }}>
-                      {(() => {
-                        const originalMsg = messages.find(m => m.id === message.replyToMessageId);
-                        const senderName = originalMsg ? originalMsg.realSender : message.replyToSender;
+                      }}
+                      style={{
+                        backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                        borderRadius: '8px',
+                        padding: '6px 10px',
+                        marginBottom: '6px',
+                        cursor: 'pointer',
+                        borderLeft: '4px solid #00a884', // Color verde WhatsApp
+                        display: 'flex',
+                        flexDirection: hasMedia ? 'row' : 'column',
+                        gap: hasMedia ? '8px' : '2px',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        alignItems: hasMedia ? 'center' : 'flex-start'
+                      }}
+                    >
+                      {/* Contenido de texto */}
+                      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <span style={{
+                          color: '#00a884', // Mismo color del borde
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          lineHeight: '1.2'
+                        }}>
+                          {(() => {
+                            const senderName = originalMsg ? originalMsg.realSender : message.replyToSender;
 
-                        const normalize = (txt) => txt ? String(txt).toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
+                            const normalize = (txt) => txt ? String(txt).toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
 
-                        // Si el sender es "Tú" o coincide con mi usuario, mostrar "Tú"
-                        const isMe = normalize(senderName) === normalize(currentUsername) || senderName === 'Tú';
+                            // Si el sender es "Tú" o coincide con mi usuario, mostrar "Tú"
+                            const isMe = normalize(senderName) === normalize(currentUsername) || senderName === 'Tú';
 
-                        return isMe ? 'Tú' : senderName || 'Usuario';
-                      })()}
-                    </span>
-                    <span style={{
-                      color: '#54656f',
-                      fontSize: '12px',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      lineHeight: '1.2'
-                    }}>
-                      {message.replyToText || "Mensaje original"}
-                    </span>
-                  </div>
-                )}
+                            return isMe ? 'Tú' : senderName || 'Usuario';
+                          })()}
+                        </span>
+                        <span style={{
+                          color: '#54656f',
+                          fontSize: '12px',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          lineHeight: '1.2'
+                        }}>
+                          {message.replyToText || originalMsg?.text || originalMsg?.message || originalMsg?.fileName || "Mensaje original"}
+                        </span>
+                      </div>
+
+                      {/* Vista previa de media (si existe) */}
+                      {hasMedia && originalMsg && (
+                        <div style={{ flexShrink: 0 }}>
+                          {originalMsg.mediaType === 'image' ? (
+                            // Miniatura de imagen
+                            <img
+                              src={originalMsg.mediaData}
+                              alt="preview"
+                              style={{
+                                width: '48px',
+                                height: '48px',
+                                objectFit: 'cover',
+                                borderRadius: '4px',
+                                border: '1px solid rgba(0, 0, 0, 0.1)'
+                              }}
+                            />
+                          ) : originalMsg.mediaType === 'video' && !/\.(mp3|wav|ogg|m4a|aac|opus|flac)$/i.test(originalMsg.fileName || "") ? (
+                            // Miniatura de video con ícono de play
+                            <div style={{ position: 'relative', width: '48px', height: '48px' }}>
+                              <video
+                                src={originalMsg.mediaData}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover',
+                                  borderRadius: '4px',
+                                  border: '1px solid rgba(0, 0, 0, 0.1)'
+                                }}
+                              />
+                              <div style={{
+                                position: 'absolute',
+                                top: '50%',
+                                left: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                width: '20px',
+                                height: '20px',
+                                backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}>
+                                <div style={{
+                                  width: 0,
+                                  height: 0,
+                                  borderLeft: '6px solid white',
+                                  borderTop: '4px solid transparent',
+                                  borderBottom: '4px solid transparent',
+                                  marginLeft: '2px'
+                                }} />
+                              </div>
+                            </div>
+                          ) : (originalMsg.mediaType === 'audio' || (originalMsg.mediaType === 'video' && /\.(mp3|wav|ogg|m4a|aac|opus|flac)$/i.test(originalMsg.fileName || ""))) ? (
+                            // Ícono de audio
+                            <div style={{
+                              width: '48px',
+                              height: '48px',
+                              backgroundColor: '#e1f4d6',
+                              borderRadius: '4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              border: '1px solid rgba(0, 0, 0, 0.1)'
+                            }}>
+                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00a884" strokeWidth="2">
+                                <path d="M9 18V5l12-2v13M9 13l12-2" />
+                                <circle cx="6" cy="18" r="3" />
+                                <circle cx="18" cy="16" r="3" />
+                              </svg>
+                            </div>
+                          ) : (
+                            // Ícono de archivo genérico
+                            <div style={{
+                              width: '48px',
+                              height: '48px',
+                              backgroundColor: '#f0f0f0',
+                              borderRadius: '4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              border: '1px solid rgba(0, 0, 0, 0.1)'
+                            }}>
+                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
+                                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+                                <polyline points="13 2 13 9 20 9" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* CONTENIDO REAL (Texto, Imagen, Video, Archivo) */}
                 {message.type === 'poll' ? (
@@ -3073,7 +3185,7 @@ const ChatContent = ({
         /* Respuesta y Edición */
         replyingTo={replyingTo}
         onCancelReply={onCancelReply}
-        editingMessage={editingMessageId} /* ChatInput usa truthiness */
+        editingMessage={editingMessageId ? messages.find(m => m.id === editingMessageId) : null}
         editText={editText}
         onEditTextChange={setEditText}
         onCancelEdit={handleCancelEdit}

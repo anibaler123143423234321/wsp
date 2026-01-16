@@ -916,7 +916,8 @@ const ChatPage = () => {
         }
       }
 
-      let replyToTextClean = "Archivo adjunto";
+      // Determinar el texto de respuesta - priorizar texto, luego nombre de archivo
+      let replyToTextClean = "";
       if (chatState.replyingTo?.text) {
         // Si es string, usarlo. Si es objeto (React Node), intentar stringify o usar default
         if (typeof chatState.replyingTo.text === 'string') {
@@ -926,6 +927,18 @@ const ChatPage = () => {
         }
       } else if (chatState.replyingTo?.fileName) {
         replyToTextClean = chatState.replyingTo.fileName;
+      } else if (chatState.replyingTo?.mediaType) {
+        // Fallback basado en el tipo de medio
+        const mediaTypeMap = {
+          'image': '📷 Foto',
+          'video': '🎥 Video',
+          'audio': '🎵 Audio',
+          'file': '📎 Archivo',
+          'pdf': '📄 PDF'
+        };
+        replyToTextClean = mediaTypeMap[chatState.replyingTo.mediaType] || "📎 Archivo adjunto";
+      } else {
+        replyToTextClean = "Archivo adjunto";
       }
 
       // 🛡️ FRONTEND CROSS-TALK FIX: Determinar roomCode basado en el NOMBRE visible

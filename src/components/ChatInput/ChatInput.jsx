@@ -213,7 +213,7 @@ const ChatInput = ({
                             Editando mensaje
                         </div>
                         <div className="chat-input-preview-text">
-                            {editText || "Mensaje original"}
+                            {editText || editingMessage?.fileName || editingMessage?.message || editingMessage?.text || "Mensaje original"}
                         </div>
                     </div>
                     <button className="chat-input-preview-close" onClick={onCancelEdit} title="Cancelar edición">
