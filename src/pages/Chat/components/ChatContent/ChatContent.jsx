@@ -1721,10 +1721,82 @@ const ChatContent = ({
       );
     }
 
-    // Ocultar videollamadas
+    // Videollamada (Restaurado y mejorado)
     const messageText = message.text || message.message || "";
     if (message.type === "video_call" || (typeof messageText === "string" && messageText.includes("📹 Videollamada"))) {
-      return null;
+      // Intentar obtener el ID de la sala del mensaje o parsearlo del texto si es necesario
+      // El log muestra que message.videoRoomID existe y se actualiza correctamente
+      const videoRoomID = message.videoRoomID ||
+        (message.metadata && message.metadata.videoRoomID) ||
+        (messageText.includes("roomID=") ? messageText.split("roomID=")[1].split("&")[0] : null);
+
+      // Si no tenemos ID, no mostramos el botón pero sí el mensaje
+      return (
+        <div
+          key={index}
+          className={`message-row ${isGroupStart ? 'group-start' : ''} ${isOwnMessage ? 'is-own' : ''} ${isHighlighted ? 'highlighted-message' : ''}`}
+          id={`message-${message.id}`}
+        >
+          <div className="message-content video-call-message" style={{
+            backgroundColor: '#222e35',
+            color: 'white',
+            padding: '12px 16px',
+            borderRadius: '12px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            minWidth: '250px',
+            maxWidth: '320px',
+            boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px', width: '100%', justifyContent: 'center' }}>
+              <div style={{
+                backgroundColor: '#00a884',
+                borderRadius: '50%',
+                width: '40px',
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: '12px'
+              }}>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M14 6v12H6V6h8zM4 4v16h12V4H4zm14 3.5l4-2.5v14l-4-2.5V7.5z"></path></svg>
+              </div>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontWeight: 'bold', fontSize: '14px' }}>Videollamada Grupal</div>
+                <div style={{ fontSize: '12px', color: '#cfd8dc' }}>{isOwnMessage ? 'Iniciaste una llamada' : 'Llamada entrante'}</div>
+              </div>
+            </div>
+
+            {videoRoomID && (
+              <button
+                style={{
+                  backgroundColor: '#00a884',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 0',
+                  borderRadius: '24px',
+                  fontWeight: '600',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  width: '100%',
+                  marginTop: '8px',
+                  transition: 'background-color 0.2s'
+                }}
+                onClick={() => window.open(`/video-call?roomID=${videoRoomID}&username=${currentUsername}`, '_blank')}
+                onMouseOver={(e) => e.target.style.backgroundColor = '#008f6f'}
+                onMouseOut={(e) => e.target.style.backgroundColor = '#00a884'}
+              >
+                UNIRSE A LA LLAMADA
+              </button>
+            )}
+
+            <div style={{ fontSize: '10px', marginTop: '8px', color: 'rgba(255,255,255,0.6)', alignSelf: 'flex-end' }}>
+              {formatTime(message.createdAt || message.time)}
+            </div>
+          </div>
+        </div>
+      );
     }
 
     // ============================================================

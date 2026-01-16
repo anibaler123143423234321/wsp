@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaVideo } from 'react-icons/fa';
+import { FaPhone } from 'react-icons/fa';
 
 const VideoCallButton = ({ onStartVideoCall, isGroup, user }) => {
     // 1. Si no hay función, no renderizamos nada
@@ -25,7 +25,7 @@ const VideoCallButton = ({ onStartVideoCall, isGroup, user }) => {
             onClick={onStartVideoCall}
             title={isGroup ? "Iniciar videollamada grupal" : "Iniciar videollamada"}
         >
-            <FaVideo size={24} color="rgb(239, 68, 68)" />
+            <FaPhone size={20} color="rgb(239, 68, 68)" style={{ transform: 'scaleX(-1)' }} />
         </button>
     );
 };

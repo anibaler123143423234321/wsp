@@ -46,7 +46,9 @@ export default function VideoCallRoom() {
         const user = JSON.parse(userStr);
         return {
           displayName: (user.nombre && user.apellido && `${user.nombre} ${user.apellido}`) || user.username || "Usuario",
-          userID: String(user.id || user.username || randomID(8)),
+          // 🔥 FIX: Generar ID único por sesión para evitar conflictos en Zego
+          // Si usamos el mismo ID que en el chat, Zego puede patearnos si detecta "duplicado"
+          userID: String((user.id || user.username) + '_' + randomID(5)),
           userRole: user.role || null //  NUEVO: Obtener rol del usuario
         };
       }
@@ -85,8 +87,8 @@ export default function VideoCallRoom() {
     const socket = io(SOCKET_URL, {
       transports: ["websocket", "polling"],
       timeout: 10000,
-      // path: "/socket.io/",
-      path: "/BackendChat/socket.io/",
+      path: "/socket.io/", //  FIX: Ya no repetimos /BackendChat porque vendrá en la URL o se manejará por proxy
+      // path: "/BackendChat/socket.io/", // ANTES
       forceNew: true,
       reconnection: true,
       reconnectionAttempts: Infinity, // Intentar reconectar indefinidamente
@@ -257,10 +259,15 @@ export default function VideoCallRoom() {
             }
           },
           onLeaveRoom: () => {
-            // console.log("👋 Saliste de la sala.");
-            window.close();
+            console.log("👋 onLeaveRoom disparado by Zego.");
+            // DEBUG: No cerrar automáticamente para ver qué pasa
+            // window.close();
+            alert("Has salido de la sala (o Zego te sacó). Revisa la consola.");
           },
-          onError: (error) => console.warn("⚠️ Error Zego:", error)
+          onError: (error) => {
+            console.warn("⚠️ Error Zego:", error);
+            alert("Error Zego: " + JSON.stringify(error));
+          }
         });
 
       } catch (error) {
