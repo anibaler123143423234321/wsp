@@ -499,7 +499,7 @@ export const useSocketListeners = (
 
                         Swal.fire({
                             toast: true,
-                            position: "bottom-end",
+                            position: "top-end",
                             icon: "info",
                             title: `Mensaje en ${data.roomName || data.roomCode}`,
                             html: `
@@ -586,7 +586,7 @@ export const useSocketListeners = (
 
                     Swal.fire({
                         toast: true,
-                        position: "bottom-end",
+                        position: "top-end",
                         icon: "info",
                         title: `Mensaje de ${data.from}`,
                         html: `
@@ -682,7 +682,7 @@ export const useSocketListeners = (
                 // SIEMPRE mostrar SweetAlert Toast
                 Swal.fire({
                     toast: true,
-                    position: "bottom-end",
+                    position: "top-end",
                     icon: "info",
                     title: notificationTitle,
                     html: `
@@ -1162,7 +1162,7 @@ export const useSocketListeners = (
 
                     Swal.fire({
                         toast: true,
-                        position: "bottom-end",
+                        position: "top-end",
                         icon: "info",
                         title: notificationTitle,
                         html: `

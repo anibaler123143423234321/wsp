@@ -395,3 +395,70 @@
     font-size: 0.65rem;
   }
 }
+
+/* ========================================
+   DARK MODE OVERRIDES
+   ======================================== */
+.dark .login-card {
+  background: #1f2937;
+  /* gray-800 */
+}
+
+.dark .welcome-title {
+  color: #f3f4f6;
+  /* gray-100 */
+}
+
+.dark .welcome-subtitle {
+  color: #9ca3af;
+  /* gray-400 */
+}
+
+.dark .login-card input {
+  background-color: #374151 !important;
+  /* gray-700 */
+  color: #f9fafb !important;
+  /* gray-50 */
+  border-color: #4b5563 !important;
+  /* gray-600 */
+}
+
+.dark .login-card input::placeholder {
+  color: #9ca3af !important;
+  /* gray-400 */
+}
+
+.dark .login-card input:focus {
+  background-color: #374151 !important;
+  border-color: #ef4444 !important;
+  /* red-500 */
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+}
+
+.dark .sede-toggle {
+  background: #374151;
+  /* gray-700 */
+}
+
+.dark .sede-toggle-option {
+  color: #9ca3af;
+  /* gray-400 */
+}
+
+.dark .sede-toggle-option.active {
+  color: #ffffff;
+}
+
+.dark .login-card label {
+  color: #e5e7eb;
+  /* gray-200 */
+}
+
+.dark .forgot-password a {
+  color: #9ca3af;
+}
+
+.dark .forgot-password a:hover {
+  color: #ef4444;
+  /* red-500 */
+}

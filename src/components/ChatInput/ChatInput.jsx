@@ -1,10 +1,16 @@
-import { useRef, useState, useEffect } from "react";
-import { FaPaperPlane, FaTimes, FaReply, FaEdit } from "react-icons/fa";
-import EmojiPicker from "emoji-picker-react";
-import AttachMenu from "../../pages/Chat/components/AttachMenu/AttachMenu";
-import VoiceRecorder from "../../pages/Chat/components/VoiceRecorder/VoiceRecorder";
-import MediaPreviewList from "../../pages/Chat/components/MediaPreviewList/MediaPreviewList";
-import "./ChatInput.css";
+import useEnterToSend from "../../hooks/useEnterToSend";
+
+
+import React, { useState, useEffect, useRef } from 'react';
+import { FaPaperPlane, FaMicrophone, FaTimes, FaReply, FaEdit } from 'react-icons/fa';
+import EmojiPicker from 'emoji-picker-react';
+
+import AttachMenu from '../../pages/Chat/components/AttachMenu/AttachMenu';
+import VoiceRecorder from '../../pages/Chat/components/VoiceRecorder/VoiceRecorder';
+import MediaPreviewList from '../../pages/Chat/components/MediaPreviewList/MediaPreviewList';
+
+
+
 
 // Emoji Icon SVG (WhatsApp style)
 const EmojiIcon = ({ className }) => (
@@ -175,6 +181,9 @@ const ChatInput = ({
         }
     };
 
+    // Usar el hook para manejar Enter
+    const handleEnterKeyDown = useEnterToSend(handleSendClick, onKeyDown);
+
     return (
         <div className="chat-input-container">
             {/* Media Previews */}
@@ -270,7 +279,7 @@ const ChatInput = ({
                         ref={inputRef}
                         value={currentValue}
                         onChange={handleTextChange}
-                        onKeyDown={onKeyDown}
+                        onKeyDown={handleEnterKeyDown}
                         onPaste={onPaste}
                         placeholder={getPlaceholder()}
                         className="chat-input-textarea"

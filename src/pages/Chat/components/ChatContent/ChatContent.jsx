@@ -2243,8 +2243,22 @@ const ChatContent = ({
                     })()}
                   </>
                 ) : (
-                  // TEXTO PLANO
-                  renderTextWithMentions(message.text || message.message || "")
+                  // TEXTO PLANO CON Detección de "Jumbomojis"
+                  (() => {
+                    const txt = message.text || message.message || "";
+                    // Regex para detectar si SOLO hay emojis y espacios
+                    const isJumbo = txt && txt.length < 12 && /^(\p{Extended_Pictographic}|\p{Emoji_Presentation}|\s)+$/u.test(txt);
+
+                    return (
+                      <div style={{
+                        fontSize: isJumbo ? '2.5rem' : 'inherit',
+                        lineHeight: isJumbo ? '1.1' : 'inherit',
+                        padding: isJumbo ? '3px 0' : '0'
+                      }}>
+                        {renderTextWithMentions(txt)}
+                      </div>
+                    );
+                  })()
                 )}
 
                 {/* EDICIÓN (Indicador) */}

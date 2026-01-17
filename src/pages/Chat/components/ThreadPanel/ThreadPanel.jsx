@@ -24,6 +24,7 @@ import ReactionPicker from '../../../../components/ReactionPicker'; // Component
 import AddReactionButton from '../../../../components/AddReactionButton/AddReactionButton'; // Componente reutilizable botón +
 import { handleSmartPaste } from "../utils/pasteHandler"; // Utilidad reutilizable
 import { useMessageSelection } from "../../../../hooks/useMessageSelection"; //  NUEVO: Hook de selección
+import useEnterToSend from "../../../../hooks/useEnterToSend"; // NUEVO: Hook para enviar con Enter
 import MessageSelectionManager from "../ChatContent/MessageSelectionManager/MessageSelectionManager"; //  NUEVO: Barra de selección
 
 import "./ThreadPanel.css";
@@ -926,7 +927,7 @@ const ThreadPanel = ({
     };
   }, []);
 
-  const handleKeyDown = (e) => {
+  const handleMentionKeyDown = (e) => {
     //  NUEVO: Navegación en dropdown de menciones
     if (showMentionSuggestions) {
       if (e.key === 'ArrowDown') {
@@ -954,13 +955,11 @@ const ThreadPanel = ({
         return;
       }
     }
-
-    // Comportamiento normal de Enter
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
   };
+
+  // Usar el hook para manejar Enter (enviar) y Shift+Enter (nueva línea)
+  // Pasamos handleMentionKeyDown como lógica existente para preservar navegación de menciones
+  const handleKeyDown = useEnterToSend(handleSend, handleMentionKeyDown);
 
   const handleEmojiClick = (emojiData) => {
     // Si hay un mensaje pendiente para reaccionar (viene del botón "+")
@@ -1224,8 +1223,19 @@ const ThreadPanel = ({
       )}
       <div className="thread-panel-header">
         {onBackToThreadsList && (
-          <button className="thread-back-btn" onClick={onBackToThreadsList} title="Volver a lista de hilos">
-            <FaArrowLeft />
+          <button
+            className="thread-back-btn _icon-button_bh2qc_17 _subtle-bg_bh2qc_38"
+            onClick={onBackToThreadsList}
+            title="Volver a lista de hilos"
+            role="button"
+            tabIndex={0}
+            style={{ '--cpd-icon-button-size': '28px', border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <div className="_indicator-icon_133tf_26" style={{ '--cpd-icon-button-size': '100%', display: 'flex' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                <path d="m13.3 17.3-4.6-4.6a.877.877 0 0 1-.213-.325A1.106 1.106 0 0 1 8.425 12c0-.133.02-.258.062-.375A.878.878 0 0 1 8.7 11.3l4.6-4.6a.948.948 0 0 1 .7-.275.95.95 0 0 1 .7.275.948.948 0 0 1 .275.7.948.948 0 0 1-.275.7L10.8 12l3.9 3.9a.949.949 0 0 1 .275.7.948.948 0 0 1-.275.7.948.948 0 0 1-.7.275.948.948 0 0 1-.7-.275Z"></path>
+              </svg>
+            </div>
           </button>
         )}
         <div className="thread-panel-title">
