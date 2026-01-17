@@ -1598,86 +1598,116 @@ const ChatContent = ({
       })
       : [];
 
-    // Regex mejorado: @ seguido de cualquier caracter de palabra (incluye acentos si se usa \w en algunos motores, pero mejor explícito)
-    // Permitimos mayúsculas y minúsculas al inicio
-    const mentionRegex = /@([a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+(?:\s+[a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
+    // Función para procesar menciones en un texto
+    const processMentions = (inputText, keyPrefix = '') => {
+      const mentionRegex = /@([a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+(?:\s+[a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
+      const parts = [];
+      let lastIndex = 0;
+      let match;
 
-    const parts = [];
-    let lastIndex = 0;
-    let match;
+      while ((match = mentionRegex.exec(inputText)) !== null) {
+        const charBeforeMention = match.index > 0 ? inputText[match.index - 1] : "";
+        const isPartOfEmail = /[a-zA-Z0-9._-]/.test(charBeforeMention);
+        const mentionedText = match[1].toLowerCase().trim();
+        const emailDomains = ["gmail", "outlook", "hotmail", "yahoo", "icloud", "live", "msn", "aol", "protonmail", "zoho"];
+        const isEmailDomain = emailDomains.includes(mentionedText);
 
-    while ((match = mentionRegex.exec(text)) !== null) {
-      // Verificar si es parte de un email
-      const charBeforeMention = match.index > 0 ? text[match.index - 1] : "";
-      const isPartOfEmail = /[a-zA-Z0-9._-]/.test(charBeforeMention);
+        if (match.index > lastIndex) {
+          parts.push(inputText.substring(lastIndex, match.index));
+        }
 
-      // Verificar si después del @ hay un dominio de email común
-      const mentionedText = match[1].toLowerCase().trim();
-      const emailDomains = [
-        "gmail", "outlook", "hotmail", "yahoo", "icloud",
-        "live", "msn", "aol", "protonmail", "zoho",
-      ];
-      const isEmailDomain = emailDomains.includes(mentionedText);
+        if (isPartOfEmail || isEmailDomain) {
+          parts.push(match[0]);
+          lastIndex = match.index + match[0].length;
+          continue;
+        }
 
-      // Agregar texto antes de la mención
-      if (match.index > lastIndex) {
-        parts.push(text.substring(lastIndex, match.index));
-      }
-
-      // Si es parte de un email, agregar sin resaltar
-      if (isPartOfEmail || isEmailDomain) {
-        parts.push(match[0]);
-        lastIndex = match.index + match[0].length;
-        continue;
-      }
-
-      // Verificar si es un usuario válido en la sala
-      const mentionedUser = match[1].trim();
-      const normalizedMention = normalizeText(mentionedUser);
-
-      const isValidUser = validUsers.some(
-        (validUser) =>
-          validUser === normalizedMention ||
-          validUser.includes(normalizedMention) ||
-          normalizedMention.includes(validUser) //  Check bidireccional
-      );
-
-      // Solo resaltar si es un usuario válido
-      if (isValidUser) {
-        const isCurrentUser =
-          normalizedMention === normalizeText(currentUsername || "");
-
-        parts.push(
-          <span
-            key={match.index}
-            className={`mention-span ${isCurrentUser ? 'mention-me' : 'mention-other'}`}
-            style={{
-              display: "inline",
-              padding: "2px 6px",
-              borderRadius: "4px",
-              fontWeight: "500",
-              fontSize: "0.95em",
-              cursor: "pointer",
-            }}
-            title={`Mención a ${mentionedUser}`}
-          >
-            @{mentionedUser}
-          </span>
+        const mentionedUser = match[1].trim();
+        const normalizedMention = normalizeText(mentionedUser);
+        const isValidUser = validUsers.some(
+          (validUser) =>
+            validUser === normalizedMention ||
+            validUser.includes(normalizedMention) ||
+            normalizedMention.includes(validUser)
         );
-      } else {
-        // Si no es un usuario válido, agregar como texto normal
-        parts.push(match[0]);
+
+        if (isValidUser) {
+          const isCurrentUser = normalizedMention === normalizeText(currentUsername || "");
+          parts.push(
+            <span
+              key={`${keyPrefix}-${match.index}`}
+              className={`mention-span ${isCurrentUser ? 'mention-me' : 'mention-other'}`}
+              style={{
+                display: "inline",
+                padding: "2px 6px",
+                borderRadius: "12px",
+                fontWeight: "500",
+                fontSize: "0.95em",
+                cursor: "pointer",
+              }}
+              title={`Mención a ${mentionedUser}`}
+            >
+              @{mentionedUser}
+            </span>
+          );
+        } else {
+          parts.push(match[0]);
+        }
+        lastIndex = match.index + match[0].length;
       }
 
-      lastIndex = match.index + match[0].length;
-    }
+      if (lastIndex < inputText.length) {
+        parts.push(inputText.substring(lastIndex));
+      }
 
-    // Agregar texto restante
-    if (lastIndex < text.length) {
-      parts.push(text.substring(lastIndex));
-    }
+      return parts.length > 0 ? parts : inputText;
+    };
 
-    return parts.length > 0 ? parts : text;
+    // Dividir el texto por líneas para procesar líneas con guion
+    const lines = text.split('\n');
+    const result = [];
+
+    lines.forEach((line, lineIndex) => {
+      const trimmedLine = line.trim();
+      const startsWithDash = /^[-–—]/.test(trimmedLine);
+
+      if (startsWithDash) {
+        // Línea que empieza con guion: espaciado arriba, sangría, guion en negrita, texto justificado
+        const dashMatch = trimmedLine.match(/^([-–—])\s*(.*)/);
+        if (dashMatch) {
+          const dash = dashMatch[1];
+          const restOfLine = dashMatch[2];
+          result.push(
+            <div
+              key={`line-${lineIndex}`}
+              style={{
+                marginTop: '12px',
+                paddingLeft: '20px',
+                textAlign: 'justify',
+              }}
+            >
+              <span style={{ fontWeight: 'bold' }}>{dash}</span>{' '}
+              {processMentions(restOfLine, `line-${lineIndex}`)}
+            </div>
+          );
+        }
+      } else {
+        // Línea normal - envolver en div para alineación consistente
+        const trimmedContent = line.trim();
+        if (trimmedContent) {
+          result.push(
+            <div key={`line-${lineIndex}`}>
+              {processMentions(trimmedContent, `line-${lineIndex}`)}
+            </div>
+          );
+        } else if (lineIndex > 0) {
+          // Línea vacía - agregar salto de línea
+          result.push(<br key={`br-${lineIndex}`} />);
+        }
+      }
+    });
+
+    return result.length > 0 ? result : text;
   };
 
   // ============================================================
