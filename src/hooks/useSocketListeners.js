@@ -497,39 +497,43 @@ export const useSocketListeners = (
                             );
                         }
 
-                        Swal.fire({
-                            toast: true,
-                            position: "top-end",
-                            icon: "info",
-                            title: `Mensaje en ${data.roomName || data.roomCode}`,
-                            html: `
+                        // SIEMPRE mostrar SweetAlert Toast SI TENEMOS EL FOCO
+                        // Si no tenemos foco, systemNotifications se encarga de la nativa
+                        if (document.hasFocus()) {
+                            Swal.fire({
+                                toast: true,
+                                position: "top-end",
+                                icon: "info",
+                                title: `Mensaje en ${data.roomName || data.roomCode}`,
+                                html: `
                                 <div class="toast-content">
                                     <div class="toast-sender">${data.from}</div>
                                     <div class="toast-message">${messageText.substring(0, 80)}${messageText.length > 80 ? "..." : ""}</div>
                                 </div>
                             `,
-                            showConfirmButton: true,
-                            confirmButtonText: "Ver",
-                            showCloseButton: true,
-                            timer: 6000,
-                            customClass: {
-                                popup: 'modern-toast',
-                                title: 'modern-toast-title',
-                                htmlContainer: 'modern-toast-html',
-                                confirmButton: 'modern-toast-btn',
-                                icon: 'modern-toast-icon',
-                                closeButton: 'modern-toast-close'
-                            }
-                        }).then((result) => {
-                            if (result.isConfirmed) {
-                                // 🔥 Usar ID real si está disponible; si es temporal sin ID real, navegar sin centrar en mensaje
-                                const realId = getRealMessageId(data.id);
-                                const messageId = realId || (data.id?.toString().startsWith('temp_') ? null : data.id);
-                                window.dispatchEvent(new CustomEvent("navigateToRoom", {
-                                    detail: { roomCode: data.roomCode, messageId }
-                                }));
-                            }
-                        });
+                                showConfirmButton: true,
+                                confirmButtonText: "Ver",
+                                showCloseButton: true,
+                                timer: 6000,
+                                customClass: {
+                                    popup: 'modern-toast',
+                                    title: 'modern-toast-title',
+                                    htmlContainer: 'modern-toast-html',
+                                    confirmButton: 'modern-toast-btn',
+                                    icon: 'modern-toast-icon',
+                                    closeButton: 'modern-toast-close'
+                                }
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    // 🔥 Usar ID real si está disponible; si es temporal sin ID real, navegar sin centrar en mensaje
+                                    const realId = getRealMessageId(data.id);
+                                    const messageId = realId || (data.id?.toString().startsWith('temp_') ? null : data.id);
+                                    window.dispatchEvent(new CustomEvent("navigateToRoom", {
+                                        detail: { roomCode: data.roomCode, messageId }
+                                    }));
+                                }
+                            });
+                        }
                     }
                 }
 
@@ -584,35 +588,38 @@ export const useSocketListeners = (
                         );
                     }
 
-                    Swal.fire({
-                        toast: true,
-                        position: "top-end",
-                        icon: "info",
-                        title: `Mensaje de ${data.from}`,
-                        html: `
+                    // SIEMPRE mostrar SweetAlert Toast SI TENEMOS EL FOCO
+                    if (document.hasFocus()) {
+                        Swal.fire({
+                            toast: true,
+                            position: "top-end",
+                            icon: "info",
+                            title: `Mensaje de ${data.from}`,
+                            html: `
                             <div class="toast-content">
                                 <div class="toast-message">${messageText.substring(0, 80)}${messageText.length > 80 ? "..." : ""}</div>
                             </div>
                         `,
-                        showConfirmButton: true,
-                        confirmButtonText: "Ver",
-                        showCloseButton: true,
-                        timer: 6000,
-                        customClass: {
-                            popup: 'modern-toast',
-                            title: 'modern-toast-title',
-                            htmlContainer: 'modern-toast-html',
-                            confirmButton: 'modern-toast-btn',
-                            icon: 'modern-toast-icon',
-                            closeButton: 'modern-toast-close'
-                        }
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            window.dispatchEvent(new CustomEvent("navigateToChat", {
-                                detail: { to: data.from, messageId: data.id }
-                            }));
-                        }
-                    });
+                            showConfirmButton: true,
+                            confirmButtonText: "Ver",
+                            showCloseButton: true,
+                            timer: 6000,
+                            customClass: {
+                                popup: 'modern-toast',
+                                title: 'modern-toast-title',
+                                htmlContainer: 'modern-toast-html',
+                                confirmButton: 'modern-toast-btn',
+                                icon: 'modern-toast-icon',
+                                closeButton: 'modern-toast-close'
+                            }
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                window.dispatchEvent(new CustomEvent("navigateToChat", {
+                                    detail: { to: data.from, messageId: data.id }
+                                }));
+                            }
+                        });
+                    }
                 }
 
             }
@@ -643,72 +650,8 @@ export const useSocketListeners = (
             // Sonido para todos (favoritos y no favoritos)
             if (!isCurrentRoom && incrementCount > 0) {
                 playMessageSound(soundsEnabledRef.current);
-
-                //  NUEVO: Mostrar notificación visual (Toast)
-                let messageText = data.lastMessage?.text || "";
-                if (!messageText && data.lastMessage?.mediaType) {
-                    if (data.lastMessage.mediaType === 'image') messageText = "📷 Imagen";
-                    else if (data.lastMessage.mediaType === 'video') messageText = "🎥 Video";
-                    else if (data.lastMessage.mediaType === 'audio') messageText = "🎵 Audio";
-                    else if (data.lastMessage.mediaType === 'document') messageText = "📄 Documento";
-                    else messageText = "📎 Archivo";
-                } else if (!messageText) {
-                    messageText = "Nuevo mensaje";
-                }
-
-                const sender = data.lastMessage?.from || "Usuario";
-
-                // Buscar nombre del grupo usando REF y múltiples propiedades posibles
-                const rooms = myActiveRoomsRef.current;
-                const foundRoom = rooms.find(r => r.roomCode === data.roomCode);
-                const groupName = foundRoom?.roomName || foundRoom?.name || foundRoom?.groupName || data.groupName || data.roomName || "Grupo";
-
-                const notificationTitle = `${sender} en ${groupName}`;
-
-                // Intentar mostrar notificación del sistema primero
-                if (systemNotifications.canShow()) {
-                    systemNotifications.show(
-                        notificationTitle,
-                        messageText,
-                        { tag: `room-${data.roomCode}`, silent: !soundsEnabledRef.current },
-                        () => {
-                            window.dispatchEvent(new CustomEvent("navigateToGroup", {
-                                detail: { roomCode: data.roomCode }
-                            }));
-                        }
-                    );
-                }
-
-                // SIEMPRE mostrar SweetAlert Toast
-                Swal.fire({
-                    toast: true,
-                    position: "top-end",
-                    icon: "info",
-                    title: notificationTitle,
-                    html: `
-                        <div class="toast-content">
-                            <div class="toast-message">${messageText.substring(0, 80)}${messageText.length > 80 ? "..." : ""}</div>
-                        </div>
-                    `,
-                    showConfirmButton: true,
-                    confirmButtonText: "Ver",
-                    showCloseButton: true,
-                    timer: 6000,
-                    customClass: {
-                        popup: 'modern-toast',
-                        title: 'modern-toast-title',
-                        htmlContainer: 'modern-toast-html',
-                        confirmButton: 'modern-toast-btn',
-                        icon: 'modern-toast-icon',
-                        closeButton: 'modern-toast-close'
-                    }
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        window.dispatchEvent(new CustomEvent("navigateToGroup", {
-                            detail: { roomCode: data.roomCode }
-                        }));
-                    }
-                });
+                // NOTA: Eliminamos notificaciones visuales (Toast/System) de aquí para evitar
+                // duplicidad con el evento 'message' que ya las muestra con más detalle.
             }
 
             //  SIEMPRE actualizar lastMessage y reordenar (fuera del if anterior)
@@ -1160,42 +1103,45 @@ export const useSocketListeners = (
                         );
                     }
 
-                    Swal.fire({
-                        toast: true,
-                        position: "top-end",
-                        icon: "info",
-                        title: notificationTitle,
-                        html: `
+                    // SIEMPRE mostrar SweetAlert Toast SI TENEMOS EL FOCO
+                    if (document.hasFocus()) {
+                        Swal.fire({
+                            toast: true,
+                            position: "top-end",
+                            icon: "info",
+                            title: notificationTitle,
+                            html: `
                             <div class="toast-content">
                                 <div class="toast-sender">${data.lastReplyFrom}</div>
                                 <div class="toast-message">Respondió en un hilo</div>
                             </div>
                         `,
-                        showConfirmButton: true,
-                        confirmButtonText: "Ver",
-                        showCloseButton: true,
-                        timer: 6000,
-                        customClass: {
-                            popup: 'modern-toast',
-                            title: 'modern-toast-title',
-                            htmlContainer: 'modern-toast-html',
-                            confirmButton: 'modern-toast-btn',
-                            icon: 'modern-toast-icon',
-                            closeButton: 'modern-toast-close'
-                        }
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            if (data.isGroup && data.roomCode) {
-                                window.dispatchEvent(new CustomEvent("navigateToRoom", {
-                                    detail: { roomCode: data.roomCode, messageId: data.messageId }
-                                }));
-                            } else {
-                                window.dispatchEvent(new CustomEvent("navigateToChat", {
-                                    detail: { to: data.from, messageId: data.messageId }
-                                }));
+                            showConfirmButton: true,
+                            confirmButtonText: "Ver",
+                            showCloseButton: true,
+                            timer: 6000,
+                            customClass: {
+                                popup: 'modern-toast',
+                                title: 'modern-toast-title',
+                                htmlContainer: 'modern-toast-html',
+                                confirmButton: 'modern-toast-btn',
+                                icon: 'modern-toast-icon',
+                                closeButton: 'modern-toast-close'
                             }
-                        }
-                    });
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                if (data.isGroup && data.roomCode) {
+                                    window.dispatchEvent(new CustomEvent("navigateToRoom", {
+                                        detail: { roomCode: data.roomCode, messageId: data.messageId }
+                                    }));
+                                } else {
+                                    window.dispatchEvent(new CustomEvent("navigateToChat", {
+                                        detail: { to: data.from, messageId: data.messageId }
+                                    }));
+                                }
+                            }
+                        });
+                    }
                 }
             }
         });

@@ -866,13 +866,12 @@ const ChatPage = () => {
 
 
   const handleSendMessage = async (messageData = null) => {
-    // 🛡️ SANITIZACIÓN CRÍTICA: Si messageData es un Evento (click, keypress), ignorarlo completamente
-    // Esto evita el error "Converting circular structure to JSON" al hacer spread de un Event object
+    // 🛡️ SANITIZACIÓN CRÍTICA
     if (messageData && (messageData.nativeEvent || messageData.preventDefault || messageData.target || messageData.bubbles !== undefined)) {
       messageData = null;
     }
 
-    // 1. Prevenir envío si ya se está enviando o si está vacío (a menos que venga messageData explícito)
+    // 1. Prevenir envío si ya se está enviando o si está vacío
     if (chatState.isSending) return;
 
     // Si viene messageData (ej: encuesta), permitimos enviar aunque input esté vacío
@@ -883,157 +882,152 @@ const ChatPage = () => {
     chatState.setIsSending(true);
 
     try {
-      // 2. Normalización
+      // 2. Normalización y verificación de chat asignado
       const currentUserNormalized = normalizeUsername(currentUserFullName);
-
-      // 3. Verificar si es chat asignado
       const assignedConv = chatState.assignedConversations?.find((conv) => {
         const participants = conv.participants || [];
         return participants.some(p => normalizeUsername(p) === normalizeUsername(chatState.to));
       });
-
-      // Determinar si es grupo
       const effectiveIsGroup = assignedConv ? false : chatState.isGroup;
 
-      // 4. Subir archivo si existe
-      let attachmentData = {};
-      if (mediaFiles.length > 0 && !isDirectMessage) { // Solo si no es mensaje directo especial
-        try {
-          chatState.setIsUploadingFile(true);
-          const file = mediaFiles[0];
-          const uploadResult = await apiService.uploadFile(file, "chat");
-          attachmentData = {
-            mediaType: file.type.split("/")[0],
-            mediaData: uploadResult.fileUrl,
-            fileName: uploadResult.fileName,
-            fileSize: uploadResult.fileSize
-          };
-        } catch (err) {
-          console.error("Error subiendo archivo:", err);
-          chatState.setIsUploadingFile(false);
-          chatState.setIsSending(false);
-          return;
-        }
-      }
-
-      // Determinar el texto de respuesta - priorizar texto, luego nombre de archivo
-      let replyToTextClean = "";
-      if (chatState.replyingTo?.text) {
-        // Si es string, usarlo. Si es objeto (React Node), intentar stringify o usar default
-        if (typeof chatState.replyingTo.text === 'string') {
-          replyToTextClean = chatState.replyingTo.text;
-        } else {
-          replyToTextClean = "Mensaje original";
-        }
-      } else if (chatState.replyingTo?.fileName) {
-        replyToTextClean = chatState.replyingTo.fileName;
-      } else if (chatState.replyingTo?.mediaType) {
-        // Fallback basado en el tipo de medio
-        const mediaTypeMap = {
-          'image': '📷 Foto',
-          'video': '🎥 Video',
-          'audio': '🎵 Audio',
-          'file': '📎 Archivo',
-          'pdf': '📄 PDF'
-        };
-        replyToTextClean = mediaTypeMap[chatState.replyingTo.mediaType] || "📎 Archivo adjunto";
-      } else {
-        replyToTextClean = "Archivo adjunto";
-      }
-
-      // 🛡️ FRONTEND CROSS-TALK FIX: Determinar roomCode basado en el NOMBRE visible
-      // Esto asegura "What You See Is What You Get". Si el usuario ve "Grupo A", enviamos al roomCode de "Grupo A".
+      // 🛡️ FRONTEND CROSS-TALK FIX
       let finalRoomCode = effectiveIsGroup ? chatState.currentRoomCode : undefined;
-
       if (effectiveIsGroup && chatState.to && chatState.myActiveRooms) {
         const matchingRoom = chatState.myActiveRooms.find(
           r => r.name?.trim().toLowerCase() === chatState.to.trim().toLowerCase()
         );
-
         if (matchingRoom && matchingRoom.roomCode !== finalRoomCode) {
-          console.log(`🔒 Corrección de Sala: Usando ${matchingRoom.roomCode} para "${chatState.to}" (Estado anterior: ${finalRoomCode})`);
+          console.log(`🔒 Corrección de Sala: Usando ${matchingRoom.roomCode} para "${chatState.to}"`);
           finalRoomCode = matchingRoom.roomCode;
         }
       }
 
-      // 5. Construir mensaje
-      let messageObj = {
-        from: currentUserFullName,
-        fromId: user.id,
-        to: chatState.to,
-        message: String(input || ""), // Asegurar que sea string
-        isGroup: effectiveIsGroup,
-        roomCode: finalRoomCode,
-        ...attachmentData,
-        //  DATOS DE RESPUESTA
-        replyToMessageId: chatState.replyingTo?.id || null,
-        replyToSender: chatState.replyingTo?.sender || null,
-        replyToText: replyToTextClean,
-        replyToSenderNumeroAgente: chatState.replyingTo?.senderNumeroAgente || null
-      };
+      // 3. Preparar lista de trabajos (Iterar sobre archivos o un solo pase para texto/poll)
+      // Si hay archivos y NO es un mensaje especial (poll), iteramos los archivos.
+      // Si no hay archivos o es mensaje especial, hacemos 1 iteración.
+      const hasFiles = !isDirectMessage && mediaFiles.length > 0;
+      const iterations = hasFiles ? mediaFiles.length : 1;
 
-      // Si viene data directa (ej: encuesta), mezclamos
-      if (messageData) {
-        messageObj = {
-          ...messageObj,
-          ...messageData,
-          message: messageData.text || messageData.message || "", // Priorizar mensaje del data si existe
-        };
-        // Si es encuesta, aseguramos el tipo
-        if (messageData.isPoll) {
-          messageObj.type = 'poll';
-          // El input debe vaciarse o ignorarse
-          messageObj.message = messageData.poll.question; // Usar pregunta como texto de fallback
-          // ⚡ PERSISTENCIA: Guardar la estructura de la encuesta en mediaData
-          messageObj.mediaData = JSON.stringify(messageData.poll);
-          messageObj.mediaType = 'poll_data'; // Marcador auxiliar
+      // Activar flag de subida si hay archivos
+      if (hasFiles) chatState.setIsUploadingFile(true);
+
+      for (let i = 0; i < iterations; i++) {
+        let attachmentData = {};
+
+        // A. SUBIDA DE ARCHIVO (si corresponde)
+        if (hasFiles) {
+          const file = mediaFiles[i];
+          try {
+            const uploadResult = await apiService.uploadFile(file, "chat");
+            attachmentData = {
+              mediaType: file.type.split("/")[0],
+              mediaData: uploadResult.fileUrl,
+              fileName: uploadResult.fileName,
+              fileSize: uploadResult.fileSize
+            };
+          } catch (err) {
+            console.error(`Error subiendo archivo ${file.name}:`, err);
+            // Mostrar error pero intentar continuar con el siguiente si falla uno
+            showErrorAlert("Error subida", `Falló al enviar ${file.name}`);
+            continue;
+          }
         }
-      }
 
-      // Datos extra si es asignado
-      if (assignedConv) {
-        messageObj.isAssignedConversation = true;
-        messageObj.conversationId = assignedConv.id;
-        messageObj.participants = assignedConv.participants;
-        const other = assignedConv.participants.find(p => normalizeUsername(p) !== currentUserNormalized);
-        if (other) messageObj.actualRecipient = other;
-      }
+        // B. DATOS DE RESPUESTA (Solo para el primer mensaje del lote)
+        let replyData = {};
+        if (i === 0 && chatState.replyingTo) {
+          let replyToTextClean = "";
+          if (chatState.replyingTo.text && typeof chatState.replyingTo.text === 'string') {
+            replyToTextClean = chatState.replyingTo.text;
+          } else if (chatState.replyingTo.fileName) {
+            replyToTextClean = chatState.replyingTo.fileName;
+          } else if (chatState.replyingTo.mediaType) {
+            const mediaTypeMap = { 'image': '📷 Foto', 'video': '🎥 Video', 'audio': '🎵 Audio', 'file': '📎 Archivo', 'pdf': '📄 PDF' };
+            replyToTextClean = mediaTypeMap[chatState.replyingTo.mediaType] || "📎 Archivo adjunto";
+          } else {
+            replyToTextClean = "Mensaje original";
+          }
+          replyData = {
+            replyToMessageId: chatState.replyingTo.id,
+            replyToSender: chatState.replyingTo.sender,
+            replyToText: replyToTextClean,
+            replyToSenderNumeroAgente: chatState.replyingTo.senderNumeroAgente
+          };
+        }
 
-      // ESTRATEGIA DEFINITIVA: Guardar en BD (POST) -> Obtener ID y Fecha del Servidor -> Emitir Socket -> Mostrar
-      // 1. Guardar en Base de Datos
-      const savedMessage = await apiService.createMessage({
-        ...messageObj,
-        to: messageObj.actualRecipient || messageObj.to
-      });
+        // C. CONSTRUCCIÓN DEL MENSAJE
+        // El texto del input se adjunta SOLO al primer mensaje (i === 0)
+        let rawText = (i === 0) ? (input || "") : "";
 
-      console.log('✅ Mensaje guardado en servidor:', savedMessage);
+        let messageObj = {
+          from: currentUserFullName,
+          fromId: user.id,
+          to: chatState.to,
+          message: String(rawText),
+          isGroup: effectiveIsGroup,
+          roomCode: finalRoomCode,
+          ...attachmentData,
+          ...replyData
+        };
 
-      // 2. Emitir por Socket (para notificar a otros)
-      if (socket && socket.connected) {
-        socket.emit("message", {
+        // Merge con messageData si es mensaje directo
+        if (!hasFiles && messageData) {
+          messageObj = { ...messageObj, ...messageData };
+          // Asegurar string en message si viene de data
+          if (!messageObj.message && messageData.text) messageObj.message = messageData.text;
+
+          if (messageData.isPoll) {
+            messageObj.type = 'poll';
+            messageObj.message = messageData.poll.question;
+            messageObj.mediaData = JSON.stringify(messageData.poll);
+            messageObj.mediaType = 'poll_data';
+          }
+        }
+
+        // Datos extra si es asignado
+        if (assignedConv) {
+          messageObj.isAssignedConversation = true;
+          messageObj.conversationId = assignedConv.id;
+          messageObj.participants = assignedConv.participants;
+          const other = assignedConv.participants.find(p => normalizeUsername(p) !== currentUserNormalized);
+          if (other) messageObj.actualRecipient = other;
+        }
+
+        // D. ENVÍO AL SERVIDOR
+        // 1. Guardar en Base de Datos
+        const savedMessage = await apiService.createMessage({
           ...messageObj,
-          id: savedMessage.id, // Usar ID real
-          sentAt: savedMessage.sentAt, // Usar FECHA REAL del servidor
+          to: messageObj.actualRecipient || messageObj.to
         });
-      }
 
-      // 3. Agregar a la UI localmente usando los datos REALES del servidor
-      addNewMessage({
-        ...savedMessage,
-        isSent: true,
-        isSelf: true,
-        sender: "Tú",
-        realSender: currentUserFullName
-      });
+        console.log('✅ Mensaje guardado:', savedMessage.id);
 
-      //  CONFIAR EN EL BACKEND - No agregar mensaje localmente
-      // El socket devolverá el mensaje con el evento 'message' (useSocketListeners lo manejará)
+        // 2. Emitir por Socket
+        if (socket && socket.connected) {
+          socket.emit("message", {
+            ...messageObj,
+            id: savedMessage.id,
+            sentAt: savedMessage.sentAt,
+          });
+        }
 
+        // 3. UI update
+        addNewMessage({
+          ...savedMessage,
+          isSent: true,
+          isSelf: true,
+          sender: "Tú",
+          realSender: currentUserFullName
+        });
+
+      } // Fin del bucle
+
+      // Limpieza final exitosa
       clearInput();
       chatState.setReplyingTo(null);
 
     } catch (error) {
-      console.error("Error enviando mensaje:", error);
+      console.error("Error enviando mensaje(s):", error);
       showErrorAlert("Error al enviar", error.message || "No se pudo enviar el mensaje por problemas de conexión.");
     } finally {
       chatState.setIsSending(false);
