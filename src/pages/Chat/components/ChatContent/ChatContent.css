@@ -1541,28 +1541,45 @@
   opacity: 0.6;
 }
 
-/* Sugerencias de menciones */
-.mention-suggestions {
+/* Fallback de seguridad para menciones en ChatContent */
+.chat-input-mention-suggestions {
   scrollbar-width: thin;
   scrollbar-color: #cbd5e0 #f7fafc;
 }
 
-.mention-suggestions::-webkit-scrollbar {
-  width: 6px;
+.chat-input-mention-suggestions::-webkit-scrollbar {
+  width: 6px !important;
+  background-color: transparent !important;
 }
 
-.mention-suggestions::-webkit-scrollbar-track {
+.chat-input-mention-suggestions::-webkit-scrollbar-track {
   background: #f7fafc;
   border-radius: 8px;
 }
 
-.mention-suggestions::-webkit-scrollbar-thumb {
+.chat-input-mention-suggestions::-webkit-scrollbar-thumb {
   background: #cbd5e0;
   border-radius: 8px;
 }
 
-.mention-suggestions::-webkit-scrollbar-thumb:hover {
-  background: #a0aec0;
+/* Dark Mode Fallback */
+html.dark .chat-input-mention-suggestions {
+  background-color: #202c33 !important;
+  color: #e9edef !important;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.5) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+html.dark .chat-input-mention-suggestions::-webkit-scrollbar-track {
+  background: #111b21 !important;
+}
+
+html.dark .chat-input-mention-suggestions::-webkit-scrollbar-thumb {
+  background: #374045 !important;
+}
+
+html.dark .chat-input-mention-item:hover {
+  background-color: #111b21 !important;
 }
 
 /*  Chat Header Styles */
@@ -1580,17 +1597,17 @@
 
 .wa-file-card {
   position: relative;
-  /* Ancho mínimo obligatorio para que la fecha no se monte */
-  min-width: 260px !important;
-  max-width: 320px;
-  /* Padding inferior extra para dejar sitio a la hora absoluta */
-  padding: 10px 10px 26px 10px !important;
+  /* Ancho reducido para cards más compactos */
+  min-width: 180px !important;
+  max-width: 240px;
+  /* Padding más pequeño */
+  padding: 6px 8px 20px 8px !important;
   background-color: rgba(0, 0, 0, 0.04);
   /* Gris muy suave */
-  border-radius: 10px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   cursor: pointer;
   border: 1px solid rgba(0, 0, 0, 0.05);
   transition: background-color 0.2s;
@@ -1603,11 +1620,16 @@
 /* Icono del archivo (izquierda) */
 .wa-file-icon {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.wa-file-icon svg {
+  width: 24px;
+  height: 24px;
 }
 
 /* Información central */
@@ -1617,12 +1639,12 @@
   /* Permite que el texto se trunque */
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .wa-file-name {
   color: #111b21;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -1633,8 +1655,8 @@
 .wa-file-meta {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
+  gap: 4px;
+  font-size: 10px;
   color: #667781;
 }
 
@@ -1646,12 +1668,12 @@
 /* Hora y checks flotantes (Esquina inferior derecha) */
 .wa-file-timestamp {
   position: absolute;
-  bottom: 5px;
-  right: 8px;
+  bottom: 3px;
+  right: 6px;
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
+  gap: 3px;
+  font-size: 10px;
   color: #8696a0;
   background: transparent;
 }
@@ -1659,10 +1681,40 @@
 /* Icono de descarga (derecha) */
 .wa-file-download {
   color: #8696a0;
-  font-size: 18px;
-  padding: 4px;
+  font-size: 14px;
+  padding: 3px;
   border-radius: 50%;
   border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Dark Mode para File Cards */
+html.dark .wa-file-card {
+  background-color: rgba(255, 255, 255, 0.05);
+  /* Fondo oscuro translúcido */
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+html.dark .wa-file-card:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .wa-file-name {
+  color: #e9edef;
+  /* Texto blanco suave */
+}
+
+html.dark .wa-file-meta {
+  color: #8696a0;
+  /* Texto gris claro */
+}
+
+html.dark .wa-file-timestamp {
+  color: #8696a0;
+}
+
+html.dark .wa-file-download {
+  color: #8696a0;
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 

@@ -72,12 +72,21 @@ const formatDateLabel = (sentAt) => {
   return `${weekdayCapitalized}, ${day} ${monthCapitalized} ${year}`;
 };
 
+// Compara si el mensaje anterior es del mismo autor
+const isSameGroup = (prevMsg, currentMsg) => {
+  if (!prevMsg || !currentMsg) return false;
+  // Si el mensaje previo es un separador de fecha, no es el mismo grupo
+  if (prevMsg.type === "date-separator") return false;
+  // Comparar el autor
+  return prevMsg.from === currentMsg.from;
+};
+
 // Función para agrupar mensajes por fecha
 const groupThreadMessagesByDate = (messages) => {
   const groups = [];
   let currentDateString = null;
 
-  messages.forEach((msg) => {
+  messages.forEach((msg, idx) => {
     const sentAt = msg.sentAt || new Date().toISOString();
     const messageDateString = sentAt.split("T")[0];
 
@@ -89,7 +98,18 @@ const groupThreadMessagesByDate = (messages) => {
         label: formatDateLabel(sentAt),
       });
     }
-    groups.push({ type: "message", ...msg });
+
+    // Obtener el elemento previo en groups
+    const prevItem = groups.length > 0 ? groups[groups.length - 1] : null;
+
+    // Verificar si es el mismo grupo que el mensaje anterior
+    const sameGroup = isSameGroup(prevItem, msg);
+
+    groups.push({
+      type: "message",
+      ...msg,
+      isGroupStart: !sameGroup // true = mostrar avatar/nombre, false = ocultar
+    });
   });
 
   return groups;
@@ -127,6 +147,9 @@ const ThreadPanel = ({
   const [filteredMembers, setFilteredMembers] = useState([]);
   const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null); //  REF para el contenedor de mensajes
+  const isInitialLoadRef = useRef(true); //  Bandera para primera carga
+  const isUserScrollingRef = useRef(false); //  Detectar si usuario está scrolleando
   const emojiPickerRef = useRef(null);
   const fileInputRef = useRef(null);
   const inputRef = useRef(null);
@@ -147,6 +170,10 @@ const ThreadPanel = ({
   //  NUEVO: Estados para edición de mensajes
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editText, setEditText] = useState("");
+
+  //  NUEVO: Estado para botón flotante de mensajes nuevos
+  const [newMessagesCount, setNewMessagesCount] = useState(0);
+  const prevThreadMessagesLengthRef = useRef(0);
 
   // ============================================================
   // ESTADOS - Selección múltiple (Usando Hook Personalizado)
@@ -285,9 +312,45 @@ const ThreadPanel = ({
     setCurrentThreadCount(message?.threadCount || 0);
   }, [message?.threadCount]);
 
-  // Scroll automático al final
+  // Scroll automático al final - SOLO si el usuario está cerca del fondo o es carga inicial
   useEffect(() => {
-    scrollToBottom();
+    if (threadMessages.length === 0) {
+      prevThreadMessagesLengthRef.current = 0;
+      return;
+    }
+
+    const container = messagesContainerRef.current;
+
+    // Calcular cuántos mensajes nuevos llegaron
+    const newMessagesArrived = threadMessages.length - prevThreadMessagesLengthRef.current;
+
+    if (!container) {
+      // Fallback si no hay ref del contenedor
+      if (isInitialLoadRef.current) {
+        scrollToBottom();
+        isInitialLoadRef.current = false;
+        setNewMessagesCount(0);
+      }
+      prevThreadMessagesLengthRef.current = threadMessages.length;
+      return;
+    }
+
+    // Calcular si el usuario está cerca del fondo (dentro de 150px del final)
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+
+    // Solo hacer scroll al final si:
+    // 1. Es la carga inicial, O
+    // 2. El usuario ya estaba cerca del fondo
+    if (isInitialLoadRef.current || isNearBottom) {
+      scrollToBottom();
+      isInitialLoadRef.current = false;
+      setNewMessagesCount(0); // Resetear contador porque estamos abajo
+    } else if (newMessagesArrived > 0 && prevThreadMessagesLengthRef.current > 0) {
+      // Si llegaron mensajes nuevos y el usuario NO está abajo, incrementar contador
+      setNewMessagesCount(prev => prev + newMessagesArrived);
+    }
+
+    prevThreadMessagesLengthRef.current = threadMessages.length;
   }, [threadMessages]);
 
   //  NUEVO: Handler global de tecla Escape para cerrar ThreadPanel
@@ -475,12 +538,21 @@ const ThreadPanel = ({
       // Limpiar estado para el nuevo hilo
       setThreadMessages([]);
       setTotalThreadMessages(0);
+      isInitialLoadRef.current = true; //  Resetear bandera para nuevo hilo
+      setNewMessagesCount(0); //  Resetear contador de mensajes nuevos
+      prevThreadMessagesLengthRef.current = 0; //  Resetear ref de longitud
       loadThreadMessages();
     }
   }, [message?.id]); // Solo depender de message.id, no de loadThreadMessages
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  //  NUEVO: Handler para botón flotante de mensajes nuevos
+  const handleNewMessagesClick = () => {
+    scrollToBottom();
+    setNewMessagesCount(0);
   };
 
   //  NUEVO: Marcar mensajes como leídos al cargar el hilo
@@ -1254,9 +1326,15 @@ const ThreadPanel = ({
           <strong style={{ color: getUserNameColor(message.from, message.from === currentUsername) }}>
             {message.from}
           </strong>
-          <span className="thread-main-message-time">
-            {formatTime(message)}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="thread-replies-count">
+              {threadMessages.length}{" "}
+              {threadMessages.length === 1 ? "respuesta" : "respuestas"}
+            </span>
+            <span className="thread-main-message-time">
+              {formatTime(message)}
+            </span>
+          </div>
         </div>
 
         {/* Mostrar contenido según el tipo de mensaje */}
@@ -1315,7 +1393,6 @@ const ThreadPanel = ({
             <div
               style={{
                 padding: "8px 12px",
-                backgroundColor: "#f0f0f0",
                 borderRadius: "8px",
                 display: "flex",
                 alignItems: "center",
@@ -1332,18 +1409,13 @@ const ThreadPanel = ({
             )}
           </div>
         ) : (
-          <div className="thread-main-message-text">
+          <div className={`thread-main-message-text${isOwnMessage ? ' own' : ''}`}>
             {message.text}
           </div>
         )}
-
-        <div className="thread-replies-count">
-          {threadMessages.length}{" "}
-          {threadMessages.length === 1 ? "respuesta" : "respuestas"}
-        </div>
       </div>
 
-      <div className="thread-messages">
+      <div className="thread-messages" ref={messagesContainerRef}>
         {loading && threadMessages.length === 0 ? (
           <div className="thread-loading">Cargando mensajes...</div>
         ) : threadMessages.length === 0 ? (
@@ -1366,15 +1438,21 @@ const ThreadPanel = ({
               const msg = item;
               const isOwnMessage = msg.from === currentUsername;
               const userColor = getUserNameColor(msg.from, isOwnMessage);
+
+              const mentionRegex = new RegExp(`@${currentUsername?.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w])`, 'i');
+              const isMentioned = mentionRegex.test(msg.text || msg.message || '');
+
               const senderPicture = roomUsers.find(u => u.username === msg.from || `${u.nombre} ${u.apellido}` === msg.from)?.picture;
+              const isGroupStart = msg.isGroupStart !== false; // Si no está definido, es inicio de grupo
 
               return (
                 <div
                   key={msg.id || index}
-                  className={`thread-message ${isOwnMessage ? "thread-message-own" : "thread-message-other"}`}
+                  className={`thread-message ${isOwnMessage ? "thread-message-own" : "thread-message-other"} ${!isGroupStart ? "thread-message-grouped" : ""}`}
                   onClick={(e) => handleMessageClick(e, msg)} //  NUEVO: Handler para selección
                   style={{
-                    cursor: (isSelectionMode || 'pointer') // Mostrar puntero
+                    cursor: (isSelectionMode || 'pointer'), // Mostrar puntero
+                    marginTop: isGroupStart ? '8px' : '2px', // Menos espacio entre mensajes agrupados
                   }}
                 >
                   {/* Visual checkbox indicator if needed, similar to ChatContent */}
@@ -1383,23 +1461,27 @@ const ThreadPanel = ({
                       <input type="checkbox" checked={selectedMessages.includes(msg.id)} onChange={() => { }} />
                     </div>
                   )}
-                  {/* Avatar */}
+                  {/* Avatar - Solo visible si es inicio de grupo */}
                   <div
                     className="thread-message-avatar"
                     style={{
                       background: senderPicture
                         ? `url(${senderPicture}) center/cover no-repeat`
                         : userColor,
+                      visibility: isGroupStart ? 'visible' : 'hidden', // Ocultar pero mantener espacio
                     }}
                   >
-                    {!senderPicture && (msg.from?.[0]?.toUpperCase() || '?')}
+                    {!senderPicture && isGroupStart && (msg.from?.[0]?.toUpperCase() || '?')}
                   </div>
 
                   <div className="thread-message-content">
-                    <div className="thread-message-header">
-                      <strong style={{ color: userColor }}>{msg.from}</strong>
-                      <span className="thread-message-time">{formatTime(msg)}</span>
-                    </div>
+                    {/* Header - Solo visible si es inicio de grupo */}
+                    {isGroupStart && (
+                      <div className="thread-message-header">
+                        <strong style={{ color: userColor }}>{msg.from}</strong>
+                        <span className="thread-message-time">{formatTime(msg)}</span>
+                      </div>
+                    )}
 
                     {/*  Vista previa de respuesta mejorada con soporte visual */}
                     {msg.replyToMessageId && msg.replyToSender && (() => {
@@ -1546,7 +1628,7 @@ const ThreadPanel = ({
                           readBy={msg.readBy}
                         />
                         {msg.message && (
-                          <div className="thread-message-text">
+                          <div className={`thread-message-text${isMentioned ? ' mentioned' : ''}`}>
                             {renderTextWithMentions(msg.message || msg.text)}
                           </div>
                         )}
@@ -1565,7 +1647,7 @@ const ThreadPanel = ({
                           onClick={() => handleImageClick(msg.mediaData, msg.fileName || "Imagen")}
                         />
                         {msg.message && (
-                          <div className="thread-message-text">
+                          <div className={`thread-message-text${isMentioned ? ' mentioned' : ''}`}>
                             {renderTextWithMentions(msg.message || msg.text)}
                           </div>
                         )}
@@ -1582,7 +1664,7 @@ const ThreadPanel = ({
                           }}
                         />
                         {msg.message && (
-                          <div className="thread-message-text">
+                          <div className={`thread-message-text${isMentioned ? ' mentioned' : ''}`}>
                             {renderTextWithMentions(msg.message || msg.text)}
                           </div>
                         )}
@@ -1608,7 +1690,7 @@ const ThreadPanel = ({
                           </span>
                         </div>
                         {msg.message && (
-                          <div className="thread-message-text">
+                          <div className={`thread-message-text${isMentioned ? ' mentioned' : ''}`}>
                             {renderTextWithMentions(msg.message || msg.text)}
                           </div>
                         )}
@@ -1634,7 +1716,7 @@ const ThreadPanel = ({
                           </div>
                         </div>
                       ) : (
-                        <div className="thread-message-text">
+                        <div className={`thread-message-text${isMentioned ? ' mentioned' : ''}`}>
                           {msg.message || msg.text ? (
                             <>
                               {renderTextWithMentions(msg.message || msg.text)}
@@ -1690,21 +1772,17 @@ const ThreadPanel = ({
                       </div>
                     )}
 
-                    {/*  Read Receipts - Mostrar para TODOS los mensajes si hay lectores */}
+                    {/*  Read Receipts - Estilo Check Azul + Contador (igual que ChatContent) */}
                     {msg.readBy && msg.readBy.length > 0 && (
                       <div className="thread-read-receipts">
                         <div
                           className="thread-read-receipts-trigger"
                           onClick={(e) => {
                             e.stopPropagation();
-                            //  Cálculo de posición FIXED (coordenadas absolutas en pantalla)
                             const rect = e.currentTarget.getBoundingClientRect();
-                            // Preferimos ARRIBA (top) para no tapar los mensajes siguientes
                             const preferTop = rect.top > 180;
                             const newPosition = preferTop ? 'top' : 'bottom';
                             setPopoverPosition(newPosition);
-
-                            // Calcular coordenadas exactas en la pantalla
                             const coords = {
                               right: window.innerWidth - rect.right,
                               top: preferTop ? rect.top - 12 : rect.bottom + 12
@@ -1713,53 +1791,22 @@ const ThreadPanel = ({
                             setOpenReadReceiptsId(openReadReceiptsId === msg.id ? null : msg.id);
                           }}
                           title="Ver quién lo ha leído"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            color: '#53bdeb',
+                            fontSize: '11px',
+                            cursor: 'pointer',
+                            padding: '2px 6px',
+                          }}
                         >
-                          {(() => {
-                            const MAX_VISIBLE = 3;
-                            const totalReaders = msg.readBy.length;
-                            const remainingCount = totalReaders - MAX_VISIBLE;
-                            const showCounter = remainingCount > 0;
-                            const visibleReaders = msg.readBy.slice(0, MAX_VISIBLE);
-
-                            return (
-                              <div className="thread-read-avatars">
-                                {/* A. BOLITA DE CONTADOR (+N) */}
-                                {showCounter && (
-                                  <div className="thread-read-avatar counter-bubble">
-                                    +{remainingCount}
-                                  </div>
-                                )}
-
-                                {/* B. AVATARES DE USUARIOS */}
-                                {visibleReaders.map((reader, idx) => {
-                                  const readerUser = roomUsers.find(u =>
-                                    (u.username || u.nombre) === reader
-                                  );
-                                  const readerName = readerUser
-                                    ? (readerUser.nombre && readerUser.apellido
-                                      ? `${readerUser.nombre} ${readerUser.apellido}`
-                                      : readerUser.username || reader)
-                                    : reader;
-
-                                  return (
-                                    <div
-                                      key={idx}
-                                      className="thread-read-avatar"
-                                      title={`Leído por ${readerName}`}
-                                    >
-                                      {readerUser?.picture ? (
-                                        <img src={readerUser.picture} alt={readerName} />
-                                      ) : (
-                                        <div className="thread-read-avatar-placeholder">
-                                          {readerName.charAt(0).toUpperCase()}
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            );
-                          })()}
+                          {/* Doble check azul */}
+                          <svg viewBox="0 0 16 11" height="11" width="16" preserveAspectRatio="xMidYMid meet">
+                            <path fill="currentColor" d="M11.071.653a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178l-6.19 7.636-2.405-2.272a.463.463 0 0 0-.336-.146.47.47 0 0 0-.343.146l-.311.31a.445.445 0 0 0-.14.337c0 .136.047.25.14.343l2.996 2.996a.724.724 0 0 0 .27.18.652.652 0 0 0 .3.07.596.596 0 0 0 .274-.07.716.716 0 0 0 .253-.18L11.071 1.27a.445.445 0 0 0 .14-.337.453.453 0 0 0-.14-.28zm3.486 0a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178L7.682 8.365l-.376-.377-.19.192 1.07 1.07a.724.724 0 0 0 .27.18.652.652 0 0 0 .3.07.596.596 0 0 0 .274-.07.716.716 0 0 0 .253-.18l6.19-7.636a.445.445 0 0 0 .14-.337.453.453 0 0 0-.14-.28z"></path>
+                          </svg>
+                          {/* Contador */}
+                          <span style={{ fontWeight: '500' }}>{msg.readBy.length}</span>
                         </div>
 
                         {/*  POPOVER DE DETALLES */}
@@ -1910,6 +1957,23 @@ const ThreadPanel = ({
             })}
             <div ref={messagesEndRef} />
           </>
+        )}
+
+        {/*  BOTÓN FLOTANTE DE MENSAJES NUEVOS */}
+        {newMessagesCount > 0 && (
+          <button
+            className="thread-new-messages-btn"
+            onClick={handleNewMessagesClick}
+            title={`${newMessagesCount} mensaje${newMessagesCount === 1 ? '' : 's'} nuevo${newMessagesCount === 1 ? '' : 's'}`}
+          >
+            <svg viewBox="0 0 19 20" height="18" width="18" preserveAspectRatio="xMidYMid meet" fill="currentColor">
+              <path d="M3.8 6.7l5.7 5.7 5.7-5.7 1.6 1.6-7.3 7.2-7.3-7.2 1.6-1.6z"></path>
+            </svg>
+            <span className="new-messages-count">{newMessagesCount}</span>
+            <span className="new-messages-text">
+              {newMessagesCount === 1 ? 'mensaje nuevo' : 'mensajes nuevos'}
+            </span>
+          </button>
         )}
       </div>
 

@@ -177,12 +177,14 @@
 .thread-replies-count {
   display: inline-block;
   font-size: 11px;
-  color: #dc2626;
+  color: #54656f;
   font-weight: 600;
-  background: #fef2f2;
+  background: #ffffff;
   padding: 3px 8px;
-  border-radius: 8px;
+  border-radius: 14px;
   margin-top: 2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
 }
 
 .thread-messages {
@@ -759,6 +761,7 @@
 }
 
 /*  Mention Dropdown */
+/*  Mention Dropdown */
 .thread-mention-dropdown {
   position: absolute;
   bottom: 100%;
@@ -767,21 +770,36 @@
   max-height: 200px;
   overflow-y: auto;
   background: white;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   margin-bottom: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+.thread-mention-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.thread-mention-dropdown::-webkit-scrollbar-track {
+  background: #f7fafc;
+  border-radius: 8px;
+}
+
+.thread-mention-dropdown::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 8px;
 }
 
 .thread-mention-suggestion {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 10px 16px;
   cursor: pointer;
   transition: background-color 0.2s;
-  border-bottom: 1px solid #f3f4f6;
 }
 
 .thread-mention-suggestion:last-child {
@@ -790,7 +808,7 @@
 
 .thread-mention-suggestion:hover,
 .thread-mention-suggestion.selected {
-  background-color: #f0f7ff;
+  background-color: #f3f4f6;
 }
 
 .mention-avatar {
@@ -799,6 +817,9 @@
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .mention-avatar img {
@@ -813,7 +834,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #A50104;
+  background: #00a884;
   color: white;
   font-weight: 600;
   font-size: 14px;
@@ -831,6 +852,40 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Dark Mode Mentions en ThreadPanel */
+html.dark .thread-mention-dropdown {
+  background-color: #1a1a1a;
+  border-color: #2a3942;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+}
+
+html.dark .thread-mention-dropdown::-webkit-scrollbar-track {
+  background: #202c33;
+}
+
+html.dark .thread-mention-dropdown::-webkit-scrollbar-thumb {
+  background: #374045;
+}
+
+html.dark .thread-mention-suggestion {
+  border-bottom-color: #2a3942;
+}
+
+html.dark .thread-mention-suggestion:hover,
+html.dark .thread-mention-suggestion.selected {
+  background-color: #2a3942;
+}
+
+html.dark .mention-name {
+  color: #e9edef;
+}
+
+html.dark .mention-avatar,
+html.dark .mention-avatar-placeholder {
+  color: #fff;
+  border-color: transparent;
 }
 
 .mention-role {
@@ -996,7 +1051,7 @@
 
 .popover-header {
   padding: 8px 12px;
-  background: #f0f2f5;
+  background: #1a1a1a;
   font-size: 12px;
   font-weight: 600;
   color: #54656f;
@@ -1479,8 +1534,9 @@ html.dark .thread-main-message-text::-webkit-scrollbar-thumb {
 }
 
 html.dark .thread-replies-count {
-  color: #f87171 !important;
-  background: rgba(220, 38, 38, 0.15) !important;
+  color: #9ca3af !important;
+  background: #2d2d2d !important;
+  border-color: #404040 !important;
 }
 
 /* Área de mensajes */
@@ -1561,12 +1617,6 @@ html.dark .thread-preview-name {
 
 html.dark .thread-preview-size {
   color: #6b7280 !important;
-}
-
-/* Dropdown de menciones */
-html.dark .thread-mention-dropdown {
-  background: #2a2a2a !important;
-  border-color: #3a3a3a !important;
 }
 
 html.dark .thread-mention-suggestion:hover,
@@ -1735,4 +1785,101 @@ html.dark .thread-load-more-btn {
 
 html.dark .thread-load-more-btn:hover:not(:disabled) {
   background: rgba(248, 113, 113, 0.1);
+}
+
+/* ============================================================
+   BOTÓN FLOTANTE DE MENSAJES NUEVOS (Estilo WhatsApp)
+   ============================================================ */
+.thread-new-messages-btn {
+  position: sticky;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #00a884;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  z-index: 100;
+  transition: all 0.2s ease;
+  margin: 0 auto;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.thread-new-messages-btn:hover {
+  background: #008c70;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.thread-new-messages-btn svg {
+  flex-shrink: 0;
+}
+
+.new-messages-count {
+  background: white;
+  color: #00a884;
+  font-weight: 700;
+  font-size: 11px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.new-messages-text {
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.thread-new-messages-btn:hover .new-messages-text {
+  max-width: 150px;
+  opacity: 1;
+  margin-left: 2px;
+}
+
+/* Dark mode */
+html.dark .thread-new-messages-btn {
+  background: #00a884;
+}
+
+html.dark .thread-new-messages-btn:hover {
+  background: #008c70;
+}
+
+html.dark .new-messages-count {
+  background: white;
+  color: #00a884;
+}
+/* Estilo mensaje mencionado (Fondo Rosado) */
+.thread-message-text.mentioned {
+  background-color: rgb(253, 230, 234) !important;
+}
+
+html.dark .thread-message-text.mentioned {
+  background-color: rgba(253, 230, 234, 0.15) !important;
 }

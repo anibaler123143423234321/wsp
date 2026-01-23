@@ -1730,7 +1730,7 @@ const ChatContent = ({
       return m1.sender === m2.sender;
     };
 
-    const isGroupStart = true; // Siempre mostrar avatar y nombre (sin agrupación)
+    const isGroupStart = !isSameGroup(prevMsg, message);
 
     // Color consistente del usuario basado en su nombre
     const userColor = getUserNameColor(message.sender, isOwnMessage);

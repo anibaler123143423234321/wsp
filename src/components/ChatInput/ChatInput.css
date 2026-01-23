@@ -55,6 +55,52 @@
     overflow-y: auto;
     width: 100%;
     margin: 0;
+    position: relative;
+    /* Asegurar stacking context */
+    z-index: 1;
+    /* Encima del highlight */
+    background: transparent !important;
+    /* Permitir ver el highlight detrás */
+}
+
+/* Highlight Overlay */
+.chat-input-highlights {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 3px 10px;
+    /* SAME AS TEXTAREA */
+    font-size: 14px;
+    /* SAME AS TEXTAREA */
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    /* SAME AS TEXTAREA */
+    font-weight: 400;
+    /* SAME AS TEXTAREA */
+    line-height: 1.4;
+    /* SAME AS TEXTAREA */
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    color: transparent;
+    /* Texto invisible */
+    background: transparent;
+    pointer-events: none;
+    /* Click-through */
+    z-index: 0;
+    /* Detrás del textarea */
+    overflow-y: hidden;
+    /* Scroll controlado por JS */
+    border: 1px solid transparent;
+    /* Para igualar métricas si textarea tiene border */
+}
+
+/* Mención resaltada */
+.highlight-mention {
+    background-color: rgb(212, 160, 23, 0.4);
+    /* Dorado semi-transparente */
+    border-radius: 3px;
+    color: transparent;
 }
 
 .chat-input-textarea::placeholder {
@@ -287,7 +333,8 @@
 }
 
 /* Mention Suggestions */
-.chat-input-mention-suggestions {
+/* Mention Suggestions V2 (Renombrado para evitar conflictos) */
+.chat-input-mention-list-v2 {
     position: absolute;
     bottom: 100%;
     left: 0;
@@ -304,16 +351,16 @@
     scrollbar-color: #cbd5e0 #f7fafc;
 }
 
-.chat-input-mention-suggestions::-webkit-scrollbar {
+.chat-input-mention-list-v2::-webkit-scrollbar {
     width: 6px;
 }
 
-.chat-input-mention-suggestions::-webkit-scrollbar-track {
+.chat-input-mention-list-v2::-webkit-scrollbar-track {
     background: #f7fafc;
     border-radius: 8px;
 }
 
-.chat-input-mention-suggestions::-webkit-scrollbar-thumb {
+.chat-input-mention-list-v2::-webkit-scrollbar-thumb {
     background: #cbd5e0;
     border-radius: 8px;
 }
@@ -394,21 +441,24 @@
 
 /* Dark Mode */
 html.dark .chat-input-container {
-    background: #1f2c34;
-    border-top-color: #2a3942;
+    background: #0b141a;
+    /* Negro fondo app */
+    border-top-color: rgba(255, 255, 255, 0.1);
 }
 
-html.dark .chat-input-wrapper {
-    background: #1f2c34;
+.dark .chat-input-wrapper {
+    background: #1a1a1a !important;
+    border-color: rgba(255, 255, 255, 0.1);
 }
+
 
 html.dark .chat-input-textarea {
-    background: #2a3942;
+    background: transparent;
     color: #e9edef;
 }
 
 html.dark .chat-input-textarea::placeholder {
-    color: rgba(233, 237, 239, 0.5);
+    color: #8696a0;
 }
 
 html.dark .chat-input-emoji-btn {
@@ -416,7 +466,7 @@ html.dark .chat-input-emoji-btn {
 }
 
 html.dark .chat-input-emoji-btn:hover {
-    background: #2a3942;
+    background: rgba(255, 255, 255, 0.1);
     color: #e9edef;
 }
 
@@ -426,4 +476,48 @@ html.dark .chat-input-send-btn {
 
 html.dark .chat-input-send-btn:hover:not(:disabled) {
     color: #00d9ac;
+}
+
+
+/* Dark Mode Mentions V2 */
+.dark .chat-input-mention-list-v2 {
+    background-color: #1a1a1a !important;
+    /* Color pedido por usuario */
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.5) !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #374045 transparent !important;
+}
+
+/* Scrollbar Universal (Agnóstico del tema para asegurar que se aplique) */
+.chat-input-mention-list-v2::-webkit-scrollbar {
+    width: 6px !important;
+    background-color: transparent !important;
+}
+
+.chat-input-mention-list-v2::-webkit-scrollbar-track {
+    background: #111b21 !important;
+}
+
+.chat-input-mention-list-v2::-webkit-scrollbar-thumb {
+    background: #374045 !important;
+    border-radius: 3px !important;
+}
+
+.dark .chat-input-mention-item {
+    border-bottom-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.dark .chat-input-mention-item:hover {
+    background-color: #111b21 !important;
+    /* Highlight más oscuro */
+}
+
+/* Fix text colors */
+.dark .chat-input-mention-name {
+    color: #e9edef !important;
+}
+
+.dark .chat-input-mention-avatar {
+    color: #fff !important;
 }

@@ -1,4 +1,5 @@
 import useEnterToSend from "../../hooks/useEnterToSend";
+import './ChatInput.css';
 
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -186,6 +187,8 @@ const ChatInput = ({
 
     return (
         <div className="chat-input-container">
+
+
             {/* Media Previews */}
             {mediaFiles.length > 0 && (
                 <MediaPreviewList
@@ -275,12 +278,32 @@ const ChatInput = ({
                         </div>
                     )}
 
+                    {/* Highlight Overlay */}
+                    <div
+                        className="chat-input-highlights"
+                        ref={useRef(null)} // Inline ref callback pattern to assign to a variabke if needed, or use a new useRef
+                        id="highlight-layer"
+                    >
+                        {currentValue.split(/(@[a-zA-ZÁÉÍÓÚÑáéíóúñ0-9_]+(?: [a-zA-ZÁÉÍÓÚÑáéíóúñ0-9_]+)*)/g).map((part, index) => {
+                            if (part.startsWith('@')) {
+                                return <span key={index} className="highlight-mention">{part}</span>;
+                            }
+                            return <span key={index}>{part}</span>;
+                        })}
+                        {/* Carácter invisible al final para asegurar altura correcta con salto de línea final */}
+                        {currentValue.endsWith('\n') && <br />}
+                    </div>
+
                     <textarea
                         ref={inputRef}
                         value={currentValue}
                         onChange={handleTextChange}
                         onKeyDown={handleEnterKeyDown}
                         onPaste={onPaste}
+                        onScroll={(e) => {
+                            const highlighter = document.getElementById('highlight-layer');
+                            if (highlighter) highlighter.scrollTop = e.target.scrollTop;
+                        }}
                         placeholder={getPlaceholder()}
                         className="chat-input-textarea"
                         disabled={isRecording || isRecordingLocal || !canSendMessages || isUploading || disabled}
@@ -288,7 +311,14 @@ const ChatInput = ({
 
                     {/* Mention Suggestions */}
                     {showMentionSuggestions && isGroup && mentionSuggestions.length > 0 && (
-                        <div className="chat-input-mention-suggestions">
+                        <div
+                            className="chat-input-mention-list-v2"
+                            style={{
+                                backgroundColor: '#ffffff',
+                                borderColor: 'rgba(255, 255, 255, 0.1)',
+                                boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.5)'
+                            }}
+                        >
                             {mentionSuggestions.map((user, index) => {
                                 const displayName = typeof user === "string"
                                     ? user
