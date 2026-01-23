@@ -2633,7 +2633,16 @@ const ChatContent = ({
               {openReadReceiptsId === message.id && (
                 <div className="read-receipts-popover" onClick={(e) => e.stopPropagation()}>
                   <div className="popover-header">
-                    {message.readByCount} {message.readByCount === 1 ? 'persona' : 'personas'}
+                    <span>{message.readByCount} {message.readByCount === 1 ? 'persona' : 'personas'}</span>
+                    <button
+                      className="popover-close-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenReadReceiptsId(null);
+                      }}
+                    >
+                      ×
+                    </button>
                   </div>
                   <div className="popover-list">
                     {loadingReadBy === message.id ? (

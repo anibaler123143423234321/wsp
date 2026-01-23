@@ -980,8 +980,10 @@ html.dark .mention-avatar-placeholder {
   /*  CAMBIO CLAVE: fixed en lugar de absolute */
   background: white;
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  width: 220px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 240px;
+  min-width: 220px;
+  max-width: 280px;
   z-index: 9999;
   overflow: visible;
   animation: fadeIn 0.15s ease-out;
@@ -1050,17 +1052,42 @@ html.dark .mention-avatar-placeholder {
 }
 
 .popover-header {
-  padding: 8px 12px;
-  background: #1a1a1a;
-  font-size: 12px;
+  padding: 6px 10px;
+  background: #f5f5f5;
+  font-size: 11px;
   font-weight: 600;
-  color: #54656f;
+  color: #374151;
   border-bottom: 1px solid #e0e0e0;
   border-top-left-radius: 8px;
   border-top-right-radius: 8px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.popover-content {
+  max-height: 150px;
+  overflow-y: auto;
+  padding: 2px 0;
+}
+
+.popover-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #A50104;
+  color: white;
+  font-weight: 600;
+  font-size: 11px;
+  border-radius: 50%;
+}
+
+.popover-time {
+  font-size: 10px;
+  color: #6b7280;
+  display: block;
 }
 
 .popover-close-btn {
@@ -1092,8 +1119,8 @@ html.dark .mention-avatar-placeholder {
 .popover-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
+  gap: 8px;
+  padding: 5px 10px;
   border-bottom: 1px solid #f0f0f0;
 }
 
@@ -1102,8 +1129,8 @@ html.dark .mention-avatar-placeholder {
 }
 
 .popover-avatar {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
@@ -1124,7 +1151,7 @@ html.dark .mention-avatar-placeholder {
   background: #A50104;
   color: white;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 11px;
 }
 
 .popover-info {
@@ -1133,17 +1160,53 @@ html.dark .mention-avatar-placeholder {
 }
 
 .popover-name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: #111b21;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: block;
 }
 
 .popover-status {
-  font-size: 11px;
+  font-size: 10px;
   color: #54656f;
+}
+
+/* ===== RESPONSIVE POPOVER ===== */
+@media (max-width: 480px) {
+  .thread-read-receipts-popover {
+    width: 160px;
+    min-width: 140px;
+  }
+
+  .popover-header {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  .popover-item {
+    padding: 4px 8px;
+    gap: 6px;
+  }
+
+  .popover-avatar {
+    width: 20px;
+    height: 20px;
+  }
+
+  .popover-name {
+    font-size: 11px;
+  }
+
+  .popover-time {
+    font-size: 9px;
+  }
+
+  .popover-avatar-placeholder {
+    font-size: 10px;
+  }
 }
 
 /*  Highlight de menciones en el texto */

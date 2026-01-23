@@ -1484,6 +1484,122 @@ const ThreadPanel = ({
               const senderPicture = senderUser?.picture;
               const isGroupStart = msg.isGroupStart !== false; // Si no está definido, es inicio de grupo
 
+              // Definir JSX de Read Receipts para reutilizar dentro de las burbujas
+              const readReceiptsJSX = msg.readBy && msg.readBy.length > 0 ? (
+                <div
+                  className="thread-read-receipts"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'flex-end',
+                    float: 'right', // Flotar a la derecha dentro de la burbuja
+                    marginTop: '4px',
+                    marginLeft: '8px',
+                    verticalAlign: 'bottom'
+                  }}
+                >
+                  <div
+                    className="thread-read-receipts-trigger"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const preferTop = rect.top > 180;
+                      const newPosition = preferTop ? 'top' : 'bottom';
+                      setPopoverPosition(newPosition);
+                      const coords = {
+                        right: window.innerWidth - rect.right,
+                        top: preferTop ? rect.top - 12 : rect.bottom + 12
+                      };
+                      setPopoverCoords(coords);
+                      setOpenReadReceiptsId(openReadReceiptsId === msg.id ? null : msg.id);
+                    }}
+                    title="Ver quién lo ha leído"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                      color: '#53bdeb',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                      padding: '1px 5px',
+                      borderRadius: '10px'
+                    }}
+                  >
+                    <svg viewBox="0 0 16 11" height="11" width="16" preserveAspectRatio="xMidYMid meet">
+                      <path fill="currentColor" d="M11.071.653a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178l-6.19 7.636-2.405-2.272a.463.463 0 0 0-.336-.146.47.47 0 0 0-.343.146l-.311.31a.445.445 0 0 0-.14.337c0 .136.047.25.14.343l2.996 2.996a.724.724 0 0 0 .27.18.652.652 0 0 0 .3.07.596.596 0 0 0 .274-.07.716.716 0 0 0 .253-.18L11.071 1.27a.445.445 0 0 0 .14-.337.453.453 0 0 0-.14-.28zm3.486 0a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178L7.682 8.365l-.376-.377-.19.192 1.07 1.07a.724.724 0 0 0 .27.18.652.652 0 0 0 .3.07.596.596 0 0 0 .274-.07.716.716 0 0 0 .253-.18l6.19-7.636a.445.445 0 0 0 .14-.337.453.453 0 0 0-.14-.28z"></path>
+                    </svg>
+                    <span style={{ fontWeight: '500' }}>{msg.readBy.length}</span>
+                  </div>
+
+                  {/*  POPOVER DE DETALLES */}
+                  {openReadReceiptsId === msg.id && (
+                    <div
+                      className={`thread-read-receipts-popover position-${popoverPosition}`}
+                      style={{
+                        right: `${popoverCoords.right}px`,
+                        top: `${popoverCoords.top}px`,
+                        transform: popoverPosition === 'top' ? 'translateY(-100%)' : 'none'
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="popover-header">
+                        <span>{msg.readBy.length} {msg.readBy.length === 1 ? 'persona' : 'personas'}</span>
+                        <button
+                          className="popover-close-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenReadReceiptsId(null);
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <div className="popover-content">
+                        {msg.readBy.map((reader, i) => {
+                          // reader puede ser string (username) u objeto {username, picture, readAt}
+                          const readerUsername = typeof reader === 'string' ? reader : reader.username;
+                          const readerUser = roomUsers.find(u =>
+                            (u.username || u.nombre) === readerUsername
+                          );
+                          // Solo primer nombre y primer apellido
+                          let readerName = readerUsername;
+                          if (readerUser) {
+                            const firstName = (readerUser.nombre || '').split(' ')[0];
+                            const lastName = (readerUser.apellido || '').split(' ')[0];
+                            readerName = firstName && lastName
+                              ? `${firstName} ${lastName}`
+                              : readerUser.username || readerUsername;
+                          }
+                          const readerPicture = readerUser?.picture || (typeof reader === 'object' ? reader.picture : null);
+
+                          return (
+                            <div key={i} className="popover-item">
+                              <div className="popover-avatar">
+                                {readerPicture ? (
+                                  <img src={readerPicture} alt={readerName} />
+                                ) : (
+                                  <div className="popover-avatar-placeholder">
+                                    {readerName?.[0]?.toUpperCase() || '?'}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="popover-info">
+                                <span className="popover-name">{readerName}</span>
+                                <span className="popover-time">
+                                  {typeof reader === 'object' && reader.readAt
+                                    ? new Date(reader.readAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                    : 'Leído'}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : null;
+
               return (
                 <div
                   key={msg.id || index}
@@ -1542,10 +1658,12 @@ const ThreadPanel = ({
                             const el = document.getElementById(`thread-message-${msg.replyToMessageId}`);
                             if (el) {
                               el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                              el.style.backgroundColor = 'rgba(0, 168, 132, 0.1)';
+                              // Highlight amarillo como en ChatContent
+                              el.style.backgroundColor = 'rgba(255, 235, 59, 0.4)';
+                              el.style.transition = 'background-color 0.5s';
                               setTimeout(() => {
                                 el.style.backgroundColor = '';
-                              }, 1000);
+                              }, 2000);
                             }
                           }}
                           style={{
@@ -1558,13 +1676,15 @@ const ThreadPanel = ({
                             backgroundColor: 'rgba(0, 0, 0, 0.05)',
                             borderLeft: '3px solid #00a884',
                             borderRadius: '4px',
-                            marginBottom: '6px'
+                            marginBottom: '6px',
+                            maxWidth: '100%',
+                            overflow: 'hidden'
                           }}
                         >
                           {/* Icono y texto */}
-                          <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
-                            <FaReply className="reply-ref-icon" />
-                            <div className="reply-ref-content" style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'flex-start', gap: '4px', maxWidth: '100%' }}>
+                            <FaReply className="reply-ref-icon" style={{ flexShrink: 0 }} />
+                            <div className="reply-ref-content" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                               <span className="reply-ref-sender">{msg.replyToSender}</span>
                               <span className="reply-ref-text" style={{
                                 whiteSpace: 'nowrap',
@@ -1778,6 +1898,7 @@ const ThreadPanel = ({
                             <>
                               {renderTextWithMentions(msg.message || msg.text)}
                               {msg.isEdited && <span className="thread-edited-label">(editado)</span>}
+                              {readReceiptsJSX}
                             </>
                           ) : (
                             <span style={{ fontStyle: 'italic', color: '#888' }}>
@@ -1830,8 +1951,8 @@ const ThreadPanel = ({
                     )}
 
                     {/*  Read Receipts - Estilo Check Azul + Contador (igual que ChatContent) */}
-                    {msg.readBy && msg.readBy.length > 0 && (
-                      <div className="thread-read-receipts">
+                    {false && (
+                      <div className="thread-read-receipts" style={{ display: 'flex', justifyContent: 'flex-end' }}>
                         <div
                           className="thread-read-receipts-trigger"
                           onClick={(e) => {
