@@ -1,0 +1,8 @@
+1. Unificación de estilos de menciones entre el Chat principal y el Panel de Hilos.
+2. Corrección del scrollbar blanco en modo oscuro (fix global).
+3. Ajuste de color de fondo a negro puro (#1a1a1a) en menús de menciones y caja de texto.
+4. Optimización visual y de tamaño de las tarjetas de archivos (File Cards).
+5. Implementación de resaltado dorado en tiempo real para menciones en el input de texto.
+6. Corrección de la lógica de resaltado para soportar nombres completos con espacios.
+7. Implementación de fondo rosado para mensajes donde el usuario es mencionado en el Panel de Hilos.
+8. Sincronización de estilos de scrollbar y tema oscuro en toda la interfaz de chat.

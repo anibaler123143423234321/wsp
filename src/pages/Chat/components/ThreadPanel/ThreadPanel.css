@@ -102,9 +102,8 @@
 }
 
 .thread-main-message {
-  padding: 10px;
-  /* Más compacto */
-  margin: 6px;
+  padding: 8px;
+  margin: 4px;
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
@@ -115,7 +114,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 2px;
+  /* Reducido de 6px */
 }
 
 .thread-main-message-header strong {
@@ -135,7 +135,7 @@
   color: #333;
   font-size: 13px;
   line-height: 1.35;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   word-wrap: break-word;
   max-height: 70px;
   /* Menos altura max */
@@ -1875,6 +1875,7 @@ html.dark .new-messages-count {
   background: white;
   color: #00a884;
 }
+
 /* Estilo mensaje mencionado (Fondo Rosado) */
 .thread-message-text.mentioned {
   background-color: rgb(253, 230, 234) !important;

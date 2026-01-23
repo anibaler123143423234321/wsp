@@ -115,6 +115,44 @@ const groupThreadMessagesByDate = (messages) => {
   return groups;
 };
 
+// Función para determinar el sufijo (Número de Agente o Rol)
+const getSenderSuffix = (message, roomUsers) => {
+  // 1. Intentar obtener datos del mensaje directo
+  let agentNumber = message.senderNumeroAgente || message.agentNumber;
+  let role = message.senderRole;
+
+  // 2. Si faltan datos, buscar en roomUsers
+  if ((!agentNumber || !role) && roomUsers) {
+    const user = roomUsers.find(u =>
+      u.username === message.from ||
+      `${u.nombre} ${u.apellido}` === message.from ||
+      u.username === message.sender
+    );
+    if (user) {
+      if (!agentNumber) agentNumber = user.numeroAgente || user.agentNumber;
+      if (!role) role = user.role;
+    }
+  }
+
+  // Construir el sufijo con role y número de agente
+  const parts = [];
+
+  if (role && String(role).trim()) {
+    parts.push(String(role).trim());
+  }
+
+  if (agentNumber && String(agentNumber).trim()) {
+    parts.push(`N.º ${String(agentNumber).trim()}`);
+  }
+
+  // Si hay partes, unirlas con " • "
+  if (parts.length > 0) {
+    return ` • ${parts.join(" • ")}`;
+  }
+
+  return "";
+};
+
 const ThreadPanel = ({
   isOpen,
   message,
@@ -1320,7 +1358,7 @@ const ThreadPanel = ({
 
       <div
         className="thread-main-message"
-        style={{ marginTop: isSelectionMode ? '54px' : '6px' }}
+        style={{ marginTop: isSelectionMode ? '54px' : '4px' }}
       >
         <div className="thread-main-message-header">
           <strong style={{ color: getUserNameColor(message.from, message.from === currentUsername) }}>
@@ -1409,7 +1447,7 @@ const ThreadPanel = ({
             )}
           </div>
         ) : (
-          <div className={`thread-main-message-text${isOwnMessage ? ' own' : ''}`}>
+          <div className={`thread-main-message-text${message.from === currentUsername ? ' own' : ''}`}>
             {message.text}
           </div>
         )}
@@ -1442,17 +1480,19 @@ const ThreadPanel = ({
               const mentionRegex = new RegExp(`@${currentUsername?.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w])`, 'i');
               const isMentioned = mentionRegex.test(msg.text || msg.message || '');
 
-              const senderPicture = roomUsers.find(u => u.username === msg.from || `${u.nombre} ${u.apellido}` === msg.from)?.picture;
+              const senderUser = roomUsers.find(u => u.username === msg.from || `${u.nombre} ${u.apellido}` === msg.from);
+              const senderPicture = senderUser?.picture;
               const isGroupStart = msg.isGroupStart !== false; // Si no está definido, es inicio de grupo
 
               return (
                 <div
                   key={msg.id || index}
+                  id={`thread-message-${msg.id}`} // Agregado ID para scroll
                   className={`thread-message ${isOwnMessage ? "thread-message-own" : "thread-message-other"} ${!isGroupStart ? "thread-message-grouped" : ""}`}
-                  onClick={(e) => handleMessageClick(e, msg)} //  NUEVO: Handler para selección
+                  onClick={(e) => handleMessageClick(e, msg)}
                   style={{
-                    cursor: (isSelectionMode || 'pointer'), // Mostrar puntero
-                    marginTop: isGroupStart ? '8px' : '2px', // Menos espacio entre mensajes agrupados
+                    cursor: (isSelectionMode || 'pointer'),
+                    marginTop: isGroupStart ? '8px' : '2px',
                   }}
                 >
                   {/* Visual checkbox indicator if needed, similar to ChatContent */}
@@ -1478,10 +1518,15 @@ const ThreadPanel = ({
                     {/* Header - Solo visible si es inicio de grupo */}
                     {isGroupStart && (
                       <div className="thread-message-header">
-                        <strong style={{ color: userColor }}>{msg.from}</strong>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <strong style={{ color: userColor }}>
+                            {msg.from} {getSenderSuffix(msg, roomUsers)}
+                          </strong>
+                        </div>
                         <span className="thread-message-time">{formatTime(msg)}</span>
                       </div>
                     )}
+
 
                     {/*  Vista previa de respuesta mejorada con soporte visual */}
                     {msg.replyToMessageId && msg.replyToSender && (() => {
@@ -1492,7 +1537,19 @@ const ThreadPanel = ({
                       return (
                         <div
                           className="thread-reply-reference"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const el = document.getElementById(`thread-message-${msg.replyToMessageId}`);
+                            if (el) {
+                              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              el.style.backgroundColor = 'rgba(0, 168, 132, 0.1)';
+                              setTimeout(() => {
+                                el.style.backgroundColor = '';
+                              }, 1000);
+                            }
+                          }}
                           style={{
+                            cursor: 'pointer',
                             display: 'flex',
                             flexDirection: hasMedia ? 'row' : 'column',
                             gap: hasMedia ? '8px' : '4px',
@@ -1957,7 +2014,8 @@ const ThreadPanel = ({
             })}
             <div ref={messagesEndRef} />
           </>
-        )}
+        )
+        }
 
         {/*  BOTÓN FLOTANTE DE MENSAJES NUEVOS */}
         {newMessagesCount > 0 && (
@@ -2145,5 +2203,6 @@ const ThreadPanel = ({
     </div>
   );
 };
+
 
 export default ThreadPanel;
