@@ -1439,7 +1439,8 @@ const ConversationList = ({
 
                             // 🔥 LÓGICA AGREGADA: Estado en línea e imagen de perfil (igual que en Asignados)
                             let isOtherParticipantOnline = false;
-                            let otherParticipantPicture = null;
+                            // 🔥 FIX: Usar conv.picture como valor base (viene de la API)
+                            let otherParticipantPicture = conv.picture || null;
 
                             if (otherParticipant) {
                               const otherParticipantNormalized = otherParticipant.toLowerCase().trim();
@@ -1452,13 +1453,15 @@ const ConversationList = ({
                               });
 
                               if (otherUser) {
-                                otherParticipantPicture = otherUser.picture || null;
+                                // Si está en userList, usar esa foto (más reciente/en vivo)
+                                if (otherUser.picture) otherParticipantPicture = otherUser.picture;
                                 isOtherParticipantOnline = otherUser.isOnline === true;
                               } else {
                                 // Fallback a userCache
                                 const cachedUser = userCache[otherParticipantNormalized];
                                 if (cachedUser) {
-                                  otherParticipantPicture = cachedUser.picture || null;
+                                  // Si está en cache, usar esa foto
+                                  if (cachedUser.picture) otherParticipantPicture = cachedUser.picture;
                                   isOtherParticipantOnline = cachedUser.isOnline === true;
                                 }
                               }
@@ -1782,7 +1785,8 @@ const ConversationList = ({
                             else if (currentUserNormalized === participant2Normalized) { displayName = participant1Name; otherParticipantName = participant1Name; }
                             else if (!conv.name) { displayName = `${participant1Name} ↔️ ${participant2Name}`; }
 
-                            let otherParticipantPicture = null;
+                            // 🔥 FIX: Usar conv.picture como valor base (viene de la API)
+                            let otherParticipantPicture = conv.picture || null;
                             let isOtherParticipantOnline = false;
                             if (otherParticipantName) {
                               const otherParticipantNormalized = otherParticipantName?.toLowerCase().trim();
@@ -1791,12 +1795,14 @@ const ConversationList = ({
                                 return fullName?.toLowerCase().trim() === otherParticipantNormalized;
                               });
                               if (otherUser) {
-                                otherParticipantPicture = otherUser.picture || null;
+                                // Si está en userList, usar esa foto
+                                if (otherUser.picture) otherParticipantPicture = otherUser.picture;
                                 isOtherParticipantOnline = otherUser.isOnline === true;
                               } else {
                                 const cachedUser = userCache[otherParticipantNormalized];
                                 if (cachedUser) {
-                                  otherParticipantPicture = cachedUser.picture || null;
+                                  // Si está en cache, usar esa foto
+                                  if (cachedUser.picture) otherParticipantPicture = cachedUser.picture;
                                   isOtherParticipantOnline = cachedUser.isOnline === true;
                                 }
                               }

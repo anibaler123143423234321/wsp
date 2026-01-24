@@ -1735,6 +1735,27 @@ const ChatContent = ({
     // Color consistente del usuario basado en su nombre
     const userColor = getUserNameColor(message.sender, isOwnMessage);
 
+    // 🔥 FALLBACK ROBUSTO: Buscar foto en roomUsers si no viene en el mensaje
+    let finalPicture = message.picture || message.senderPicture;
+    if (!finalPicture && !isOwnMessage && roomUsers && roomUsers.length > 0) {
+      // Normalizar nombres para buscar sin problemas de mayúsculas/minúsculas
+      const senderNorm = message.sender?.toLowerCase().trim();
+      const foundUser = roomUsers.find(u => {
+        const uName = (u.displayName || u.username || '').toLowerCase().trim();
+        return uName === senderNorm || uName.includes(senderNorm) || senderNorm.includes(uName);
+      });
+      if (foundUser?.picture) {
+        finalPicture = foundUser.picture;
+      }
+    }
+    // Si es propio, usar siempre user.picture si está disponible
+    if (isOwnMessage && user?.picture) {
+      finalPicture = user.picture;
+    }
+
+    // DEBUG: Verificar por qué falla la foto
+    // if (message.picture) console.log('🖼️ Render message picture:', { id: message.id, sender: message.sender, pic: message.picture, isOwn: isOwnMessage });
+
     const isMenuOpen = showMessageMenu === message.id;
     const isHighlighted = String(highlightedMessageId) === String(message.id);
 
@@ -1887,16 +1908,16 @@ const ChatContent = ({
                 <div
                   className="slack-avatar"
                   style={{
-                    //  CORRECCIÓN: Si es mensaje propio, usamos user.picture. Si no, message.senderPicture.
-                    background: (isOwnMessage ? user?.picture : message.senderPicture)
-                      ? `url(${isOwnMessage ? user.picture : message.senderPicture}) center/cover`
+                    //  CORRECCIÓN ROBUSTA: Usar finalPicture calculado
+                    background: finalPicture
+                      ? `url('${finalPicture}') center/cover`
                       : "linear-gradient(135deg, #dc2626 0%, #dc2626 100%)",
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: 'white', fontWeight: 'bold', fontSize: '14px'
                   }}
                 >
                   {/* Lógica para mostrar inicial si no hay foto */}
-                  {!(isOwnMessage ? user?.picture : message.senderPicture) && (
+                  {!finalPicture && (
                     (isOwnMessage ? (currentUsername?.charAt(0)?.toUpperCase() || "T") : message.sender?.charAt(0)?.toUpperCase()) || "👤"
                   )}
                 </div>

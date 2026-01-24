@@ -305,6 +305,9 @@ class ApiService {
           }
 
           // ✅ NUEVO: Llamar a /renew-token como fallback
+          console.log(`🔄 Intentando renew-token para usuario:`, currentUser.username); // 🔥 DEBUG
+          console.log(`📡 URL: ${this.baseUrl}api/authentication/renew-token`); // 🔥 DEBUG
+
           refreshResp = await fetch(
             `${this.baseUrl}api/authentication/renew-token`,
             {
@@ -318,7 +321,7 @@ class ApiService {
             }
           );
 
-          console.log(`📡 Respuesta de renew-token: ${refreshResp.status}`);
+          console.log(`📡 Respuesta de renew-token status: ${refreshResp.status}`);
         }
 
         // ✅ PASO 3: Si aún falla, verificar el tipo de error
@@ -481,11 +484,10 @@ class ApiService {
           response = await doRequest(retryHeaders);
 
           // Si aún falla después del refresh, cerrar sesión
-          if (response.status === 401 || response.status === 403 || response.status === 400) {
-            console.error('❌ Error después de renovar token. Cerrando sesión.');
-            this.logout();
-            window.location.href = '/';
-          }
+          console.error('❌ Error después de renovar token. Cerrando sesión.');
+          this.logout();
+          window.location.href = '/';
+
         } catch (error) {
           console.error('❌ Error al renovar token:', error);
           this.logout();
@@ -1329,6 +1331,11 @@ class ApiService {
         if (response.status === 404) return null;
         throw new Error(`Error del servidor: ${response.status}`);
       }
+
+      // Verificar si hay contenido antes de parsear
+      if (response.status === 204) return null;
+      const contentLength = response.headers.get("content-length");
+      if (contentLength === "0") return null;
 
       return await response.json();
     } catch (error) {
