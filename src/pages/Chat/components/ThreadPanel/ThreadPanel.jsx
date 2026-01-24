@@ -1642,6 +1642,10 @@ const ThreadPanel = ({
                         <span className="thread-message-time">{formatTime(msg)}</span>
                       </div>
                     )}
+                    {/* Hora para mensajes agrupados (no inicio de grupo) */}
+                    {!isGroupStart && (
+                      <span className="thread-message-time thread-message-time-inline">{formatTime(msg)}</span>
+                    )}
 
 
                     {/*  Vista previa de respuesta mejorada con soporte visual */}

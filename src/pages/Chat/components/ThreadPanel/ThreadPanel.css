@@ -217,6 +217,13 @@
   display: flex;
   gap: 6px;
   align-items: flex-start;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.thread-message:hover {
+  background-color: #d9dce0;
 }
 
 /* Avatar del mensaje en hilo */
@@ -305,6 +312,15 @@
   color: #999;
 }
 
+/* Hora inline para mensajes agrupados (no inicio de grupo) */
+.thread-message-time-inline {
+  display: block;
+  text-align: right;
+  margin-bottom: 2px;
+  font-size: 9px;
+  color: #8696a0;
+}
+
 .thread-message-text {
   font-size: 13px;
   line-height: 1.3;
@@ -347,8 +363,8 @@
 
 .thread-input-container {
   padding: 4px 8px;
-  background: #ffffff;
-  border-top: 1px solid #e5e7eb;
+  background: #efeae2;
+  border-top: 1px solid #d1d5db;
   display: flex;
   flex-direction: column;
   align-items: stretch;
