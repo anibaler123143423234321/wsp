@@ -5,7 +5,7 @@ import apiService from "../../../../apiService";
 import { showSuccessAlert, showErrorAlert, showConfirmAlert } from "../../../../sweetalert2";
 import './Modal.css';
 
-const RemoveUsersFromRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembers = [], onUsersRemoved, currentUser }) => {
+const RemoveUsersFromRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembers = [], onUsersRemoved, currentUser, removerUser }) => {
   const [selectedUsers, setSelectedUsers] = useState([]);
 
   // Resetear selección cuando se abre el modal
@@ -44,9 +44,14 @@ const RemoveUsersFromRoomModal = ({ isOpen, onClose, roomCode, roomName, current
     }
 
     try {
+      // Obtener nombre de quien elimina
+      const removerName = removerUser?.nombre && removerUser?.apellido
+        ? `${removerUser.nombre} ${removerUser.apellido}`
+        : (removerUser?.displayName || removerUser?.username || 'Administrador');
+
       // Eliminar cada usuario de la sala
       const promises = selectedUsers.map(username =>
-        apiService.removeUserFromRoom(roomCode, username)
+        apiService.removeUserFromRoom(roomCode, username, removerName)
       );
 
       await Promise.all(promises);

@@ -603,6 +603,10 @@ const ChatPage = () => {
         chatState.setRoomUsers(response);
       } else if (response && typeof response === 'object') {
         chatState.setRoomUsers(response.users || response.data || []);
+        // 🔥 NUEVO: Actualizar selectedRoomData con maxCapacity de la API
+        if (response.maxCapacity) {
+          setSelectedRoomData(prev => ({ ...prev, maxCapacity: response.maxCapacity }));
+        }
       }
     } catch (error) {
       console.error('Error al cargar usuarios de la sala:', error);
@@ -1889,9 +1893,13 @@ const ChatPage = () => {
         favoriteRoomCodes={chatState.favoriteRoomCodes}
         setFavoriteRoomCodes={chatState.setFavoriteRoomCodes}
         lastFavoriteUpdate={chatState.lastFavoriteUpdate}
-        onRoomSelect={(room, messageId) => {
+        onRoomSelect={async (room, messageId) => {
           setSelectedRoomData(room); //  Guardar datos de sala para favoritos/imágenes
-          roomManagement.handleRoomSelect(room, messageId);
+          const result = await roomManagement.handleRoomSelect(room, messageId);
+          // 🔥 NUEVO: Actualizar selectedRoomData con maxCapacity de la API
+          if (result?.maxCapacity) {
+            setSelectedRoomData(prev => ({ ...prev, maxCapacity: result.maxCapacity }));
+          }
         }}
         onKickUser={roomManagement.handleKickUser}
         userListHasMore={chatState.userListHasMore}

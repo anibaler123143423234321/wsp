@@ -9,7 +9,7 @@ const VideoCallButton = ({ onStartVideoCall, isGroup, user }) => {
     // Aceptamos 'role' o 'rol', y convertimos a mayúsculas para evitar errores
     const userRole = (user?.role || user?.rol || '').toUpperCase();
 
-    const allowedRoles = ['ADMIN', 'JEFEPISO', 'PROGRAMADOR', 'COORDINADOR'];
+    const allowedRoles = ['ADMIN', 'JEFEPISO', 'PROGRAMADOR', 'COORDINADOR', 'SUPERADMIN'];
     const hasPermission = allowedRoles.includes(userRole);
 
     // 3. Decidir si mostrar el botón

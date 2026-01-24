@@ -247,10 +247,18 @@ export const useSocketListeners = (
             Swal.fire({
                 icon: 'warning',
                 title: 'Eliminado de la sala',
-                text: data.message || `Has sido eliminado de la sala ${data.roomCode}`,
+                html: `
+                    <div style="text-align: left;">
+                        <p><strong>Sala:</strong> ${data.roomName || data.roomCode}</p>
+                        <p><strong>Por:</strong> ${data.removedBy || 'Administrador'}</p>
+                        <p style="margin-top: 10px; font-size: 0.9em; color: #666;">Ya no tienes acceso a este chat.</p>
+                    </div>
+                `,
+                confirmButtonText: 'Entendido',
+                confirmButtonColor: '#d33'
             });
 
-            // Recargar lista de salas
+            // Recargar mis salas activas para quitar la sala eliminada
             if (loadMyActiveRooms) loadMyActiveRooms(1);
 
             // Si el usuario está viendo esa sala en este momento, sacarlo

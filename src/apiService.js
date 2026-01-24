@@ -672,18 +672,21 @@ class ApiService {
   }
 
   // Método para eliminar un usuario de una sala
-  async removeUserFromRoom(roomCode, username) {
+  async removeUserFromRoom(roomCode, username, removedBy) {
     try {
       // Trim the username to handle trailing spaces from displayName
       const trimmedUsername = username?.trim();
 
-      console.log(`🗑️ Removing user from room: ${roomCode}, username: "${trimmedUsername}"`);
+      console.log(`🗑️ Removing user from room: ${roomCode}, username: "${trimmedUsername}", removedBy: "${removedBy}"`);
 
       const response = await this.fetchChatApi(
         `${this.baseChatUrl}api/temporary-rooms/${roomCode}/remove-user`,
         {
           method: "POST",
-          body: JSON.stringify({ username: trimmedUsername }),
+          body: JSON.stringify({
+            username: trimmedUsername,
+            removedBy: removedBy // Optional: who performed the action
+          }),
         }
       );
 

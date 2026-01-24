@@ -8,6 +8,7 @@ const ChatHeader = ({
   isGroup,
   currentRoomCode,
   roomUsers,
+  maxCapacity,
   userPicture,
   onBack,
   adminViewConversation,
@@ -26,7 +27,7 @@ const ChatHeader = ({
 
   //  Verificar permisos para agregar/eliminar usuarios
   const userRole = (user?.role || user?.rol || '').toUpperCase();
-  const allowedRoles = ['ADMIN', 'JEFEPISO', 'PROGRAMADOR', 'SUPERVISOR'];
+  const allowedRoles = ['ADMIN', 'JEFEPISO', 'PROGRAMADOR', 'SUPERVISOR', 'SUPERADMIN'];
   const canManageUsers = allowedRoles.includes(userRole);
 
 
@@ -132,8 +133,8 @@ const ChatHeader = ({
                     );
                   })}
                 </div>
-                <div className="members-count">
-                  {roomUsers.length}
+                <div className="members-count" title={maxCapacity > 0 ? `${roomUsers.length} de ${maxCapacity} miembros` : `${roomUsers.length} miembros`}>
+                  {maxCapacity > 0 ? `${roomUsers.length}/${maxCapacity}` : roomUsers.length}
                 </div>
               </div>
             </div>

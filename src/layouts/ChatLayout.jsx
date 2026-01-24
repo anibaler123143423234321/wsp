@@ -306,6 +306,7 @@ const ChatLayout = ({
             isGroup={isGroup}
             currentRoomCode={currentRoomCode}
             roomUsers={roomUsers}
+            maxCapacity={isGroup ? (selectedRoomData?.maxCapacity || myActiveRooms?.find(r => r.roomCode === currentRoomCode)?.maxCapacity || 0) : 0}
             onLeaveRoom={onLeaveRoom}
             onToggleMenu={onToggleMenu}
             showSidebar={showSidebar}

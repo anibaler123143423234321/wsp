@@ -380,12 +380,14 @@ export const useRoomManagement = (
 
                 // Cargar usuarios de la sala
                 let roomUsersData = [];
+                let roomMaxCapacity = 0; // 🔥 NUEVO: Guardar maxCapacity
                 try {
                     const response = await apiService.getRoomUsers(room.roomCode);
                     if (Array.isArray(response)) {
                         roomUsersData = response;
                     } else if (response && typeof response === 'object') {
                         roomUsersData = response.users || response.data || [];
+                        roomMaxCapacity = response.maxCapacity || 0; // 🔥 NUEVO: Capturar maxCapacity
                     }
                     setRoomUsers(roomUsersData);
                 } catch (error) {
@@ -424,8 +426,12 @@ export const useRoomManagement = (
                 if (window.innerWidth <= 768) {
                     setShowSidebar(false);
                 }
+
+                // 🔥 NUEVO: Retornar maxCapacity para que el componente padre pueda usarlo
+                return { maxCapacity: roomMaxCapacity };
             } catch (error) {
                 console.error('Error al seleccionar sala:', error);
+                return { maxCapacity: 0 };
             }
         },
         [
