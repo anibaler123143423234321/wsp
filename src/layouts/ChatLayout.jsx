@@ -82,6 +82,7 @@ const ChatLayout = ({
   onRoomUpdated,
   selectedRoomData, //  NUEVO: Datos de sala seleccionada (fallback)
   onGoToMessage, //  NUEVO: Callback para ir a mensaje
+  updateMessage, // 🔥 NUEVO: Para actualizar contador de hilos desde ThreadPanel
 }) => {
   // State para el panel de miembros (lifted from ChatHeader)
   const [showMembersPanel, setShowMembersPanel] = React.useState(false);
@@ -125,9 +126,16 @@ const ChatLayout = ({
 
   // Handler para abrir panel de hilos
   const handleOpenThread = (message) => {
+    console.log('🧵 handleOpenThread:', message.id, 'unread:', message.unreadThreadCount, 'updateMessage?', !!updateMessage);
     setThreadMessage(message);
     setShowThreadPanel(true);
     setShowThreadsListPanel(false); // Cerrar lista de hilos al abrir un hilo específico
+
+    // 🔥 NUEVO: Actualizar mensaje en la lista para poner SVG gris inmediatamente
+    if (updateMessage && message.unreadThreadCount > 0) {
+      console.log('🔧 Llamando updateMessage para id:', message.id);
+      updateMessage(message.id, { unreadThreadCount: 0 });
+    }
   };
 
   // Handler para volver a la lista de hilos desde ThreadPanel
@@ -431,6 +439,7 @@ const ChatLayout = ({
           assignedConversations={assignedConversations} //  NUEVO: Para modal de reenvío
           user={user} //  NUEVO: Para modal de reenvío
           onBackToThreadsList={handleBackToThreadsList} //  NUEVO: Volver a lista de hilos
+          onUpdateParentMessage={updateMessage} // 🔥 NUEVO: Para actualizar contador de hilos
         />
 
         {/* Members Panel (Displacement Layout) */}

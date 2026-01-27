@@ -167,6 +167,7 @@ const ThreadPanel = ({
   assignedConversations = [],
   user,
   onBackToThreadsList, //  NUEVO: Callback para volver a la lista de hilos
+  onUpdateParentMessage, // 🔥 NUEVO: Callback para actualizar contador del mensaje padre
 }) => {
   // if (!isOpen) return null; //  MOVIDO AL FINAL PARA RESPETAR REGLAS DE HOOKS
   const [threadMessages, setThreadMessages] = useState([]);
@@ -498,12 +499,46 @@ const ThreadPanel = ({
 
     const handleThreadCountUpdated = (data) => {
       console.log('🔢 ThreadPanel evento threadCountUpdated:', data);
-      //  FIX: NO incrementamos el contador aquí porque:
-      // 1. El contador real se basa en threadMessages.length
-      // 2. useSocketListeners ya maneja el contador del mensaje padre
-      // Solo logueamos para debugging
+
+      // 🔥 FIX: Ignorar eventos sin threadCount (backend emite 2 veces)
+      if (typeof data.threadCount !== 'number') {
+        console.log('🚫 ThreadPanel: ignorando evento sin threadCount');
+        return;
+      }
+
       if (String(data.messageId) === String(message?.id)) {
-        console.log(`🔢 ThreadPanel: recibido update para nuestro hilo ${data.messageId}, ignorando incremento duplicado`);
+        console.log(`🔢 ThreadPanel: procesando actualización para hilo ${data.messageId}, threadCount=${data.threadCount}`);
+
+        // Llamar al callback para actualizar el mensaje padre
+        if (onUpdateParentMessage) {
+          onUpdateParentMessage(data.messageId, (prevMsg) => {
+            const prevCount = prevMsg.threadCount || 0;
+            const newCount = data.threadCount;
+            const isIncrease = newCount > prevCount;
+
+            console.log(`🔢 ThreadPanel UPDATE: prev=${prevCount} → new=${newCount}, isIncrease=${isIncrease}`);
+
+            // Si no es un incremento, solo sincronizar sin incrementar unread
+            if (!isIncrease) {
+              return {
+                ...prevMsg,
+                threadCount: newCount,
+                lastReplyFrom: data.lastReplyFrom,
+                lastReplyText: data.lastReplyText
+              };
+            }
+
+            return {
+              ...prevMsg,
+              threadCount: newCount,
+              unreadThreadCount: (data.from !== currentUsername)
+                ? (prevMsg.unreadThreadCount || 0) + 1
+                : prevMsg.unreadThreadCount,
+              lastReplyFrom: data.lastReplyFrom,
+              lastReplyText: data.lastReplyText
+            };
+          });
+        }
       }
     };
 

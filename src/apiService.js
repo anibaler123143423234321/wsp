@@ -1,13 +1,13 @@
 // Servicio para conectar con la API (múltiples backends según sede)
 // URLs para CHICLAYO / PIURA
 const API_BASE_URL_CHICLAYO = "https://apisozarusac.com/BackendJava/";
-const API_BASECHAT_URL_CHICLAYO = "https://apisozarusac.com/BackendChat/";
-//const API_BASECHAT_URL_CHICLAYO = "http://localhost:8747/"; // Solo para desarrollo local
+//const API_BASECHAT_URL_CHICLAYO = "https://apisozarusac.com/BackendChat/";
+const API_BASECHAT_URL_CHICLAYO = "http://localhost:8747/"; // Solo para desarrollo local
 
 // URLs para LIMA
 const API_BASE_URL_LIMA = "https://apisozarusac.com/BackendJavaMidas/";
-const API_BASECHAT_URL_LIMA = "https://apisozarusac.com/BackendChat/";
-//const API_BASECHAT_URL_LIMA = "http://localhost:8747/"; // Solo para desarrollo local
+//const API_BASECHAT_URL_LIMA = "https://apisozarusac.com/BackendChat/";
+const API_BASECHAT_URL_LIMA = "http://localhost:8747/"; // Solo para desarrollo local
 
 class ApiService {
   constructor() {
@@ -2646,6 +2646,26 @@ class ApiService {
     } catch (error) {
       console.error("Error al limpiar búsquedas antiguas:", error);
       throw error;
+    }
+  }
+  // 🔥 NUEVO: Marcar hilo como leído
+  async markThreadAsRead(threadId, username) {
+    try {
+      const response = await this.fetchChatApi(
+        `${this.baseChatUrl}api/messages/thread/${threadId}/read`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ username }),
+        }
+      );
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error al marcar hilo como leído:", error);
+      return { success: false };
     }
   }
 }

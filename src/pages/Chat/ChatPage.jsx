@@ -1987,6 +1987,7 @@ const ChatPage = () => {
         setShowRoomUsersModal={chatState.setShowRoomUsersModal}
         roomUsersModalData={chatState.roomUsersModalData}
         selectedRoomData={selectedRoomData} //  Pasar datos seleccionados
+        updateMessage={updateMessage} // 🔥 NUEVO: Para actualizar contador de hilos desde ThreadPanel
       />
 
       {/* Contenedor de modales */}

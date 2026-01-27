@@ -116,6 +116,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         replyToText: msg.replyToText,
         // Campos de hilos
         threadCount: msg.threadCount || 0,
+        unreadThreadCount: msg.unreadThreadCount || 0,
         lastReplyFrom: msg.lastReplyFrom || null,
         lastReplyText: msg.lastReplyText || null, //  NUEVO: Texto del último mensaje del hilo
         // Campos de edición
@@ -269,6 +270,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null,
         replyToText: msg.replyToText,
         threadCount: msg.threadCount || 0,
+        unreadThreadCount: msg.unreadThreadCount || 0,
         lastReplyFrom: msg.lastReplyFrom || null,
         lastReplyText: msg.lastReplyText || null,
         isEdited: msg.isEdited || false,
@@ -383,6 +385,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null,
         replyToText: msg.replyToText,
         threadCount: msg.threadCount || 0,
+        unreadThreadCount: msg.unreadThreadCount || 0,
         lastReplyFrom: msg.lastReplyFrom || null,
         lastReplyText: msg.lastReplyText || null,
         isEdited: msg.isEdited || false,
@@ -642,6 +645,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null,
         replyToText: msg.replyToText,
         threadCount: msg.threadCount || 0,
+        unreadThreadCount: msg.unreadThreadCount || 0,
         lastReplyFrom: msg.lastReplyFrom || null,
         lastReplyText: msg.lastReplyText || null,
         isEdited: msg.isEdited || false,

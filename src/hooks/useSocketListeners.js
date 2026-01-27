@@ -62,6 +62,7 @@ export const useSocketListeners = (
     const soundsEnabledRef = useRef(soundsEnabled);
     const myActiveRoomsRef = useRef(myActiveRooms || []); //  Nuevo Ref
     const favoriteRoomCodesRef = useRef(favoriteRoomCodes); //  Ref para favoritos
+    const lastThreadUpdateRef = useRef({}); // Para deduplicación de eventos de hilo
 
     // Actualizar ref cuando cambie soundsEnabled
     useEffect(() => {
@@ -117,6 +118,7 @@ export const useSocketListeners = (
         if (!socket) return;
 
         const s = socket;
+        console.log('🔌 useSocketListeners useEffect ejecutado. Socket ID:', s.id);
 
         s.on('roomJoined', (data) => {
             chatState.setRoomUsers(data.users);
@@ -294,12 +296,73 @@ export const useSocketListeners = (
             // Si tenemos la función updateMessage, la usamos
             if (updateMessage && data.messageId) {
                 // Actualizar el mensaje específico
-                updateMessage(data.messageId, (prevMsg) => ({
-                    ...prevMsg,
-                    isRead: true,
-                    readBy: data.readBy ? [...(prevMsg.readBy || []), ...data.readBy] : prevMsg.readBy,
-                    readAt: data.readAt
-                }));
+                updateMessage(data.messageId, (prevMsg) => {
+                    const newReaders = data.readBy || [];
+                    // Evitar duplicados en el array visual si ya está cargado
+                    const currentReadBy = prevMsg.readBy || [];
+                    const uniqueNewReaders = prevMsg.readBy
+                        ? newReaders.filter(u => !currentReadBy.includes(u))
+                        : []; // Si no está cargado (lazy), no agregamos nada para no romper la lógica de lazy loading
+
+                    const nextReadBy = prevMsg.readBy
+                        ? [...currentReadBy, ...uniqueNewReaders]
+                        : prevMsg.readBy;
+
+                    return {
+                        ...prevMsg,
+                        isRead: true,
+                        // Si ya tenemos la lista visual (lazy loaded), la actualizamos
+                        readBy: nextReadBy,
+                        // SIEMPRE incrementamos el contador numérico (backend envía solo los nuevos)
+                        readByCount: (prevMsg.readByCount || 0) + newReaders.length,
+                        readAt: data.readAt
+                    };
+                });
+            }
+        });
+
+        // 🚀 NUEVO: Actualizar contadores de hilo en tiempo real
+        console.log('🔌 Registrando listener threadCountUpdated');
+        s.on("threadCountUpdated", (data) => {
+            console.log('🧵 threadCountUpdated:', data, '| updateMessage exists?', !!updateMessage);
+
+            // 🔥 FIX: Si el backend NO envía threadCount, IGNORAR este evento.
+            // El backend emite 2 veces: primero sin threadCount, luego CON threadCount.
+            // Solo procesamos el evento que tiene el valor real.
+            if (typeof data.threadCount !== 'number') {
+                console.log('🚫 Ignorando evento sin threadCount (esperando evento completo)');
+                return;
+            }
+
+            if (updateMessage) {
+                updateMessage(data.messageId, (prev) => {
+                    const prevCount = prev.threadCount || 0;
+                    const newCount = data.threadCount; // Ya verificamos que es number arriba
+                    const isIncrease = newCount > prevCount;
+
+                    console.log(`🔢 DEBUG: prevCount=${prevCount}, backendCount=${data.threadCount}, isIncrease=${isIncrease}`);
+
+                    // Si no es un incremento real, solo actualizar texto (no contador)
+                    if (!isIncrease) {
+                        return {
+                            ...prev,
+                            threadCount: newCount, // Sincronizar con backend
+                            lastReplyFrom: data.lastReplyFrom,
+                            lastReplyText: data.lastReplyText
+                        };
+                    }
+
+                    return {
+                        ...prev,
+                        threadCount: newCount,
+                        // SOLO incrementar no leídos si el count AUMENTÓ y no soy yo
+                        unreadThreadCount: (data.from !== username)
+                            ? (prev.unreadThreadCount || 0) + 1
+                            : prev.unreadThreadCount,
+                        lastReplyFrom: data.lastReplyFrom,
+                        lastReplyText: data.lastReplyText
+                    };
+                });
             }
         });
 
