@@ -291,3 +291,96 @@
         box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
     }
 }
+
+/* =========================================
+   🌙 DARK MODE STYLES - MENTIONS PANEL
+   ========================================= */
+
+/* Panel principal */
+html.dark .mentions-panel {
+    background-color: #1a1a1a !important;
+    border-left-color: #3a3a3a !important;
+}
+
+/* Header */
+html.dark .mentions-header {
+    background-color: #1f1f1f !important;
+    border-bottom-color: #3a3a3a !important;
+}
+
+html.dark .mentions-title {
+    color: #ffffff !important;
+}
+
+html.dark .mentions-close {
+    color: #aebac1 !important;
+}
+
+html.dark .mentions-close:hover {
+    background-color: #2a2a2a !important;
+    color: #ffffff !important;
+}
+
+/* Content Background */
+html.dark .mentions-content {
+    background-color: #1a1a1a !important;
+}
+
+/* Empty / Loading / Error */
+html.dark .mentions-empty,
+html.dark .mentions-loading,
+html.dark .mentions-error {
+    color: #6b7280 !important;
+}
+
+html.dark .mentions-empty svg {
+    color: #374151 !important;
+}
+
+/* List Items */
+html.dark .mention-item {
+    background-color: #1f1f1f !important;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2) !important;
+    border-color: transparent !important;
+}
+
+html.dark .mention-item:hover {
+    background-color: #2a2a2a !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3) !important;
+    border-color: #831843 !important;
+    /* Rosado oscuro para borde hover en dark */
+}
+
+/* Text Colors */
+html.dark .mention-sender {
+    color: #e5e5e5 !important;
+}
+
+html.dark .mention-date {
+    color: #9ca3af !important;
+}
+
+html.dark .mention-group-name {
+    color: #9ca3af !important;
+}
+
+html.dark .mention-text {
+    background-color: #374151 !important;
+    /* Gris oscuro para fondo texto cita */
+    color: #e5e5e5 !important;
+}
+
+/* Avatar Placeholder */
+html.dark .mention-avatar {
+    background-color: #374151 !important;
+}
+
+html.dark .mention-avatar span {
+    color: #e5e5e5 !important;
+}
+
+/* Footer Link */
+html.dark .mention-footer {
+    color: #f472b6 !important;
+    /* Rosado claro */
+}
