@@ -1,13 +1,13 @@
 // Servicio para conectar con la API (múltiples backends según sede)
 // URLs para CHICLAYO / PIURA
 const API_BASE_URL_CHICLAYO = "https://apisozarusac.com/BackendJava/";
-//const API_BASECHAT_URL_CHICLAYO = "https://apisozarusac.com/BackendChat/";
-const API_BASECHAT_URL_CHICLAYO = "http://localhost:8747/"; // Solo para desarrollo local
+const API_BASECHAT_URL_CHICLAYO = "https://apisozarusac.com/BackendChat/";
+//const API_BASECHAT_URL_CHICLAYO = "http://localhost:8747/"; // Solo para desarrollo local
 
 // URLs para LIMA
 const API_BASE_URL_LIMA = "https://apisozarusac.com/BackendJavaMidas/";
-//const API_BASECHAT_URL_LIMA = "https://apisozarusac.com/BackendChat/";
-const API_BASECHAT_URL_LIMA = "http://localhost:8747/"; // Solo para desarrollo local
+const API_BASECHAT_URL_LIMA = "https://apisozarusac.com/BackendChat/";
+//const API_BASECHAT_URL_LIMA = "http://localhost:8747/"; // Solo para desarrollo local
 
 class ApiService {
   constructor() {
@@ -15,7 +15,6 @@ class ApiService {
     this.baseUrl = API_BASE_URL_CHICLAYO;
     this.baseChatUrl = API_BASECHAT_URL_CHICLAYO;
     this.currentSede = 'CHICLAYO_PIURA';
-
     // Debug: mostrar las URLs que se están usando (comentado para evitar logs duplicados)
     // console.log("API_BASE_URL:", this.baseUrl);
     // console.log("API_BASECHAT_URL:", this.baseChatUrl);
@@ -1217,11 +1216,15 @@ class ApiService {
     }
   }
 
-  // Obtener lista de hilos padres de un grupo/sala
-  async getRoomThreads(roomCode) {
+  // Obtener lista de hilos padres de un grupo/sala (Con paginación)
+  async getRoomThreads(roomCode, page = 1, limit = 50) {
     try {
+      const offset = (page - 1) * limit;
+      const url = `${this.baseChatUrl}api/messages/room/${roomCode}/threads?page=${page}&limit=${limit}&offset=${offset}`;
+      console.log('📡 getRoomThreads URL:', url);
+
       const response = await fetch(
-        `${this.baseChatUrl}api/messages/room/${roomCode}/threads`,
+        url,
         {
           method: "GET",
           headers: {
@@ -1241,11 +1244,15 @@ class ApiService {
     }
   }
 
-  // Obtener lista de hilos padres de un chat directo
-  async getUserThreads(from, to) {
+  // Obtener lista de hilos padres de un chat directo (Con paginación)
+  async getUserThreads(from, to, page = 1, limit = 50) {
     try {
+      const offset = (page - 1) * limit;
+      const url = `${this.baseChatUrl}api/messages/user/${encodeURIComponent(from)}/${encodeURIComponent(to)}/threads?page=${page}&limit=${limit}&offset=${offset}`;
+      console.log('📡 getUserThreads URL:', url);
+
       const response = await fetch(
-        `${this.baseChatUrl}api/messages/user/${encodeURIComponent(from)}/${encodeURIComponent(to)}/threads`,
+        url,
         {
           method: "GET",
           headers: {

@@ -362,8 +362,8 @@
 }
 
 .thread-input-container {
-  padding: 4px 8px;
-  background: #efeae2;
+  padding: 5px 8px;
+  background: #ffffff;
   border-top: 1px solid #d1d5db;
   display: flex;
   flex-direction: column;

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import MentionsPanel from '../MentionsPanel/MentionsPanel'; // Importar panel de menciones
+// MentionsPanel removed
 import {
     FaTimes,
     FaPoll,
@@ -9,7 +9,7 @@ import {
     FaInfoCircle,
     FaUser,
     FaCamera,
-    FaAt // Importar icono de arroba
+    // FaAt removed
 } from 'react-icons/fa';
 import apiService from '../../../../apiService';
 import Swal from 'sweetalert2';
@@ -20,13 +20,13 @@ import ImageViewer from '../ChatContent/ImageViewer'; //  Importar visor de imá
 const InfoPanel = ({ isOpen, onClose, chatInfo, onCreatePoll, user, onRoomUpdated, onGoToMessage }) => {
     const [isUploading, setIsUploading] = useState(false);
     const [showImageViewer, setShowImageViewer] = useState(false); //  Estado para el visor
-    const [showMentions, setShowMentions] = useState(false); // Estado para mostrar menciones
+    // showMentions state removed
     const fileInputRef = useRef(null);
 
     // Resetear vista al cerrar o cambiar de chat
     React.useEffect(() => {
         if (!isOpen) {
-            setShowMentions(false);
+            // reset logic if needed
         }
     }, [isOpen, chatInfo?.roomCode, chatInfo?.to]);
 
@@ -173,29 +173,8 @@ const InfoPanel = ({ isOpen, onClose, chatInfo, onCreatePoll, user, onRoomUpdate
         document.body.removeChild(link);
     };
 
-    // Si estamos mostrando menciones, renderizar solo el panel de menciones
-    if (showMentions) {
-        // 🔥 Calcular el nombre correcto para buscar menciones (Full Name si existe, sino username)
-        const mentionUsername = user?.nombre && user?.apellido
-            ? `${user.nombre} ${user.apellido}`
-            : (user?.username || user?.email);
 
-        return (
-            <div className="info-panel-container">
-                <MentionsPanel
-                    isOpen={true}
-                    onClose={() => setShowMentions(false)}
-                    currentUsername={mentionUsername}
-                    // roomCode={chatInfo?.roomCode} // Pasar si queremos filtrar por sala
-                    onGoToMessage={(msg) => {
-                        if (onGoToMessage) onGoToMessage(msg);
-                        // Opcional: onClose(); // Cerrar panel info también?
-                    }}
-                    roomUsers={chatInfo?.roomUsers}
-                />
-            </div>
-        );
-    }
+    // Mentions panel render logic removed
 
     return (
         <>
@@ -290,11 +269,7 @@ const InfoPanel = ({ isOpen, onClose, chatInfo, onCreatePoll, user, onRoomUpdate
                     <section className="info-section">
                         <h3 className="info-section-title">Acciones</h3>
                         <div className="info-tools-list">
-                            <ActionRow
-                                icon={<FaAt />}
-                                text="Ver Menciones"
-                                onClick={() => setShowMentions(true)}
-                            />
+                            {/* Ver Menciones removed */}
                             <ActionRow
                                 icon={<FaChalkboardTeacher />}
                                 text="Abrir Pizarra"

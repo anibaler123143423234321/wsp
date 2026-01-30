@@ -141,7 +141,7 @@ const ImageViewer = ({ imagePreview, onClose, onDownload }) => {
                     (e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)")
                 }
             >
-                <span style={{ pointerEvents: "none" }}>⬇️</span>
+                <span style={{ pointerEvents: "none", display: "flex" }}><img src="https://cdn-icons-png.flaticon.com/512/1092/1092004.png" alt="Descargar" style={{ width: "20px", height: "auto", filter: "invert(1)" }} /></span>
                 <span style={{ pointerEvents: "none" }}>Descargar</span>
             </button>
 

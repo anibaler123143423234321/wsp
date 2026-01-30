@@ -1,4 +1,4 @@
-import { FaArrowLeft, FaUserPlus, FaUserMinus, FaComments } from 'react-icons/fa';
+import { FaArrowLeft, FaUserPlus, FaUserMinus, FaComments, FaAt } from 'react-icons/fa';
 // Importamos el nuevo componente
 import VideoCallButton from '../VideoCallButton/VideoCallButton';
 import './ChatHeader.css';
@@ -18,7 +18,8 @@ const ChatHeader = ({
   onStartVideoCall,
   onToggleMembersPanel,
   onToggleInfoPanel,
-  onToggleThreadsPanel
+  onToggleThreadsPanel,
+  onToggleMentionsPanel
 }) => {
   // No mostrar el header si no hay chat seleccionado
   if (!to) {
@@ -182,6 +183,57 @@ const ChatHeader = ({
               title="Ver hilos"
             >
               <FaComments size={20} />
+            </button>
+          )}
+
+          {/* Botón de Menciones */}
+          {onToggleMentionsPanel && (
+            <button
+              className="header-icon-btn mentions-btn"
+              onClick={onToggleMentionsPanel}
+              title="Ver menciones"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 120 120">
+                <defs>
+                  <linearGradient id="badgeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#FF6B9D" stopOpacity="1" />
+                    <stop offset="100%" stopColor="#FF5252" stopOpacity="1" />
+                  </linearGradient>
+                  <filter id="shadow">
+                    <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.3" />
+                  </filter>
+                </defs>
+
+                {/* Background circle REMOVED */}
+
+                {/* User icon (modern style) */}
+                <g transform="translate(60, 55)">
+                  {/* Head */}
+                  <circle cx="0" cy="-10" r="14" fill="#ef4444" opacity="0.95" />
+
+                  {/* Body */}
+                  <path d="M -20 20 Q -20 5, 0 5 Q 20 5, 20 20 L 20 28 Q 20 30, 18 30 L -18 30 Q -20 30, -20 28 Z"
+                    fill="#ef4444" opacity="0.95" />
+
+                  {/* Arms suggestion (minimal lines) */}
+                  <path d="M -18 12 L -24 18" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" opacity="0.95" />
+                  <path d="M 18 12 L 24 18" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" opacity="0.95" />
+                </g>
+
+                {/* Notification badge with counter */}
+                <circle cx="92" cy="35" r="22" fill="url(#badgeGradient)" filter="url(#shadow)" />
+                <circle cx="92" cy="35" r="20" fill="none" stroke="white" strokeWidth="2" opacity="0.3" />
+
+                {/* Counter number */}
+                <text x="92" y="43" fontFamily="'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif"
+                  fontSize="22" fontWeight="700" fill="white" textAnchor="middle" letterSpacing="-0.5">3</text>
+
+                {/* Pulse effect circle */}
+                <circle cx="92" cy="35" r="20" fill="none" stroke="#FF6B9D" strokeWidth="1.5" opacity="0.4">
+                  <animate attributeName="r" from="20" to="26" dur="1.5s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" from="0.4" to="0" dur="1.5s" repeatCount="indefinite" />
+                </circle>
+              </svg>
             </button>
           )}
 

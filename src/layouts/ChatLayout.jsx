@@ -8,6 +8,7 @@ import MembersPanel from '../pages/Chat/components/MembersPanel/MembersPanel';
 import ThreadPanel from '../pages/Chat/components/ThreadPanel/ThreadPanel';
 import ThreadsListPanel from '../pages/Chat/components/ThreadsListPanel/ThreadsListPanel';
 import InfoPanel from '../pages/Chat/components/InfoPanel/InfoPanel';
+import MentionsPanel from '../pages/Chat/components/MentionsPanel/MentionsPanel'; // Importar panel de menciones
 import ActiveVideoCallBanner from '../pages/Chat/components/ActiveVideoCallBanner/ActiveVideoCallBanner';
 import PinnedMessageBanner from '../pages/Chat/components/PinnedMessageBanner/PinnedMessageBanner';
 import CreateRoomModal from '../pages/Chat/components/modals/CreateRoomModal';
@@ -82,6 +83,7 @@ const ChatLayout = ({
   onRoomUpdated,
   selectedRoomData, //  NUEVO: Datos de sala seleccionada (fallback)
   onGoToMessage, //  NUEVO: Callback para ir a mensaje
+  onGoToLatest, //  NUEVO: Ir al final
   updateMessage, // 🔥 NUEVO: Para actualizar contador de hilos desde ThreadPanel
 }) => {
   // State para el panel de miembros (lifted from ChatHeader)
@@ -95,6 +97,9 @@ const ChatLayout = ({
   const [showCreatePollModal, setShowCreatePollModal] = React.useState(false);
   const [showInfoPanel, setShowInfoPanel] = React.useState(false);
 
+  // State para el panel de menciones
+  const [showMentionsPanel, setShowMentionsPanel] = React.useState(false);
+
   // State para el panel de lista de hilos
   const [showThreadsListPanel, setShowThreadsListPanel] = React.useState(false);
 
@@ -104,6 +109,10 @@ const ChatLayout = ({
 
   const toggleInfoPanel = () => {
     setShowInfoPanel(!showInfoPanel);
+  };
+
+  const toggleMentionsPanel = () => {
+    setShowMentionsPanel(!showMentionsPanel);
   };
 
   const toggleThreadsListPanel = () => {
@@ -150,6 +159,7 @@ const ChatLayout = ({
     setShowMembersPanel(false);
     setShowThreadPanel(false);
     setShowInfoPanel(false);
+    setShowMentionsPanel(false); // Reset mentions panel
     setShowThreadsListPanel(false);
   }, [to]);
 
@@ -333,6 +343,7 @@ const ChatLayout = ({
             user={user}
             onToggleMembersPanel={toggleMembersPanel}
             onToggleInfoPanel={toggleInfoPanel}
+            onToggleMentionsPanel={toggleMentionsPanel}
             onToggleThreadsPanel={toggleThreadsListPanel}
           />
 
@@ -420,6 +431,7 @@ const ChatLayout = ({
             assignedConversations={assignedConversations} //  NUEVO: Chats asignados para modal de reenvío
             onOpenPollModal={handleCreatePoll} //  NUEVO: Abrir modal de encuesta
             onPollVote={onPollVote} //  FIX: Pasar prop de votación
+            onGoToLatest={onGoToLatest} //  NUEVO: Ir al final
           />
         </div>
         {/* Thread Panel (Displacement Layout) */}
@@ -474,6 +486,18 @@ const ChatLayout = ({
           user={user} //  Pass user for permission checks
           onRoomUpdated={onRoomUpdated} //  Pass callback for updates
           onGoToMessage={onGoToMessage} //  Pass callback for mentions navigation
+        />
+
+        {/* Mentions Panel (Displacement Layout) */}
+        <MentionsPanel
+          isOpen={showMentionsPanel}
+          onClose={() => setShowMentionsPanel(false)}
+          currentUsername={currentUsername}
+          isGroup={isGroup}
+          roomCode={currentRoomCode}
+          roomName={to}
+          onGoToMessage={onGoToMessage}
+          roomUsers={roomUsers}
         />
 
         {/* Threads List Panel (Lista de hilos padres) */}

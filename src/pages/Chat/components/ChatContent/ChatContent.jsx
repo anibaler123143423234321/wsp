@@ -15,6 +15,8 @@ import {
   FaChevronRight,
   FaShare, //  NUEVO: Ícono para reenviar
   FaChevronUp, // NUEVO: Para botón Load Newer Messages
+  FaPoll,
+  FaArrowDown
 } from "react-icons/fa";
 import EmojiPicker from "emoji-picker-react";
 import LoadMoreMessages from "../LoadMoreMessages/LoadMoreMessages";
@@ -276,7 +278,8 @@ const ChatContent = ({
 
   //  NUEVO: Props para crear encuesta
   onOpenPollModal,
-  onPollVote, // Agregado prop onPollVote
+  onPollVote, //  FIX: Pasar prop de votación
+  onGoToLatest, //  NUEVO: Ir al final
 }) => {
   // ============================================================
   // REFS
@@ -2879,6 +2882,7 @@ const ChatContent = ({
                   display: 'flex',
                   justifyContent: 'center',
                   margin: '10px 0',
+                  gap: '10px',
                   zIndex: 5
                 }}
               >
@@ -2886,20 +2890,6 @@ const ChatContent = ({
                   className="load-more-btn" // Reutilizamos clase
                   onClick={onLoadMoreMessagesAfter}
                   disabled={isLoadingMore}
-                  style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '8px 16px',
-                    borderRadius: '24px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: '#54656f',
-                    fontSize: '0.9rem',
-                    fontWeight: 500
-                  }}
                 >
                   {isLoadingMore ? (
                     <>
@@ -2914,6 +2904,16 @@ const ChatContent = ({
                       Cargar mensajes recientes
                     </>
                   )}
+                </button>
+
+                {/* BOTÓN IR AL FINAL */}
+                <button
+                  className="load-more-btn"
+                  onClick={onGoToLatest}
+                  title="Ir a los últimos mensajes"
+                >
+                  <FaArrowDown />
+                  Ir al final
                 </button>
               </div>
             )}

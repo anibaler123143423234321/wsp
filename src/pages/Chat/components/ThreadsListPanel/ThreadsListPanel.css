@@ -210,6 +210,38 @@
   margin-top: 1px;
 }
 
+/* Load More Button */
+.threads-list-load-more {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.threads-load-more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: transparent;
+  color: #00a884;
+  border: 1px solid #00a884;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.threads-load-more-btn:hover:not(:disabled) {
+  background-color: rgba(0, 168, 132, 0.1);
+}
+
+.threads-load-more-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 @media (max-width: 768px) {
   .threads-list-panel {
     position: fixed;

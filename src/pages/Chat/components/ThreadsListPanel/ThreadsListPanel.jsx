@@ -18,34 +18,97 @@ const ThreadsListPanel = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Estados de paginación
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadMore, setIsLoadMore] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
-      loadThreads();
+      setPage(1);
+      setHasMore(true);
+      loadThreads(1, false);
     }
   }, [isOpen, isGroup, roomCode, to]);
 
-  const loadThreads = async () => {
-    setLoading(true);
+  const loadThreads = async (pageNum = 1, append = false) => {
+    if (append) {
+      setIsLoadMore(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
+
     try {
       let response;
+      const limit = 20; // Límite por página
+
       if (isGroup && roomCode) {
-        response = await apiService.getRoomThreads(roomCode);
+        response = await apiService.getRoomThreads(roomCode, pageNum, limit);
       } else if (!isGroup && currentUsername && to) {
-        response = await apiService.getUserThreads(currentUsername, to);
+        response = await apiService.getUserThreads(currentUsername, to, pageNum, limit);
       } else {
         setError('No se puede cargar los hilos');
         setLoading(false);
+        setIsLoadMore(false);
         return;
       }
-      // El backend devuelve { data: [...], total, hasMore }
-      const threadsData = response?.data || response || [];
-      setThreads(threadsData);
+
+      // El backend devuelve { data: [...], total, hasMore, page, totalPages }
+      // Aseguramos compatibilidad si devuelve array directo (aunque no debería con la actualización)
+      const threadsData = response?.data || (Array.isArray(response) ? response : []) || [];
+      const backendHasMore = response?.hasMore;
+      const totalPages = response?.totalPages;
+
+      console.log('🧵 loadThreads response:', {
+        pageNum,
+        limit,
+        total: response?.total,
+        hasMore: backendHasMore,
+        dataLength: threadsData.length,
+        firstId: threadsData[0]?.id
+      });
+
+      if (append) {
+        setThreads(prev => {
+          // Evitar duplicados por ID
+          const existingIds = new Set(prev.map(t => t.id));
+          const newThreads = threadsData.filter(t => !existingIds.has(t.id));
+
+          console.log('🧵 Appending threads:', {
+            prevLength: prev.length,
+            received: threadsData.length,
+            newUnique: newThreads.length
+          });
+
+          return [...prev, ...newThreads];
+        });
+      } else {
+        setThreads(threadsData);
+      }
+
+      // Determinar si hay más páginas
+      if (backendHasMore !== undefined) {
+        setHasMore(backendHasMore);
+      } else {
+        // Fallback: si devolvió menos del límite, asumimos que no hay más
+        setHasMore(threadsData.length === limit);
+      }
+
     } catch (err) {
       console.error('Error al cargar hilos:', err);
       setError('Error al cargar los hilos');
     } finally {
       setLoading(false);
+      setIsLoadMore(false);
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (!loading && !isLoadMore && hasMore) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      loadThreads(nextPage, true);
     }
   };
 
@@ -68,14 +131,14 @@ const ThreadsListPanel = ({
       };
       onOpenThread(threadMessage);
     }
-    onClose();
+    // IMPORTANTE: NO cerrar el panel al abrir un hilo, para poder volver
+    // onClose(); 
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
 
     // Extraer fecha y hora directamente del string ISO sin conversión de zona horaria
-    // Formato: "2026-01-05T13:12:58.000Z"
     const match = dateString.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
     if (!match) return '';
 
@@ -131,7 +194,7 @@ const ThreadsListPanel = ({
         {error && (
           <div className="threads-list-error">
             <span>{error}</span>
-            <button onClick={loadThreads}>Reintentar</button>
+            <button onClick={() => loadThreads(1, false)}>Reintentar</button>
           </div>
         )}
 
@@ -142,40 +205,61 @@ const ThreadsListPanel = ({
           </div>
         )}
 
-        {!loading && !error && threads.length > 0 && (
-          <div className="threads-list-items">
-            {threads.map((thread) => {
-              const senderPicture = getUserPicture(thread.from || thread.sender);
-              return (
-                <div
-                  key={thread.id}
-                  className="thread-list-item"
-                  onClick={() => handleThreadClick(thread)}
+        {(!loading || isLoadMore) && !error && threads.length > 0 && (
+          <>
+            <div className="threads-list-items">
+              {threads.map((thread) => {
+                const senderPicture = getUserPicture(thread.from || thread.sender);
+                return (
+                  <div
+                    key={thread.id}
+                    className="thread-list-item"
+                    onClick={() => handleThreadClick(thread)}
+                  >
+                    <div className="thread-item-avatar">
+                      {senderPicture ? (
+                        <img src={senderPicture} alt="" />
+                      ) : (
+                        <span>{(thread.from || thread.sender || '?')[0].toUpperCase()}</span>
+                      )}
+                    </div>
+                    <div className="thread-item-content">
+                      <div className="thread-item-header">
+                        <span className="thread-item-sender">{thread.from || thread.sender}</span>
+                        <span className="thread-item-date">{formatDate(thread.sentAt)}</span>
+                      </div>
+                      <div className="thread-item-message">
+                        {thread.message || thread.text || '📎 Archivo adjunto'}
+                      </div>
+                      <div className="thread-item-count">
+                        <FaComments size={12} />
+                        <span>{thread.threadCount || 0} respuestas</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* BOTÓN CARGAR MÁS */}
+            {hasMore && (
+              <div className="threads-list-load-more">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={isLoadMore}
+                  className="threads-load-more-btn"
                 >
-                  <div className="thread-item-avatar">
-                    {senderPicture ? (
-                      <img src={senderPicture} alt="" />
-                    ) : (
-                      <span>{(thread.from || thread.sender || '?')[0].toUpperCase()}</span>
-                    )}
-                  </div>
-                  <div className="thread-item-content">
-                    <div className="thread-item-header">
-                      <span className="thread-item-sender">{thread.from || thread.sender}</span>
-                      <span className="thread-item-date">{formatDate(thread.sentAt)}</span>
-                    </div>
-                    <div className="thread-item-message">
-                      {thread.message || thread.text || '📎 Archivo adjunto'}
-                    </div>
-                    <div className="thread-item-count">
-                      <FaComments size={12} />
-                      <span>{thread.threadCount || 0} respuestas</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  {isLoadMore ? (
+                    <>
+                      <FaSpinner className="spinner" /> Cargando...
+                    </>
+                  ) : (
+                    'Cargar más hilos'
+                  )}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

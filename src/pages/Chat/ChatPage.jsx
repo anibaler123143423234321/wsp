@@ -1907,6 +1907,18 @@ const ChatPage = () => {
         onLoadMoreUsers={loadMoreUsers}
         roomTypingUsers={chatState.roomTypingUsers}
         onGoToMessage={handleGoToMessage} //  NUEVO: Manejar navegación a menciones
+
+        //  NUEVO: Ir al final del chat (últimos mensajes)
+        onGoToLatest={async () => {
+          console.log('⏩ Ir al final del chat');
+          try {
+            // Limpiar filtros de búsqueda y paginación
+            clearMessages();
+            // Cargar mensajes iniciales (los más recientes)
+            await loadInitialMessages();
+          } catch (e) { console.error('Error going to latest:', e); }
+        }}
+
         // Props del chat
         to={chatState.to}
         isGroup={chatState.isGroup}
