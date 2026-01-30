@@ -41,6 +41,7 @@
     "tailwindcss": "^4.1.13",
     "terser": "^5.44.1",
     "vite": "^6.3.1",
-    "vite-plugin-node-polyfills": "^0.24.0"
+    "vite-plugin-node-polyfills": "^0.24.0",
+    "vite-plugin-pwa": "^1.2.0"
   }
 }
