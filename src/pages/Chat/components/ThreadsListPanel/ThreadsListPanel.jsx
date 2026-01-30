@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { FaTimes, FaComments, FaSpinner } from 'react-icons/fa';
+import React, { useState, useEffect, useRef } from 'react';
+import { FaTimes, FaComments, FaSpinner, FaSearch, FaArrowLeft } from 'react-icons/fa';
 import apiService from '../../../../apiService';
 import './ThreadsListPanel.css';
 
@@ -17,21 +17,44 @@ const ThreadsListPanel = ({
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const searchTimeoutRef = useRef(null);
 
   // Estados de paginación
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadMore, setIsLoadMore] = useState(false);
 
+  // Efecto para cargar hilos iniciales y cuando cambia el término de búsqueda
   useEffect(() => {
     if (isOpen) {
+      // Resetear paginación al buscar o abrir
       setPage(1);
       setHasMore(true);
-      loadThreads(1, false);
+      // Clear any pending timeout to avoid loading old search terms
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      // Debounce search term
+      searchTimeoutRef.current = setTimeout(() => {
+        loadThreads(1, false, searchTerm);
+      }, 300); // 300ms debounce
     }
-  }, [isOpen, isGroup, roomCode, to]);
+    // Cleanup timeout on unmount or if isOpen becomes false
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [isOpen, isGroup, roomCode, to, searchTerm]); // Added searchTerm to dependencies
 
-  const loadThreads = async (pageNum = 1, append = false) => {
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    // The useEffect with dependency [searchTerm] will handle the actual loading
+  };
+
+  const loadThreads = async (pageNum = 1, append = false, search = '') => {
     if (append) {
       setIsLoadMore(true);
     } else {
@@ -44,9 +67,9 @@ const ThreadsListPanel = ({
       const limit = 20; // Límite por página
 
       if (isGroup && roomCode) {
-        response = await apiService.getRoomThreads(roomCode, pageNum, limit);
+        response = await apiService.getRoomThreads(roomCode, pageNum, limit, search);
       } else if (!isGroup && currentUsername && to) {
-        response = await apiService.getUserThreads(currentUsername, to, pageNum, limit);
+        response = await apiService.getUserThreads(currentUsername, to, pageNum, limit, search);
       } else {
         setError('No se puede cargar los hilos');
         setLoading(false);
@@ -108,7 +131,7 @@ const ThreadsListPanel = ({
     if (!loading && !isLoadMore && hasMore) {
       const nextPage = page + 1;
       setPage(nextPage);
-      loadThreads(nextPage, true);
+      loadThreads(nextPage, true, searchTerm);
     }
   };
 
@@ -174,13 +197,29 @@ const ThreadsListPanel = ({
   return (
     <div className="threads-list-panel">
       <div className="threads-list-header">
+        <button onClick={onClose} className="threads-back-btn" title="Cerrar">
+          <FaArrowLeft />
+        </button>
         <div className="threads-list-title">
-          <FaComments />
-          <span>Hilos</span>
+          <span>Hilos de conversación</span>
         </div>
-        <button className="threads-list-close" onClick={onClose}>
+        <button onClick={onClose} className="threads-close-btn" title="Cerrar">
           <FaTimes />
         </button>
+      </div>
+
+      <div className="threads-search-container">
+        <div className="threads-search-input-wrapper">
+          <input
+            type="text"
+            placeholder="Buscar en hilos..."
+            className="search-input"
+            value={searchTerm}
+            onChange={handleSearchChange}
+            style={{ fontSize: '13px', padding: '10px 10px 10px 35px' }}
+          />
+          <FaSearch className="search-icon" style={{ left: '12px', width: '14px', height: '14px' }} />
+        </div>
       </div>
 
       <div className="threads-list-content">

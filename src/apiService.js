@@ -1217,10 +1217,15 @@ class ApiService {
   }
 
   // Obtener lista de hilos padres de un grupo/sala (Con paginación)
-  async getRoomThreads(roomCode, page = 1, limit = 50) {
+  async getRoomThreads(roomCode, page = 1, limit = 50, search = '') {
     try {
       const offset = (page - 1) * limit;
-      const url = `${this.baseChatUrl}api/messages/room/${roomCode}/threads?page=${page}&limit=${limit}&offset=${offset}`;
+      let url = `${this.baseChatUrl}api/messages/room/${roomCode}/threads?page=${page}&limit=${limit}&offset=${offset}`;
+
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+
       console.log('📡 getRoomThreads URL:', url);
 
       const response = await fetch(
@@ -1245,10 +1250,15 @@ class ApiService {
   }
 
   // Obtener lista de hilos padres de un chat directo (Con paginación)
-  async getUserThreads(from, to, page = 1, limit = 50) {
+  async getUserThreads(from, to, page = 1, limit = 50, search = '') {
     try {
       const offset = (page - 1) * limit;
-      const url = `${this.baseChatUrl}api/messages/user/${encodeURIComponent(from)}/${encodeURIComponent(to)}/threads?page=${page}&limit=${limit}&offset=${offset}`;
+      let url = `${this.baseChatUrl}api/messages/user/${encodeURIComponent(from)}/${encodeURIComponent(to)}/threads?page=${page}&limit=${limit}&offset=${offset}`;
+
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+
       console.log('📡 getUserThreads URL:', url);
 
       const response = await fetch(

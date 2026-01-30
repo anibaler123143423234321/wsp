@@ -1,7 +1,7 @@
 .threads-list-panel {
   width: 350px;
   height: 100%;
-  background-color: #fff;
+  background-color: #f0f2f5;
   border-left: 1px solid #e0e0e0;
   display: flex;
   flex-direction: column;
@@ -22,12 +22,37 @@
 .threads-list-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  /* Cambio a flex-start */
   height: 50px;
-  /* Reducido de 50px */
   padding: 0 12px;
   border-bottom: 1px solid #e0e0e0;
   background-color: #ffffff;
+  gap: 8px;
+  /* Gap entre botón y título */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  /* Sombra añadida */
+  z-index: 10;
+}
+
+.threads-back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #667781;
+  transition: background 0.2s, color 0.2s;
+  flex-shrink: 0;
+}
+
+.threads-back-btn:hover {
+  background: #e9edef;
+  color: #00a884;
 }
 
 .threads-list-title {
@@ -36,29 +61,77 @@
   gap: 8px;
   font-weight: 600;
   font-size: 15px;
-  /* Reducido */
-  color: #111b21;
+  color: #333;
+  /* Color ajustado a #333 para consistencia */
+  flex: 1;
+  /* Ocupar resto del espacio */
 }
 
-.threads-list-title svg {
-  color: #54656f;
+.threads-header-icon {
   font-size: 18px;
-  /* Icono más pequeño */
+  color: #54656f;
 }
 
+/* Eliminamos estilos viejos */
 .threads-list-close {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 6px;
-  border-radius: 50%;
-  color: #54656f;
-  transition: background-color 0.2s;
-  font-size: 18px;
+  display: none;
 }
 
-.threads-list-close:hover {
-  background-color: #e9edef;
+.threads-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #667781;
+  transition: background 0.2s, color 0.2s;
+  flex-shrink: 0;
+}
+
+.threads-close-btn:hover {
+  background: #e9edef;
+  color: #dc2626;
+}
+
+/* Contenedor de búsqueda compacto sin fondo */
+.threads-search-container {
+  padding: 4px 8px 6px 8px;
+  background: transparent;
+}
+
+.threads-search-container .threads-search-input-wrapper {
+  margin: 0;
+  position: relative;
+  background: transparent;
+}
+
+.threads-search-container .search-input {
+  width: 100%;
+  padding: 6px 6px 6px 28px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  background: #e9edef;
+  transition: all 0.2s;
+}
+
+.threads-search-container .search-input:focus {
+  outline: none;
+  background: #dfe5e7;
+}
+
+.threads-search-container .search-icon {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #8696a0;
+  width: 12px;
+  height: 12px;
 }
 
 .threads-list-content {
@@ -99,7 +172,7 @@
 .threads-list-error button {
   margin-top: 8px;
   padding: 8px 16px;
-  background-color: #00a884;
+  background-color: #dc2626;
   color: white;
   border: none;
   border-radius: 8px;
@@ -136,7 +209,7 @@
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
-  background-color: #00a884;
+  background-color: #dc2626;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -205,7 +278,7 @@
   gap: 3px;
   font-size: 10px;
   /* Count minimalista */
-  color: #00a884;
+  color: #dc2626;
   font-weight: 500;
   margin-top: 1px;
 }
@@ -223,8 +296,8 @@
   justify-content: center;
   gap: 8px;
   background-color: transparent;
-  color: #00a884;
-  border: 1px solid #00a884;
+  color: #dc2626;
+  border: 1px solid #dc2626;
   padding: 8px 16px;
   border-radius: 20px;
   font-size: 13px;
@@ -234,7 +307,7 @@
 }
 
 .threads-load-more-btn:hover:not(:disabled) {
-  background-color: rgba(0, 168, 132, 0.1);
+  background-color: rgba(220, 38, 38, 0.1);
 }
 
 .threads-load-more-btn:disabled {
@@ -325,5 +398,5 @@ html.dark .thread-item-message {
 
 /* Contador de respuestas */
 html.dark .thread-item-count {
-  color: #00a884 !important;
+  color: #dc2626 !important;
 }
