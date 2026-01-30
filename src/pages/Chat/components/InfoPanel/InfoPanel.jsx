@@ -9,6 +9,9 @@ import {
     FaInfoCircle,
     FaUser,
     FaCamera,
+    FaEye,
+    FaPen,
+    FaPlus,
     // FaAt removed
 } from 'react-icons/fa';
 import apiService from '../../../../apiService';
@@ -188,41 +191,64 @@ const InfoPanel = ({ isOpen, onClose, chatInfo, onCreatePoll, user, onRoomUpdate
 
                 <div className="info-content">
                     <div className="info-avatar-section">
-                        <div
-                            className={`info-avatar-wrapper ${canEditGroupInfo || currentPicture ? 'clickable' : ''}`}
-                            onClick={handleImageClick}
-                            style={{ cursor: canEditGroupInfo || currentPicture ? 'pointer' : 'default' }}
-                        >
-                            {currentPicture ? (
-                                <img src={currentPicture} alt="Avatar" className="info-avatar-img" />
-                            ) : (
-                                <div className="info-avatar-placeholder">
-                                    {isGroup ? (
-                                        <FaUsers className="info-avatar-icon" />
-                                    ) : (
-                                        <FaUser className="info-avatar-icon" />
-                                    )}
-                                </div>
-                            )}
+                        <div className="info-avatar-container">
+                            <div
+                                className={`info-avatar-wrapper ${canEditGroupInfo ? 'editable' : ''}`}
+                                onClick={canEditGroupInfo ? handleImageClick : undefined} // Keep original behavior as fallback or secondary
+                            >
+                                {currentPicture ? (
+                                    <img src={currentPicture} alt="Avatar" className="info-avatar-img" />
+                                ) : (
+                                    <div className="info-avatar-placeholder">
+                                        {isGroup ? (
+                                            <FaUsers className="info-avatar-icon" />
+                                        ) : (
+                                            <FaUser className="info-avatar-icon" />
+                                        )}
+                                    </div>
+                                )}
 
-                            {canEditGroupInfo && (
-                                <div className="info-avatar-overlay">
-                                    {isUploading ? (
-                                        <div className="info-spinner"></div>
-                                    ) : (
-                                        <FaCamera className="info-camera-icon" />
-                                    )}
-                                </div>
-                            )}
+                                {canEditGroupInfo && (
+                                    <div className="info-avatar-overlay">
+                                        {isUploading ? (
+                                            <div className="info-spinner"></div>
+                                        ) : (
+                                            <FaCamera className="info-camera-icon" />
+                                        )}
+                                    </div>
+                                )}
 
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                style={{ display: 'none' }}
-                                accept="image/*"
-                                onChange={handleFileChange}
-                                disabled={isUploading}
-                            />
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    style={{ display: 'none' }}
+                                    accept="image/*"
+                                    onChange={handleFileChange}
+                                    disabled={isUploading}
+                                />
+                            </div>
+
+                            <div className="info-avatar-actions">
+                                {currentPicture && (
+                                    <button
+                                        className="info-avatar-action-btn view-btn"
+                                        onClick={() => setShowImageViewer(true)}
+                                        title="Ver foto"
+                                    >
+                                        <FaEye />
+                                    </button>
+                                )}
+                                {canEditGroupInfo && (
+                                    <button
+                                        className="info-avatar-action-btn edit-btn"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        title={currentPicture ? "Cambiar foto" : "Agregar foto"}
+                                        disabled={isUploading}
+                                    >
+                                        {currentPicture ? <FaPen /> : <FaPlus />}
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
 

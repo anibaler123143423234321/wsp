@@ -227,8 +227,20 @@ const ChatLayout = ({
 
       return null;
     }
+
+    // 1. Intentar obtener del usuario en userList
     const targetUser = getTargetUser();
-    return targetUser?.picture || null;
+    if (targetUser?.picture) return targetUser.picture;
+
+    // 2. 🔥 Intentar obtener de assignedConversations (si el usuario no está en userList)
+    if (to && assignedConversations) {
+      const conv = assignedConversations.find(c =>
+        c.participants?.some(p => p === to || p?.toLowerCase() === to?.toLowerCase())
+      );
+      if (conv?.picture) return conv.picture;
+    }
+
+    return null;
   };
 
   return (

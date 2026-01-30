@@ -1740,15 +1740,29 @@ const ChatContent = ({
 
     // 🔥 FALLBACK ROBUSTO: Buscar foto en roomUsers si no viene en el mensaje
     let finalPicture = message.picture || message.senderPicture;
-    if (!finalPicture && !isOwnMessage && roomUsers && roomUsers.length > 0) {
-      // Normalizar nombres para buscar sin problemas de mayúsculas/minúsculas
-      const senderNorm = message.sender?.toLowerCase().trim();
-      const foundUser = roomUsers.find(u => {
-        const uName = (u.displayName || u.username || '').toLowerCase().trim();
-        return uName === senderNorm || uName.includes(senderNorm) || senderNorm.includes(uName);
-      });
-      if (foundUser?.picture) {
-        finalPicture = foundUser.picture;
+    if (!finalPicture && !isOwnMessage) {
+      // 1. Buscar en roomUsers
+      if (roomUsers && roomUsers.length > 0) {
+        // Normalizar nombres para buscar sin problemas de mayúsculas/minúsculas
+        const senderNorm = message.sender?.toLowerCase().trim();
+        const foundUser = roomUsers.find(u => {
+          const uName = (u.displayName || u.username || '').toLowerCase().trim();
+          return uName === senderNorm || uName.includes(senderNorm) || senderNorm.includes(uName);
+        });
+        if (foundUser?.picture) {
+          finalPicture = foundUser.picture;
+        }
+      }
+
+      // 2. 🔥 Buscar en assignedConversations (si aún no tenemos foto)
+      if (!finalPicture && assignedConversations) {
+        const senderNorm = message.sender?.toLowerCase().trim();
+        const conv = assignedConversations.find(c =>
+          c.participants?.some(p => p?.toLowerCase().trim() === senderNorm)
+        );
+        if (conv?.picture) {
+          finalPicture = conv.picture;
+        }
       }
     }
     // Si es propio, usar siempre user.picture si está disponible
