@@ -14,6 +14,13 @@ export default defineConfig({
     }),
     VitePWA({
       registerType: 'autoUpdate',
+      devOptions: {
+        enabled: true,
+        type: 'module',
+      },
+      strategies: 'injectManifest', // 🔥 Usar nuestro propio SW
+      srcDir: 'src',
+      filename: 'sw.js',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg', '**/*.{png,jpg,jpeg,svg,gif,webp}'],
       manifest: {
         name: 'Chat +34',
@@ -33,35 +40,7 @@ export default defineConfig({
           }
         ]
       },
-      workbox: {
-        // Aumentar límite de tamaño para cachear archivos grandes (por defecto es 2MB)
-        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10MB
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,gif,webp}'],
-        runtimeCaching: [
-          {
-            urlPattern: ({ request }) => request.destination === 'image',
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'images-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 días
-              },
-            },
-          },
-          {
-            urlPattern: ({ url }) => url.pathname.startsWith('/src/assets'),
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'assets-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 días
-              },
-            },
-          }
-        ],
-      },
+      // injectManifest no usa 'workbox' config aquí, usa el sw.js
     }),
   ],
   resolve: {

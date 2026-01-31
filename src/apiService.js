@@ -15,9 +15,23 @@ class ApiService {
     this.baseUrl = API_BASE_URL_CHICLAYO;
     this.baseChatUrl = API_BASECHAT_URL_CHICLAYO;
     this.currentSede = 'CHICLAYO_PIURA';
-    // Debug: mostrar las URLs que se están usando (comentado para evitar logs duplicados)
-    // console.log("API_BASE_URL:", this.baseUrl);
-    // console.log("API_BASECHAT_URL:", this.baseChatUrl);
+
+    // 🔥 ENVIAR TOKEN AL SERVICE WORKER AL INICIAR
+    this.syncTokenToSW();
+  }
+
+  // Sincronizar token con el Service Worker (para intersección de imágenes)
+  syncTokenToSW() {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'SET_TOKEN',
+          token: token
+        });
+        // console.log('🔄 Token enviado al Service Worker');
+      }
+    }
   }
 
 
@@ -205,6 +219,8 @@ class ApiService {
       localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("selectedSede", sede);
 
+      this.syncTokenToSW(); // 🔥 Actualizar SW
+
       return {
         success: true,
         user: user,
@@ -238,6 +254,11 @@ class ApiService {
     localStorage.removeItem("selectedSede");
     // Resetear a la sede por defecto
     this.setSede('CHICLAYO_PIURA');
+
+    // 🔥 Limpiar token en SW
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'SET_TOKEN', token: null });
+    }
   }
 
   // Método para verificar si hay un token válido
@@ -249,6 +270,7 @@ class ApiService {
     if (token && user) {
       const savedSede = localStorage.getItem("selectedSede") || 'CHICLAYO_PIURA';
       this.setSede(savedSede);
+      this.syncTokenToSW(); // Asegurar que SW tenga token
       return true;
     }
     return false;
@@ -395,6 +417,8 @@ class ApiService {
 
             localStorage.setItem("user", JSON.stringify(updatedUser));
           }
+
+          this.syncTokenToSW(); // 🔥 Actualizar SW con nuevo token
 
           return newToken;
         } else {
@@ -2683,6 +2707,53 @@ class ApiService {
     } catch (error) {
       console.error("Error al marcar hilo como leído:", error);
       return { success: false };
+    }
+  }
+
+
+  // 🔥 NUEVO: Método para obtener archivos protegidos (imágenes, audios) usando el token
+  async getProtectedFile(url) {
+    try {
+      if (!url) return null;
+
+      if (url.startsWith('blob:') || url.startsWith('data:')) {
+        return url;
+      }
+
+      // IMPORTANTE: Sobrescribir Headers para evitar Content-Type: application/json en GET de imágenes
+      const headers = {
+        'Content-Type': null // o undefined, para que fetch no lo mande
+      };
+
+      const response = await this.fetchWithAuth(url, {
+        method: 'GET',
+        headers: {
+          'Accept': '*/*',
+          // Al pasar Content-Type vacío en headers, fetchWithAuth lo mezclará
+        }
+      });
+
+      // Si fetchWithAuth pone 'application/json' por defecto, necesitamos asegurarnos que no rompa.
+      // Revisando fetchWithAuth:
+      // const headers = { "Content-Type": "application/json", ...options.headers, ... }
+      // Si pasamos headers en options, sobrescribe.
+      // Entonces:
+
+      /* 
+         NOTA: fetchWithAuth fuerza "Content-Type": "application/json".
+         Para imágenes, esto no suele ser fatal en GET, pero por si acaso.
+      */
+
+      if (!response.ok) {
+        console.warn(`⚠️ Error obteniendo archivo protegido: ${url} (${response.status})`);
+        return null;
+      }
+
+      const blob = await response.blob();
+      return URL.createObjectURL(blob);
+    } catch (error) {
+      console.error('❌ Error en getProtectedFile:', error);
+      return null;
     }
   }
 }
