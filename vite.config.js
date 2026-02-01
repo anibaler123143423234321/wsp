@@ -21,6 +21,10 @@ export default defineConfig({
       strategies: 'injectManifest', // 🔥 Usar nuestro propio SW
       srcDir: 'src',
       filename: 'sw.js',
+      injectManifest: {
+        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10MB para evitar error de build
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,gif,webp}'],
+      },
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg', '**/*.{png,jpg,jpeg,svg,gif,webp}'],
       manifest: {
         name: 'Chat +34',
