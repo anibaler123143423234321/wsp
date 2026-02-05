@@ -378,6 +378,12 @@ export const useRoomManagement = (
                     });
                 }
 
+                // 🔥 NUEVO: Limpiar marca de menciones en hilos al abrir la sala
+                setMyActiveRooms(prev => prev.map(r => 
+                    r.roomCode === room.roomCode 
+                        ? { ...r, hasUnreadThreadMentions: false }
+                        : r
+                ));
                 // Cargar usuarios de la sala
                 let roomUsersData = [];
                 let roomMaxCapacity = 0; // 🔥 NUEVO: Guardar maxCapacity
@@ -452,6 +458,7 @@ export const useRoomManagement = (
             setPendingMentions,
             setShowSidebar,
             loadMessagesAroundId,
+            setMyActiveRooms, // 🔥 NUEVO: Para limpiar hasUnreadThreadMentions
             setHighlightMessageId,
         ]
     );

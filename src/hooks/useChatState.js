@@ -69,6 +69,7 @@ export const useChatState = () => {
         return saved === 'true';
     });
     const [pendingMentions, setPendingMentions] = useState({});
+    const [pendingThreads, setPendingThreads] = useState({}); // 🔥 NUEVO: Rastrea salas con hilos no leídos
     const [typingUser, setTypingUser] = useState(null);
     const [typingTimeout, setTypingTimeout] = useState(null);
     const [roomTypingUsers, setRoomTypingUsers] = useState({});
@@ -217,6 +218,8 @@ export const useChatState = () => {
         setSoundsEnabled,
         pendingMentions,
         setPendingMentions,
+        pendingThreads,
+        setPendingThreads,
         typingUser,
         setTypingUser,
         typingTimeout,

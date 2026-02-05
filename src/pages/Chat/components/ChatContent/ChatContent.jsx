@@ -299,6 +299,57 @@ const ChatContent = ({
   const reactionUsersTimeoutRef = useRef(null); // Para delay del popover de reacciones
 
   // ============================================================
+  // FUNCIÓN AUXILIAR - Detectar menciones al usuario en texto
+  // ============================================================
+  const hasMentionToUser = useCallback((text) => {
+    if (!text || !currentUsername) return false;
+    
+    const normalizeText = (str) => {
+      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+    };
+    
+    const mentionRegex = /@([a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+(?:\s+[a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
+    const mentions = [];
+    let match;
+    
+    while ((match = mentionRegex.exec(text)) !== null) {
+      mentions.push(match[1].trim().toUpperCase());
+    }
+    
+    const userNameUpper = normalizeText(currentUsername);
+    return mentions.some(mention => 
+      userNameUpper.includes(mention) || mention.includes(userNameUpper)
+    );
+  }, [currentUsername]);
+
+  // ============================================================
+  // FUNCIÓN AUXILIAR - Detectar menciones en hilos
+  // ============================================================
+  const hasThreadMention = useCallback((message) => {
+    // Si no hay respuestas en el hilo, no hay menciones
+    if (!message.threadCount || message.threadCount === 0) {
+      return false;
+    }
+    
+    // 🔥 NUEVO: Si el mensaje tiene la marca de menciones pendientes, mostrar punto rojo
+    if (message.hasUnreadThreadMentions) {
+      return true;
+    }
+    
+    // 🔥 CRÍTICO: Solo mostrar punto rojo si hay mensajes NO LEÍDOS en el hilo
+    if (!message.unreadThreadCount || message.unreadThreadCount === 0) {
+      return false; // No hay mensajes sin leer en el hilo, no mostrar punto rojo
+    }
+    
+    // Verificar si el último mensaje del hilo contiene una mención
+    if (message.lastReplyText) {
+      return hasMentionToUser(message.lastReplyText);
+    }
+    
+    return false;
+  }, [hasMentionToUser]);
+
+  // ============================================================
   // ESTADOS - Edición de mensajes
   // ============================================================
   const [editingMessageId, setEditingMessageId] = useState(null);
@@ -2385,15 +2436,8 @@ const ChatContent = ({
                   onClick={(e) => {
                     e.stopPropagation();
                     if (onOpenThread) {
-                      // Pasar mensaje ORIGINAL a ChatLayout (él hará la actualización de unreadThreadCount)
+                      // Pasar mensaje ORIGINAL a ChatLayout (él hará la actualización de unreadThreadCount Y llamará markThreadAsRead)
                       onOpenThread(message);
-
-                      // Marcar hilo como leído persistentemente en BD
-                      if (message.unreadThreadCount > 0) {
-                        apiService.markThreadAsRead(message.id, currentUsername).catch(err => {
-                          console.warn('⚠️ Error marcando hilo como leído:', err);
-                        });
-                      }
                     }
                   }}
                   title="Ver hilo"
@@ -2406,11 +2450,37 @@ const ChatContent = ({
                       height: '18px',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center'
+                      justifyContent: 'center',
+                      position: 'relative' // 🔥 NUEVO: Para posicionar el punto rojo
                     }}>
                       <div className="_indicator-icon_133tf_26" style={{ width: '100%', height: '100%' }} data-indicator={message.unreadThreadCount > 0 ? "success" : "default"}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" viewBox="0 0 24 24"><path d="M4 3h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6l-2.293 2.293c-.63.63-1.707.184-1.707-.707V5a2 2 0 0 1 2-2Zm3 7h10a.97.97 0 0 0 .712-.287A.967.967 0 0 0 18 9a.967.967 0 0 0-.288-.713A.968.968 0 0 0 17 8H7a.968.968 0 0 0-.713.287A.968.968 0 0 0 6 9c0 .283.096.52.287.713.192.191.43.287.713.287Zm0 4h6c.283 0 .52-.096.713-.287A.968.968 0 0 0 14 13a.968.968 0 0 0-.287-.713A.968.968 0 0 0 13 12H7a.967.967 0 0 0-.713.287A.968.968 0 0 0 6 13c0 .283.096.52.287.713.192.191.43.287.713.287Z"></path></svg>
                       </div>
+                      {/* 🔥 PUNTO ROJO: Solo para menciones */}
+                      {hasThreadMention(message) && (
+                        <div 
+                          className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white" 
+                          style={{ 
+                            width: '8px', 
+                            height: '8px',
+                            transform: 'translate(25%, -25%)' // Posicionar en esquina superior derecha
+                          }}
+                          title="Tienes menciones en este hilo"
+                        />
+                      )}
+                      {/* 🔥 NUEVO: PUNTO VERDE para mensajes nuevos (sin menciones) */}
+                      {!hasThreadMention(message) && message.unreadThreadCount > 0 && (
+                        <div 
+                          className="absolute top-0 right-0 rounded-full border-2 border-white" 
+                          style={{ 
+                            width: '8px', 
+                            height: '8px',
+                            backgroundColor: '#10b981', // Verde
+                            transform: 'translate(25%, -25%)' // Posicionar en esquina superior derecha
+                          }}
+                          title="Mensajes nuevos en este hilo"
+                        />
+                      )}
                     </div>
                   </div>
 

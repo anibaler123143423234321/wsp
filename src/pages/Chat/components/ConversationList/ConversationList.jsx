@@ -147,7 +147,9 @@ const ConversationList = ({
   onLoadUserRooms,
   onGoToRoomsPage,
   isCompact = false,
-  to //  <- AGREGAR ESTA LÍNEA
+  to, //  <- AGREGAR ESTA LÍNEA
+  pendingMentions = {}, // 🔥 NUEVO: Para detectar menciones pendientes
+  pendingThreads = {} // 🔥 NUEVO: Para detectar hilos no leídos
 }) => {
   const [activeModule, setActiveModule] = useState('chats');
   const [searchTerm, setSearchTerm] = useState('');
@@ -349,6 +351,47 @@ const ConversationList = ({
     const userNameUpper = currentUserName.toUpperCase();
     return mentions.some(mention => userNameUpper.includes(mention) || mention.includes(userNameUpper));
   }, [user]);
+
+  // 🔥 NUEVO: Función para verificar si hay menciones pendientes en una sala/conversación
+  const hasPendingMentions = useCallback((roomCodeOrConvId, lastMessage, roomData) => {
+    // Si el chat está actualmente abierto, NO mostrar el punto rojo
+    const isCurrentChat = isGroup 
+      ? currentRoomCode === roomCodeOrConvId 
+      : to && (String(currentRoomCode) === String(roomCodeOrConvId) || to === roomCodeOrConvId);
+    
+    if (isCurrentChat) {
+      return false;
+    }
+    
+    // Verificar si hay menciones pendientes en el estado
+    const hasPending = pendingMentions[roomCodeOrConvId];
+    if (hasPending) {
+      console.log(`✅ hasPendingMentions: TRUE para ${roomCodeOrConvId} (en estado pendingMentions)`);
+      return true;
+    }
+    
+    // 🔥 NUEVO: Verificar menciones en hilos (independiente de unreadCount)
+    if (roomData && roomData.hasUnreadThreadMentions) {
+      return true;
+    }
+    
+    // Verificar unreadCount para mensajes principales
+    const unreadCount = unreadMessages[roomCodeOrConvId] || 0;
+    if (unreadCount === 0) {
+      return false;
+    }
+    
+    // Verificar menciones en mensaje principal
+    if (lastMessage && lastMessage.text) {
+      const hasMention = hasMentionToUser(lastMessage.text);
+      if (hasMention) {
+        console.log(`✅ hasPendingMentions: TRUE para ${roomCodeOrConvId} (último mensaje tiene mención)`);
+      }
+      return hasMention;
+    }
+    
+    return false;
+  }, [pendingMentions, hasMentionToUser, isGroup, currentRoomCode, to, unreadMessages]);
 
   useEffect(() => {
     setUserCache(prevCache => {
@@ -1390,6 +1433,8 @@ const ConversationList = ({
                             const roomUnreadCount = unreadMessages?.[room.roomCode] !== undefined ? unreadMessages[room.roomCode] : (room.unreadCount || 0);
                             const chatId = `room-${room.roomCode}`;
                             const isHighlighted = highlightedChatId === chatId;
+                            // 🔥 NUEVO: Verificar si hay menciones pendientes
+                            const hasMentions = hasPendingMentions(room.roomCode, room.lastMessage, room);
                             return (
                               <div
                                 key={`fav-room-${room.id}`}
@@ -1407,6 +1452,22 @@ const ConversationList = ({
                                     <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '16px', height: '16px', fontSize: '9px', fontWeight: 'bold', padding: '0 3px' }}>
                                       {roomUnreadCount > 99 ? '99+' : roomUnreadCount}
                                     </div>
+                                  )}
+                                  {/* 🔥 NUEVO: Punto rojo para menciones */}
+                                  {hasMentions && (
+                                    <div 
+                                      className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white" 
+                                      style={{ width: '10px', height: '10px' }}
+                                      title="Tienes menciones pendientes"
+                                    />
+                                  )}
+                                  {/* 🔥 NUEVO: Punto verde para mensajes nuevos (sin menciones) */}
+                                  {!hasMentions && (roomUnreadCount > 0 || pendingThreads[room.roomCode]) && (
+                                    <div 
+                                      className="absolute top-0 right-0 rounded-full border-2 border-white" 
+                                      style={{ width: '10px', height: '10px', backgroundColor: '#10b981' }}
+                                      title="Mensajes nuevos"
+                                    />
                                   )}
                                 </div>
                                 <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px', display: isCompact ? 'none' : 'flex' }}>
@@ -1436,6 +1497,8 @@ const ConversationList = ({
                             const chatId = `conv-${conv.id}`;
                             const isHighlighted = highlightedChatId === chatId;
                             const isSelected = (!isGroup && to && otherParticipant?.toLowerCase().trim() === to?.toLowerCase().trim()) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
+                            // 🔥 NUEVO: Verificar si hay menciones pendientes
+                            const hasMentions = hasPendingMentions(conv.id, conv.lastMessage, conv);
 
                             // 🔥 LÓGICA AGREGADA: Estado en línea e imagen de perfil (igual que en Asignados)
                             let isOtherParticipantOnline = false;
@@ -1488,6 +1551,22 @@ const ConversationList = ({
                                     <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '16px', height: '16px', fontSize: '9px', fontWeight: 'bold', padding: '0 3px' }}>
                                       {itemUnreadCount > 99 ? '99+' : itemUnreadCount}
                                     </div>
+                                  )}
+                                  {/* 🔥 NUEVO: Punto rojo para menciones */}
+                                  {hasMentions && (
+                                    <div 
+                                      className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white" 
+                                      style={{ width: '10px', height: '10px' }}
+                                      title="Tienes menciones pendientes"
+                                    />
+                                  )}
+                                  {/* 🔥 NUEVO: Punto verde para mensajes nuevos (sin menciones) */}
+                                  {!hasMentions && (itemUnreadCount > 0 || pendingThreads[conv.id]) && (
+                                    <div 
+                                      className="absolute top-0 right-0 rounded-full border-2 border-white" 
+                                      style={{ width: '10px', height: '10px', backgroundColor: '#10b981' }}
+                                      title="Mensajes nuevos"
+                                    />
                                   )}
                                 </div>
                                 <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '4px', display: isCompact ? 'none' : 'flex' }}>
@@ -1631,6 +1710,8 @@ const ConversationList = ({
                             const roomUnreadCount = unreadMessages?.[room.roomCode] !== undefined ? unreadMessages[room.roomCode] : (room.unreadCount || 0);
                             const chatId = `room-${room.roomCode}`;
                             const isHighlighted = highlightedChatId === chatId;
+                            // 🔥 NUEVO: Verificar si hay menciones pendientes
+                            const hasMentions = hasPendingMentions(room.roomCode, room.lastMessage, room);
 
                             return (
                               <div
@@ -1653,6 +1734,22 @@ const ConversationList = ({
                                     <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '16px', height: '16px', fontSize: '9px', fontWeight: 'bold', padding: '0 3px' }}>
                                       {roomUnreadCount > 99 ? '99+' : roomUnreadCount}
                                     </div>
+                                  )}
+                                  {/* 🔥 NUEVO: Punto rojo para menciones */}
+                                  {hasMentions && (
+                                    <div 
+                                      className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white" 
+                                      style={{ width: '10px', height: '10px' }}
+                                      title="Tienes menciones pendientes"
+                                    />
+                                  )}
+                                  {/* 🔥 NUEVO: Punto verde para mensajes nuevos (sin menciones) */}
+                                  {!hasMentions && (roomUnreadCount > 0 || pendingThreads[room.roomCode]) && (
+                                    <div 
+                                      className="absolute top-0 right-0 rounded-full border-2 border-white" 
+                                      style={{ width: '10px', height: '10px', backgroundColor: '#10b981' }}
+                                      title="Mensajes nuevos"
+                                    />
                                   )}
                                 </div>
                                 <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px', display: isCompact ? 'none' : 'flex' }}>
@@ -1814,6 +1911,8 @@ const ConversationList = ({
 
                             const chatId = `conv-${conv.id}`;
                             const isHighlighted = highlightedChatId === chatId;
+                            // 🔥 NUEVO: Verificar si hay menciones pendientes
+                            const hasMentions = hasPendingMentions(conv.id, conv.lastMessage, conv);
 
                             const isSelected = (!isGroup && to && participants.some(p => p?.toLowerCase().trim() === to?.toLowerCase().trim())) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
 
@@ -1835,6 +1934,22 @@ const ConversationList = ({
                                     <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '16px', height: '16px', fontSize: '9px', fontWeight: 'bold', padding: '0 3px' }}>
                                       {itemUnreadCount > 99 ? '99+' : itemUnreadCount}
                                     </div>
+                                  )}
+                                  {/* 🔥 NUEVO: Punto rojo para menciones */}
+                                  {hasMentions && (
+                                    <div 
+                                      className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white" 
+                                      style={{ width: '10px', height: '10px' }}
+                                      title="Tienes menciones pendientes"
+                                    />
+                                  )}
+                                  {/* 🔥 NUEVO: Punto verde para mensajes nuevos (sin menciones) */}
+                                  {!hasMentions && (itemUnreadCount > 0 || pendingThreads[conv.id]) && (
+                                    <div 
+                                      className="absolute top-0 right-0 rounded-full border-2 border-white" 
+                                      style={{ width: '10px', height: '10px', backgroundColor: '#10b981' }}
+                                      title="Mensajes nuevos"
+                                    />
                                   )}
                                 </div>
                                 <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px', display: isCompact ? 'none' : 'flex' }}>

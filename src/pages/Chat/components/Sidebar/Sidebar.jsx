@@ -56,7 +56,9 @@ const Sidebar = ({
   onRoomsLimitChange,
   onGoToRoomsPage,
   soundsEnabled,
-  onEnableSounds
+  onEnableSounds,
+  pendingMentions = {}, // 🔥 NUEVO: Para detectar menciones pendientes
+  pendingThreads = {} // 🔥 NUEVO: Para detectar hilos pendientes
 }) => {
 
   // Estado para el ancho del sidebar
@@ -192,6 +194,8 @@ const Sidebar = ({
             onGoToRoomsPage={onGoToRoomsPage}
             isCompact={isCompactMode}
             to={to}
+            pendingMentions={pendingMentions} // 🔥 NUEVO: Pasar menciones pendientes
+            pendingThreads={pendingThreads} // 🔥 NUEVO: Pasar hilos pendientes
           />
         </div>
 

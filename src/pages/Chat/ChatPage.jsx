@@ -529,6 +529,26 @@ const ChatPage = () => {
     if (typeof clearMessages === 'function') clearMessages();
 
     setSelectedRoomData(null); //  Limpiar datos de sala seleccionada
+    
+    // 🔥 NUEVO: Limpiar pendingMentions para este chat
+    // Puede ser conversationId (asignado) o userName (chat directo)
+    const conversationId = conversationData?.id || userName;
+    if (conversationId && chatState.pendingMentions[conversationId]) {
+        chatState.setPendingMentions(prev => {
+            const updated = { ...prev };
+            delete updated[conversationId];
+            return updated;
+        });
+    }
+    
+    // También limpiar por userName normalizado (por si acaso)
+    if (normalizedUserName && chatState.pendingMentions[normalizedUserName]) {
+        chatState.setPendingMentions(prev => {
+            const updated = { ...prev };
+            delete updated[normalizedUserName];
+            return updated;
+        });
+    }
 
     // 2. Definir quién soy yo (normalizado)
     const myNameNormalized = normalizeUsername(currentUserFullName);
@@ -1893,6 +1913,9 @@ const ChatPage = () => {
         favoriteRoomCodes={chatState.favoriteRoomCodes}
         setFavoriteRoomCodes={chatState.setFavoriteRoomCodes}
         lastFavoriteUpdate={chatState.lastFavoriteUpdate}
+        pendingMentions={chatState.pendingMentions} // 🔥 NUEVO: Pasar menciones pendientes
+        pendingThreads={chatState.pendingThreads} // 🔥 NUEVO: Pasar hilos pendientes
+        setPendingThreads={chatState.setPendingThreads} // 🔥 NUEVO: Para limpiar hilos pendientes
         onRoomSelect={async (room, messageId) => {
           setSelectedRoomData(room); //  Guardar datos de sala para favoritos/imágenes
           const result = await roomManagement.handleRoomSelect(room, messageId);

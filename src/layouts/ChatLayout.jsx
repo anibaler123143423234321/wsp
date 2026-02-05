@@ -29,6 +29,9 @@ const ChatLayout = ({
   //  NUEVOS PROPS para paginación real
   assignedPage, assignedTotal, assignedTotalPages, assignedLoading, onLoadAssignedConversations,
   roomsPage, roomsTotal, roomsTotalPages, roomsLoading, onLoadUserRooms, roomsLimit, onRoomsLimitChange, onGoToRoomsPage,
+  pendingMentions, // 🔥 NUEVO: Para detectar menciones pendientes
+  pendingThreads, // 🔥 NUEVO: Para detectar hilos pendientes
+  setPendingThreads, // 🔥 NUEVO: Para limpiar hilos pendientes
 
   // Props del chat
   to, isGroup, currentRoomCode, roomUsers, messages, input, setInput,
@@ -134,7 +137,7 @@ const ChatLayout = ({
   };
 
   // Handler para abrir panel de hilos
-  const handleOpenThread = (message) => {
+  const handleOpenThread = async (message) => {
     console.log('🧵 handleOpenThread:', message.id, 'unread:', message.unreadThreadCount, 'updateMessage?', !!updateMessage);
     setThreadMessage(message);
     setShowThreadPanel(true);
@@ -143,7 +146,34 @@ const ChatLayout = ({
     // 🔥 NUEVO: Actualizar mensaje en la lista para poner SVG gris inmediatamente
     if (updateMessage && message.unreadThreadCount > 0) {
       console.log('🔧 Llamando updateMessage para id:', message.id);
-      updateMessage(message.id, { unreadThreadCount: 0 });
+      updateMessage(message.id, { 
+        unreadThreadCount: 0,
+        hasUnreadThreadMentions: false // 🔥 Limpiar marca de menciones
+      });
+      
+      // 🔥 CRÍTICO: Marcar hilo como leído en el backend
+      try {
+        const currentUserName = user?.nombre && user?.apellido 
+          ? `${user.nombre} ${user.apellido}` 
+          : user?.username;
+        
+        if (currentUserName) {
+          console.log('📡 Marcando hilo como leído en backend:', message.id);
+          await apiService.markThreadAsRead(message.id, currentUserName);
+        }
+      } catch (error) {
+        console.error('Error al marcar hilo como leído:', error);
+      }
+    }
+    
+    // 🔥 NUEVO: Limpiar pendingThreads para esta sala
+    if (currentRoomCode && setPendingThreads) {
+      console.log('🟢 Limpiando pendingThreads para sala:', currentRoomCode);
+      setPendingThreads(prev => {
+        const updated = { ...prev };
+        delete updated[currentRoomCode];
+        return updated;
+      });
     }
   };
 
@@ -322,6 +352,8 @@ const ChatLayout = ({
         roomsLimit={roomsLimit}
         onRoomsLimitChange={onRoomsLimitChange}
         onGoToRoomsPage={onGoToRoomsPage}
+        pendingMentions={pendingMentions} // 🔥 NUEVO: Pasar menciones pendientes
+        pendingThreads={pendingThreads} // 🔥 NUEVO: Pasar hilos pendientes
       />
 
 

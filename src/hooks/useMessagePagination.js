@@ -46,10 +46,13 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
           username //  Pasar username para validación
         );
       } else {
+        //  🔥 FIX: Normalizar orden alfabético de nombres para que ambos usuarios usen la misma URL
+        const [user1, user2] = [username, to].sort((a, b) => a.localeCompare(b));
+        
         //  Cargar mensajes entre usuarios ordenados por ID (para evitar problemas con sentAt corrupto)
         response = await apiService.getUserMessagesOrderedById(
-          username,
-          to,
+          user1,
+          user2,
           MESSAGES_PER_PAGE,
           0,
           isGroup, //  Pasar isGroup
@@ -119,6 +122,22 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         unreadThreadCount: msg.unreadThreadCount || 0,
         lastReplyFrom: msg.lastReplyFrom || null,
         lastReplyText: msg.lastReplyText || null, //  NUEVO: Texto del último mensaje del hilo
+        // 🔥 NUEVO: Calcular si hay menciones pendientes en el hilo
+        hasUnreadThreadMentions: (msg.unreadThreadCount > 0 && msg.lastReplyText) 
+          ? (() => {
+              // Detectar menciones en lastReplyText
+              const mentionRegex = /@([a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+(?:\s+[a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
+              const mentions = [];
+              let match;
+              while ((match = mentionRegex.exec(msg.lastReplyText)) !== null) {
+                mentions.push(match[1].trim().toUpperCase());
+              }
+              const userNameUpper = username.toUpperCase();
+              return mentions.some(mention => 
+                userNameUpper.includes(mention) || mention.includes(userNameUpper)
+              );
+            })()
+          : false,
         // Campos de edición
         isEdited: msg.isEdited || false,
         editedAt: msg.editedAt,
@@ -201,9 +220,12 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
             username // Pasar username para validación
           );
         } else {
+          //  🔥 FIX: Normalizar orden alfabético de nombres para que ambos usuarios usen la misma URL
+          const [user1, user2] = [username, to].sort((a, b) => a.localeCompare(b));
+          
           response = await apiService.getUserMessagesOrderedById(
-            username,
-            to,
+            user1,
+            user2,
             MESSAGES_PER_PAGE,
             currentOffset.current,
             isGroup,
@@ -273,6 +295,21 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         unreadThreadCount: msg.unreadThreadCount || 0,
         lastReplyFrom: msg.lastReplyFrom || null,
         lastReplyText: msg.lastReplyText || null,
+        // 🔥 NUEVO: Calcular si hay menciones pendientes en el hilo
+        hasUnreadThreadMentions: (msg.unreadThreadCount > 0 && msg.lastReplyText) 
+          ? (() => {
+              const mentionRegex = /@([a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+(?:\s+[a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
+              const mentions = [];
+              let match;
+              while ((match = mentionRegex.exec(msg.lastReplyText)) !== null) {
+                mentions.push(match[1].trim().toUpperCase());
+              }
+              const userNameUpper = username.toUpperCase();
+              return mentions.some(mention => 
+                userNameUpper.includes(mention) || mention.includes(userNameUpper)
+              );
+            })()
+          : false,
         isEdited: msg.isEdited || false,
         editedAt: msg.editedAt,
         isDeleted: msg.isDeleted || false,
@@ -648,6 +685,21 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         unreadThreadCount: msg.unreadThreadCount || 0,
         lastReplyFrom: msg.lastReplyFrom || null,
         lastReplyText: msg.lastReplyText || null,
+        // 🔥 NUEVO: Calcular si hay menciones pendientes en el hilo
+        hasUnreadThreadMentions: (msg.unreadThreadCount > 0 && msg.lastReplyText) 
+          ? (() => {
+              const mentionRegex = /@([a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+(?:\s+[a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
+              const mentions = [];
+              let match;
+              while ((match = mentionRegex.exec(msg.lastReplyText)) !== null) {
+                mentions.push(match[1].trim().toUpperCase());
+              }
+              const userNameUpper = username.toUpperCase();
+              return mentions.some(mention => 
+                userNameUpper.includes(mention) || mention.includes(userNameUpper)
+              );
+            })()
+          : false,
         isEdited: msg.isEdited || false,
         editedAt: msg.editedAt,
         isDeleted: msg.isDeleted || false,
