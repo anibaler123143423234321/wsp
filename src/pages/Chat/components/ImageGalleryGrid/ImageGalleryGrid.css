@@ -1,0 +1,77 @@
+.image-gallery-grid {
+    display: grid;
+    gap: 4px;
+    width: 100%;
+    max-width: 330px;
+    /* Ancho similar al de un mensaje con imagen único */
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.grid-item {
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+    background-color: #f0f0f0;
+    line-height: 0;
+}
+
+.grid-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.2s ease;
+}
+
+.grid-item:hover img {
+    transform: scale(1.03);
+}
+
+/* Configuraciones de cuadrícula */
+
+.grid-1 {
+    grid-template-columns: 1fr;
+}
+
+.grid-2 {
+    grid-template-columns: 1fr 1fr;
+    aspect-ratio: 16/9;
+}
+
+.grid-3 {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    aspect-ratio: 1/1;
+}
+
+.grid-3 .grid-item:first-child {
+    grid-row: span 2;
+}
+
+.grid-4 {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    aspect-ratio: 1/1;
+}
+
+/* Overlay para el "+N" */
+.grid-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+
+.grid-overlay span {
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+}

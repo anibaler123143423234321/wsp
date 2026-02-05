@@ -37,6 +37,8 @@ import ReactionPicker from '../../../../components/ReactionPicker'; // Component
 import ChatInput from '../../../../components/ChatInput/ChatInput'; //  NUEVO: Componente reutilizable de input
 import AddReactionButton from '../../../../components/AddReactionButton/AddReactionButton'; // Componente reutilizable botón +
 import { useMessageSelection } from '../../../../hooks/useMessageSelection'; // Hook personalizado
+import { groupMessagesForGallery } from "../../utils/messageGrouper";
+import ImageGalleryGrid from "../ImageGalleryGrid/ImageGalleryGrid";
 import "./ChatContent.css";
 
 // Función para formatear tiempo
@@ -303,21 +305,21 @@ const ChatContent = ({
   // ============================================================
   const hasMentionToUser = useCallback((text) => {
     if (!text || !currentUsername) return false;
-    
+
     const normalizeText = (str) => {
       return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
     };
-    
+
     const mentionRegex = /@([a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+(?:\s+[a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
     const mentions = [];
     let match;
-    
+
     while ((match = mentionRegex.exec(text)) !== null) {
       mentions.push(match[1].trim().toUpperCase());
     }
-    
+
     const userNameUpper = normalizeText(currentUsername);
-    return mentions.some(mention => 
+    return mentions.some(mention =>
       userNameUpper.includes(mention) || mention.includes(userNameUpper)
     );
   }, [currentUsername]);
@@ -330,22 +332,22 @@ const ChatContent = ({
     if (!message.threadCount || message.threadCount === 0) {
       return false;
     }
-    
+
     // 🔥 NUEVO: Si el mensaje tiene la marca de menciones pendientes, mostrar punto rojo
     if (message.hasUnreadThreadMentions) {
       return true;
     }
-    
+
     // 🔥 CRÍTICO: Solo mostrar punto rojo si hay mensajes NO LEÍDOS en el hilo
     if (!message.unreadThreadCount || message.unreadThreadCount === 0) {
       return false; // No hay mensajes sin leer en el hilo, no mostrar punto rojo
     }
-    
+
     // Verificar si el último mensaje del hilo contiene una mención
     if (message.lastReplyText) {
       return hasMentionToUser(message.lastReplyText);
     }
-    
+
     return false;
   }, [hasMentionToUser]);
 
@@ -655,15 +657,24 @@ const ChatContent = ({
   // Función simple para agrupar mensajes usando solo datos del backend
   //  NUEVO: También inserta separador de "X mensajes no leídos"
   const groupMessagesByDate = (messages, currentUser) => {
+    // 🔥 NUEVO: Agrupar imágenes antes de procesar fechas
+    const galleryGroupedMessages = groupMessagesForGallery(messages);
+
     const groups = [];
     let currentDateString = null;
     let unreadSeparatorInserted = false;
 
-    //  FILTRAR DUPLICADOS POR ID
+    //  FILTRAR DUPLICADOS POR ID (Mantenemos por si acaso, aunque gallery ya filtra algo)
     const uniqueMessages = [];
     const seenIds = new Set();
 
-    messages.forEach(msg => {
+    galleryGroupedMessages.forEach(msg => {
+      // Si el mensaje es una galería, lo tratamos como un bloque único
+      if (msg.type === 'image-gallery') {
+        uniqueMessages.push(msg);
+        return;
+      }
+
       // Si tiene ID y ya lo vimos, lo saltamos
       if (msg.id && seenIds.has(msg.id)) return;
 
@@ -2226,7 +2237,41 @@ const ChatContent = ({
                 })()}
 
                 {/* CONTENIDO REAL (Texto, Imagen, Video, Archivo) */}
-                {message.type === 'poll' ? (
+                {/* RENDERIZADO DE ADJUNTOS (NUEVO FORMATO PERSISTENTE) */}
+                {(message.attachments && message.attachments.length > 0) ? (
+                  <>
+                    {/* Mostrar texto si lo hay */}
+                    {(message.text || message.message) && (
+                      <div style={{ marginBottom: '8px' }}>
+                        {renderTextWithMentions(message.text || message.message)}
+                      </div>
+                    )}
+
+                    {/* Si todos son imágenes (o la mayoría), usar galería. 
+                        Por ahora, ImageGalleryGrid maneja la visualización de la lista. */}
+                    <ImageGalleryGrid
+                      items={message.attachments}
+                      onImageClick={(item) => {
+                        const url = item.url || item.mediaData;
+                        if (item.mediaType === 'image' || (!item.mediaType && url?.match(/\.(jpg|jpeg|png|gif|webp)$/i))) {
+                          const index = message.attachments.indexOf(item);
+                          openImagePreview(message.attachments, index);
+                        } else {
+                          handleDownload(url, item.fileName);
+                        }
+                      }}
+                    />
+                  </>
+                ) : message.type === 'image-gallery' ? (
+                  <ImageGalleryGrid
+                    items={message.messages}
+                    onImageClick={(img) => {
+                      const index = message.messages.indexOf(img);
+                      openImagePreview(message.messages, index);
+                    }}
+                  />
+
+                ) : message.type === 'poll' ? (
                   <PollMessage
                     poll={(() => {
                       // Intentar recuperar poll data desde mediaData (persistencia) o usar message directamente (socket en vivo)
@@ -2264,7 +2309,7 @@ const ChatContent = ({
                         cursor: 'pointer',
                         display: 'block'
                       }}
-                      onClick={() => setImagePreview({ url: message.mediaData, fileName: message.fileName })}
+                      onClick={() => openImagePreview([message], 0)}
                     />
                   </>
                 ) : message.mediaType === 'video' && !/\.(mp3|wav|ogg|m4a|aac|opus|flac)$/i.test(message.fileName || "") ? (
@@ -2458,10 +2503,10 @@ const ChatContent = ({
                       </div>
                       {/* 🔥 PUNTO ROJO: Solo para menciones */}
                       {hasThreadMention(message) && (
-                        <div 
-                          className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white" 
-                          style={{ 
-                            width: '8px', 
+                        <div
+                          className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white"
+                          style={{
+                            width: '8px',
                             height: '8px',
                             transform: 'translate(25%, -25%)' // Posicionar en esquina superior derecha
                           }}
@@ -2470,10 +2515,10 @@ const ChatContent = ({
                       )}
                       {/* 🔥 NUEVO: PUNTO VERDE para mensajes nuevos (sin menciones) */}
                       {!hasThreadMention(message) && message.unreadThreadCount > 0 && (
-                        <div 
-                          className="absolute top-0 right-0 rounded-full border-2 border-white" 
-                          style={{ 
-                            width: '8px', 
+                        <div
+                          className="absolute top-0 right-0 rounded-full border-2 border-white"
+                          style={{
+                            width: '8px',
                             height: '8px',
                             backgroundColor: '#10b981', // Verde
                             transform: 'translate(25%, -25%)' // Posicionar en esquina superior derecha
@@ -2836,6 +2881,35 @@ const ChatContent = ({
         }
       </div >
     );
+  };
+
+  //  NUEVO: Función centralizada para abrir vista previa de imagen con soporte para galerías
+  const openImagePreview = useCallback((items, index) => {
+    if (!items || index < 0 || index >= items.length) return;
+
+    const item = items[index];
+    const url = item.url || item.mediaData;
+
+    setImagePreview({
+      url,
+      fileName: item.fileName,
+      items,
+      currentIndex: index,
+      totalCount: items.length
+    });
+  }, []);
+
+  // Modal de vista previa de imagen en pantalla completa
+  const imageViewProps = {
+    imagePreview,
+    onClose: () => setImagePreview(null),
+    onDownload: handleDownload,
+    onNext: (imagePreview?.items && imagePreview.currentIndex < imagePreview.items.length - 1)
+      ? () => openImagePreview(imagePreview.items, imagePreview.currentIndex + 1)
+      : null,
+    onPrev: (imagePreview?.items && imagePreview.currentIndex > 0)
+      ? () => openImagePreview(imagePreview.items, imagePreview.currentIndex - 1)
+      : null,
   };
 
   if (!to) {
@@ -3718,12 +3792,11 @@ const ChatContent = ({
         </div>
       )}
 
-      {/* Modal de vista previa de imagen en pantalla completa */}
-      <ImageViewer
-        imagePreview={imagePreview}
-        onClose={() => setImagePreview(null)}
-        onDownload={handleDownload}
-      />
+
+
+
+
+      <ImageViewer {...imageViewProps} />
       {
         isSelectionMode && (
           <MessageSelectionManager

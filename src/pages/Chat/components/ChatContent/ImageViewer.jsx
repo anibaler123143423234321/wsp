@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const ImageViewer = ({ imagePreview, onClose, onDownload }) => {
+const ImageViewer = ({ imagePreview, onClose, onDownload, onNext, onPrev }) => {
     const [imageZoom, setImageZoom] = useState(1);
     const [imagePan, setImagePan] = useState({ x: 0, y: 0 });
     const [isPanning, setIsPanning] = useState(false);
@@ -53,6 +53,26 @@ const ImageViewer = ({ imagePreview, onClose, onDownload }) => {
     const handleMouseUp = () => {
         setIsPanning(false);
     };
+
+    // Soporte para teclado
+    React.useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (!imagePreview) return;
+
+            if (e.key === 'Escape') handleClose();
+            if (e.key === 'ArrowRight' && onNext) {
+                handleReset();
+                onNext();
+            }
+            if (e.key === 'ArrowLeft' && onPrev) {
+                handleReset();
+                onPrev();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [imagePreview, onNext, onPrev]);
 
     if (!imagePreview) return null;
 
@@ -144,6 +164,73 @@ const ImageViewer = ({ imagePreview, onClose, onDownload }) => {
                 <span style={{ pointerEvents: "none", display: "flex" }}><img src="https://cdn-icons-png.flaticon.com/512/1092/1092004.png" alt="Descargar" style={{ width: "20px", height: "auto", filter: "invert(1)" }} /></span>
                 <span style={{ pointerEvents: "none" }}>Descargar</span>
             </button>
+
+            {/* Botones de navegación lateral */}
+            {onPrev && (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleReset();
+                        onPrev();
+                    }}
+                    style={{
+                        position: "absolute",
+                        left: "20px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        backgroundColor: "rgba(255, 255, 255, 0.1)",
+                        border: "none",
+                        color: "#fff",
+                        fontSize: "30px",
+                        width: "60px",
+                        height: "60px",
+                        borderRadius: "50%",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 10001,
+                        transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.2)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)")}
+                >
+                    ‹
+                </button>
+            )}
+
+            {onNext && (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleReset();
+                        onNext();
+                    }}
+                    style={{
+                        position: "absolute",
+                        right: "20px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        backgroundColor: "rgba(255, 255, 255, 0.1)",
+                        border: "none",
+                        color: "#fff",
+                        fontSize: "30px",
+                        width: "60px",
+                        height: "60px",
+                        borderRadius: "50%",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 10001,
+                        transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.2)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)")}
+                >
+                    ›
+                </button>
+            )}
 
             {/* Controles de zoom */}
             <div
@@ -292,6 +379,7 @@ const ImageViewer = ({ imagePreview, onClose, onDownload }) => {
             >
                 {/* Imagen */}
                 <img
+                    key={imagePreview.url} // Forzar re-render al cambiar de imagen
                     src={imagePreview.url}
                     alt={imagePreview.fileName}
                     style={{
@@ -309,21 +397,36 @@ const ImageViewer = ({ imagePreview, onClose, onDownload }) => {
                 />
             </div>
 
-            {/* Nombre del archivo */}
-            <p
+            {/* Nombre del archivo e indicador de posición */}
+            <div
                 style={{
                     position: "absolute",
                     bottom: "20px",
-                    color: "#fff",
-                    fontSize: "14px",
-                    backgroundColor: "rgba(0, 0, 0, 0.5)",
-                    padding: "8px 16px",
-                    borderRadius: "20px",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "5px",
                     zIndex: 10001,
                 }}
             >
-                {imagePreview.fileName}
-            </p>
+                <p
+                    style={{
+                        color: "#fff",
+                        fontSize: "14px",
+                        backgroundColor: "rgba(0, 0, 0, 0.5)",
+                        padding: "8px 16px",
+                        borderRadius: "20px",
+                        margin: 0,
+                    }}
+                >
+                    {imagePreview.fileName}
+                </p>
+                {imagePreview.totalCount > 1 && (
+                    <span style={{ color: "rgba(255, 255, 255, 0.7)", fontSize: "12px" }}>
+                        Imagen {imagePreview.currentIndex + 1} de {imagePreview.totalCount}
+                    </span>
+                )}
+            </div>
         </div>
     );
 };

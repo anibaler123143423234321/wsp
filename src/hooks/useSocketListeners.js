@@ -33,31 +33,31 @@ const getRealMessageId = (id) => {
 // 🔥 NUEVO: Helper para detectar si un mensaje menciona al usuario actual
 const hasMentionToCurrentUser = (messageText, currentUserFullName) => {
     if (!messageText || !currentUserFullName) return false;
-    
+
     // Regex para detectar menciones: @NOMBRE APELLIDO (acepta mayúsculas y minúsculas)
     // Permite hasta 4 palabras después del @
     const mentionRegex = /@([a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+(?:\s+[a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
     const mentions = [];
     let match;
-    
+
     while ((match = mentionRegex.exec(messageText)) !== null) {
         mentions.push(match[1].trim().toUpperCase());
     }
-    
+
     console.log('🔍 hasMentionToCurrentUser:', {
         messageText,
         currentUserFullName,
         mentions,
         userNameUpper: currentUserFullName.toUpperCase()
     });
-    
+
     const userNameUpper = currentUserFullName.toUpperCase();
-    const hasMention = mentions.some(mention => 
+    const hasMention = mentions.some(mention =>
         userNameUpper.includes(mention) || mention.includes(userNameUpper)
     );
-    
+
     console.log('🔍 Resultado de comparación:', { hasMention });
-    
+
     return hasMention;
 };
 
@@ -399,33 +399,33 @@ export const useSocketListeners = (
             // 🔥 NUEVO: Si hay una mención al usuario en el hilo, marcar la sala
             if (data.lastReplyText && data.from !== username) {
                 const currentFullName = currentUserFullNameRef.current;
-                
+
                 console.log('🔍 Verificando mención en hilo:', {
                     roomCode: data.roomCode,
                     lastReplyText: data.lastReplyText.substring(0, 50),
                     currentFullName,
                     username
                 });
-                
+
                 // Usar la misma función helper que para mensajes normales
                 const hasMention = hasMentionToCurrentUser(data.lastReplyText, currentFullName || username);
 
                 if (hasMention && data.roomCode) {
                     console.log('🔴 Mención detectada en hilo, marcando sala:', data.roomCode);
-                    
+
                     // Marcar en myActiveRooms
-                    setMyActiveRooms(prev => prev.map(room => 
-                        room.roomCode === data.roomCode 
+                    setMyActiveRooms(prev => prev.map(room =>
+                        room.roomCode === data.roomCode
                             ? { ...room, hasUnreadThreadMentions: true }
                             : room
                     ));
-                    
+
                     // 🔥 NUEVO: También agregar a pendingMentions para que aparezca el punto rojo
                     setPendingMentions(prev => ({
                         ...prev,
                         [data.roomCode]: true
                     }));
-                    
+
                     // 🔥 NUEVO: Marcar el mensaje padre con hasUnreadThreadMentions
                     if (updateMessage) {
                         updateMessage(data.messageId, (prev) => ({
@@ -433,7 +433,7 @@ export const useSocketListeners = (
                             hasUnreadThreadMentions: true
                         }));
                     }
-                    
+
                     console.log('📝 pendingMentions actualizado por mención en hilo:', data.roomCode);
                 } else if (data.roomCode) {
                     // 🔥 NUEVO: Si NO hay mención pero SÍ hay mensaje nuevo en hilo, marcar pendingThreads
@@ -456,7 +456,7 @@ export const useSocketListeners = (
                 isGroup: data.isGroup,
                 messagePreview: (data.text || data.message || '').substring(0, 50)
             });
-            
+
             // Si es un mensaje de monitoreo, ignorarlo aquí
             if (data.isMonitoring) return;
 
@@ -483,7 +483,7 @@ export const useSocketListeners = (
 
             const currentFullName = currentUserFullNameRef.current;
             const isOwnMessage = data.from === username || data.from === currentFullName;
-            
+
             console.log('🔍 Estado del mensaje:', {
                 isOwnMessage,
                 currentFullName,
@@ -596,13 +596,13 @@ export const useSocketListeners = (
                     shouldIncrement: !isChatOpen && !isOwnMessage,
                     roomCode: data.roomCode
                 });
-                
+
                 if (!isChatOpen && !isOwnMessage) {
                     setUnreadMessages(prev => ({
                         ...prev,
                         [data.roomCode]: (prev[data.roomCode] || 0) + 1
                     }));
-                    
+
                     // 🔥 NUEVO: Detectar si el mensaje menciona al usuario actual
                     const currentUserFullName = currentUserFullNameRef.current || username;
                     console.log(`🔍 Verificando mención en grupo ${data.roomCode}:`, {
@@ -610,7 +610,7 @@ export const useSocketListeners = (
                         currentUserFullName,
                         hasMention: hasMentionToCurrentUser(messageText, currentUserFullName)
                     });
-                    
+
                     if (hasMentionToCurrentUser(messageText, currentUserFullName)) {
                         console.log(`🔔 Mención detectada en ${data.roomCode} para ${currentUserFullName}`);
                         setPendingMentions(prev => {
@@ -1015,7 +1015,7 @@ export const useSocketListeners = (
                         ...prev,
                         [data.conversationId]: newUnreadCount
                     }));
-                    
+
                     // 🔥 NUEVO: Detectar si el mensaje menciona al usuario actual
                     const currentUserFullName = currentUserFullNameRef.current || username;
                     const lastMessageText = data.lastMessage || '';
@@ -1062,17 +1062,17 @@ export const useSocketListeners = (
             const currentIsGroup = isGroupRef.current;
             const currentRoom = currentRoomCodeRef.current;
             const currentTo = toRef.current;
-            
-            const isChatOpen = currentIsGroup 
-                ? currentRoom === data.roomCode 
+
+            const isChatOpen = currentIsGroup
+                ? currentRoom === data.roomCode
                 : currentTo === data.roomCode || String(currentRoom) === String(data.roomCode);
-            
+
             if (isChatOpen) {
                 setUnreadMessages((prev) => ({ ...prev, [data.roomCode]: 0 }));
                 // 🔥 Limpiar la marca de menciones en hilos cuando se leen todos los mensajes
                 if (data.roomCode) {
-                    setMyActiveRooms(prev => prev.map(room => 
-                        room.roomCode === data.roomCode 
+                    setMyActiveRooms(prev => prev.map(room =>
+                        room.roomCode === data.roomCode
                             ? { ...room, hasUnreadThreadMentions: false }
                             : room
                     ));
@@ -1295,25 +1295,25 @@ export const useSocketListeners = (
                     currentFullName,
                     username
                 });
-                
+
                 const hasMention = hasMentionToCurrentUser(data.lastReplyText, currentFullName || username);
 
                 if (hasMention) {
                     console.log('🔴 [Listener 2] Mención detectada en hilo, marcando sala:', data.roomCode);
-                    
+
                     // Marcar en myActiveRooms
-                    setMyActiveRooms(prev => prev.map(room => 
-                        room.roomCode === data.roomCode 
+                    setMyActiveRooms(prev => prev.map(room =>
+                        room.roomCode === data.roomCode
                             ? { ...room, hasUnreadThreadMentions: true }
                             : room
                     ));
-                    
+
                     // Agregar a pendingMentions
                     setPendingMentions(prev => ({
                         ...prev,
                         [data.roomCode]: true
                     }));
-                    
+
                     // 🔥 NUEVO: Marcar el mensaje padre con hasUnreadThreadMentions
                     if (updateMessage) {
                         updateMessage(data.messageId, (prev) => ({
@@ -1321,7 +1321,7 @@ export const useSocketListeners = (
                             hasUnreadThreadMentions: true
                         }));
                     }
-                    
+
                     console.log('📝 [Listener 2] pendingMentions actualizado por mención en hilo:', data.roomCode);
                 }
             }
@@ -1465,6 +1465,33 @@ export const useSocketListeners = (
             }
         });
 
+        // 🚀 OPTIMIZADO: Listener para evento batch de mensajes leídos
+        // Reemplaza N eventos 'roomMessageRead' individuales con 1 solo evento
+        s.on("roomMessagesReadBatch", (data) => {
+            if (data.roomCode === currentRoomCodeRef.current && data.messages) {
+                // Actualizar todos los mensajes en un solo batch
+                data.messages.forEach(msg => {
+                    updateMessage(msg.messageId, (prevMessage) => {
+                        // DEDUPLICACIÓN: Si readBy ya es igual, no actualizar
+                        if (prevMessage.readBy &&
+                            JSON.stringify(prevMessage.readBy) === JSON.stringify(msg.readBy)) {
+                            return null;
+                        }
+
+                        const readByArray = msg.readBy || [];
+                        return {
+                            ...prevMessage,
+                            isRead: true,
+                            readBy: readByArray,
+                            readByData: data.readByData || readByArray, // Datos compartidos
+                            readByCount: readByArray.length,
+                            readAt: msg.readAt
+                        };
+                    });
+                });
+            }
+        });
+
         s.on("conversationRead", (data) => {
             if (data.messageIds) {
                 data.messageIds.forEach(id => updateMessage(id, (prev) => ({
@@ -1541,6 +1568,7 @@ export const useSocketListeners = (
             s.off('threadCountUpdated');
             s.off('messageRead');
             s.off('roomMessageRead');
+            s.off('roomMessagesReadBatch'); // 🚀 OPTIMIZADO: Nuevo evento batch
             s.off('conversationRead');
             s.off('error');
             s.off('joinRoomError');

@@ -12,7 +12,7 @@ import {
     FaEye,
     FaPen,
     FaPlus,
-    // FaAt removed
+    FaTrashAlt,
 } from 'react-icons/fa';
 import apiService from '../../../../apiService';
 import Swal from 'sweetalert2';
@@ -39,6 +39,62 @@ const InfoPanel = ({ isOpen, onClose, chatInfo, onCreatePoll, user, onRoomUpdate
     const userRole = (user?.role || user?.rol || '').toUpperCase();
     const allowedRoles = ['ADMIN', 'COORDINADOR', 'JEFEPISO', 'PROGRAMADOR', 'SUPERADMIN'];
     const canEditGroupInfo = isGroup && allowedRoles.includes(userRole);
+    const isSuperAdmin = userRole === 'SUPERADMIN';
+
+    // 🔥 NUEVO: Handler para vaciar todos los mensajes del chat
+    const handleClearChat = async () => {
+        const chatName = isGroup ? (chatInfo.roomName || chatInfo.roomCode) : chatInfo.to;
+        const result = await Swal.fire({
+            title: '¿Vaciar chat?',
+            html: `<p>Esto eliminará <strong>TODOS</strong> los mensajes de este chat.</p><p><strong>${chatName}</strong></p><p style="color: #ff6b6b; font-size: 0.9em;">⚠️ Esta acción no se puede deshacer</p>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ff453a',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sí, vaciar chat',
+            cancelButtonText: 'Cancelar',
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const deletedBy = user?.username || user?.nombre || 'SUPERADMIN';
+                let response;
+
+                if (isGroup && chatInfo.roomCode) {
+                    // Chat grupal o favorito
+                    response = await apiService.clearAllMessagesInRoom(chatInfo.roomCode, deletedBy);
+                } else if (chatInfo.to) {
+                    // Chat asignado/directo
+                    // Usar nombre completo del usuario (como se guarda en los mensajes)
+                    const currentUserFullName = user?.nombre && user?.apellido
+                        ? `${user.nombre} ${user.apellido}`.toUpperCase()
+                        : user?.username || '';
+                    response = await apiService.clearAllMessagesInConversation(currentUserFullName, chatInfo.to, deletedBy);
+                }
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Chat vaciado',
+                    text: `Se eliminaron ${response?.deletedCount || 0} mensajes`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
+                // Refrescar el chat
+                if (onRoomUpdated) {
+                    onRoomUpdated();
+                }
+            } catch (error) {
+                console.error('Error al vaciar chat:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudo vaciar el chat',
+                    confirmButtonColor: '#ff453a'
+                });
+            }
+        }
+    };
 
     // Obtener la imagen actual (si existe)
     const currentPicture = chatInfo?.picture || (chatInfo?.description && chatInfo.description.trim().length > 0 ? chatInfo.description : null);
@@ -301,6 +357,14 @@ const InfoPanel = ({ isOpen, onClose, chatInfo, onCreatePoll, user, onRoomUpdate
                                 text="Abrir Pizarra"
                                 onClick={() => console.log("Abrir pizarra")}
                             />
+                            {/* 🔥 NUEVO: Botón vaciar chat - Solo SUPERADMIN */}
+                            {isSuperAdmin && (
+                                <ActionRow
+                                    icon={<FaTrashAlt />}
+                                    text="Vaciar Chat"
+                                    onClick={handleClearChat}
+                                />
+                            )}
                         </div>
                     </section>
                 </div>

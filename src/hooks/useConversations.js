@@ -262,6 +262,7 @@ export const useConversations = (
                         deletedBy: msg.deletedBy || null,
                         deletedAt: msg.deletedAt || null,
                         reactions: msg.reactions || [],
+                        attachments: msg.attachments || [],
                     };
                 });
 

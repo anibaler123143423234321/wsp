@@ -818,6 +818,52 @@ class ApiService {
     }
   }
 
+  // 🔥 NUEVO: Vaciar todos los mensajes de una sala (grupos/favoritos) - Solo SUPERADMIN
+  async clearAllMessagesInRoom(roomCode, deletedBy) {
+    try {
+      const response = await this.fetchChatApi(
+        `${this.baseChatUrl}api/messages/room/${roomCode}/clear`,
+        {
+          method: "DELETE",
+          body: JSON.stringify({ deletedBy }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error del servidor: ${response.status} - ${errorText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error al vaciar mensajes de sala:", error);
+      throw error;
+    }
+  }
+
+  // 🔥 NUEVO: Vaciar todos los mensajes de una conversación directa - Solo SUPERADMIN
+  async clearAllMessagesInConversation(from, to, deletedBy) {
+    try {
+      const response = await this.fetchChatApi(
+        `${this.baseChatUrl}api/messages/conversation/clear`,
+        {
+          method: "DELETE",
+          body: JSON.stringify({ from, to, deletedBy }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error del servidor: ${response.status} - ${errorText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error al vaciar mensajes de conversación:", error);
+      throw error;
+    }
+  }
+
   async deactivateRoom(roomId) {
     try {
       const response = await this.fetchChatApi(

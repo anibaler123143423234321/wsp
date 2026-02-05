@@ -529,25 +529,25 @@ const ChatPage = () => {
     if (typeof clearMessages === 'function') clearMessages();
 
     setSelectedRoomData(null); //  Limpiar datos de sala seleccionada
-    
+
     // 🔥 NUEVO: Limpiar pendingMentions para este chat
     // Puede ser conversationId (asignado) o userName (chat directo)
     const conversationId = conversationData?.id || userName;
     if (conversationId && chatState.pendingMentions[conversationId]) {
-        chatState.setPendingMentions(prev => {
-            const updated = { ...prev };
-            delete updated[conversationId];
-            return updated;
-        });
+      chatState.setPendingMentions(prev => {
+        const updated = { ...prev };
+        delete updated[conversationId];
+        return updated;
+      });
     }
-    
+
     // También limpiar por userName normalizado (por si acaso)
     if (normalizedUserName && chatState.pendingMentions[normalizedUserName]) {
-        chatState.setPendingMentions(prev => {
-            const updated = { ...prev };
-            delete updated[normalizedUserName];
-            return updated;
-        });
+      chatState.setPendingMentions(prev => {
+        const updated = { ...prev };
+        delete updated[normalizedUserName];
+        return updated;
+      });
     }
 
     // 2. Definir quién soy yo (normalizado)
@@ -926,99 +926,124 @@ const ChatPage = () => {
         }
       }
 
-      // 3. Preparar lista de trabajos (Iterar sobre archivos o un solo pase para texto/poll)
-      // Si hay archivos y NO es un mensaje especial (poll), iteramos los archivos.
-      // Si no hay archivos o es mensaje especial, hacemos 1 iteración.
+      // 3. Preparar lista de trabajos
       const hasFiles = !isDirectMessage && mediaFiles.length > 0;
-      const iterations = hasFiles ? mediaFiles.length : 1;
 
       // Activar flag de subida si hay archivos
       if (hasFiles) chatState.setIsUploadingFile(true);
 
-      for (let i = 0; i < iterations; i++) {
-        let attachmentData = {};
+      let attachments = [];
+      let firstAttachmentData = {};
 
-        // A. SUBIDA DE ARCHIVO (si corresponde)
-        if (hasFiles) {
-          const file = mediaFiles[i];
-          try {
-            const uploadResult = await apiService.uploadFile(file, "chat");
-            attachmentData = {
-              mediaType: file.type.split("/")[0],
-              mediaData: uploadResult.fileUrl,
-              fileName: uploadResult.fileName,
-              fileSize: uploadResult.fileSize
+      if (hasFiles) {
+        try {
+          // A. SUBIDA DE ARCHIVOS EN PARALELO
+          const uploadPromises = mediaFiles.map(file => apiService.uploadFile(file, "chat"));
+          const uploadResults = await Promise.all(uploadPromises);
+
+          attachments = uploadResults.map((result, index) => {
+            const file = mediaFiles[index];
+            return {
+              url: result.fileUrl,
+              mediaType: file.type.split("/")[0] || 'file',
+              fileName: result.fileName,
+              fileSize: result.fileSize
             };
-          } catch (err) {
-            console.error(`Error subiendo archivo ${file.name}:`, err);
-            // Mostrar error pero intentar continuar con el siguiente si falla uno
-            showErrorAlert("Error subida", `Falló al enviar ${file.name}`);
-            continue;
+          });
+
+          // Mantener compatibilidad con campos antiguos (usando el primer archivo)
+          if (attachments.length > 0) {
+            firstAttachmentData = {
+              mediaType: attachments[0].mediaType,
+              mediaData: attachments[0].url,
+              fileName: attachments[0].fileName,
+              fileSize: attachments[0].fileSize
+            };
           }
+        } catch (err) {
+          console.error(`Error subiendo archivos:`, err);
+          showErrorAlert("Error subida", "Falló al subir uno o más archivos.");
+          chatState.setIsUploadingFile(false);
+          chatState.setIsSending(false);
+          return;
         }
+      }
 
-        // B. DATOS DE RESPUESTA (Solo para el primer mensaje del lote)
-        let replyData = {};
-        if (i === 0 && chatState.replyingTo) {
-          let replyToTextClean = "";
-          if (chatState.replyingTo.text && typeof chatState.replyingTo.text === 'string') {
-            replyToTextClean = chatState.replyingTo.text;
-          } else if (chatState.replyingTo.fileName) {
-            replyToTextClean = chatState.replyingTo.fileName;
-          } else if (chatState.replyingTo.mediaType) {
-            const mediaTypeMap = { 'image': '📷 Foto', 'video': '🎥 Video', 'audio': '🎵 Audio', 'file': '📎 Archivo', 'pdf': '📄 PDF' };
-            replyToTextClean = mediaTypeMap[chatState.replyingTo.mediaType] || "📎 Archivo adjunto";
-          } else {
-            replyToTextClean = "Mensaje original";
-          }
-          replyData = {
-            replyToMessageId: chatState.replyingTo.id,
-            replyToSender: chatState.replyingTo.sender,
-            replyToText: replyToTextClean,
-            replyToSenderNumeroAgente: chatState.replyingTo.senderNumeroAgente
-          };
+      // B. DATOS DE RESPUESTA
+      let replyData = {};
+      if (chatState.replyingTo) {
+        let replyToTextClean = "";
+        if (chatState.replyingTo.text && typeof chatState.replyingTo.text === 'string') {
+          replyToTextClean = chatState.replyingTo.text;
+        } else if (chatState.replyingTo.fileName) {
+          replyToTextClean = chatState.replyingTo.fileName;
+        } else if (chatState.replyingTo.mediaType) {
+          const mediaTypeMap = { 'image': '📷 Foto', 'video': '🎥 Video', 'audio': '🎵 Audio', 'file': '📎 Archivo', 'pdf': '📄 PDF' };
+          replyToTextClean = mediaTypeMap[chatState.replyingTo.mediaType] || "📎 Archivo adjunto";
+        } else {
+          replyToTextClean = "Mensaje original";
         }
-
-        // C. CONSTRUCCIÓN DEL MENSAJE
-        // El texto del input se adjunta SOLO al primer mensaje (i === 0)
-        let rawText = (i === 0) ? (input || "") : "";
-
-        let messageObj = {
-          from: currentUserFullName,
-          fromId: user.id,
-          to: chatState.to,
-          message: String(rawText),
-          isGroup: effectiveIsGroup,
-          roomCode: finalRoomCode,
-          ...attachmentData,
-          ...replyData
+        replyData = {
+          replyToMessageId: chatState.replyingTo.id,
+          replyToSender: chatState.replyingTo.sender,
+          replyToText: replyToTextClean,
+          replyToSenderNumeroAgente: chatState.replyingTo.senderNumeroAgente
         };
+      }
 
-        // Merge con messageData si es mensaje directo
-        if (!hasFiles && messageData) {
-          messageObj = { ...messageObj, ...messageData };
-          // Asegurar string en message si viene de data
-          if (!messageObj.message && messageData.text) messageObj.message = messageData.text;
+      // C. CONSTRUCCIÓN DEL MENSAJE ÚNICO
+      let messageObj = {
+        from: currentUserFullName,
+        fromId: user.id,
+        to: chatState.to,
+        message: String(input || ""),
+        isGroup: effectiveIsGroup,
+        roomCode: finalRoomCode,
+        ...replyData
+      };
 
-          if (messageData.isPoll) {
-            messageObj.type = 'poll';
-            messageObj.message = messageData.poll.question;
-            messageObj.mediaData = JSON.stringify(messageData.poll);
-            messageObj.mediaType = 'poll_data';
-          }
+      // Solo agregar adjuntos si existen
+      if (hasFiles && attachments.length > 0) {
+        messageObj.attachments = attachments;
+        Object.assign(messageObj, firstAttachmentData); // Retrocompatibilidad
+      }
+
+      // Merge con messageData si es mensaje directo
+      if (!hasFiles && messageData) {
+        messageObj = { ...messageObj, ...messageData };
+        // Asegurar string en message si viene de data
+        if (!messageObj.message && messageData.text) messageObj.message = messageData.text;
+
+        if (messageData.isPoll) {
+          messageObj.type = 'poll';
+          messageObj.message = messageData.poll.question;
+          messageObj.mediaData = JSON.stringify(messageData.poll);
+          messageObj.mediaType = 'poll_data';
         }
+      }
 
-        // Datos extra si es asignado
-        if (assignedConv) {
-          messageObj.isAssignedConversation = true;
-          messageObj.conversationId = assignedConv.id;
-          messageObj.participants = assignedConv.participants;
-          const other = assignedConv.participants.find(p => normalizeUsername(p) !== currentUserNormalized);
-          if (other) messageObj.actualRecipient = other;
+      // Datos extra si es asignado
+      if (assignedConv) {
+        messageObj.isAssignedConversation = true;
+        messageObj.conversationId = assignedConv.id;
+        messageObj.participants = assignedConv.participants;
+        const other = assignedConv.participants.find(p => normalizeUsername(p) !== currentUserNormalized);
+        if (other) messageObj.actualRecipient = other;
+      }
+
+      // 4. GUARDAR Y EMITIR
+      // DIFERENCIA CLAVE: Para GRUPOS, el backend guarda. Para INDIVIDUALES, el frontend guarda.
+      if (effectiveIsGroup) {
+        // GRUPO: Solo emitir por socket, el backend guarda y emite de vuelta
+        if (socket && socket.connected) {
+          socket.emit("message", messageObj);
         }
-
-        // D. ENVÍO AL SERVIDOR
-        // 1. Guardar en Base de Datos
+        // Para grupos, no tenemos un savedMessage inmediato para actualizar la UI
+        // La UI se actualizará cuando el backend re-emita el mensaje.
+        // Por ahora, podemos limpiar el input y el replyingTo.
+        // La bandera isSending se limpiará en finally.
+      } else {
+        // INDIVIDUAL: Frontend guarda en BD, luego emite por socket
         const savedMessage = await apiService.createMessage({
           ...messageObj,
           to: messageObj.actualRecipient || messageObj.to
