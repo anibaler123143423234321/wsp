@@ -32,7 +32,12 @@ export const groupMessagesForGallery = (messages) => {
 
                 if (sameSender && sameWindow) {
                     currentImageGroup.messages.push(msg);
-                    // Actualizamos el ID del grupo para que sea determinista (ej. el ID de la primera imagen)
+                    // Actualizar estado del grupo con el último mensaje
+                    currentImageGroup.time = msg.time;
+                    currentImageGroup.sentAt = msg.sentAt;
+                    currentImageGroup.isRead = msg.isRead;
+                    currentImageGroup.readBy = msg.readBy;
+                    currentImageGroup.readByCount = msg.readByCount;
                     return;
                 } else {
                     // El grupo actual se cierra y empezamos uno nuevo (o mensaje normal)
@@ -57,7 +62,11 @@ export const groupMessagesForGallery = (messages) => {
                     time: msg.time,
                     sentAt: msg.sentAt,
                     isSelf: msg.isSelf,
-                    messages: [msg]
+                    messages: [msg],
+                    // 🔥 Copiar estado de lectura inicial
+                    isRead: msg.isRead,
+                    readBy: msg.readBy,
+                    readByCount: msg.readByCount
                 };
             } else {
                 processedMessages.push(msg);

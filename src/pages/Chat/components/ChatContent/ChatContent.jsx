@@ -715,8 +715,24 @@ const ChatContent = ({
     });
 
     //  Contar mensajes no leídos (que no sean del usuario actual)
+    // 🔥 FIX: Para grupos, verificar si el usuario está en readBy array, no solo isRead
+    const isMessageReadByUser = (msg, username) => {
+      // 🔥 FIX: Manejar tanto boolean true como string "true"
+      if (msg.isRead === true || msg.isRead === 'true') return true;
+      // 🔥 FIX: Si readByCount > 0, significa que alguien lo leyó (el mensaje fue marcado como leído)
+      if (msg.readByCount && msg.readByCount > 0) return true;
+
+      if (msg.readBy && Array.isArray(msg.readBy)) {
+        return msg.readBy.some(reader =>
+          (typeof reader === 'string' ? reader : reader?.username || reader?.name || '')
+            .toLowerCase().trim() === username?.toLowerCase().trim()
+        );
+      }
+      return false;
+    };
+
     const unreadCount = uniqueMessages.filter(
-      msg => msg.id && msg.sender !== currentUser && msg.sender !== "Tú" && !msg.isRead
+      msg => msg.id && msg.sender !== currentUser && msg.sender !== "Tú" && !isMessageReadByUser(msg, currentUser)
     ).length;
 
     uniqueMessages.forEach((message, index) => {
@@ -745,7 +761,7 @@ const ChatContent = ({
         message.id &&
         message.sender !== currentUser &&
         message.sender !== "Tú" &&
-        !message.isRead
+        !isMessageReadByUser(message, currentUser)
       ) {
         groups.push({
           type: "unread-separator",
@@ -754,10 +770,17 @@ const ChatContent = ({
         unreadSeparatorInserted = true;
       }
 
+      // 🔥 FIX: Calcular isGroupStart AQUÍ usando el array filtrado correcto (uniqueMessages)
+      // Esto soluciona el bug visual donde un mensaje se agrupaba incorrectamente con el anterior
+      // debido a mismatch de índices con el array original 'messages'
+      const prevMsg = index > 0 ? uniqueMessages[index - 1] : null;
+      const isGroupStart = !prevMsg || prevMsg.sender !== message.sender || prevMsg.type === 'info' || prevMsg.type === 'error';
+
       groups.push({
         type: "message",
         data: message,
         index,
+        isGroupStart, // 🔥 Pasamos el booleano calculado correctamente
       });
     });
 
@@ -1155,15 +1178,22 @@ const ChatContent = ({
 
   // Función para cargar readBy bajo demanda (lazy loading)
   const loadReadByForMessage = async (messageId) => {
-    if (loadedReadBy[messageId]) return; // Ya está cargado
+    // 🔥 FIX: Manejar IDs de galería sintéticos (ej. "gallery-123")
+    // El backend espera un ID numérico, así que extraemos el ID real del mensaje original
+    let realMessageId = messageId;
+    if (typeof messageId === 'string' && messageId.startsWith('gallery-')) {
+      realMessageId = messageId.replace('gallery-', '');
+    }
+
+    if (loadedReadBy[messageId]) return; // Ya está cargado (usamos la key original para cache)
     if (loadingReadBy === messageId) return; // Ya está cargando
 
     setLoadingReadBy(messageId);
     try {
-      const result = await apiService.getMessageReadBy(messageId);
+      const result = await apiService.getMessageReadBy(realMessageId);
       setLoadedReadBy(prev => ({
         ...prev,
-        [messageId]: result.readBy || []
+        [messageId]: result.readBy || [] // Guardamos con la key original para que la UI lo encuentre
       }));
     } catch (error) {
       console.error('Error al cargar readBy:', error);
@@ -1186,9 +1216,11 @@ const ChatContent = ({
 
     //  CORREGIDO: Solo hacer scroll automático si:
     // 1. Hay mensajes nuevos (no solo re-renders)
-    // 2. El usuario está en la parte inferior del chat
-    // Esto preserva la posición de lectura cuando el usuario está leyendo historial
-    if (messages.length > lastMessageCountRef.current && isAtBottom) {
+    // 2. El usuario está en la parte inferior del chat O es un mensaje propio
+    const lastMessage = messages[messages.length - 1];
+    const isLastMessageSelf = lastMessage && (lastMessage.isSelf || lastMessage.sender === 'Tú' || lastMessage.sender === currentUsername);
+
+    if (messages.length > lastMessageCountRef.current && (isAtBottom || isLastMessageSelf)) {
       chatHistory.scrollTop = chatHistory.scrollHeight;
     }
 
@@ -1808,13 +1840,15 @@ const ChatContent = ({
   // ============================================================
   // FUNCIÓN DE RENDERIZADO - Mensaje individual
   // ============================================================
-  const renderMessage = (message, index) => {
+  const renderMessage = (message, index, isGroupStartProp) => {
     // --- Preparación de datos ---
     const isOwnMessage = message.isSelf !== undefined
       ? message.isSelf
       : message.sender === "Tú" || message.sender === currentUsername;
 
     // Lógica de agrupación (Slack Style)
+    // 🔥 FIX: Si isGroupStartProp viene definido (desde groupMessagesByDate), USARLO.
+    // Si no, fallback a la lógica antigua (prop messages)
     const prevMsg = index > 0 ? messages[index - 1] : null;
 
     // Compara si el mensaje anterior es del mismo autor y si no es un mensaje de sistema
@@ -1825,7 +1859,9 @@ const ChatContent = ({
       return m1.sender === m2.sender;
     };
 
-    const isGroupStart = !isSameGroup(prevMsg, message);
+    const isGroupStart = isGroupStartProp !== undefined
+      ? isGroupStartProp
+      : !isSameGroup(prevMsg, message);
 
     // Color consistente del usuario basado en su nombre
     const userColor = getUserNameColor(message.sender, isOwnMessage);
@@ -1973,7 +2009,7 @@ const ChatContent = ({
 
     return (
       <div
-        key={index}
+        key={message.id || index}
         className={`message-row ${isGroupStart ? 'group-start' : ''} ${isOwnMessage ? 'is-own' : ''} ${isHighlighted ? 'highlighted-message' : ''} ${messageContainsMention ? 'message-mentioned' : ''}`}
 
         id={`message-${message.id}`}
@@ -3124,7 +3160,7 @@ const ChatContent = ({
                 // No renderizar nada si está oculto
                 return null;
               } else {
-                return renderMessage(item.data, item.index);
+                return renderMessage(item.data, item.index, item.isGroupStart);
               }
             })}
 
@@ -3670,142 +3706,60 @@ const ChatContent = ({
         onMentionSelect={handleMentionSelect}
       />
 
-      {/* Modal de información de lectura */}
+      {/* Modal de Info del Mensaje (Check Azul) */}
       {showMessageInfo && (
         <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 2000,
-          }}
+          className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"
           onClick={() => setShowMessageInfo(null)}
         >
           <div
-            style={{
-              backgroundColor: "#fff",
-              borderRadius: "12px",
-              padding: "24px",
-              maxWidth: "400px",
-              width: "90%",
-              maxHeight: "80vh",
-              overflow: "auto",
-              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
-            }}
+            className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
+            style={{ maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
           >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "20px",
-              }}
-            >
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: "18px",
-                  fontWeight: "600",
-                  color: "#111",
-                }}
-              >
-                Información del mensaje
-              </h3>
+            {/* Header */}
+            <div className="bg-[#00a884] p-4 flex items-center gap-3 text-white shadow-sm">
               <button
                 onClick={() => setShowMessageInfo(null)}
-                style={{
-                  backgroundColor: "transparent",
-                  border: "none",
-                  fontSize: "20px",
-                  cursor: "pointer",
-                  color: "#8696a0",
-                  padding: "4px",
-                }}
+                className="hover:bg-white/20 p-2 rounded-full transition-colors"
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'white' }}
               >
-                <FaTimes />
+                <FaArrowLeft />
               </button>
+              <h3 className="font-semibold text-lg" style={{ margin: 0 }}>Info. del mensaje</h3>
             </div>
 
-            <div style={{ marginBottom: "20px" }}>
-              <div
-                style={{
-                  backgroundColor: "#E1F4D6",
-                  padding: "12px 16px",
-                  borderRadius: "8px",
-                  marginBottom: "16px",
-                }}
-              >
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: "14px",
-                    color: "#111",
-                    wordBreak: "break-word",
-                  }}
-                >
-                  {showMessageInfo.text || "📎 Archivo multimedia"}
-                </p>
-                <p
-                  style={{
-                    margin: "4px 0 0 0",
-                    fontSize: "11px",
-                    color: "#8696a0",
-                  }}
-                >
-                  {formatTime(showMessageInfo.time)}
-                </p>
+            {/* Content */}
+            <div className="p-0 overflow-y-auto custom-scrollbar flex-1 bg-[#f0f2f5]" style={{ padding: '0', background: '#f0f2f5', overflowY: 'auto' }}>
+              {/* Message Preview */}
+              <div className="p-4 bg-white mb-2 shadow-sm" style={{ padding: '16px', background: 'white', marginBottom: '8px' }}>
+                <div className={`p-3 rounded-lg ${showMessageInfo.isSelf ? 'bg-[#d9fdd3]' : 'bg-white'} border border-gray-100 inline-block max-w-[100%]`}
+                  style={{ padding: '12px', borderRadius: '8px', background: showMessageInfo.isSelf ? '#d9fdd3' : '#fff', border: '1px solid #e5e7eb', display: 'inline-block' }}>
+                  {renderMessagePreview(showMessageInfo)}
+                </div>
               </div>
 
-              <div style={{ marginBottom: "12px" }}>
-                <h4
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: "600",
-                    color: "ff453a",
-                    marginBottom: "8px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                  }}
-                >
-                  <svg
-                    viewBox="0 0 18 18"
-                    height="18"
-                    width="18"
-                    preserveAspectRatio="xMidYMid meet"
-                    version="1.1"
-                    x="0px"
-                    y="0px"
-                    enableBackground="new 0 0 18 18"
-                  >
-                    <path
-                      fill="currentColor"
-                      d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"
-                    ></path>
-                  </svg>
-                  Leído por ({showMessageInfo.readByCount || 0})
+              {/* Read By List */}
+              <div className="bg-white p-4 shadow-sm min-h-[200px]" style={{ background: 'white', padding: '16px', minHeight: '200px' }}>
+                <h4 className="text-xs font-bold text-[#00a884] uppercase tracking-wider mb-4 flex items-center gap-2"
+                  style={{ fontSize: '12px', fontWeight: 'bold', color: '#00a884', textTransform: 'uppercase', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="text-lg" style={{ fontSize: '18px' }}>✓✓</span> Leído por
                 </h4>
-                {loadingReadBy === showMessageInfo.id ? (
-                  <p style={{ fontSize: "13px", color: "#8696a0" }}>Cargando...</p>
-                ) : loadedReadBy[showMessageInfo.id] && loadedReadBy[showMessageInfo.id].length > 0 ? (
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "8px",
-                    }}
-                  >
-                    {loadedReadBy[showMessageInfo.id].map((reader, index) => {
-                      const readerName = typeof reader === 'string' ? reader : reader.username || reader.nombre;
+
+                <div className="space-y-4" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {loadingReadBy === showMessageInfo.id ? (
+                    <div className="flex justify-center p-4" style={{ display: 'flex', justifyContent: 'center', padding: '16px' }}>
+                      <p style={{ color: '#8696a0' }}>Cargando lectores...</p>
+                    </div>
+                  ) : (loadedReadBy[showMessageInfo.id] && loadedReadBy[showMessageInfo.id].length > 0) ? (
+                    loadedReadBy[showMessageInfo.id].map((reader, idx) => {
+                      // Resolver nombre y foto
+                      const readerName = typeof reader === 'string' ? reader : reader.username || reader.nombre || reader.name;
                       let userWithPic = null;
-                      if (roomUsers && Array.isArray(roomUsers)) {
+                      const readerPic = typeof reader === 'object' ? reader.picture : null;
+
+                      // Intentar buscar foto extra en roomUsers si no viene en el objeto reader
+                      if (!readerPic && roomUsers && Array.isArray(roomUsers)) {
                         const search = readerName.toLowerCase().trim();
                         userWithPic = roomUsers.find(u => {
                           const uUser = (u.username || "").toLowerCase();
@@ -3813,70 +3767,48 @@ const ChatContent = ({
                           return uUser === search || uFull === search;
                         });
                       }
-                      const avatarUrl = userWithPic?.picture;
+                      const avatarUrl = readerPic || userWithPic?.picture;
 
                       return (
-                        <div
-                          key={index}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "12px",
-                            padding: "8px",
-                            backgroundColor: "#f5f6f6",
-                            borderRadius: "8px",
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: "32px",
-                              height: "32px",
-                              borderRadius: "50%",
-                              background: avatarUrl
-                                ? `url(${avatarUrl}) center/cover no-repeat`
-                                : "#A50104",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: "14px",
-                              color: "#fff",
-                              fontWeight: "600",
-                              flexShrink: 0,
-                              border: "1px solid rgba(0,0,0,0.05)"
-                            }}
-                          >
-                            {!avatarUrl && readerName.charAt(0).toUpperCase()}
+                        <div key={idx} className="flex items-center gap-3" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div className="relative" style={{ position: 'relative' }}>
+                            {avatarUrl ? (
+                              <img
+                                src={avatarUrl}
+                                alt={readerName}
+                                className="w-10 h-10 rounded-full object-cover border border-gray-100"
+                                style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
+                                onError={(e) => e.target.src = "https://ui-avatars.com/api/?name=" + readerName}
+                              />
+                            ) : (
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-sm`}
+                                style={{ width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', backgroundColor: getUserColor(readerName) }}>
+                                {getInitials(readerName)}
+                              </div>
+                            )}
                           </div>
-                          <div style={{ flex: 1 }}>
-                            <p style={{ margin: 0, fontSize: "14px", fontWeight: "500", color: "#111" }}>
+                          <div className="flex-1 min-w-0" style={{ flex: 1 }}>
+                            <p className="font-medium text-gray-900 truncate text-[15px] leading-tight" style={{ fontWeight: 500, color: '#111', margin: 0 }}>
                               {readerName}
                             </p>
-                          </div>
-                          <div style={{ fontSize: "16px", color: "#53bdeb", display: "flex", alignItems: "center" }}>
-                            <svg viewBox="0 0 18 18" height="18" width="18" preserveAspectRatio="xMidYMid meet" version="1.1" x="0px" y="0px" enableBackground="new 0 0 18 18">
-                              <path fill="currentColor" d="M17.394,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-0.427-0.388c-0.171-0.167-0.431-0.15-0.578,0.038L7.792,13.13 c-0.147,0.188-0.128,0.478,0.043,0.645l1.575,1.51c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C17.616,5.456,17.582,5.182,17.394,5.035z M12.502,5.035l-0.57-0.444c-0.188-0.147-0.462-0.113-0.609,0.076l-6.39,8.198 c-0.147,0.188-0.406,0.206-0.577,0.039l-2.614-2.556c-0.171-0.167-0.447-0.164-0.614,0.007l-0.505,0.516 c-0.167,0.171-0.164,0.447,0.007,0.614l3.887,3.8c0.171,0.167,0.43,0.149,0.577-0.039l7.483-9.602 C12.724,5.456,12.69,5.182,12.502,5.035z"></path>
-                            </svg>
+                            <p className="text-xs text-gray-500 mt-0.5" style={{ fontSize: '12px', color: '#667781', margin: '2px 0 0 0' }}>
+                              {reader.readAt ? formatDate(reader.readAt) : 'Leído'}
+                            </p>
                           </div>
                         </div>
                       );
-                    })}
-                  </div>
-                ) : (
-                  <p style={{ fontSize: "13px", color: "#8696a0", fontStyle: "italic" }}>
-                    Aún no ha sido leído por nadie
-                  </p>
-                )}
+                    })
+                  ) : (
+                    <div className="text-center py-8 text-gray-400" style={{ textAlign: 'center', padding: '32px 0', color: '#8696a0' }}>
+                      <p className="text-sm">Aún nadie ha leído este mensaje</p>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div>
-                <h4
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: "600",
-                    color: "#8696a0",
-                    marginBottom: "8px",
-                  }}
-                >
+              {/* Delivered Info */}
+              <div className="p-4 bg-white mt-1 shadow-sm" style={{ padding: '16px', background: 'white', marginTop: '1px' }}>
+                <h4 style={{ fontSize: "13px", fontWeight: "600", color: "#8696a0", marginBottom: "8px" }}>
                   ✓ Entregado
                 </h4>
                 <p style={{ fontSize: "13px", color: "#8696a0" }}>
@@ -3925,16 +3857,18 @@ const ChatContent = ({
         onLoadMoreConvs={handleLoadMoreForwardConvs}
       />
       {/* VISOR DE PDF */}
-      {showPdfViewer && pdfData && (
-        <PDFViewer
-          pdfData={pdfData}
-          onClose={() => {
-            setShowPdfViewer(false);
-            setPdfData(null);
-          }}
-        />
-      )}
-    </div>
+      {
+        showPdfViewer && pdfData && (
+          <PDFViewer
+            pdfData={pdfData}
+            onClose={() => {
+              setShowPdfViewer(false);
+              setPdfData(null);
+            }}
+          />
+        )
+      }
+    </div >
   );
 };
 
