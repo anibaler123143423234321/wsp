@@ -35,7 +35,7 @@ class FaviconBadge {
 
         // Crear imagen para el favicon original
         this.img = new Image();
-        this.img.crossOrigin = 'anonymous';
+        // this.img.crossOrigin = 'anonymous'; // Causaba error con SVG local
         this.img.onload = () => {
             console.log('✅ Favicon original cargado');
         };
