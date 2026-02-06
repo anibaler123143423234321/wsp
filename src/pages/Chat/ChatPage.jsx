@@ -1371,6 +1371,11 @@ const ChatPage = () => {
         messageObj.fileSize = messageData.fileSize;
       }
 
+      // 🔥 NUEVO: Incluir attachments para mensajes con múltiples archivos
+      if (messageData.attachments && Array.isArray(messageData.attachments)) {
+        messageObj.attachments = messageData.attachments;
+      }
+
       // 1. Guardar en BD
       console.log('🔍 DEBUG - Guardando mensaje en BD:', messageObj);
       const savedMessage = await apiService.createMessage(messageObj);

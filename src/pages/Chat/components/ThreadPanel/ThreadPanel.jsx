@@ -11,6 +11,14 @@ import {
   FaReply, //  NUEVO: Ícono de responder
   FaPen, //  NUEVO: Ícono de editar
   FaArrowLeft, //  NUEVO: Ícono de atrás
+  FaFileExcel,
+  FaFileWord,
+  FaFilePdf,
+  FaFileAlt,
+  FaFileImage,
+  FaFileVideo,
+  FaFileAudio,
+  FaDownload,
 } from "react-icons/fa";
 import EmojiPicker from "emoji-picker-react";
 import apiService from "../../../../apiService";
@@ -26,6 +34,7 @@ import { handleSmartPaste } from "../utils/pasteHandler"; // Utilidad reutilizab
 import { useMessageSelection } from "../../../../hooks/useMessageSelection"; //  NUEVO: Hook de selección
 import useEnterToSend from "../../../../hooks/useEnterToSend"; // NUEVO: Hook para enviar con Enter
 import MessageSelectionManager from "../ChatContent/MessageSelectionManager/MessageSelectionManager"; //  NUEVO: Barra de selección
+import ImageGalleryGrid from "../ImageGalleryGrid/ImageGalleryGrid"; // Para multi-attachments
 
 import "./ThreadPanel.css";
 
@@ -47,6 +56,29 @@ const getUserNameColor = (name, isOwnMessage = false) => {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
   return USER_NAME_COLORS[Math.abs(hash) % USER_NAME_COLORS.length];
+};
+
+const formatFileSize = (bytes) => {
+  if (!bytes || bytes === 0) return '';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+const renderFileIcon = (fileName) => {
+  if (!fileName) return <FaFileAlt size={24} color="#666" />;
+  const ext = fileName.split('.').pop().toLowerCase();
+
+  switch (ext) {
+    case 'pdf': return <FaFilePdf size={24} color="#e74c3c" />;
+    case 'doc': case 'docx': return <FaFileWord size={24} color="#3498db" />;
+    case 'xls': case 'xlsx': case 'csv': return <FaFileExcel size={24} color="#2ecc71" />;
+    case 'jpg': case 'jpeg': case 'png': case 'gif': return <FaFileImage size={24} color="#9b59b6" />;
+    case 'mp4': case 'mov': case 'avi': return <FaFileVideo size={24} color="#e67e22" />;
+    case 'mp3': case 'wav': case 'ogg': return <FaFileAudio size={24} color="#f1c40f" />;
+    default: return <FaFileAlt size={24} color="#666" />;
+  }
 };
 
 // Función para formatear fecha del separador
@@ -853,37 +885,52 @@ const ThreadPanel = ({
 
       console.log('📤 ThreadPanel enviando mensaje:', baseMessageData);
 
-      // 1. Si hay archivos, enviarlos uno por uno
+      // 🔥 REFACTORED: Subir TODOS los archivos primero, luego enviar UN solo mensaje con attachments
       if (currentMediaFiles.length > 0) {
-        for (let i = 0; i < currentMediaFiles.length; i++) {
+        // 1. Subir todos los archivos en paralelo
+        const uploadPromises = currentMediaFiles.map(file => apiService.uploadFile(file, "chat"));
+        const uploadResults = await Promise.all(uploadPromises);
+
+        // 2. Construir array de attachments
+        const attachments = uploadResults.map((uploadResult, i) => {
           const file = currentMediaFiles[i];
-          const mediaType = getMediaType(file);
-
-          // Subir archivo primero
-          const uploadResult = await apiService.uploadFile(file, "chat");
-
-          // Construir mensaje
-          const messageData = {
-            text: i === 0 ? currentInput : "",
-            ...baseMessageData,
-            mediaType: mediaType,
+          const fileType = getMediaType(file);
+          return {
+            type: fileType,           // Backend expects 'type'
+            mediaType: fileType,      // Frontend uses 'mediaType' for rendering
+            url: uploadResult.fileUrl,
             mediaData: uploadResult.fileUrl,
             fileName: uploadResult.fileName,
             fileSize: uploadResult.fileSize,
           };
+        });
 
-          // 🚀 OPTIMISTIC UPDATE: Agregar inmediatamente con ID temporal
-          const tempId = `temp_${Date.now()}_${i}`;
-          setThreadMessages(prev => [...prev, {
-            ...messageData,
-            id: tempId,
-            message: messageData.text,
-            sentAt: new Date().toISOString(),
-          }]);
+        // 3. Crear UN solo mensaje con todos los adjuntos
+        const messageData = {
+          text: currentInput,
+          ...baseMessageData,
+          attachments: attachments,
+          // Para compatibilidad con mensajes simples (1 archivo):
+          ...(attachments.length === 1 ? {
+            mediaType: attachments[0].mediaType,
+            mediaData: attachments[0].mediaData,
+            fileName: attachments[0].fileName,
+            fileSize: attachments[0].fileSize,
+          } : {}),
+        };
 
-          // Enviar (no esperar - fire and forget)
-          onSendMessage(messageData);
-        }
+        // 🚀 OPTIMISTIC UPDATE: Agregar inmediatamente con ID temporal
+        const tempId = `temp_${Date.now()}`;
+        setThreadMessages(prev => [...prev, {
+          ...messageData,
+          id: tempId,
+          message: messageData.text,
+          sentAt: new Date().toISOString(),
+        }]);
+
+        // Enviar UN solo mensaje
+        onSendMessage(messageData);
+
       } else {
         // 2. Si solo es texto
         const messageData = {
@@ -1464,18 +1511,25 @@ const ThreadPanel = ({
         ) : message.mediaType && message.mediaData ? (
           <div className="thread-main-message-media">
             <div
-              style={{
-                padding: "8px 12px",
-                borderRadius: "8px",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
+              className="wa-file-card"
+              style={{ cursor: 'pointer' }}
+              onClick={() => {
+                const link = document.createElement("a");
+                link.href = message.mediaData;
+                link.download = message.fileName || "archivo";
+                link.click();
               }}
             >
-              <span>📎</span>
-              <span style={{ fontSize: "13px" }}>
-                {message.fileName || "Archivo"}
-              </span>
+              <div className="wa-file-icon">{renderFileIcon(message.fileName)}</div>
+              <div className="wa-file-info">
+                <div className="wa-file-name">{message.fileName || "Archivo"}</div>
+                <div className="wa-file-meta">
+                  {formatFileSize(message.fileSize)} • Click para descargar
+                </div>
+              </div>
+              <div className="wa-download-icon">
+                <FaDownload />
+              </div>
             </div>
             {message.text && (
               <div className="thread-main-message-text">{message.text}</div>
@@ -1830,8 +1884,75 @@ const ThreadPanel = ({
                       );
                     })()}
 
-                    {/* Mostrar contenido multimedia si existe */}
-                    {msg.mediaType === "audio" && msg.mediaData ? (
+                    {/* RENDERIZADO DE ADJUNTOS (multi-attachments) */}
+                    {msg.attachments && msg.attachments.length > 0 ? (
+                      <>
+                        {/* Mostrar texto si lo hay */}
+                        {(msg.text || msg.message) && (
+                          <div className={`thread-message-text${isMentioned ? ' mentioned' : ''}`} style={{ marginBottom: '8px' }}>
+                            {renderTextWithMentions(msg.text || msg.message)}
+                          </div>
+                        )}
+
+                        {/* SEPARAR IMÁGENES DE ARCHIVOS */}
+                        {(() => {
+                          const imageAttachments = msg.attachments.filter(att =>
+                            att.mediaType === 'image' ||
+                            (!att.mediaType && (att.url || att.mediaData)?.match(/\.(jpg|jpeg|png|gif|webp)$/i))
+                          );
+                          const fileAttachments = msg.attachments.filter(att => !imageAttachments.includes(att));
+
+                          return (
+                            <>
+                              {/* 1. Renderizar Imágenes en Grid */}
+                              {imageAttachments.length > 0 && (
+                                <ImageGalleryGrid
+                                  items={imageAttachments}
+                                  onImageClick={(item) => {
+                                    const url = item.url || item.mediaData;
+                                    handleImageClick(url, item.fileName || 'Imagen');
+                                  }}
+                                />
+                              )}
+
+                              {/* 2. Renderizar Archivos como Lista */}
+                              {fileAttachments.length > 0 && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: imageAttachments.length > 0 ? '8px' : '0' }}>
+                                  {fileAttachments.map((file, fIdx) => {
+                                    const fileUrl = file.url || file.mediaData;
+
+                                    return (
+                                      <div
+                                        key={fIdx}
+                                        className="wa-file-card"
+                                        style={{ cursor: 'pointer' }}
+                                        onClick={() => {
+                                          const link = document.createElement("a");
+                                          link.href = fileUrl;
+                                          link.download = file.fileName || "archivo";
+                                          link.click();
+                                        }}
+                                      >
+                                        <div className="wa-file-icon">{renderFileIcon(file.fileName)}</div>
+                                        <div className="wa-file-info">
+                                          <div className="wa-file-name">{file.fileName || 'Archivo adjunto'}</div>
+                                          <div className="wa-file-meta">
+                                            {formatFileSize(file.fileSize)} • Click para descargar
+                                          </div>
+                                        </div>
+                                        <div className="wa-download-icon">
+                                          <FaDownload />
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </>
+                    ) : msg.mediaType === "audio" && msg.mediaData ? (
                       <div className="thread-message-media">
                         <AudioPlayer
                           src={msg.mediaData}
@@ -1889,21 +2010,25 @@ const ThreadPanel = ({
                       //  FALLBACK GENÉRICO MEJORADO: Si tiene mediaData, mostrar como archivo
                       <div className="thread-message-media">
                         <div
-                          style={{
-                            padding: "8px 12px",
-                            backgroundColor: "#f0f0f0",
-                            borderRadius: "8px",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            cursor: "pointer",
+                          className="wa-file-card"
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => {
+                            const link = document.createElement("a");
+                            link.href = msg.mediaData;
+                            link.download = msg.fileName || "archivo";
+                            link.click();
                           }}
-                          onClick={() => window.open(msg.mediaData, "_blank")}
                         >
-                          <span>📎</span>
-                          <span style={{ fontSize: "13px" }}>
-                            {msg.fileName || "Archivo adjunto"}
-                          </span>
+                          <div className="wa-file-icon">{renderFileIcon(msg.fileName)}</div>
+                          <div className="wa-file-info">
+                            <div className="wa-file-name">{msg.fileName || "Archivo adjunto"}</div>
+                            <div className="wa-file-meta">
+                              {formatFileSize(msg.fileSize)} • Click para descargar
+                            </div>
+                          </div>
+                          <div className="wa-download-icon">
+                            <FaDownload />
+                          </div>
                         </div>
                         {msg.message && (
                           <div className={`thread-message-text${isMentioned ? ' mentioned' : ''}`}>

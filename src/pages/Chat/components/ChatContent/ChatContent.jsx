@@ -16,7 +16,14 @@ import {
   FaShare, //  NUEVO: Ícono para reenviar
   FaChevronUp, // NUEVO: Para botón Load Newer Messages
   FaPoll,
-  FaArrowDown
+  FaArrowDown,
+  FaFileExcel,
+  FaFileWord,
+  FaFilePdf,
+  FaFileAlt,
+  FaFileImage,
+  FaFileVideo,
+  FaFileAudio
 } from "react-icons/fa";
 import EmojiPicker from "emoji-picker-react";
 import LoadMoreMessages from "../LoadMoreMessages/LoadMoreMessages";
@@ -60,6 +67,29 @@ const formatTime = (time) => {
     });
   } catch {
     return time.toString();
+  }
+};
+
+const formatFileSize = (bytes) => {
+  if (!bytes || bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+const renderFileIcon = (fileName) => {
+  if (!fileName) return <FaFileAlt size={24} color="#666" />;
+  const ext = fileName.split('.').pop().toLowerCase();
+
+  switch (ext) {
+    case 'pdf': return <FaFilePdf size={24} color="#e74c3c" />;
+    case 'doc': case 'docx': return <FaFileWord size={24} color="#3498db" />;
+    case 'xls': case 'xlsx': case 'csv': return <FaFileExcel size={24} color="#2ecc71" />;
+    case 'jpg': case 'jpeg': case 'png': case 'gif': return <FaFileImage size={24} color="#9b59b6" />;
+    case 'mp4': case 'mov': case 'avi': return <FaFileVideo size={24} color="#e67e22" />;
+    case 'mp3': case 'wav': case 'ogg': return <FaFileAudio size={24} color="#f1c40f" />;
+    default: return <FaFileAlt size={24} color="#666" />;
   }
 };
 
@@ -2247,20 +2277,86 @@ const ChatContent = ({
                       </div>
                     )}
 
-                    {/* Si todos son imágenes (o la mayoría), usar galería. 
-                        Por ahora, ImageGalleryGrid maneja la visualización de la lista. */}
-                    <ImageGalleryGrid
-                      items={message.attachments}
-                      onImageClick={(item) => {
-                        const url = item.url || item.mediaData;
-                        if (item.mediaType === 'image' || (!item.mediaType && url?.match(/\.(jpg|jpeg|png|gif|webp)$/i))) {
-                          const index = message.attachments.indexOf(item);
-                          openImagePreview(message.attachments, index);
-                        } else {
-                          handleDownload(url, item.fileName);
-                        }
-                      }}
-                    />
+                    {/* SEPARAR IMÁGENES DE ARCHIVOS */}
+                    {(() => {
+                      const imageAttachments = message.attachments.filter(att =>
+                        att.mediaType === 'image' ||
+                        (!att.mediaType && (att.url || att.mediaData)?.match(/\.(jpg|jpeg|png|gif|webp)$/i))
+                      );
+                      const fileAttachments = message.attachments.filter(att => !imageAttachments.includes(att));
+
+                      return (
+                        <>
+                          {/* 1. Renderizar Imágenes en Grid */}
+                          {imageAttachments.length > 0 && (
+                            <ImageGalleryGrid
+                              items={imageAttachments}
+                              onImageClick={(item) => {
+                                const index = imageAttachments.indexOf(item);
+                                openImagePreview(imageAttachments, index);
+                              }}
+                            />
+                          )}
+
+                          {/* 2. Renderizar Archivos como Lista */}
+                          {fileAttachments.length > 0 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: imageAttachments.length > 0 ? '8px' : '0' }}>
+                              {fileAttachments.map((file, fIdx) => {
+                                const isPdf = file.fileName?.toLowerCase().endsWith('.pdf') || (file.mediaType === 'application/pdf');
+                                const fileUrl = file.url || file.mediaData;
+
+                                return (
+                                  <div
+                                    key={fIdx}
+                                    className="wa-file-card"
+                                    onClick={() => {
+                                      if (isPdf) {
+                                        console.log("📥 Descargando PDF:", fileUrl);
+                                        // Si es una URL remota, intentar descargarla
+                                        if (fileUrl && fileUrl.startsWith('http')) {
+                                          apiService.fetchWithAuth(fileUrl)
+                                            .then(res => {
+                                              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                                              return res.arrayBuffer();
+                                            })
+                                            .then(arrayBuffer => {
+                                              setPdfData(arrayBuffer);
+                                              setShowPdfViewer(true);
+                                            })
+                                            .catch(err => {
+                                              console.error("❌ Error loading PDF:", err);
+                                              handleDownload(fileUrl, file.fileName);
+                                            });
+                                        } else {
+                                          // Si es base64 o local
+                                          // ... lógica para mostrar base64 directa si fuera necesario, 
+                                          // por simplicidad manejamos descarga o visualizador si ya tenemos lógica
+                                          handleDownload(fileUrl, file.fileName);
+                                        }
+                                      } else {
+                                        handleDownload(fileUrl, file.fileName);
+                                      }
+                                    }}
+                                  >
+                                    <div className="wa-file-icon">{renderFileIcon(file.fileName)}</div>
+                                    <div className="wa-file-info">
+                                      <div className="wa-file-name">{file.fileName || 'Archivo adjunto'}</div>
+                                      <div className="wa-file-meta">
+                                        {formatFileSize(file.fileSize)} • {isPdf ? 'Click para ver' : 'Click para descargar'}
+                                      </div>
+                                    </div>
+                                    <div className="wa-download-icon">
+                                      <FaDownload />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+
                   </>
                 ) : message.type === 'image-gallery' ? (
                   <ImageGalleryGrid
