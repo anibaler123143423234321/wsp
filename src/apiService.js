@@ -1,13 +1,13 @@
 // Servicio para conectar con la API (múltiples backends según sede)
 // URLs para CHICLAYO / PIURA
 const API_BASE_URL_CHICLAYO = "https://apisozarusac.com/BackendJava/";
-const API_BASECHAT_URL_CHICLAYO = "https://apisozarusac.com/BackendChat/";
-//const API_BASECHAT_URL_CHICLAYO = "http://localhost:8747/"; // Solo para desarrollo local
+//const API_BASECHAT_URL_CHICLAYO = "https://apisozarusac.com/BackendChat/";
+const API_BASECHAT_URL_CHICLAYO = "http://localhost:8747/"; // Solo para desarrollo local
 
 // URLs para LIMA
 const API_BASE_URL_LIMA = "https://apisozarusac.com/BackendJavaMidas/";
-const API_BASECHAT_URL_LIMA = "https://apisozarusac.com/BackendChat/";
-//const API_BASECHAT_URL_LIMA = "http://localhost:8747/"; // Solo para desarrollo local
+//const API_BASECHAT_URL_LIMA = "https://apisozarusac.com/BackendChat/";
+const API_BASECHAT_URL_LIMA = "http://localhost:8747/"; // Solo para desarrollo local
 
 class ApiService {
   constructor() {
@@ -1263,10 +1263,14 @@ class ApiService {
   }
 
 
-  async getThreadMessages(threadId, limit = 100, offset = 0, order = 'ASC') {
+  async getThreadMessages(threadId, limit = 100, offset = 0, order = 'ASC', attachmentId = null) {
     try {
+      let url = `${this.baseChatUrl}api/messages/thread/${threadId}?limit=${limit}&offset=${offset}&order=${order}`;
+      if (attachmentId) {
+        url += `&attachmentId=${attachmentId}`;
+      }
       const response = await fetch(
-        `${this.baseChatUrl}api/messages/thread/${threadId}?limit=${limit}&offset=${offset}&order=${order}`,
+        url,
         {
           method: "GET",
           headers: {
@@ -1353,10 +1357,14 @@ class ApiService {
   }
 
   // Incrementar contador de respuestas en hilo
-  async incrementThreadCount(messageId) {
+  async incrementThreadCount(messageId, attachmentId = null) {
     try {
+      let url = `${this.baseChatUrl}api/messages/${messageId}/increment-thread`;
+      if (attachmentId) {
+        url += `?attachmentId=${attachmentId}`;
+      }
       const response = await fetch(
-        `${this.baseChatUrl}api/messages/${messageId}/increment-thread`,
+        url,
         {
           method: "PATCH",
           headers: {

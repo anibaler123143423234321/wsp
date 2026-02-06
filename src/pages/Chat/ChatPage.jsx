@@ -973,7 +973,12 @@ const ChatPage = () => {
       let replyData = {};
       if (chatState.replyingTo) {
         let replyToTextClean = "";
-        if (chatState.replyingTo.text && typeof chatState.replyingTo.text === 'string') {
+        const specificAttachment = chatState.replyingTo.attachment;
+
+        if (specificAttachment) {
+          // Si es respuesta a un ADJUNTO específico
+          replyToTextClean = specificAttachment.fileName || (specificAttachment.mediaType === 'image' ? '📷 Foto' : '📎 Archivo');
+        } else if (chatState.replyingTo.text && typeof chatState.replyingTo.text === 'string') {
           replyToTextClean = chatState.replyingTo.text;
         } else if (chatState.replyingTo.fileName) {
           replyToTextClean = chatState.replyingTo.fileName;
@@ -983,11 +988,13 @@ const ChatPage = () => {
         } else {
           replyToTextClean = "Mensaje original";
         }
+
         replyData = {
           replyToMessageId: chatState.replyingTo.id,
           replyToSender: chatState.replyingTo.sender,
           replyToText: replyToTextClean,
-          replyToSenderNumeroAgente: chatState.replyingTo.senderNumeroAgente
+          replyToSenderNumeroAgente: chatState.replyingTo.senderNumeroAgente,
+          replyToAttachmentId: specificAttachment?.id || null // 🔥 NUEVO: ID del adjunto específico
         };
       }
 
@@ -1217,8 +1224,11 @@ const ChatPage = () => {
   };
 
   // Definición de la función (ya la tienes)
-  const handleReplyMessage = useCallback((message) => {
-    chatState.setReplyingTo(message);
+  const handleReplyMessage = useCallback((message, attachment = null) => {
+    chatState.setReplyingTo({
+      ...message,
+      attachment: attachment // Guardar el adjunto específico si existe
+    });
     //  Hacer focus en el textarea inmediatamente
     const textarea = document.querySelector('.message-input');
     if (textarea) {
@@ -1376,6 +1386,11 @@ const ChatPage = () => {
         messageObj.attachments = messageData.attachments;
       }
 
+      // 🔥 NUEVO: Incluir replyToAttachmentId si existe
+      if (messageData.replyToAttachmentId) {
+        messageObj.replyToAttachmentId = messageData.replyToAttachmentId;
+      }
+
       // 1. Guardar en BD
       console.log('🔍 DEBUG - Guardando mensaje en BD:', messageObj);
       const savedMessage = await apiService.createMessage(messageObj);
@@ -1407,6 +1422,7 @@ const ChatPage = () => {
           roomCode: messageData.roomCode,
           from: messageObj.from,
           to: messageObj.to,
+          replyToAttachmentId: messageData.replyToAttachmentId || null, // 🔥 NUEVO: Para hilos de adjuntos
         });
 
         //  ESTA LÍNEA ES LA CLAVE: Avisa al servidor que avise a todos (incluyéndome) que actualicen el contador

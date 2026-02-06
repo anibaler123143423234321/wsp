@@ -202,6 +202,8 @@ const ThreadPanel = ({
   user,
   onBackToThreadsList, //  NUEVO: Callback para volver a la lista de hilos
   onUpdateParentMessage, // 🔥 NUEVO: Callback para actualizar contador del mensaje padre
+  selectedAttachment = null, // 🔥 NUEVO: Adjunto seleccionado para filtrar el hilo
+  onSelectAttachment = null, // 🔥 NUEVO: Callback para cambiar a hilo de adjunto específico
 }) => {
   //  NUEVO: Detectar si el mensaje padre tiene un ID temporal
   const isTemporaryId = message?.id && String(message.id).startsWith('temp_');
@@ -211,7 +213,7 @@ const ThreadPanel = ({
   const [loading, setLoading] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [currentThreadCount, setCurrentThreadCount] = useState(
-    message?.threadCount || 0
+    selectedAttachment ? (selectedAttachment.threadCount || 0) : (message?.threadCount || 0)
   );
   const [mediaFiles, setMediaFiles] = useState([]);
   const [mediaPreviews, setMediaPreviews] = useState([]);
@@ -387,10 +389,12 @@ const ThreadPanel = ({
   // Cargar mensajes del hilo
 
 
-  // Actualizar el contador cuando cambia el mensaje
+  // Actualizar el contador cuando cambia el mensaje (SOLO si es hilo general)
   useEffect(() => {
-    setCurrentThreadCount(message?.threadCount || 0);
-  }, [message?.threadCount]);
+    if (!selectedAttachment) {
+      setCurrentThreadCount(message?.threadCount || 0);
+    }
+  }, [message?.threadCount, selectedAttachment]);
 
   // Scroll automático al final - SOLO si el usuario está cerca del fondo o es carga inicial
   useEffect(() => {
@@ -432,6 +436,13 @@ const ThreadPanel = ({
 
     prevThreadMessagesLengthRef.current = threadMessages.length;
   }, [threadMessages]);
+
+  // 🔥 NUEVO: Sincronizar contador local cuando estamos en vista de adjunto
+  useEffect(() => {
+    if (selectedAttachment) {
+      setCurrentThreadCount(threadMessages.length);
+    }
+  }, [threadMessages.length, selectedAttachment]);
 
   //  NUEVO: Handler global de tecla Escape para cerrar ThreadPanel
   useEffect(() => {
@@ -505,6 +516,23 @@ const ThreadPanel = ({
 
       // Asegurar comparación laxa por si uno es string y otro number
       if (String(newMessage.threadId) === String(message?.id)) {
+        // 🔥 FILTRO: Si estamos viendo un adjunto específico, IGNORAR mensajes que no sean para este adjunto
+        if (selectedAttachment && String(newMessage.replyToAttachmentId) !== String(selectedAttachment.id)) {
+          console.log('🔇 ThreadPanel: Ignorando mensaje de otro contexto de adjunto', {
+            msgAttachmentId: newMessage.replyToAttachmentId,
+            viewAttachmentId: selectedAttachment.id
+          });
+          return;
+        }
+
+        // 🔥 FILTRO INVERSO: Si estamos en hilo GENERAL, ¿queremos ver respuestas a adjuntos?
+        // Si el usuario dijo "se mezcló", probablemente NO quiere ver respuestas a adjuntos en el general.
+        // DESCOMENTAR SI SE REQUIERE:
+        /*
+        if (!selectedAttachment && newMessage.replyToAttachmentId) {
+           return; 
+        }
+        */
         setThreadMessages((prev) => {
           // Verificar si ya existe (por ID real)
           const messageExists = prev.some((msg) => msg.id === newMessage.id && !String(msg.id).startsWith('temp_'));
@@ -549,6 +577,12 @@ const ThreadPanel = ({
 
       if (String(data.messageId) === String(message?.id)) {
         console.log(`🔢 ThreadPanel: procesando actualización para hilo ${data.messageId}, threadCount=${data.threadCount}`);
+
+        // 🔥 FIX: Si estamos viendo un adjunto específico, NO actualizar el contador con el global
+        // El contador local se actualizará basado en los mensajes filtrados recibidos via socket
+        if (!selectedAttachment) {
+          setCurrentThreadCount(data.threadCount);
+        }
 
         // Llamar al callback para actualizar el mensaje padre
         if (onUpdateParentMessage) {
@@ -631,8 +665,14 @@ const ThreadPanel = ({
     }
     setLoading(true);
     try {
-      // 🔥 Carga hasta 100 mensajes del hilo
-      const response = await apiService.getThreadMessages(threadId, 100, 0, 'DESC');
+      // 🔥 Carga hasta 100 mensajes del hilo, opcionalmente filtrado por adjunto
+      const response = await apiService.getThreadMessages(
+        threadId,
+        100,
+        0,
+        'DESC',
+        selectedAttachment?.id // 🔥 Pasar ID de adjunto
+      );
       const messages = response.data || response;
       const total = response.total ?? messages.length;
 
@@ -644,11 +684,12 @@ const ThreadPanel = ({
     } finally {
       setLoading(false);
     }
-  }, [message?.id]);
+  }, [message?.id, selectedAttachment?.id]); // 🔥 FIX: Incluir selectedAttachment en dependencias
 
   // useEffect para cargar mensajes cuando se abre el hilo
   useEffect(() => {
     if (message?.id) {
+      console.log('🔄 ThreadPanel: Recargando mensajes', { messageId: message.id, attachmentId: selectedAttachment?.id });
       // Limpiar estado para el nuevo hilo
       setThreadMessages([]);
       setTotalThreadMessages(0);
@@ -657,7 +698,7 @@ const ThreadPanel = ({
       prevThreadMessagesLengthRef.current = 0; //  Resetear ref de longitud
       loadThreadMessages();
     }
-  }, [message?.id]); // Solo depender de message.id, no de loadThreadMessages
+  }, [message?.id, selectedAttachment?.id, loadThreadMessages]); // 🔥 FIX: Incluir loadThreadMessages
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -818,6 +859,17 @@ const ThreadPanel = ({
     setMediaPreviews([]);
   };
 
+  const handleAttachmentReply = (attachment) => {
+    // Establecer contexto de respuesta para citar el adjunto
+    setReplyingTo({
+      ...message,
+      attachment: attachment
+    });
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
+
   const handleSend = async () => {
     if ((!input.trim() && mediaFiles.length === 0) || isSending) return;
 
@@ -855,6 +907,10 @@ const ThreadPanel = ({
         replyToMessageId: currentReplyingTo.id,
         replyToSender: currentReplyingTo.from || currentReplyingTo.sender,
         replyToText: (() => {
+          const specificAttachment = currentReplyingTo.attachment;
+          if (specificAttachment) {
+            return specificAttachment.fileName || (specificAttachment.mediaType === 'image' ? '📷 Foto' : '📎 Archivo');
+          }
           // Priorizar: texto del mensaje > nombre de archivo > emoji según tipo de medio
           if (currentReplyingTo.message || currentReplyingTo.text) {
             return currentReplyingTo.message || currentReplyingTo.text;
@@ -872,7 +928,13 @@ const ThreadPanel = ({
           }
           return "Archivo adjunto";
         })(),
-      } : {};
+        replyToAttachmentId: currentReplyingTo.attachment?.id || (selectedAttachment?.id || null) // 🔥 NUEVO
+      } : (selectedAttachment ? {
+        // Si no hay replyingTo explícito pero estamos en un hilo de adjunto,
+        // al enviar un mensaje sin citar a nadie, ¿debería asociarse al adjunto?
+        // El backend usualmente espera replyToMessageId para hilos.
+        replyToAttachmentId: selectedAttachment.id
+      } : {});
 
       // Datos base del mensaje
       // DETERMINACIÓN ROBUSTA DE HILO Y GRUPO
@@ -901,7 +963,8 @@ const ThreadPanel = ({
         isGroupActual,
         toValue,
         roomCodeValue,
-        originalMessageId: message.id
+        originalMessageId: message.id,
+        replyToAttachmentId: baseMessageData.replyToAttachmentId // 🔥 LOG CRÍTICO
       });
 
       if (!resolvedThreadId || isNaN(resolvedThreadId)) {
@@ -1018,6 +1081,7 @@ const ThreadPanel = ({
         mediaData: uploadResult.fileUrl,
         fileName: uploadResult.fileName,
         fileSize: uploadResult.fileSize,
+        replyToAttachmentId: selectedAttachment?.id || null // 🔥 NUEVO
       };
 
       console.log('🎙️ ThreadPanel preparando mensaje de voz:', {
@@ -1517,11 +1581,33 @@ const ThreadPanel = ({
 
             {/* SEPARAR IMÁGENES DE ARCHIVOS */}
             {(() => {
-              const imageAttachments = message.attachments.filter(att =>
+              // Filtrar adjuntos si hay uno seleccionado
+              console.log('🖼️ ThreadPanel Render:', {
+                selectedAttachment,
+                msgAttachments: message.attachments
+              });
+
+              let attachmentsToShow = message.attachments;
+              if (selectedAttachment) {
+                // Comparar por ID (convertir a string para evitar problemas de tipo)
+                // Comparar por ID (convertir a string para evitar problemas de tipo)
+                attachmentsToShow = message.attachments.filter(att => {
+                  // 1. Si ambos tienen ID, la comparación debe ser EXCLUSIVA por ID
+                  if (att.id && selectedAttachment.id) {
+                    return String(att.id) === String(selectedAttachment.id);
+                  }
+
+                  // 2. Solo si NO hay IDs, usamos fallback de URL o MediaData
+                  return (att.url === selectedAttachment.url) ||
+                    (att.mediaData === selectedAttachment.mediaData);
+                });
+              }
+
+              const imageAttachments = attachmentsToShow.filter(att =>
                 att.mediaType === 'image' ||
                 (!att.mediaType && (att.url || att.mediaData)?.match(/\.(jpg|jpeg|png|gif|webp)$/i))
               );
-              const fileAttachments = message.attachments.filter(att => !imageAttachments.includes(att));
+              const fileAttachments = attachmentsToShow.filter(att => !imageAttachments.includes(att));
 
               return (
                 <>
@@ -1533,6 +1619,8 @@ const ThreadPanel = ({
                         const url = item.url || item.mediaData;
                         handleImageClick(url, item.fileName || 'Imagen');
                       }}
+                      onReply={handleAttachmentReply} // Primer botón: citar (siempre visible)
+                      onOpenThread={!selectedAttachment ? onSelectAttachment : undefined} // Segundo botón: solo en hilo general
                     />
                   )}
 
@@ -1585,6 +1673,12 @@ const ThreadPanel = ({
                               handleDownload(fileUrl, file.fileName);
                             }}>
                               <FaDownload />
+                            </div>
+                            <div className="wa-reply-icon-small" title="Responder a este archivo" onClick={(e) => {
+                              e.stopPropagation();
+                              handleAttachmentReply(file);
+                            }}>
+                              <FaReply size={14} />
                             </div>
                           </div>
                         );
@@ -1711,7 +1805,14 @@ const ThreadPanel = ({
           </div>
         ) : (
           <>
-            {groupThreadMessagesByDate(threadMessages).map((item, index) => {
+            {groupThreadMessagesByDate(
+              // 🔥 FILTRO DE DISCUSIÓN:
+              // Si NO hay adjunto seleccionado (Hilo General), ocultar mensajes que pertenecen a un adjunto específico.
+              // Si SÍ hay adjunto, threadMessages ya viene filtrado por el backend/socket.
+              !selectedAttachment
+                ? threadMessages.filter(msg => !msg.replyToAttachmentId)
+                : threadMessages
+            ).map((item, index) => {
               // Separador de fecha
               if (item.type === "date-separator") {
                 return (
@@ -2571,8 +2672,40 @@ const ThreadPanel = ({
                     <FaReply className="reply-icon" />
                     <span>Respondiendo a {replyingTo.from || replyingTo.sender}</span>
                   </div>
-                  <div className="reply-preview-text">
-                    {replyingTo.message || replyingTo.text || replyingTo.fileName || "Archivo adjunto"}
+                  <div className="reply-preview-body" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {replyingTo.attachment && (
+                      <div className="reply-preview-thumbnail" style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '4px',
+                        overflow: 'hidden',
+                        background: '#f0f2f5',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}>
+                        {replyingTo.attachment.mediaType === 'image' ? (
+                          <img
+                            src={replyingTo.attachment.mediaData || replyingTo.attachment.url}
+                            alt="Preview"
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onError={(e) => { e.target.style.display = 'none'; }}
+                          />
+                        ) : (
+                          <FaFileAlt size={16} color="#8696a0" />
+                        )}
+                      </div>
+                    )}
+                    <div className="reply-preview-text" style={{
+                      fontSize: '13px',
+                      color: '#6c757d',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {replyingTo.message || replyingTo.text || replyingTo.fileName || "Archivo adjunto"}
+                    </div>
                   </div>
                 </div>
                 <button className="reply-close-btn" onClick={handleCancelReply}>
@@ -2716,11 +2849,12 @@ const ThreadPanel = ({
               )}
             </div>
           </>
-        )}
-      </div>
+        )
+        }
+      </div >
 
       {/*  NUEVO: Modal de reenvío */}
-      <ForwardMessageModal
+      < ForwardMessageModal
         isOpen={showForwardModal}
         onClose={handleCloseForwardModal}
         message={messageToForward}
@@ -2729,7 +2863,7 @@ const ThreadPanel = ({
         user={user}
         socket={socket}
       />
-    </div>
+    </div >
   );
 };
 

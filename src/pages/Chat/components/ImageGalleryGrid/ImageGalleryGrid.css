@@ -75,3 +75,96 @@
     font-size: 24px;
     font-weight: bold;
 }
+
+.grid-reply-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #54656f;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.grid-item:hover .grid-reply-btn {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.grid-reply-btn:hover {
+    background-color: #ffffff;
+    color: #00a884;
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.grid-thread-indicator {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    padding: 4px 8px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: white;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    z-index: 5;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.grid-thread-indicator:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+    transform: scale(1.05);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.grid-thread-btn {
+    position: absolute;
+    top: 50px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #54656f;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 20;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.grid-item:hover .grid-thread-btn {
+    opacity: 1;
+    transform: scale(1);
+    transition-delay: 0.05s;
+}
+
+.grid-thread-btn:hover {
+    background-color: #ffffff;
+    color: #00a884;
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}

@@ -1963,3 +1963,31 @@ html.dark .new-messages-count {
 html.dark .thread-message-text.mentioned {
   background-color: rgba(253, 230, 234, 0.15) !important;
 }
+.wa-reply-icon-small {
+  color: #8696a0;
+  font-size: 14px;
+  padding: 3px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  margin-left: 4px;
+}
+
+.wa-reply-icon-small:hover {
+  background-color: rgba(37, 211, 102, 0.1);
+  color: #25d366;
+  border-color: rgba(37, 211, 102, 0.3);
+}
+
+.thread-filtered-label {
+  font-size: 11px;
+  color: #00a884;
+  background: rgba(0, 168, 132, 0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+  margin-left: 8px;
+}

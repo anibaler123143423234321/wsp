@@ -1,7 +1,8 @@
 import React from 'react';
+import { FaReply, FaComments } from 'react-icons/fa';
 import './ImageGalleryGrid.css';
 
-const ImageGalleryGrid = ({ items, onImageClick }) => {
+const ImageGalleryGrid = ({ items, onImageClick, onReply, onOpenThread }) => {
     if (!items || items.length === 0) return null;
 
     const count = items.length;
@@ -36,6 +37,49 @@ const ImageGalleryGrid = ({ items, onImageClick }) => {
                             alt={fileName}
                             loading="lazy"
                         />
+
+                        {onReply && (
+                            <button
+                                className="grid-reply-btn"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onReply(item);
+                                }}
+                                title="Responder a esta imagen"
+                            >
+                                <FaReply size={16} />
+                            </button>
+                        )}
+
+                        {onOpenThread && (
+                            <button
+                                className="grid-thread-btn"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onOpenThread(item);
+                                }}
+                                title="Responder en hilo"
+                            >
+                                <FaComments size={16} />
+                            </button>
+                        )}
+
+                        {item.threadCount > 0 && (
+                            <div
+                                className="grid-thread-indicator"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onOpenThread) {
+                                        onOpenThread(item);
+                                    } else if (onReply) {
+                                        onReply(item);
+                                    }
+                                }}
+                            >
+                                <span className="thread-count">{item.threadCount}</span>
+                                <span className="thread-text">respuestas</span>
+                            </div>
+                        )}
 
                         {isLastOne && (
                             <div className="grid-overlay">

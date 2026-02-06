@@ -2332,6 +2332,14 @@ const ChatContent = ({
                                 const index = imageAttachments.indexOf(item);
                                 openImagePreview(imageAttachments, index);
                               }}
+                              onReply={(attachment) => {
+                                if (window.handleReplyMessage) {
+                                  window.handleReplyMessage(message, attachment);
+                                }
+                              }}
+                              onOpenThread={(attachment) => {
+                                if (onOpenThread) onOpenThread(message, attachment);
+                              }}
                             />
                           )}
 
@@ -2387,6 +2395,23 @@ const ChatContent = ({
                                     }}>
                                       <FaDownload />
                                     </div>
+                                    <div className="wa-reply-icon-small" title="Responder a este archivo" onClick={(e) => {
+                                      e.stopPropagation(); // Evitar abrir el visor
+                                      if (window.handleReplyMessage) {
+                                        window.handleReplyMessage(message, file);
+                                      }
+                                    }}>
+                                      <FaReply size={14} />
+                                    </div>
+                                    {file.threadCount > 0 && (
+                                      <div className="wa-thread-icon-small" title="Ver hilo" onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (onOpenThread) onOpenThread(message, file);
+                                      }}>
+                                        <span className="wa-thread-count">{file.threadCount}</span>
+                                        <FaComments size={14} />
+                                      </div>
+                                    )}
                                   </div>
                                 );
                               })}
@@ -2403,6 +2428,14 @@ const ChatContent = ({
                     onImageClick={(img) => {
                       const index = message.messages.indexOf(img);
                       openImagePreview(message.messages, index);
+                    }}
+                    onReply={(attachment) => {
+                      if (window.handleReplyMessage) {
+                        window.handleReplyMessage(message, attachment);
+                      }
+                    }}
+                    onOpenThread={(attachment) => {
+                      if (onOpenThread) onOpenThread(message, attachment);
                     }}
                   />
 
@@ -2432,19 +2465,29 @@ const ChatContent = ({
                         {renderTextWithMentions(message.text || message.message)}
                       </div>
                     )}
-                    <LazyImage
-                      src={message.mediaData}
-                      alt="imagen"
-                      style={{
-                        width: '322px',
-                        height: 'auto',
-                        objectFit: 'contain',
-                        borderRadius: '8px',
-                        border: '1px solid #e5e7eb',
-                        cursor: 'pointer',
-                        display: 'block'
+                    <ImageGalleryGrid
+                      items={[{
+                        id: message.id,
+                        mediaData: message.mediaData,
+                        url: message.mediaData,
+                        fileName: message.fileName,
+                        threadCount: message.threadCount, // Asegurar que pase threadCount
+                        // ... propaga otras props si es necesario
+                      }]}
+                      onImageClick={() => openImagePreview([message], 0)}
+                      onReply={() => {
+                        if (window.handleReplyMessage) {
+                          window.handleReplyMessage(message, {
+                            id: message.id, // Mock attachment object for single image
+                            url: message.mediaData,
+                            mediaType: 'image',
+                            fileName: message.fileName
+                          });
+                        }
                       }}
-                      onClick={() => openImagePreview([message], 0)}
+                      onOpenThread={() => {
+                        if (onOpenThread) onOpenThread(message);
+                      }}
                     />
                   </>
                 ) : message.mediaType === 'video' && !/\.(mp3|wav|ogg|m4a|aac|opus|flac)$/i.test(message.fileName || "") ? (

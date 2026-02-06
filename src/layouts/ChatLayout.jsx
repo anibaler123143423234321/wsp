@@ -95,6 +95,7 @@ const ChatLayout = ({
   // State para el panel de hilos
   const [showThreadPanel, setShowThreadPanel] = React.useState(false);
   const [threadMessage, setThreadMessage] = React.useState(null);
+  const [selectedAttachment, setSelectedAttachment] = React.useState(null); // 🔥 NUEVO
 
   // State para el panel de información
   const [showCreatePollModal, setShowCreatePollModal] = React.useState(false);
@@ -137,9 +138,10 @@ const ChatLayout = ({
   };
 
   // Handler para abrir panel de hilos
-  const handleOpenThread = async (message) => {
-    console.log('🧵 handleOpenThread:', message.id, 'unread:', message.unreadThreadCount, 'updateMessage?', !!updateMessage);
+  const handleOpenThread = async (message, attachment = null) => {
+    console.log('🧵 handleOpenThread:', message.id, 'unread:', message.unreadThreadCount, 'attachmentId:', attachment?.id);
     setThreadMessage(message);
+    setSelectedAttachment(attachment); // 🔥 NUEVO: Guardar adjunto específico si existe
     setShowThreadPanel(true);
     setShowThreadsListPanel(false); // Cerrar lista de hilos al abrir un hilo específico
 
@@ -181,6 +183,7 @@ const ChatLayout = ({
   const handleBackToThreadsList = () => {
     setShowThreadPanel(false);
     setThreadMessage(null);
+    setSelectedAttachment(null); // 🔥 Limpiar
     setShowThreadsListPanel(true); // Abrir la lista de hilos nuevamente
   };
 
@@ -500,9 +503,12 @@ const ChatLayout = ({
         <ThreadPanel
           isOpen={showThreadPanel}
           message={threadMessage}
+          selectedAttachment={selectedAttachment} // 🔥 NUEVO
+          onSelectAttachment={setSelectedAttachment} // 🔥 NUEVO: Cambiar a hilo de adjunto
           onClose={() => {
             setShowThreadPanel(false);
             setThreadMessage(null); // Limpiar mensaje al cerrar
+            setSelectedAttachment(null); // 🔥 Limpiar
           }}
           currentUsername={currentUsername}
           socket={socket}

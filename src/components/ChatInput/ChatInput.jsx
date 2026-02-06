@@ -3,7 +3,7 @@ import './ChatInput.css';
 
 
 import React, { useState, useEffect, useRef } from 'react';
-import { FaPaperPlane, FaMicrophone, FaTimes, FaReply, FaEdit } from 'react-icons/fa';
+import { FaPaperPlane, FaMicrophone, FaTimes, FaReply, FaEdit, FaFileAlt, FaImage } from 'react-icons/fa';
 import EmojiPicker from 'emoji-picker-react';
 
 import AttachMenu from '../../pages/Chat/components/AttachMenu/AttachMenu';
@@ -206,8 +206,23 @@ const ChatInput = ({
                             <FaReply size={12} />
                             Respondiendo a {replyingTo.sender || replyingTo.from}
                         </div>
-                        <div className="chat-input-preview-text">
-                            {replyingTo.text || replyingTo.message || "Archivo multimedia"}
+                        <div className="chat-input-preview-body">
+                            {replyingTo.attachment && (
+                                <div className="chat-input-preview-thumbnail">
+                                    {replyingTo.attachment.mediaType === 'image' ? (
+                                        <img
+                                            src={replyingTo.attachment.mediaData || replyingTo.attachment.url}
+                                            alt="Preview"
+                                            onError={(e) => { e.target.style.display = 'none'; }}
+                                        />
+                                    ) : (
+                                        <FaFileAlt size={16} color="#8696a0" />
+                                    )}
+                                </div>
+                            )}
+                            <div className="chat-input-preview-text">
+                                {replyingTo.text || replyingTo.message || "Archivo multimedia"}
+                            </div>
                         </div>
                     </div>
                     <button className="chat-input-preview-close" onClick={onCancelReply} title="Cancelar respuesta">
