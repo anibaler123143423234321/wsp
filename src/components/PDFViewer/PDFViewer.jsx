@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
-import { FaTimes, FaChevronLeft, FaChevronRight, FaSearchMinus, FaSearchPlus } from 'react-icons/fa';
+import { FaTimes, FaChevronLeft, FaChevronRight, FaSearchMinus, FaSearchPlus, FaDownload } from 'react-icons/fa';
 
 // Configurar worker desde CDN (versión automática)
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-const PDFViewer = ({ pdfData, onClose }) => {
+const PDFViewer = ({ pdfData, fileName, onClose }) => {
     const [numPages, setNumPages] = useState(null);
     const [pageNumber, setPageNumber] = useState(1);
     const [scale, setScale] = useState(1.0);
@@ -42,6 +42,18 @@ const PDFViewer = ({ pdfData, onClose }) => {
     const goToNextPage = () => setPageNumber(prev => Math.min(numPages || 1, prev + 1));
     const zoomIn = () => setScale(prev => Math.min(3, prev + 0.2));
     const zoomOut = () => setScale(prev => Math.max(0.5, prev - 0.2));
+
+    // Descargar PDF
+    const handleDownload = () => {
+        if (pdfUrl) {
+            const link = document.createElement('a');
+            link.href = pdfUrl;
+            link.download = fileName || 'documento.pdf';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    };
 
     // ESC para cerrar
     React.useEffect(() => {
@@ -105,14 +117,25 @@ const PDFViewer = ({ pdfData, onClose }) => {
                         </div>
                     </div>
 
-                    {/* Cerrar */}
-                    <button
-                        onClick={onClose}
-                        className="p-2 hover:bg-red-100 text-gray-500 hover:text-red-500 rounded-full transition-colors"
-                        title="Cerrar (Esc)"
-                    >
-                        <FaTimes size={20} />
-                    </button>
+                    <div className="flex items-center">
+                        {/* Download */}
+                        <button
+                            onClick={handleDownload}
+                            className="p-2 hover:bg-gray-200 text-gray-500 hover:text-blue-600 rounded-full transition-colors mr-2"
+                            title="Descargar"
+                        >
+                            <FaDownload size={18} />
+                        </button>
+
+                        {/* Cerrar */}
+                        <button
+                            onClick={onClose}
+                            className="p-2 hover:bg-red-100 text-gray-500 hover:text-red-500 rounded-full transition-colors"
+                            title="Cerrar (Esc)"
+                        >
+                            <FaTimes size={20} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Visor de PDF */}

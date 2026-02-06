@@ -437,6 +437,7 @@ const ChatContent = ({
   const [messageToForward, setMessageToForward] = useState(null);
   const [showPdfViewer, setShowPdfViewer] = useState(false);
   const [pdfData, setPdfData] = useState(null); // Cambiar a pdfData (ArrayBuffer)
+  const [pdfFileName, setPdfFileName] = useState(""); // NUEVO: Nombre del archivo PDF
 
   //  PAGINACIÓN - Modal de reenvío
   const [forwardRoomsPage, setForwardRoomsPage] = useState(1);
@@ -2347,7 +2348,7 @@ const ChatContent = ({
                                     className="wa-file-card"
                                     onClick={() => {
                                       if (isPdf) {
-                                        console.log("📥 Descargando PDF:", fileUrl);
+                                        console.log("📥 Visualizando PDF:", fileUrl);
                                         // Si es una URL remota, intentar descargarla
                                         if (fileUrl && fileUrl.startsWith('http')) {
                                           apiService.fetchWithAuth(fileUrl)
@@ -2357,6 +2358,7 @@ const ChatContent = ({
                                             })
                                             .then(arrayBuffer => {
                                               setPdfData(arrayBuffer);
+                                              setPdfFileName(file.fileName || "documento.pdf"); // Guardar nombre
                                               setShowPdfViewer(true);
                                             })
                                             .catch(err => {
@@ -2365,8 +2367,6 @@ const ChatContent = ({
                                             });
                                         } else {
                                           // Si es base64 o local
-                                          // ... lógica para mostrar base64 directa si fuera necesario, 
-                                          // por simplicidad manejamos descarga o visualizador si ya tenemos lógica
                                           handleDownload(fileUrl, file.fileName);
                                         }
                                       } else {
@@ -2381,7 +2381,10 @@ const ChatContent = ({
                                         {formatFileSize(file.fileSize)} • {isPdf ? 'Click para ver' : 'Click para descargar'}
                                       </div>
                                     </div>
-                                    <div className="wa-download-icon">
+                                    <div className="wa-download-icon" onClick={(e) => {
+                                      e.stopPropagation(); // Evitar abrir el visor
+                                      handleDownload(fileUrl, file.fileName);
+                                    }}>
                                       <FaDownload />
                                     </div>
                                   </div>
@@ -3861,6 +3864,7 @@ const ChatContent = ({
         showPdfViewer && pdfData && (
           <PDFViewer
             pdfData={pdfData}
+            fileName={pdfFileName}
             onClose={() => {
               setShowPdfViewer(false);
               setPdfData(null);

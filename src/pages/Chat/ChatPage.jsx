@@ -1391,7 +1391,13 @@ const ChatPage = () => {
 
       // 3. Emitir por socket (Esto hará que 'useSocketListeners' reciba el evento y actualice la UI)
       if (socket && socket.connected) {
-        console.log('📡 DEBUG - Emitiendo threadMessage con id:', savedMessage.id);
+        console.log('📡 DEBUG - Emitiendo threadMessage:', {
+          id: savedMessage.id,
+          threadId: messageData.threadId,
+          isGroup: !!messageData.isGroup,
+          roomCode: messageData.roomCode,
+          to: messageObj.to
+        });
         socket.emit("threadMessage", {
           ...savedMessage,
           //  ASEGURAR RUTAS PARA CLUSTER:
@@ -2015,7 +2021,6 @@ const ChatPage = () => {
         onCancelReply={handleCancelReply}
         onAddUsersToRoom={roomManagement.handleAddUsersToRoom}
         onRemoveUsersFromRoom={roomManagement.handleRemoveUsersFromRoom}
-        onOpenThread={(message) => { }}
         onSendThreadMessage={handleSendThreadMessage}
         onSendVoiceMessage={handleSendVoiceMessage}
         onStartVideoCall={handleStartVideoCall}

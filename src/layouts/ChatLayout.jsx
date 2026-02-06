@@ -146,17 +146,17 @@ const ChatLayout = ({
     // 🔥 NUEVO: Actualizar mensaje en la lista para poner SVG gris inmediatamente
     if (updateMessage && message.unreadThreadCount > 0) {
       console.log('🔧 Llamando updateMessage para id:', message.id);
-      updateMessage(message.id, { 
+      updateMessage(message.id, {
         unreadThreadCount: 0,
         hasUnreadThreadMentions: false // 🔥 Limpiar marca de menciones
       });
-      
+
       // 🔥 CRÍTICO: Marcar hilo como leído en el backend
       try {
-        const currentUserName = user?.nombre && user?.apellido 
-          ? `${user.nombre} ${user.apellido}` 
+        const currentUserName = user?.nombre && user?.apellido
+          ? `${user.nombre} ${user.apellido}`
           : user?.username;
-        
+
         if (currentUserName) {
           console.log('📡 Marcando hilo como leído en backend:', message.id);
           await apiService.markThreadAsRead(message.id, currentUserName);
@@ -165,7 +165,7 @@ const ChatLayout = ({
         console.error('Error al marcar hilo como leído:', error);
       }
     }
-    
+
     // 🔥 NUEVO: Limpiar pendingThreads para esta sala
     if (currentRoomCode && setPendingThreads) {
       console.log('🟢 Limpiando pendingThreads para sala:', currentRoomCode);
@@ -183,6 +183,24 @@ const ChatLayout = ({
     setThreadMessage(null);
     setShowThreadsListPanel(true); // Abrir la lista de hilos nuevamente
   };
+
+  // 🔥 NUEVO: Sincronizador de ID de mensaje de hilo
+  // Si el mensaje del hilo tiene un ID temporal, vigilamos la lista de mensajes
+  // por si llega el ID real confirmado por el servidor.
+  React.useEffect(() => {
+    if (showThreadPanel && threadMessage && String(threadMessage.id).startsWith('temp_')) {
+      // Buscar en la lista de mensajes uno que ya no sea temporal y que coincida
+      const realMessage = messages.find(m =>
+        (m.tempId === threadMessage.id || m.id === threadMessage.id.replace('temp_', '')) ||
+        (m.from === threadMessage.from && (m.text === threadMessage.text || m.message === threadMessage.message) && !String(m.id).startsWith('temp_'))
+      );
+
+      if (realMessage && !String(realMessage.id).startsWith('temp_')) {
+        console.log('🔄 Sincronizando ID real para el panel de hilos:', realMessage.id);
+        setThreadMessage(realMessage);
+      }
+    }
+  }, [messages, showThreadPanel, threadMessage]);
 
   // Cerrar paneles si cambia el chat
   React.useEffect(() => {

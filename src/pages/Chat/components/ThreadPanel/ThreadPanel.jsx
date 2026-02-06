@@ -36,6 +36,8 @@ import useEnterToSend from "../../../../hooks/useEnterToSend"; // NUEVO: Hook pa
 import MessageSelectionManager from "../ChatContent/MessageSelectionManager/MessageSelectionManager"; //  NUEVO: Barra de selección
 import ImageGalleryGrid from "../ImageGalleryGrid/ImageGalleryGrid"; // Para multi-attachments
 
+import PDFViewer from "../../../../components/PDFViewer/PDFViewer"; // Importar PDFViewer
+
 import "./ThreadPanel.css";
 
 // Colores para nombres de usuarios (estilo Slack/Discord)
@@ -201,6 +203,8 @@ const ThreadPanel = ({
   onBackToThreadsList, //  NUEVO: Callback para volver a la lista de hilos
   onUpdateParentMessage, // 🔥 NUEVO: Callback para actualizar contador del mensaje padre
 }) => {
+  //  NUEVO: Detectar si el mensaje padre tiene un ID temporal
+  const isTemporaryId = message?.id && String(message.id).startsWith('temp_');
   // if (!isOpen) return null; //  MOVIDO AL FINAL PARA RESPETAR REGLAS DE HOOKS
   const [threadMessages, setThreadMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -245,6 +249,11 @@ const ThreadPanel = ({
   //  NUEVO: Estado para botón flotante de mensajes nuevos
   const [newMessagesCount, setNewMessagesCount] = useState(0);
   const prevThreadMessagesLengthRef = useRef(0);
+
+  // ESTADOS para PDF Viewer
+  const [showPdfViewer, setShowPdfViewer] = useState(false);
+  const [pdfData, setPdfData] = useState(null);
+  const [pdfFileName, setPdfFileName] = useState("");
 
   // ============================================================
   // ESTADOS - Selección múltiple (Usando Hook Personalizado)
@@ -866,24 +875,44 @@ const ThreadPanel = ({
       } : {};
 
       // Datos base del mensaje
+      // DETERMINACIÓN ROBUSTA DE HILO Y GRUPO
+      const resolvedThreadId = Number(message.id);
+      const isGroupActual = !!(message.isGroup || currentRoomCode);
+
       // Para grupos: usar receiver o to del mensaje, o el roomCode como fallback
-      const toValue = message.isGroup
+      const toValue = isGroupActual
         ? (message.receiver || message.to || currentRoomCode)
         : (message.realSender === currentUsername ? message.receiver : message.realSender);
 
       // Usar roomCode del mensaje si existe, sino usar currentRoomCode
-      const roomCodeValue = message.isGroup ? (message.roomCode || currentRoomCode) : undefined;
+      const roomCodeValue = isGroupActual ? (message.roomCode || currentRoomCode) : undefined;
 
       const baseMessageData = {
-        threadId: Number(message.id), // Asegurar que sea número
+        threadId: resolvedThreadId,
         from: currentUsername,
         to: toValue,
-        isGroup: message.isGroup,
+        isGroup: isGroupActual,
         roomCode: roomCodeValue,
         ...replyData,
       };
 
-      console.log('📤 ThreadPanel enviando mensaje:', baseMessageData);
+      console.log('📤 ThreadPanel preparando mensaje:', {
+        resolvedThreadId,
+        isGroupActual,
+        toValue,
+        roomCodeValue,
+        originalMessageId: message.id
+      });
+
+      if (!resolvedThreadId || isNaN(resolvedThreadId)) {
+        console.error('❌ ERROR CRÍTICO: threadId inválido al enviar respuesta!', {
+          messageId: message.id,
+          resolvedThreadId
+        });
+        // Si el ID es inválido, no podemos enviar el mensaje correctamente
+        alert("Error: El ID del hilo es inválido. Por favor intenta cerrar y abrir el hilo de nuevo.");
+        return;
+      }
 
       // 🔥 REFACTORED: Subir TODOS los archivos primero, luego enviar UN solo mensaje con attachments
       if (currentMediaFiles.length > 0) {
@@ -968,25 +997,44 @@ const ThreadPanel = ({
     try {
       const uploadResult = await apiService.uploadFile(audioFile, "chat");
 
+      const resolvedThreadId = Number(message.id);
+      const isGroupActual = !!(message.isGroup || currentRoomCode);
+
       // Para grupos: usar receiver o to del mensaje, o el roomCode como fallback
-      const toValue = message.isGroup
+      const toValue = isGroupActual
         ? (message.receiver || message.to || currentRoomCode)
         : (message.realSender === currentUsername ? message.receiver : message.realSender);
 
-      const roomCodeValue = message.isGroup ? (message.roomCode || currentRoomCode) : undefined;
+      const roomCodeValue = isGroupActual ? (message.roomCode || currentRoomCode) : undefined;
 
       const messageData = {
         text: "",
-        threadId: Number(message.id), // Asegurar que sea número
+        threadId: resolvedThreadId,
         from: currentUsername,
         to: toValue,
-        isGroup: message.isGroup,
+        isGroup: isGroupActual,
         roomCode: roomCodeValue,
         mediaType: "audio",
         mediaData: uploadResult.fileUrl,
         fileName: uploadResult.fileName,
         fileSize: uploadResult.fileSize,
       };
+
+      console.log('🎙️ ThreadPanel preparando mensaje de voz:', {
+        resolvedThreadId,
+        isGroupActual,
+        toValue,
+        roomCodeValue
+      });
+
+      if (!resolvedThreadId || isNaN(resolvedThreadId)) {
+        console.error('❌ ERROR CRÍTICO: threadId inválido al enviar audio!', {
+          messageId: message.id,
+          resolvedThreadId
+        });
+        alert("Error: El ID del hilo es inválido. Por favor intenta cerrar y abrir el hilo de nuevo.");
+        return;
+      }
       //  CONFIAR EN EL BACKEND - NO agregar nada localmente
       // El socket devolverá el mensaje con threadMessage
 
@@ -1275,10 +1323,11 @@ const ThreadPanel = ({
   // NUEVO: Función de descarga robusta (igual que ChatContent)
   const handleDownload = async (url, fileName) => {
     if (!url) return;
-
     try {
       // 1. Intentamos descargar como Blob para forzar la descarga directa
       const response = await apiService.fetchWithAuth(url);
+      if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
 
@@ -1293,7 +1342,6 @@ const ThreadPanel = ({
       window.URL.revokeObjectURL(blobUrl);
     } catch (error) {
       console.error("Error al descargar blob, intentando método alternativo:", error);
-
       // 2. Fallback: Método clásico (si fetch falla por CORS, por ejemplo)
       const link = document.createElement("a");
       link.href = url;
@@ -1458,7 +1506,96 @@ const ThreadPanel = ({
         </div>
 
         {/* Mostrar contenido según el tipo de mensaje */}
-        {message.mediaType === "audio" && message.mediaData ? (
+        {message.attachments && message.attachments.length > 0 ? (
+          <div className="thread-main-message-media">
+            {/* Mostrar texto si lo hay */}
+            {(message.text || message.message) && (
+              <div className="thread-main-message-text" style={{ marginBottom: '12px' }}>
+                {renderTextWithMentions(message.text || message.message)}
+              </div>
+            )}
+
+            {/* SEPARAR IMÁGENES DE ARCHIVOS */}
+            {(() => {
+              const imageAttachments = message.attachments.filter(att =>
+                att.mediaType === 'image' ||
+                (!att.mediaType && (att.url || att.mediaData)?.match(/\.(jpg|jpeg|png|gif|webp)$/i))
+              );
+              const fileAttachments = message.attachments.filter(att => !imageAttachments.includes(att));
+
+              return (
+                <>
+                  {/* 1. Renderizar Imágenes en Grid */}
+                  {imageAttachments.length > 0 && (
+                    <ImageGalleryGrid
+                      items={imageAttachments}
+                      onImageClick={(item) => {
+                        const url = item.url || item.mediaData;
+                        handleImageClick(url, item.fileName || 'Imagen');
+                      }}
+                    />
+                  )}
+
+                  {/* 2. Renderizar Archivos como Lista */}
+                  {fileAttachments.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: imageAttachments.length > 0 ? '12px' : '0' }}>
+                      {fileAttachments.map((file, fIdx) => {
+                        const fileUrl = file.url || file.mediaData;
+                        const isPdf = file.fileName?.toLowerCase().endsWith('.pdf') || file.mediaType === 'application/pdf' || file.type === 'application/pdf';
+
+                        return (
+                          <div
+                            key={fIdx}
+                            className="wa-file-card"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => {
+                              if (isPdf) {
+                                if (fileUrl && fileUrl.startsWith('http')) {
+                                  apiService.fetchWithAuth(fileUrl)
+                                    .then(res => {
+                                      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                                      return res.arrayBuffer();
+                                    })
+                                    .then(arrayBuffer => {
+                                      setPdfData(arrayBuffer);
+                                      setPdfFileName(file.fileName || "documento.pdf");
+                                      setShowPdfViewer(true);
+                                    })
+                                    .catch(err => {
+                                      console.error("❌ Error loading PDF:", err);
+                                      handleDownload(fileUrl, file.fileName);
+                                    });
+                                } else {
+                                  handleDownload(fileUrl, file.fileName);
+                                }
+                              } else {
+                                handleDownload(fileUrl, file.fileName);
+                              }
+                            }}
+                          >
+                            <div className="wa-file-icon">{renderFileIcon(file.fileName)}</div>
+                            <div className="wa-file-info">
+                              <div className="wa-file-name">{file.fileName || 'Archivo adjunto'}</div>
+                              <div className="wa-file-meta">
+                                {formatFileSize(file.fileSize)} • {isPdf ? 'Click para ver' : 'Click para descargar'}
+                              </div>
+                            </div>
+                            <div className="wa-download-icon" onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownload(fileUrl, file.fileName);
+                            }}>
+                              <FaDownload />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        ) : message.mediaType === "audio" && message.mediaData ? (
           <div className="thread-main-message-media">
             <AudioPlayer
               src={message.mediaData}
@@ -1514,20 +1651,43 @@ const ThreadPanel = ({
               className="wa-file-card"
               style={{ cursor: 'pointer' }}
               onClick={() => {
-                const link = document.createElement("a");
-                link.href = message.mediaData;
-                link.download = message.fileName || "archivo";
-                link.click();
+                const isPdf = message.fileName?.toLowerCase().endsWith('.pdf') || message.mediaType === 'application/pdf';
+                if (isPdf) {
+                  const fileUrl = message.mediaData;
+                  if (fileUrl && fileUrl.startsWith('http')) {
+                    apiService.fetchWithAuth(fileUrl)
+                      .then(res => {
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        return res.arrayBuffer();
+                      })
+                      .then(arrayBuffer => {
+                        setPdfData(arrayBuffer);
+                        setPdfFileName(message.fileName || "documento.pdf");
+                        setShowPdfViewer(true);
+                      })
+                      .catch(err => {
+                        console.error("❌ Error loading PDF:", err);
+                        handleDownload(message.mediaData, message.fileName);
+                      });
+                  } else {
+                    handleDownload(message.mediaData, message.fileName);
+                  }
+                } else {
+                  handleDownload(message.mediaData, message.fileName);
+                }
               }}
             >
               <div className="wa-file-icon">{renderFileIcon(message.fileName)}</div>
               <div className="wa-file-info">
                 <div className="wa-file-name">{message.fileName || "Archivo"}</div>
                 <div className="wa-file-meta">
-                  {formatFileSize(message.fileSize)} • Click para descargar
+                  {formatFileSize(message.fileSize)} • {(message.fileName?.toLowerCase().endsWith('.pdf') || message.mediaType === 'application/pdf') ? 'Click para ver' : 'Click para descargar'}
                 </div>
               </div>
-              <div className="wa-download-icon">
+              <div className="wa-download-icon" onClick={(e) => {
+                e.stopPropagation();
+                handleDownload(message.mediaData, message.fileName);
+              }}>
                 <FaDownload />
               </div>
             </div>
@@ -1927,20 +2087,45 @@ const ThreadPanel = ({
                                         className="wa-file-card"
                                         style={{ cursor: 'pointer' }}
                                         onClick={() => {
-                                          const link = document.createElement("a");
-                                          link.href = fileUrl;
-                                          link.download = file.fileName || "archivo";
-                                          link.click();
+                                          const isPdf = file.fileName?.toLowerCase().endsWith('.pdf') || file.mediaType === 'application/pdf' || file.type === 'application/pdf';
+                                          if (isPdf) {
+                                            const fileUrl = file.url || file.mediaData;
+                                            if (fileUrl && fileUrl.startsWith('http')) {
+                                              apiService.fetchWithAuth(fileUrl)
+                                                .then(res => {
+                                                  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                                                  return res.arrayBuffer();
+                                                })
+                                                .then(arrayBuffer => {
+                                                  setPdfData(arrayBuffer);
+                                                  setPdfFileName(file.fileName || "documento.pdf");
+                                                  setShowPdfViewer(true);
+                                                })
+                                                .catch(err => {
+                                                  console.error("❌ Error loading PDF:", err);
+                                                  handleDownload(fileUrl, file.fileName);
+                                                });
+                                            } else {
+                                              handleDownload(fileUrl, file.fileName);
+                                            }
+                                          } else {
+                                            const fileUrl = file.url || file.mediaData;
+                                            handleDownload(fileUrl, file.fileName);
+                                          }
                                         }}
                                       >
                                         <div className="wa-file-icon">{renderFileIcon(file.fileName)}</div>
                                         <div className="wa-file-info">
                                           <div className="wa-file-name">{file.fileName || 'Archivo adjunto'}</div>
                                           <div className="wa-file-meta">
-                                            {formatFileSize(file.fileSize)} • Click para descargar
+                                            {formatFileSize(file.fileSize)} • {(file.fileName?.toLowerCase().endsWith('.pdf') || file.mediaType === 'application/pdf') ? 'Click para ver' : 'Click para descargar'}
                                           </div>
                                         </div>
-                                        <div className="wa-download-icon">
+                                        <div className="wa-download-icon" onClick={(e) => {
+                                          e.stopPropagation();
+                                          const fileUrl = file.url || file.mediaData;
+                                          handleDownload(fileUrl, file.fileName);
+                                        }}>
                                           <FaDownload />
                                         </div>
                                       </div>
@@ -2013,20 +2198,42 @@ const ThreadPanel = ({
                           className="wa-file-card"
                           style={{ cursor: 'pointer' }}
                           onClick={() => {
-                            const link = document.createElement("a");
-                            link.href = msg.mediaData;
-                            link.download = msg.fileName || "archivo";
-                            link.click();
+                            const isPdf = msg.fileName?.toLowerCase().endsWith('.pdf') || msg.mediaType === 'application/pdf';
+                            if (isPdf) {
+                              if (msg.mediaData && msg.mediaData.startsWith('http')) {
+                                apiService.fetchWithAuth(msg.mediaData)
+                                  .then(res => {
+                                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                                    return res.arrayBuffer();
+                                  })
+                                  .then(arrayBuffer => {
+                                    setPdfData(arrayBuffer);
+                                    setPdfFileName(msg.fileName || "documento.pdf");
+                                    setShowPdfViewer(true);
+                                  })
+                                  .catch(err => {
+                                    console.error("❌ Error loading PDF:", err);
+                                    handleDownload(msg.mediaData, msg.fileName);
+                                  });
+                              } else {
+                                handleDownload(msg.mediaData, msg.fileName);
+                              }
+                            } else {
+                              handleDownload(msg.mediaData, msg.fileName);
+                            }
                           }}
                         >
                           <div className="wa-file-icon">{renderFileIcon(msg.fileName)}</div>
                           <div className="wa-file-info">
                             <div className="wa-file-name">{msg.fileName || "Archivo adjunto"}</div>
                             <div className="wa-file-meta">
-                              {formatFileSize(msg.fileSize)} • Click para descargar
+                              {formatFileSize(msg.fileSize)} • {(msg.fileName?.toLowerCase().endsWith('.pdf') || msg.mediaType === 'application/pdf') ? 'Click para ver' : 'Click para descargar'}
                             </div>
                           </div>
-                          <div className="wa-download-icon">
+                          <div className="wa-download-icon" onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownload(msg.mediaData, msg.fileName);
+                          }}>
                             <FaDownload />
                           </div>
                         </div>
@@ -2301,6 +2508,17 @@ const ThreadPanel = ({
           </>
         )
         }
+        {/* VISOR DE PDF */}
+        {showPdfViewer && pdfData && (
+          <PDFViewer
+            pdfData={pdfData}
+            fileName={pdfFileName}
+            onClose={() => {
+              setShowPdfViewer(false);
+              setPdfData(null);
+            }}
+          />
+        )}
 
         {/*  BOTÓN FLOTANTE DE MENSAJES NUEVOS */}
         {newMessagesCount > 0 && (
@@ -2321,158 +2539,184 @@ const ThreadPanel = ({
       </div>
 
       <div className="thread-input-container">
-        {/*  NUEVO: Vista previa de respuesta */}
-        {replyingTo && (
-          <div className="thread-reply-preview">
-            <div className="reply-preview-content">
-              <div className="reply-preview-header">
-                <FaReply className="reply-icon" />
-                <span>Respondiendo a {replyingTo.from || replyingTo.sender}</span>
-              </div>
-              <div className="reply-preview-text">
-                {replyingTo.message || replyingTo.text || replyingTo.fileName || "Archivo adjunto"}
-              </div>
+        {/* 🔥 NUEVO: Bloqueo de entrada si el ID es temporal */}
+        {isTemporaryId ? (
+          <div style={{
+            padding: '20px',
+            backgroundColor: '#f0f2f5',
+            borderRadius: '12px',
+            textAlign: 'center',
+            margin: '12px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '12px',
+            border: '1px dashed #d1d7db'
+          }}>
+            <div className="wa-loading-spinner" style={{ width: '24px', height: '24px' }}></div>
+            <div style={{ color: '#667781', fontSize: '14px', fontWeight: '500' }}>
+              Enviando mensaje principal...
             </div>
-            <button className="reply-close-btn" onClick={handleCancelReply}>
-              <FaTimes />
-            </button>
+            <div style={{ color: '#8696a0', fontSize: '12px' }}>
+              Podrás responder en cuanto se complete la subida.
+            </div>
           </div>
-        )}
-
-        {/* Vista previa de archivos */}
-        {mediaFiles.length > 0 && (
-          <MediaPreviewList
-            previews={mediaPreviews}
-            onRemove={handleRemoveMediaFile}
-            onCancel={cancelMediaUpload}
-          />
-        )}
-
-        {showEmojiPicker && (
-          <div className="thread-emoji-picker" ref={emojiPickerRef}>
-            <EmojiPicker
-              onEmojiClick={handleEmojiClick}
-              width={280}
-              height={350}
-            />
-          </div>
-        )}
-
-        {/*  NUEVO: Dropdown de sugerencias de menciones */}
-        {showMentionSuggestions && filteredMembers.length > 0 && (
-          <div className="thread-mention-dropdown" ref={mentionDropdownRef}>
-            {filteredMembers.map((user, index) => {
-              let displayName = '';
-              if (typeof user === "string") {
-                displayName = user;
-              } else if (user && typeof user === 'object') {
-                displayName = user.displayName
-                  || ((user.nombre && user.apellido) ? `${user.nombre} ${user.apellido}` : '')
-                  || user.username
-                  || user.nombre
-                  || '';
-              }
-
-              return (
-                <div
-                  key={index}
-                  className={`thread-mention-suggestion ${index === selectedMentionIndex ? 'selected' : ''}`}
-                  onClick={() => insertMention(user)}
-                  onMouseEnter={() => setSelectedMentionIndex(index)}
-                >
-                  <div className="mention-avatar">
-                    {user.picture ? (
-                      <img src={user.picture} alt={displayName} />
-                    ) : (
-                      <div className="mention-avatar-placeholder">
-                        {displayName.charAt(0).toUpperCase()}
-                      </div>
-                    )}
+        ) : (
+          <>
+            {/*  NUEVO: Vista previa de respuesta */}
+            {replyingTo && (
+              <div className="thread-reply-preview">
+                <div className="reply-preview-content">
+                  <div className="reply-preview-header">
+                    <FaReply className="reply-icon" />
+                    <span>Respondiendo a {replyingTo.from || replyingTo.sender}</span>
                   </div>
-                  <div className="mention-info">
-                    <div className="mention-name">{displayName}</div>
-                    {user.role && (
-                      <div className="mention-role">{user.role}</div>
-                    )}
+                  <div className="reply-preview-text">
+                    {replyingTo.message || replyingTo.text || replyingTo.fileName || "Archivo adjunto"}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
+                <button className="reply-close-btn" onClick={handleCancelReply}>
+                  <FaTimes />
+                </button>
+              </div>
+            )}
 
-        <div className="thread-input-wrapper">
-          {/* Menú de adjuntar reutilizable (estilo WhatsApp) */}
-          <AttachMenu onFileSelect={processFiles} disabled={isSending} />
-
-          {/* Botón de emoji - SVG igual que ChatContent */}
-          <button
-            className="thread-emoji-btn"
-            onClick={() => !isSending && setShowEmojiPicker(!showEmojiPicker)}
-            title="Emojis"
-            disabled={isSending}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              height="24"
-              width="24"
-              preserveAspectRatio="xMidYMid meet"
-              className="thread-emoji-icon"
-              fill="none"
-            >
-              <path
-                d="M8.49893 10.2521C9.32736 10.2521 9.99893 9.5805 9.99893 8.75208C9.99893 7.92365 9.32736 7.25208 8.49893 7.25208C7.6705 7.25208 6.99893 7.92365 6.99893 8.75208C6.99893 9.5805 7.6705 10.2521 8.49893 10.2521Z"
-                fill="currentColor"
+            {/* Vista previa de archivos */}
+            {mediaFiles.length > 0 && (
+              <MediaPreviewList
+                previews={mediaPreviews}
+                onRemove={handleRemoveMediaFile}
+                onCancel={cancelMediaUpload}
               />
-              <path
-                d="M17.0011 8.75208C17.0011 9.5805 16.3295 10.2521 15.5011 10.2521C14.6726 10.2521 14.0011 9.5805 14.0011 8.75208C14.0011 7.92365 14.6726 7.25208 15.5011 7.25208C16.3295 7.25208 17.0011 7.92365 17.0011 8.75208Z"
-                fill="currentColor"
+            )}
+
+            {showEmojiPicker && (
+              <div className="thread-emoji-picker" ref={emojiPickerRef}>
+                <EmojiPicker
+                  onEmojiClick={handleEmojiClick}
+                  width={280}
+                  height={350}
+                />
+              </div>
+            )}
+
+            {/*  NUEVO: Dropdown de sugerencias de menciones */}
+            {showMentionSuggestions && filteredMembers.length > 0 && (
+              <div className="thread-mention-dropdown" ref={mentionDropdownRef}>
+                {filteredMembers.map((user, index) => {
+                  let displayName = '';
+                  if (typeof user === "string") {
+                    displayName = user;
+                  } else if (user && typeof user === 'object') {
+                    displayName = user.displayName
+                      || ((user.nombre && user.apellido) ? `${user.nombre} ${user.apellido}` : '')
+                      || user.username
+                      || user.nombre
+                      || '';
+                  }
+
+                  return (
+                    <div
+                      key={index}
+                      className={`thread-mention-suggestion ${index === selectedMentionIndex ? 'selected' : ''}`}
+                      onClick={() => insertMention(user)}
+                      onMouseEnter={() => setSelectedMentionIndex(index)}
+                    >
+                      <div className="mention-avatar">
+                        {user.picture ? (
+                          <img src={user.picture} alt={displayName} />
+                        ) : (
+                          <div className="mention-avatar-placeholder">
+                            {displayName.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="mention-info">
+                        <div className="mention-name">{displayName}</div>
+                        {user.role && (
+                          <div className="mention-role">{user.role}</div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="thread-input-wrapper">
+              {/* Menú de adjuntar reutilizable (estilo WhatsApp) */}
+              <AttachMenu onFileSelect={processFiles} disabled={isSending} />
+
+              {/* Botón de emoji - SVG igual que ChatContent */}
+              <button
+                className="thread-emoji-btn"
+                onClick={() => !isSending && setShowEmojiPicker(!showEmojiPicker)}
+                title="Emojis"
+                disabled={isSending}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  height="24"
+                  width="24"
+                  preserveAspectRatio="xMidYMid meet"
+                  className="thread-emoji-icon"
+                  fill="none"
+                >
+                  <path
+                    d="M8.49893 10.2521C9.32736 10.2521 9.99893 9.5805 9.99893 8.75208C9.99893 7.92365 9.32736 7.25208 8.49893 7.25208C7.6705 7.25208 6.99893 7.92365 6.99893 8.75208C6.99893 9.5805 7.6705 10.2521 8.49893 10.2521Z"
+                    fill="currentColor"
+                  />
+                  <path
+                    d="M17.0011 8.75208C17.0011 9.5805 16.3295 10.2521 15.5011 10.2521C14.6726 10.2521 14.0011 9.5805 14.0011 8.75208C14.0011 7.92365 14.6726 7.25208 15.5011 7.25208C16.3295 7.25208 17.0011 7.92365 17.0011 8.75208Z"
+                    fill="currentColor"
+                  />
+                  <path
+                    fillRule="evenodd"
+                    clipRule="evenodd"
+                    d="M16.8221 19.9799C15.5379 21.2537 13.8087 21.9781 12 22H9.27273C5.25611 22 2 18.7439 2 14.7273V9.27273C2 5.25611 5.25611 2 9.27273 2H14.7273C18.7439 2 22 5.25611 22 9.27273V11.8141C22 13.7532 21.2256 15.612 19.8489 16.9776L16.8221 19.9799ZM14.7273 4H9.27273C6.36068 4 4 6.36068 4 9.27273V14.7273C4 17.6393 6.36068 20 9.27273 20H11.3331C11.722 19.8971 12.0081 19.5417 12.0058 19.1204L11.9935 16.8564C11.9933 16.8201 11.9935 16.784 11.9941 16.7479C11.0454 16.7473 10.159 16.514 9.33502 16.0479C8.51002 15.5812 7.84752 14.9479 7.34752 14.1479C7.24752 13.9479 7.25585 13.7479 7.37252 13.5479C7.48919 13.3479 7.66419 13.2479 7.89752 13.2479L13.5939 13.2479C14.4494 12.481 15.5811 12.016 16.8216 12.0208L19.0806 12.0296C19.5817 12.0315 19.9889 11.6259 19.9889 11.1248V9.07648H19.9964C19.8932 6.25535 17.5736 4 14.7273 4ZM14.0057 19.1095C14.0066 19.2605 13.9959 19.4089 13.9744 19.5537C14.5044 19.3124 14.9926 18.9776 15.4136 18.5599L18.4405 15.5576C18.8989 15.1029 19.2653 14.5726 19.5274 13.996C19.3793 14.0187 19.2275 14.0301 19.0729 14.0295L16.8138 14.0208C15.252 14.0147 13.985 15.2837 13.9935 16.8455L14.0057 19.1095Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </button>
+
+              <textarea
+                ref={inputRef}
+                className="thread-input"
+                value={input}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
+
+                placeholder="Escribe un mensaje"
+                rows={1}
+                disabled={isSending}
               />
-              <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M16.8221 19.9799C15.5379 21.2537 13.8087 21.9781 12 22H9.27273C5.25611 22 2 18.7439 2 14.7273V9.27273C2 5.25611 5.25611 2 9.27273 2H14.7273C18.7439 2 22 5.25611 22 9.27273V11.8141C22 13.7532 21.2256 15.612 19.8489 16.9776L16.8221 19.9799ZM14.7273 4H9.27273C6.36068 4 4 6.36068 4 9.27273V14.7273C4 17.6393 6.36068 20 9.27273 20H11.3331C11.722 19.8971 12.0081 19.5417 12.0058 19.1204L11.9935 16.8564C11.9933 16.8201 11.9935 16.784 11.9941 16.7479C11.0454 16.7473 10.159 16.514 9.33502 16.0479C8.51002 15.5812 7.84752 14.9479 7.34752 14.1479C7.24752 13.9479 7.25585 13.7479 7.37252 13.5479C7.48919 13.3479 7.66419 13.2479 7.89752 13.2479L13.5939 13.2479C14.4494 12.481 15.5811 12.016 16.8216 12.0208L19.0806 12.0296C19.5817 12.0315 19.9889 11.6259 19.9889 11.1248V9.07648H19.9964C19.8932 6.25535 17.5736 4 14.7273 4ZM14.0057 19.1095C14.0066 19.2605 13.9959 19.4089 13.9744 19.5537C14.5044 19.3124 14.9926 18.9776 15.4136 18.5599L18.4405 15.5576C18.8989 15.1029 19.2653 14.5726 19.5274 13.996C19.3793 14.0187 19.2275 14.0301 19.0729 14.0295L16.8138 14.0208C15.252 14.0147 13.985 15.2837 13.9935 16.8455L14.0057 19.1095Z"
-                fill="currentColor"
-              />
-            </svg>
-          </button>
 
-          <textarea
-            ref={inputRef}
-            className="thread-input"
-            value={input}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            onPaste={handlePaste}
-
-            placeholder="Escribe un mensaje"
-            rows={1}
-            disabled={isSending}
-          />
-
-          {/* Botón de grabación de voz O enviar (estilo WhatsApp) */}
-          {(!input.trim() && mediaFiles.length === 0) ? (
-            /* MICRÓFONO - cuando no hay texto */
-            <VoiceRecorder
-              onSendAudio={handleSendVoiceMessage}
-              canSendMessages={!isSending}
-            />
-          ) : (
-            /* BOTÓN ENVIAR - cuando hay texto o archivos */
-            <button
-              className="thread-send-btn"
-              onClick={handleSend}
-              disabled={(!input.trim() && mediaFiles.length === 0) || isSending}
-              title="Enviar"
-            >
-              {isSending ? (
-                <FaSpinner className="thread-spinner" />
+              {/* Botón de grabación de voz O enviar (estilo WhatsApp) */}
+              {(!input.trim() && mediaFiles.length === 0) ? (
+                /* MICRÓFONO - cuando no hay texto */
+                <VoiceRecorder
+                  onSendAudio={handleSendVoiceMessage}
+                  canSendMessages={!isSending}
+                />
               ) : (
-                <FaPaperPlane />
+                /* BOTÓN ENVIAR - cuando hay texto o archivos */
+                <button
+                  className="thread-send-btn"
+                  onClick={handleSend}
+                  disabled={(!input.trim() && mediaFiles.length === 0) || isSending}
+                  title="Enviar"
+                >
+                  {isSending ? (
+                    <FaSpinner className="thread-spinner" />
+                  ) : (
+                    <FaPaperPlane />
+                  )}
+                </button>
               )}
-            </button>
-          )}
-        </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/*  NUEVO: Modal de reenvío */}
