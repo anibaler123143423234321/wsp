@@ -314,6 +314,12 @@ export const useSocketListeners = (
                 });
                 console.log(`🔄 Mapeado ID temporal ${data.tempId} → ${data.realId}`);
 
+                // 🔥 NUEVO: Actualizar el mensaje en el estado de la UI inmediatamente
+                // Esto desbloquea el ThreadPanel al quitar el prefijo 'temp_'
+                if (updateMessage) {
+                    updateMessage(data.tempId, { id: data.realId });
+                }
+
                 // Limpiar IDs antiguos periódicamente
                 cleanupOldIds();
             }
