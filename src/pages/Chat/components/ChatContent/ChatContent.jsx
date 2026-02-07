@@ -1714,17 +1714,36 @@ const ChatContent = ({
   const renderTextWithMentions = (text) => {
     if (!text) return text;
 
+    // 🔥 FIX: Trim whitespace to prevent extra newlines/spacing
+    text = String(text).trim();
+
     // Obtener lista de usuarios válidos normalizada (sin acentos, mayúsculas)
     const normalizeText = (str) => {
       return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
     };
 
-    const validUsers = roomUsers
-      ? roomUsers.map((user) => {
-        if (typeof user === "string") return normalizeText(user);
-        return normalizeText(user.username || user.nombre || "");
-      })
-      : [];
+    // Crear mapa de búsqueda para usuarios (Set para O(1))
+    // Almacenamos versiones normalizadas
+    const validUsersSet = new Set();
+    if (roomUsers) {
+      roomUsers.forEach(user => {
+        if (typeof user === "string") {
+          validUsersSet.add(normalizeText(user));
+        } else {
+          validUsersSet.add(normalizeText(user.username || ""));
+          validUsersSet.add(normalizeText(user.nombre || ""));
+          if (user.nombre && user.apellido) {
+            validUsersSet.add(normalizeText(`${user.nombre} ${user.apellido}`));
+          }
+        }
+      });
+    }
+
+    // DEBUG: Inspect valid users
+    // console.log('👥 Valid Users Set:', Array.from(validUsersSet));
+
+    // DEFINICIÓN DE validUsers PARA COMPATIBILIDAD CON LÓGICA ANTIGUA
+    const validUsers = Array.from(validUsersSet);
 
     // Función para procesar menciones en un texto
     const processMentions = (inputText, keyPrefix = '') => {
@@ -1790,6 +1809,7 @@ const ChatContent = ({
 
       return parts.length > 0 ? parts : inputText;
     };
+
 
     // Dividir el texto por líneas para procesar líneas con guion
     const lines = text.split('\n');
@@ -2020,8 +2040,8 @@ const ChatContent = ({
           transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
           position: 'relative',
           zIndex: isMenuOpen || isHighlighted ? 100 : 1, // Elevar z-index si está resaltado
-          marginBottom: '2px', // Reducir espacio entre mensajes
-          paddingBottom: '2px', // Reducir padding interno
+          // marginBottom: '0px', // REMOVED: Dejar que CSS controle esto
+          // paddingBottom: '0px', // REMOVED: Dejar que CSS controle esto
           cursor: (isSelectionMode || 'pointer') // Mostrar puntero si se puede seleccionar (?) - Mejor dejar default
         }}
         onClick={(e) => handleMessageClick(e, message)} //  NUEVO: Click handler para selección
@@ -2309,7 +2329,7 @@ const ChatContent = ({
                   <>
                     {/* Mostrar texto si lo hay */}
                     {(message.text || message.message) && (
-                      <div style={{ marginBottom: '8px' }}>
+                      <div style={{ marginBottom: '4px' }}>
                         {renderTextWithMentions(message.text || message.message)}
                       </div>
                     )}
@@ -2612,7 +2632,7 @@ const ChatContent = ({
           {/* REACCIONES (Debajo del texto) */}
           {
             message.reactions && message.reactions.length > 0 && (
-              <div className="reactions-row" style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div className="reactions-row" style={{ display: 'flex', gap: '4px', marginTop: '1px', flexWrap: 'wrap', alignItems: 'center' }}>
                 {Object.entries(message.reactions.reduce((acc, r) => {
                   if (!acc[r.emoji]) acc[r.emoji] = [];
                   acc[r.emoji].push(r.username); return acc;
