@@ -17,6 +17,7 @@ export default defineConfig({
       devOptions: {
         enabled: true,
         type: 'module',
+        suppressWarnings: true, // 🔥 Silenciar logs de precaching en dev
       },
       strategies: 'injectManifest', // 🔥 Usar nuestro propio SW
       srcDir: 'src',
@@ -87,7 +88,7 @@ export default defineConfig({
     minify: "terser",
     terserOptions: {
       compress: {
-        drop_console: false, //  TEMP: Permitir console.log para debugging
+        drop_console: true, // 🔥 Limpiar logs en producción
       },
     },
   },

@@ -1717,69 +1717,120 @@ const ChatContent = ({
     // 🔥 FIX: Trim whitespace to prevent extra newlines/spacing
     text = String(text).trim();
 
-    // Obtener lista de usuarios válidos normalizada (sin acentos, mayúsculas)
+    // Obtener lista de usuarios válidos normalizada (sin acentos, mayúsculas, sin espacios extra)
     const normalizeText = (str) => {
-      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+      if (!str) return "";
+      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
     };
 
-    // Crear mapa de búsqueda para usuarios (Set para O(1))
-    // Almacenamos versiones normalizadas
     const validUsersSet = new Set();
-    if (roomUsers) {
-      roomUsers.forEach(user => {
-        if (typeof user === "string") {
-          validUsersSet.add(normalizeText(user));
-        } else {
-          validUsersSet.add(normalizeText(user.username || ""));
-          validUsersSet.add(normalizeText(user.nombre || ""));
-          if (user.nombre && user.apellido) {
-            validUsersSet.add(normalizeText(`${user.nombre} ${user.apellido}`));
-          }
+
+    // 1. OBTENER DE roomUsers (Prop disponible)
+    if (roomUsers && Array.isArray(roomUsers)) {
+      roomUsers.forEach(u => {
+        if (typeof u === 'string') {
+          validUsersSet.add(normalizeText(u));
+        } else if (typeof u === 'object') {
+          if (u.displayName) validUsersSet.add(normalizeText(u.displayName));
+          if (u.username) validUsersSet.add(normalizeText(u.username));
+          if (u.name) validUsersSet.add(normalizeText(u.name));
+          // Fallback para nombres compuestos
+          if (u.firstName && u.lastName) validUsersSet.add(normalizeText(`${u.firstName} ${u.lastName}`));
         }
       });
     }
 
-    // DEBUG: Inspect valid users
-    // console.log('👥 Valid Users Set:', Array.from(validUsersSet));
+    // 2. OBTENER DE assignedConversations (Buscando el chat actual)
+    // Esto es un fallback por si roomUsers no tiene la info completa (ej: solo IDs)
+    const currentChatObj = assignedConversations?.find(c => c.roomCode === currentRoomCode || c.id === currentRoomCode);
 
-    // DEFINICIÓN DE validUsers PARA COMPATIBILIDAD CON LÓGICA ANTIGUA
+    // Prioridad: groupMetadata (si es grupo) o participants
+    const participantsSource = currentChatObj?.groupMetadata?.participants || currentChatObj?.participants || [];
+
+    participantsSource.forEach(p => {
+      const possibleNames = [
+        p.id?.user,
+        p.notify,
+        p.name,
+        p.vname
+      ];
+      possibleNames.forEach(name => {
+        if (name && typeof name === 'string') validUsersSet.add(normalizeText(name));
+      });
+    });
+
+    // DEBUG: Ver qué usuarios tenemos ahora
+    // console.log('🕵️‍♂️ DEBUG DATA SOURCE FINAL:', {
+    //   roomUsersCount: roomUsers?.length,
+    //   derivedParticipantsCount: participantsSource.length,
+    //   validUsersSize: validUsersSet.size,
+    //   currentRoomCode,
+    //   foundChat: !!currentChatObj
+    // });
+
     const validUsers = Array.from(validUsersSet);
 
     // Función para procesar menciones en un texto
     const processMentions = (inputText, keyPrefix = '') => {
+      // DEBUG CRÍTICO: Ver qué tenemos
+      // DEBUG CRÍTICO: Ver qué tenemos
+      // console.log('🔍 processMentions INPUT:', inputText);
+      // console.log('👥 validUsers:', validUsers);
+
+      // Regex original (hasta 3 palabras)
       const mentionRegex = /@([a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+(?:\s+[a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
+
       const parts = [];
       let lastIndex = 0;
       let match;
 
-      while ((match = mentionRegex.exec(inputText)) !== null) {
-        const charBeforeMention = match.index > 0 ? inputText[match.index - 1] : "";
-        const isPartOfEmail = /[a-zA-Z0-9._-]/.test(charBeforeMention);
-        const mentionedText = match[1].toLowerCase().trim();
-        const emailDomains = ["gmail", "outlook", "hotmail", "yahoo", "icloud", "live", "msn", "aol", "protonmail", "zoho"];
-        const isEmailDomain = emailDomains.includes(mentionedText);
 
+
+      while ((match = mentionRegex.exec(inputText)) !== null) {
+        const fullMatch = match[0];
+        const candidateText = match[1];
+
+        // 1. Texto previo
         if (match.index > lastIndex) {
           parts.push(inputText.substring(lastIndex, match.index));
         }
 
-        if (isPartOfEmail || isEmailDomain) {
-          parts.push(match[0]);
-          lastIndex = match.index + match[0].length;
-          continue;
-        }
+        // (ELIMINADO FILTRO EMAIL PARA SIMPLIFICAR)
 
         const mentionedUser = match[1].trim();
         const normalizedMention = normalizeText(mentionedUser);
-        const isValidUser = validUsers.some(
-          (validUser) =>
-            validUser === normalizedMention ||
-            validUser.includes(normalizedMention) ||
-            normalizedMention.includes(validUser)
-        );
 
-        if (isValidUser) {
-          const isCurrentUser = normalizedMention === normalizeText(currentUsername || "");
+        // 3. Validación: Buscamos coincidencia
+        // Buscamos si hay un usuario que coincida exactamente o sea prefijo del texto capturado
+        const validMatch = validUsers
+          .filter(u => normalizedMention.startsWith(u))
+          .sort((a, b) => b.length - a.length)[0];
+
+        if (validMatch) {
+          // Recortar texto al nombre del usuario real
+          const userWordsCount = validMatch.split(/\s+/).length;
+          const capturedWords = mentionedUser.split(/\s+/);
+
+          // 🔥 FIX: Calcular el índice final exacto en el string original para preservar espacios
+          // y evitar desajustes que causan caracteres repetidos.
+          let endIndex = 0;
+          let searchPos = 0;
+
+          for (let i = 0; i < userWordsCount; i++) {
+            const word = capturedWords[i];
+            // Buscamos la palabra a partir de la última posición
+            const wordIndex = mentionedUser.indexOf(word, searchPos);
+            if (wordIndex !== -1) {
+              searchPos = wordIndex + word.length;
+              endIndex = searchPos;
+            }
+          }
+
+          const finalMatchName = mentionedUser.substring(0, endIndex);
+          const remainingText = mentionedUser.substring(endIndex);
+
+          const isCurrentUser = normalizeText(finalMatchName) === normalizeText(currentUsername || "");
+
           parts.push(
             <span
               key={`${keyPrefix}-${match.index}`}
@@ -1788,19 +1839,28 @@ const ChatContent = ({
                 display: "inline",
                 padding: "2px 6px",
                 borderRadius: "12px",
-                fontWeight: "500",
+                fontWeight: "700",
                 fontSize: "0.95em",
                 cursor: "pointer",
+                backgroundColor: isCurrentUser ? "#fef08a" : "rgba(224, 242, 254, 0.5)",
+                color: isCurrentUser ? "#854d0e" : "#0369a1",
+                border: isCurrentUser ? "1px solid #fde047" : "1px solid transparent",
               }}
-              title={`Mención a ${mentionedUser}`}
+              title={`Mención a ${finalMatchName}`}
             >
-              @{mentionedUser}
+              @{finalMatchName}
             </span>
           );
+
+          if (remainingText) {
+            parts.push(remainingText);
+          }
+
         } else {
-          parts.push(match[0]);
+          parts.push(fullMatch);
         }
-        lastIndex = match.index + match[0].length;
+
+        lastIndex = match.index + fullMatch.length;
       }
 
       if (lastIndex < inputText.length) {
@@ -1809,6 +1869,7 @@ const ChatContent = ({
 
       return parts.length > 0 ? parts : inputText;
     };
+
 
 
     // Dividir el texto por líneas para procesar líneas con guion
@@ -2026,7 +2087,7 @@ const ChatContent = ({
       messageText.includes("@") &&
       normalizeText(messageText).includes(normalizeText(`@${currentUsername}`));
 
-    if (isHighlighted) console.log('🎨 Rendering highlight for message:', message.id);
+    // if (isHighlighted) console.log('🎨 Rendering highlight for message:', message.id);
 
     return (
       <div
@@ -2376,7 +2437,7 @@ const ChatContent = ({
                                     className="wa-file-card"
                                     onClick={() => {
                                       if (isPdf) {
-                                        console.log("📥 Visualizando PDF:", fileUrl);
+                                        // console.log("📥 Visualizando PDF:", fileUrl);
                                         // Si es una URL remota, intentar descargarla
                                         if (fileUrl && fileUrl.startsWith('http')) {
                                           apiService.fetchWithAuth(fileUrl)
@@ -2390,7 +2451,7 @@ const ChatContent = ({
                                               setShowPdfViewer(true);
                                             })
                                             .catch(err => {
-                                              console.error("❌ Error loading PDF:", err);
+                                              // console.error("❌ Error loading PDF:", err);
                                               handleDownload(fileUrl, file.fileName);
                                             });
                                         } else {
@@ -2468,7 +2529,7 @@ const ChatContent = ({
                         try {
                           pollData = JSON.parse(message.mediaData);
                         } catch (e) {
-                          console.error('Error parsing poll mediaData:', e);
+                          // console.error('Error parsing poll mediaData:', e);
                         }
                       }
                       return pollData;
@@ -2576,19 +2637,19 @@ const ChatContent = ({
                       return (
                         <div className="wa-file-card" onClick={() => {
                           if (isPdf) {
-                            console.log("📥 Descargando PDF:", message.mediaData);
+                            // console.log("📥 Descargando PDF:", message.mediaData);
                             apiService.fetchWithAuth(message.mediaData)
                               .then(res => {
                                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                                 return res.arrayBuffer();
                               })
                               .then(arrayBuffer => {
-                                console.log("✅ PDF descargado, tamaño:", arrayBuffer.byteLength);
+                                // console.log("✅ PDF descargado, tamaño:", arrayBuffer.byteLength);
                                 setPdfData(arrayBuffer);
                                 setShowPdfViewer(true);
                               })
                               .catch(err => {
-                                console.error("❌ Error descargando PDF:", err);
+                                // console.error("❌ Error descargando PDF:", err);
                                 alert("Error al cargar el PDF");
                               });
                           } else {

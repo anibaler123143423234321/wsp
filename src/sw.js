@@ -1,3 +1,5 @@
+// 🔇 Silenciar logs de Workbox en desarrollo/producción
+self.__WB_DISABLE_DEV_LOGS = true;
 
 // Importar Workbox (necesario si quieres mantener precache, si no se puede hacer manual)
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching';
