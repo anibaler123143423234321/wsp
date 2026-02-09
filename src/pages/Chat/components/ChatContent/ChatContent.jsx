@@ -319,6 +319,7 @@ const ChatContent = ({
   const chatHistoryRef = useRef(null);
   const isUserScrollingRef = useRef(false);
   const lastMessageCountRef = useRef(0);
+  const lastMessageIdRef = useRef(null); // 🔥 NUEVO: Para rastrear el último mensaje
   const previousScrollHeightRef = useRef(0);
   const previousScrollTopRef = useRef(0); // 🔥 Guardar scrollTop para preservar posición
   const isLoadingMoreRef = useRef(false); // 🔥 Bandera de carga en progreso
@@ -602,6 +603,7 @@ const ChatContent = ({
     setShowReactionUsers(null); // Limpiar popover de reacciones al cambiar de chat
     hasScrolledToUnreadRef.current = false;
     lastMessageCountRef.current = 0;
+    lastMessageIdRef.current = null; // 🔥 NUEVO: Resetear ID del último mensaje
     isLoadingMoreRef.current = false;
     firstMessageIdRef.current = null;
     initialScrollDoneRef.current = false;
@@ -1209,6 +1211,12 @@ const ChatContent = ({
 
     //  NUEVO: No hacer scroll automático hasta que hayamos completado el scroll inicial a no leídos
     if (!hasScrolledToUnreadRef.current) return;
+    
+    // 🔥 FIX: No hacer scroll automático si estamos cargando mensajes antiguos
+    if (isLoadingMore) {
+      console.log('🚫 Scroll automático bloqueado: isLoadingMore = true');
+      return;
+    }
 
     const chatHistory = chatHistoryRef.current;
 
@@ -1217,16 +1225,34 @@ const ChatContent = ({
 
     //  CORREGIDO: Solo hacer scroll automático si:
     // 1. Hay mensajes nuevos (no solo re-renders)
-    // 2. El usuario está en la parte inferior del chat O es un mensaje propio
+    // 2. El usuario está en la parte inferior del chat
+    // 3. O si el ÚLTIMO MENSAJE (el más reciente) es NUEVO y es propio
     const lastMessage = messages[messages.length - 1];
+    const isLastMessageNew = lastMessage && lastMessage.id !== lastMessageIdRef.current;
     const isLastMessageSelf = lastMessage && (lastMessage.isSelf || lastMessage.sender === 'Tú' || lastMessage.sender === currentUsername);
 
-    if (messages.length > lastMessageCountRef.current && (isAtBottom || isLastMessageSelf)) {
+    // 🔥 CRÍTICO: Solo hacer scroll si es un mensaje NUEVO y propio, no si ya existía
+    const shouldScroll = messages.length > lastMessageCountRef.current && (isAtBottom || (isLastMessageNew && isLastMessageSelf));
+    
+    if (shouldScroll) {
+      console.log('📜 Haciendo scroll automático:', {
+        prevCount: lastMessageCountRef.current,
+        newCount: messages.length,
+        isAtBottom,
+        isLastMessageNew,
+        isLastMessageSelf,
+        lastMessageId: lastMessage?.id,
+        prevLastMessageId: lastMessageIdRef.current,
+        isLoadingMore
+      });
       chatHistory.scrollTop = chatHistory.scrollHeight;
     }
 
     lastMessageCountRef.current = messages.length;
-  }, [messages]);
+    if (lastMessage) {
+      lastMessageIdRef.current = lastMessage.id;
+    }
+  }, [messages, isLoadingMore, currentUsername]);
 
   // Scroll automático cuando aparece el indicador de "está escribiendo"
   useEffect(() => {

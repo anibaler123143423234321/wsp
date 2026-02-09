@@ -360,7 +360,10 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     } catch (error) {
       console.error("❌ Error al cargar más mensajes:", error);
     } finally {
-      setIsLoadingMore(false);
+      // 🔥 FIX: Delay para asegurar que React termine de renderizar antes de permitir scroll automático
+      setTimeout(() => {
+        setIsLoadingMore(false);
+      }, 100);
     }
   }, [roomCode, username, to, isGroup, hasMoreMessages, isLoadingMore, aroundMode, oldestLoadedId]);
 
