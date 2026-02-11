@@ -501,14 +501,17 @@ const ConversationList = ({
 
       // Actualizar cada favorito con datos frescos de myActiveRooms
       const updatedFavorites = prevFavorites.map(favRoom => {
-        const freshData = activeRoomsMap.get(favRoom.roomCode);
-        if (freshData) {
-          // Mantener isFavorite pero actualizar lastMessage y otros datos
-          return {
-            ...favRoom,
-            ...freshData,
-            isFavorite: true
-          };
+        // Solo intentar actualizar si es un room
+        if (favRoom.type === 'room') {
+          const freshData = activeRoomsMap.get(favRoom.roomCode);
+          if (freshData) {
+            // Mantener isFavorite pero actualizar lastMessage y otros datos
+            return {
+              ...favRoom,
+              ...freshData,
+              isFavorite: true
+            };
+          }
         }
         return favRoom;
       });
@@ -523,6 +526,48 @@ const ConversationList = ({
       return updatedFavorites;
     });
   }, [myActiveRooms, favoriteRoomCodes]);
+
+  // 🔥 NUEVO: Sincronizar favoriteRooms con assignedConversations cuando lleguen mensajes nuevos
+  // Esto actualiza lastMessage y unreadCount de las conversaciones favoritas
+  // 🔥 NUEVO: Sincronizar favoriteRooms con assignedConversations cuando lleguen mensajes nuevos
+  // Esto actualiza lastMessage y unreadCount de las conversaciones favoritas
+  useEffect(() => {
+    if (favoriteConversationIds.length === 0 || !assignedConversations || assignedConversations.length === 0) return;
+
+    setFavoriteRooms(prevFavorites => {
+      // Crear mapa de assignedConversations para búsqueda rápida (usando ID como string)
+      const assignedMap = new Map(assignedConversations.map(c => [String(c.id), c]));
+
+      // Actualizar cada favorito con datos frescos de assignedConversations
+      const updatedFavorites = prevFavorites.map(favItem => {
+        // Solo intentar actualizar si es una conversación
+        if (favItem.type === 'conv') {
+          // Buscamos usando el ID convertido a string
+          const freshData = assignedMap.get(String(favItem.id));
+
+          if (freshData) {
+            // Mantener isFavorite pero actualizar lastMessage y otros datos
+            return {
+              ...favItem,
+              ...freshData,
+              type: 'conv', // Asegurar que el tipo se mantenga
+              isFavorite: true
+            };
+          }
+        }
+        return favItem;
+      });
+
+      // 🔥 Ordenar por fecha del último mensaje (más reciente primero)
+      updatedFavorites.sort((a, b) => {
+        const dateA = new Date(a.lastMessage?.sentAt || a.updatedAt || a.createdAt || 0);
+        const dateB = new Date(b.lastMessage?.sentAt || b.updatedAt || b.createdAt || 0);
+        return dateB - dateA;
+      });
+
+      return updatedFavorites;
+    });
+  }, [assignedConversations, favoriteConversationIds]);
 
   const handleToggleFavorite = async (room, e) => {
     e.stopPropagation();
@@ -944,6 +989,19 @@ const ConversationList = ({
 
   // --- LÓGICA DE CONTADORES CORREGIDA ---
   // Filtramos las conversaciones asignadas que pertenecen al usuario actual
+  // 🔥 NUEVO: Sincronizar favoriteConversationIds con favoriteRooms
+  // Esto asegura que favoriteConversationIds siempre esté actualizado
+  useEffect(() => {
+    const convIds = favoriteRooms
+      .filter(f => f.type === 'conv')
+      .map(c => c.id);
+
+    // Solo actualizar si hay cambios para evitar loops infinitos
+    if (JSON.stringify(convIds.sort()) !== JSON.stringify([...favoriteConversationIds].sort())) {
+      setFavoriteConversationIds(convIds);
+    }
+  }, [favoriteRooms]);
+
   // 🔥 FIX: También excluir favoritos del conteo - Usar useMemo para recalcular automáticamente
   const myAssignedConversations = useMemo(() => {
     return assignedConversations.filter(conv => {
@@ -1550,7 +1608,26 @@ const ConversationList = ({
                             const participants = conv.participants || [];
                             const currentUserFullName = user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.username;
                             const otherParticipant = participants.find(p => p?.toLowerCase() !== currentUserFullName?.toLowerCase()) || participants[0];
-                            const itemUnreadCount = unreadMessages?.[conv.id] !== undefined ? unreadMessages[conv.id] : (conv.unreadCount || 0);
+
+                            // 🔥 FIX: Búsqueda robusta de unreadCount (String vs Number)
+                            let itemUnreadCount = 0;
+                            if (unreadMessages) {
+                              if (unreadMessages[conv.id] !== undefined) {
+                                itemUnreadCount = unreadMessages[conv.id];
+                              } else if (unreadMessages[String(conv.id)] !== undefined) {
+                                itemUnreadCount = unreadMessages[String(conv.id)];
+                              } else {
+                                itemUnreadCount = conv.unreadCount || 0;
+                              }
+                            } else {
+                              itemUnreadCount = conv.unreadCount || 0;
+                            }
+
+                            // 🔥 DEBUG LOGS
+                            if (itemUnreadCount > 0) {
+                              console.log(`🔍 [FAV-DEBUG] conv.id: ${conv.id} (${typeof conv.id}), unreadMessages len: ${Object.keys(unreadMessages || {}).length}, FINAL: ${itemUnreadCount}`);
+                            }
+
                             const getInitials = (name) => { const parts = name?.split(' ') || []; return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : (name?.[0]?.toUpperCase() || 'U'); };
                             const chatId = `conv-${conv.id}`;
                             const isHighlighted = highlightedChatId === chatId;
@@ -1569,9 +1646,6 @@ const ConversationList = ({
                             if (currentUserNormalized === p1Normalized) { displayName = participant2Name; }
                             else if (currentUserNormalized === p2Normalized) { displayName = participant1Name; }
                             else if (!conv.name) { displayName = `${participant1Name} ↔️ ${participant2Name}`; }
-
-                            const numeroAgente = conv.numeroAgente;
-                            const role = conv.role;
 
                             // 🔥 LÓGICA AGREGADA: Estado en línea e imagen de perfil (igual que en Asignados)
                             let isOtherParticipantOnline = false;
@@ -1642,7 +1716,7 @@ const ConversationList = ({
                                     />
                                   )}
                                 </div>
-                                <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px', display: isCompact ? 'none' : 'flex' }}>
+                                <div className="flex-1 min-w-0 flex flex-col justify-end" style={{ gap: '2px', display: isCompact ? 'none' : 'flex', paddingBottom: '6px' }}>
                                   <div className="flex items-center justify-between gap-2">
                                     <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                                       {/* Etiqueta de Favorito (arriba del todo si existe) */}
@@ -1660,13 +1734,6 @@ const ConversationList = ({
                                           </div>
                                         )}
                                       </div>
-
-                                      {/* 2. ROL O AGENTE (Debajo del nombre - Gris) */}
-                                      {(numeroAgente || role) && (
-                                        <span style={{ fontSize: '10px', color: '#667781', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.3px', lineHeight: '12px' }}>
-                                          {numeroAgente ? `N.º ${numeroAgente}` : role}
-                                        </span>
-                                      )}
                                     </div>
                                     <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-1 hover:bg-gray-200 rounded-full transition-colors" style={{ color: '#ff453a' }}><FaStar /></button>
                                   </div>
@@ -2013,16 +2080,12 @@ const ConversationList = ({
 
                             const isSelected = (!isGroup && to && participants.some(p => p?.toLowerCase().trim() === to?.toLowerCase().trim())) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
 
-                            // 🔥 NUEVO: Obtener numeroAgente y role si existen
-                            const numeroAgente = conv.numeroAgente;
-                            const role = conv.role;
-
                             return (
                               <div
                                 key={conv.id}
                                 id={chatId}
                                 className={`flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group overflow-visible relative ${isSelected ? 'selected-conversation' : ''} ${isHighlighted ? 'highlighted-chat' : ''}`}
-                                style={{ padding: '4px 12px', gap: '6px', minHeight: '40px', display: 'flex', alignItems: 'flex-start', width: '100%', minWidth: 0, position: 'relative' }}
+                                style={{ padding: '4px 12px', gap: '6px', minHeight: '40px', display: 'flex', alignItems: 'center', width: '100%', minWidth: 0, position: 'relative' }}
                                 onClick={() => { if (onUserSelect) onUserSelect(displayName, null, conv); }}
                               >
                                 <div className="relative flex-shrink-0" style={{ width: '32px', height: '32px' }}>
@@ -2053,7 +2116,7 @@ const ConversationList = ({
                                     />
                                   )}
                                 </div>
-                                <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px', display: isCompact ? 'none' : 'flex' }}>
+                                <div className="flex-1 min-w-0 flex flex-col justify-center" style={{ gap: '2px', display: isCompact ? 'none' : 'flex' }}>
                                   <div className="flex items-center justify-between gap-2">
                                     <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                                       {/* Etiqueta de Favorito (arriba del todo si existe) */}
@@ -2071,13 +2134,6 @@ const ConversationList = ({
                                           </div>
                                         )}
                                       </div>
-
-                                      {/* 2. ROL O AGENTE (Debajo del nombre - Gris) */}
-                                      {(numeroAgente || role) && (
-                                        <span style={{ fontSize: '10px', color: '#667781', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.3px', lineHeight: '12px' }}>
-                                          {numeroAgente ? `N.º ${numeroAgente}` : role}
-                                        </span>
-                                      )}
                                     </div>
                                     {/* Botón de Estrella */}
                                     <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-1 rounded-full hover:bg-gray-200 transition-all duration-200" style={{ color: isFavorite ? '#ff453a' : '#9ca3af' }}>{isFavorite ? <FaStar size={14} /> : <FaRegStar size={14} />}</button>

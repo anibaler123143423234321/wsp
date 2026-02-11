@@ -1117,8 +1117,14 @@ export const useSocketListeners = (
                 let isChatOpen = false;
 
                 if (!currentIsGroup) {
+                    // 🔥 FIX: Verificar por conversationId PRIMERO (más confiable)
+                    // Esto funciona tanto para favoritos como para chats normales
+                    if (String(currentRoomCodeRef.current) === String(data.conversationId)) {
+                        isChatOpen = true;
+                        console.log("💬 isChatOpen=true por conversationId match");
+                    }
                     // Verificar por adminViewConversation (modo observador)
-                    if (adminConv?.id === data.conversationId) {
+                    else if (adminConv?.id === data.conversationId) {
                         isChatOpen = true;
                         console.log("💬 isChatOpen=true por adminConv");
                     } else if (currentTo) {
