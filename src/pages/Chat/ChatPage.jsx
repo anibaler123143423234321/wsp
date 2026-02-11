@@ -331,19 +331,9 @@ const ChatPage = () => {
     [socket, username]
   );
 
-  // Efecto para cargar códigos de salas favoritas
-  // 🔥 FIX: Se restaura para que ChatPage tenga acceso a los favoritos en chatState
-  // y se actualice cuando el socket notifique cambios (lastFavoriteUpdate)
-  useEffect(() => {
-    if (!user) return;
-    const displayName = user?.nombre && user?.apellido
-      ? `${user.nombre} ${user.apellido}`
-      : user?.username;
+  // 🔥 NOTA: Los favoritos se cargan en ConversationList.jsx y se sincronizan
+  // a chatState via setExternalFavoriteRoomCodes. No duplicar la llamada aquí.
 
-    if (displayName && !chatState.monitoringLoading) {
-      chatState.loadFavoriteRoomCodes(displayName);
-    }
-  }, [user, username, chatState.monitoringLoading, chatState.lastFavoriteUpdate]);
   useEffect(() => {
     if (!isAuthenticated || !username) return;
 

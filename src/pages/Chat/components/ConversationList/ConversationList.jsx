@@ -571,7 +571,7 @@ const ConversationList = ({
         });
         //  SINCRONIZAR con chatState
         if (setExternalFavoriteRoomCodes) setExternalFavoriteRoomCodes(newCodes);
-        
+
         // 🔥 FIX: Forzar re-render para que el grupo aparezca inmediatamente en la lista
         setFavoriteToggleTimestamp(Date.now());
       }
@@ -614,7 +614,7 @@ const ConversationList = ({
         // 🔥 Quitar de IDs y de la lista unificada
         setFavoriteConversationIds(prev => prev.filter(id => id !== conversation.id));
         setFavoriteRooms(prev => prev.filter(f => !(f.type === 'conv' && f.id === conversation.id)));
-        
+
         // 🔥 FIX: Forzar re-render para que la conversación aparezca inmediatamente en la lista
         setFavoriteToggleTimestamp(Date.now());
       }
@@ -1557,6 +1557,21 @@ const ConversationList = ({
                             const isSelected = (!isGroup && to && otherParticipant?.toLowerCase().trim() === to?.toLowerCase().trim()) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
                             // 🔥 NUEVO: Verificar si hay menciones pendientes
                             const hasMentions = hasPendingMentions(conv.id, conv.lastMessage, conv);
+                            const isFavorite = true; // Siempre es favorito en esta sección
+
+                            // Calcular displayName (igual que en Asignados)
+                            const participant1Name = participants[0] || 'Usuario 1';
+                            const participant2Name = participants[1] || 'Usuario 2';
+                            const currentUserNormalized = currentUserFullName?.toLowerCase().trim();
+                            const p1Normalized = participant1Name?.toLowerCase().trim();
+                            const p2Normalized = participant2Name?.toLowerCase().trim();
+                            let displayName = conv.name;
+                            if (currentUserNormalized === p1Normalized) { displayName = participant2Name; }
+                            else if (currentUserNormalized === p2Normalized) { displayName = participant1Name; }
+                            else if (!conv.name) { displayName = `${participant1Name} ↔️ ${participant2Name}`; }
+
+                            const numeroAgente = conv.numeroAgente;
+                            const role = conv.role;
 
                             // 🔥 LÓGICA AGREGADA: Estado en línea e imagen de perfil (igual que en Asignados)
                             let isOtherParticipantOnline = false;
@@ -1631,8 +1646,8 @@ const ConversationList = ({
                                   <div className="flex items-center justify-between gap-2">
                                     <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                                       {/* Etiqueta de Favorito (arriba del todo si existe) */}
-                                      {isFavorite && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-red-500" /> Favorito</span>}
-                                      
+                                      {isFavorite && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-red-500" /> Asignado</span>}
+
                                       {/* 1. NOMBRE DEL USUARIO (Arriba) */}
                                       <div className="flex items-center gap-2 w-full min-w-0">
                                         <h3 className="font-semibold text-[#111] truncate flex-1" style={{ fontSize: '11.5px', lineHeight: '14px', fontWeight: 600 }}>
@@ -2043,7 +2058,7 @@ const ConversationList = ({
                                     <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                                       {/* Etiqueta de Favorito (arriba del todo si existe) */}
                                       {isFavorite && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-red-500" /> Favorito</span>}
-                                      
+
                                       {/* 1. NOMBRE DEL USUARIO (Arriba) */}
                                       <div className="flex items-center gap-2 w-full min-w-0">
                                         <h3 className="font-semibold text-[#111] truncate flex-1" style={{ fontSize: '11.5px', lineHeight: '14px', fontWeight: 600 }}>

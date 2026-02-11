@@ -872,7 +872,8 @@ export const useSocketListeners = (
                 //  SIEMPRE agregar mensaje al chat si está abierto
                 //  EXCEPTO si es un mensaje de hilo
                 console.log('🔍 DEBUG CASO B - isChatOpen:', isChatOpen, 'isOwnMessage:', isOwnMessage);
-                if (isChatOpen && !data.threadId) {
+                //  Robustez: Verificar también thread_id y parentMessageId
+                if (isChatOpen && !data.threadId && !data.thread_id && !data.parentMessageId) {
                     console.log('✅ CASO B: Llamando addNewMessage para DM:', data.id, data.message?.substring(0, 30));
                     addNewMessage({
                         ...data,

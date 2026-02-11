@@ -69,7 +69,11 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       let historicalMessages = Array.isArray(response) ? response : (response?.data || []);
 
       //  FIX: Filtrar mensajes de hilo - no deben aparecer en el chat principal
-      historicalMessages = historicalMessages.filter(msg => !msg.threadId);
+      //  Robustez: Verificar también thread_id y parentMessageId por si el backend cambia el formato
+      if (!isGroup && historicalMessages.length > 0) {
+        console.log('🔍 [DEBUG] Estructura de mensaje (Assigned):', historicalMessages[0]);
+      }
+      historicalMessages = historicalMessages.filter(msg => !msg.threadId && !msg.thread_id && !msg.parentMessageId);
 
       const backendHasMore = response?.hasMore;
 
@@ -239,7 +243,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       let historicalMessages = Array.isArray(response) ? response : (response?.data || []);
 
       //  FIX: Filtrar mensajes de hilo
-      historicalMessages = historicalMessages.filter(msg => !msg.threadId);
+      historicalMessages = historicalMessages.filter(msg => !msg.threadId && !msg.thread_id && !msg.parentMessageId);
 
       const backendHasMore = response?.hasMore;
 
@@ -391,7 +395,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       let forwardMessages = Array.isArray(response) ? response : (response?.data || []);
 
       // Filtrar hilos
-      forwardMessages = forwardMessages.filter(msg => !msg.threadId);
+      forwardMessages = forwardMessages.filter(msg => !msg.threadId && !msg.thread_id && !msg.parentMessageId);
 
       const backendHasMore = response?.hasMore;
 
@@ -656,7 +660,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       let historicalMessages = response.messages || [];
 
       // Filtrar mensajes de hilo - no deben aparecer en el chat principal
-      historicalMessages = historicalMessages.filter(msg => !msg.threadId);
+      historicalMessages = historicalMessages.filter(msg => !msg.threadId && !msg.thread_id && !msg.parentMessageId);
 
       // Convertir mensajes de BD al formato del frontend
       const formattedMessages = historicalMessages.map((msg) => ({
