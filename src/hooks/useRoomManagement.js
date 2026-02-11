@@ -126,16 +126,6 @@ export const useRoomManagement = (
                     }
                 }
 
-                // Actualizar contadores después de cargar/agregar salas
-                try {
-                    const counts = await apiService.getUnreadCounts();
-                    if (counts) {
-                        setUnreadMessages(counts);
-                    }
-                } catch (countError) {
-                    console.warn('⚠️ No se pudieron actualizar contadores:', countError);
-                }
-
                 return loadedRooms; // Retornar las salas cargadas
             } catch (error) {
                 console.error('❌ Error al cargar salas activas:', error);
@@ -379,8 +369,8 @@ export const useRoomManagement = (
                 }
 
                 // 🔥 NUEVO: Limpiar marca de menciones en hilos al abrir la sala
-                setMyActiveRooms(prev => prev.map(r => 
-                    r.roomCode === room.roomCode 
+                setMyActiveRooms(prev => prev.map(r =>
+                    r.roomCode === room.roomCode
                         ? { ...r, hasUnreadThreadMentions: false }
                         : r
                 ));

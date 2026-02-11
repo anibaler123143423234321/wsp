@@ -100,7 +100,7 @@ export const useSocketListeners = (
         soundsEnabledRef.current = soundsEnabled;
     }, [soundsEnabled]);
 
-    //  Actualizar ref cuando cambie myActiveRooms
+    // 🔥 SYNC: Mantener myActiveRoomsRef sincronizado con el estado
     useEffect(() => {
         myActiveRoomsRef.current = myActiveRooms || [];
     }, [myActiveRooms]);
@@ -449,6 +449,120 @@ export const useSocketListeners = (
                         [data.roomCode]: true
                     }));
                 }
+
+                // 🔥 NUEVO: Notificar al usuario sobre el mensaje de hilo
+                // Solo si NO es mensaje propio Y el chat NO está abierto
+                if (data.lastReplyFrom !== username) {
+                    // 🔥 FIX: Calcular si el chat está abierto para NO mostrar notificación
+                    const currentRoom = currentRoomCodeRef.current;
+                    const currentIsGroup = isGroupRef.current;
+                    const currentTo = toRef.current?.toLowerCase().trim();
+                    let isThreadChatOpen = false;
+
+                    if (data.roomCode) {
+                        // Para grupos: verificar si estamos viendo esa misma sala
+                        if (currentIsGroup && currentRoom === data.roomCode) {
+                            isThreadChatOpen = true;
+                        }
+                    } else {
+                        // Para DMs/Asignados: verificar si estamos chateando con ese usuario
+                        const threadPartner = (data.from === username ? data.to : data.from)?.toLowerCase().trim();
+                        if (currentTo && currentTo === threadPartner) {
+                            isThreadChatOpen = true;
+                        }
+                        // También verificar adminViewConversation para chats asignados
+                        const adminConv = adminViewConversationRef?.current;
+                        if (adminConv) {
+                            const adminParticipants = adminConv.participants?.map(p => p?.toLowerCase().trim()) || [];
+                            const msgFrom = data.from?.toLowerCase().trim();
+                            const msgTo = data.to?.toLowerCase().trim();
+                            if (adminParticipants.includes(msgFrom) && adminParticipants.includes(msgTo)) {
+                                isThreadChatOpen = true;
+                            }
+                        }
+                    }
+
+                    console.log('🧵 Thread notification check:', {
+                        isThreadChatOpen,
+                        roomCode: data.roomCode,
+                        currentRoom,
+                        lastReplyFrom: data.lastReplyFrom
+                    });
+
+                    // 🔥 Solo mostrar notificación si el chat NO está abierto
+                    if (!isThreadChatOpen) {
+                        // Buscar nombre de la sala en referencias locales
+                        const roomInfo = myActiveRoomsRef.current.find(r => r.roomCode === data.roomCode);
+                        const roomName = roomInfo?.name || data.roomCode || 'Chat';
+
+                        const notificationTitle = `Hilo en ${roomName}`;
+                        const notificationBody = `${data.lastReplyFrom}: ${data.lastReplyText}`;
+
+                        if (systemNotifications.canShow()) {
+                            systemNotifications.show(
+                                notificationTitle,
+                                notificationBody,
+                                { tag: `thread-${data.messageId}`, silent: !soundsEnabledRef.current },
+                                () => {
+                                    // 🔥 FIX: Si no hay roomCode (es DM/Asignado), navegar por usuario
+                                    if (data.roomCode) {
+                                        window.dispatchEvent(new CustomEvent("navigateToRoom", {
+                                            detail: { roomCode: data.roomCode, messageId: data.messageId, isThread: true }
+                                        }));
+                                    } else {
+                                        // Navegación para chats directos/asignados
+                                        const targetUser = data.from === username ? data.to : data.from;
+                                        window.dispatchEvent(new CustomEvent("navigateToChat", {
+                                            detail: { to: targetUser, messageId: data.messageId }
+                                        }));
+                                    }
+                                }
+                            );
+                        } else {
+                            // Toast fallback
+                            Swal.fire({
+                                toast: true,
+                                position: "top-end",
+                                icon: "info",
+                                title: notificationTitle,
+                                html: `
+                                <div class="toast-content">
+                                    <div class="toast-sender">${data.lastReplyFrom}</div>
+                                    <div class="toast-message">${(data.lastReplyText || '').substring(0, 80)}</div>
+                                </div>
+                            `,
+                                showConfirmButton: true,
+                                confirmButtonText: "Ver Hilo",
+                                showCloseButton: true,
+                                timer: 6000,
+                                customClass: {
+                                    popup: 'modern-toast',
+                                    title: 'modern-toast-title',
+                                    htmlContainer: 'modern-toast-html',
+                                    confirmButton: 'modern-toast-btn',
+                                    icon: 'modern-toast-icon',
+                                    closeButton: 'modern-toast-close'
+                                }
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    // 🔥 FIX: Si no hay roomCode (es DM/Asignado), navegar por usuario
+                                    if (data.roomCode) {
+                                        window.dispatchEvent(new CustomEvent("navigateToRoom", {
+                                            detail: { roomCode: data.roomCode, messageId: data.messageId, isThread: true }
+                                        }));
+                                    } else {
+                                        // Navegación para chats directos/asignados (usando remitente)
+                                        // Si yo envié la respuesta, el destino es 'to', si me respondieron, es 'from'
+                                        const targetUser = data.from === username ? data.to : data.from;
+                                        window.dispatchEvent(new CustomEvent("navigateToChat", {
+                                            detail: { to: targetUser, messageId: data.messageId }
+                                        }));
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
             }
         });
 
@@ -466,11 +580,12 @@ export const useSocketListeners = (
             // Si es un mensaje de monitoreo, ignorarlo aquí
             if (data.isMonitoring) return;
 
-            //  FIX: Si es un mensaje de hilo (respuesta), no agregarlo al chat principal
-            // Los mensajes de hilo se manejan por el evento 'threadMessage' en ThreadPanel
+            //  FIX: Si es un mensaje de hilo (respuesta), NO retornar temprano.
+            //  Permitir que el flujo continúe para procesar notificaciones y contadores.
+            //  El filtrado de visualización se hará en addNewMessage.
             if (data.threadId) {
-                console.log('🚫 useSocketListeners: Ignorando mensaje con threadId:', data.threadId, data.message);
-                return;
+                console.log('🧵 usoSocketListeners: Mensaje de hilo recibido, procesando para notificaciones:', data.threadId);
+                // NO RETURN: Dejar continuar para notificaciones
             }
 
             let timeString = data.time || new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
@@ -488,7 +603,9 @@ export const useSocketListeners = (
             }
 
             const currentFullName = currentUserFullNameRef.current;
-            const isOwnMessage = data.from === username || data.from === currentFullName;
+            // 🔥 FIX: Comparación case-insensitive para evitar notificaciones propias
+            const isOwnMessage = (data.from?.toLowerCase().trim() === username?.toLowerCase().trim()) ||
+                (data.from?.toLowerCase().trim() === currentFullName?.toLowerCase().trim());
 
             console.log('🔍 Estado del mensaje:', {
                 isOwnMessage,
@@ -500,6 +617,15 @@ export const useSocketListeners = (
             // ------------------------------------------------
             //  CÁLCULO DE ESTADO DE CHAT ABIERTO
             // ------------------------------------------------
+            console.log('📬 [NEW MESSAGE] Evento recibido:', {
+                id: data.id,
+                from: data.from,
+                to: data.to,
+                isGroup: data.isGroup,
+                roomCode: data.roomCode,
+                message: (data.message || "").substring(0, 30)
+            });
+
             const currentTo = toRef.current;
             const currentRoom = currentRoomCodeRef.current;
             const currentIsGroup = isGroupRef.current;
@@ -553,7 +679,8 @@ export const useSocketListeners = (
                 }
 
                 //  SIEMPRE agregar mensaje al chat si está abierto (propio o no)
-                if (isChatOpen) {
+                //  EXCEPTO si es un mensaje de hilo (se muestra en ThreadPanel)
+                if (isChatOpen && !data.threadId) {
                     // 🔥 FIX READ RECEIPTS: Si el usuario ESTÁ VIENDO el chat y NO es mensaje propio,
                     // agregarlo automáticamente a readBy[] para que el contador sea correcto desde el inicio
                     let readBy = data.readBy || [];
@@ -679,13 +806,15 @@ export const useSocketListeners = (
                     if (!isOwnMessage && !isChatOpen) {
                         playMessageSound(soundsEnabledRef.current);
 
+                        // 🔥 LÓGICA DE NOTIFICACIÓN MEJORADA:
+                        // Si la pestaña está oculta, mostrar notificación de sistema.
+                        // Si la pestaña está visible, mostrar SweetAlert (independientemente del foco).
                         if (systemNotifications.canShow()) {
                             systemNotifications.show(
                                 `Nuevo mensaje en ${data.roomName || data.roomCode}`,
                                 `${data.from}: ${messageText}`,
                                 { tag: `room-${data.roomCode}`, silent: !soundsEnabledRef.current },
                                 () => {
-                                    // 🔥 Usar ID real si está disponible; si es temporal sin ID real, navegar sin centrar en mensaje
                                     const realId = getRealMessageId(data.id);
                                     const messageId = realId || (data.id?.toString().startsWith('temp_') ? null : data.id);
                                     window.dispatchEvent(new CustomEvent("navigateToRoom", {
@@ -693,11 +822,10 @@ export const useSocketListeners = (
                                     }));
                                 }
                             );
-                        }
-
-                        // SIEMPRE mostrar SweetAlert Toast SI TENEMOS EL FOCO
-                        // Si no tenemos foco, systemNotifications se encarga de la nativa
-                        if (document.hasFocus()) {
+                        } else {
+                            // Si no podemos mostrar notificación de sistema (pestaña visible),
+                            // mostramos el SweetAlert Toast siempre (antes requería focus)
+                            console.log('🚀 [ALERT TRIGGER] Llamando a Swal.fire (GRUPO)');
                             Swal.fire({
                                 toast: true,
                                 position: "top-end",
@@ -723,7 +851,6 @@ export const useSocketListeners = (
                                 }
                             }).then((result) => {
                                 if (result.isConfirmed) {
-                                    // 🔥 Usar ID real si está disponible; si es temporal sin ID real, navegar sin centrar en mensaje
                                     const realId = getRealMessageId(data.id);
                                     const messageId = realId || (data.id?.toString().startsWith('temp_') ? null : data.id);
                                     window.dispatchEvent(new CustomEvent("navigateToRoom", {
@@ -743,8 +870,9 @@ export const useSocketListeners = (
                 }
 
                 //  SIEMPRE agregar mensaje al chat si está abierto
+                //  EXCEPTO si es un mensaje de hilo
                 console.log('🔍 DEBUG CASO B - isChatOpen:', isChatOpen, 'isOwnMessage:', isOwnMessage);
-                if (isChatOpen) {
+                if (isChatOpen && !data.threadId) {
                     console.log('✅ CASO B: Llamando addNewMessage para DM:', data.id, data.message?.substring(0, 30));
                     addNewMessage({
                         ...data,
@@ -787,6 +915,7 @@ export const useSocketListeners = (
                 if (!isOwnMessage && !isChatOpen) {
                     playMessageSound(soundsEnabledRef.current);
 
+                    // 🔥 LÓGICA DE NOTIFICACIÓN MEJORADA (DM):
                     if (systemNotifications.canShow()) {
                         systemNotifications.show(
                             `Nuevo mensaje de ${data.from}`,
@@ -798,10 +927,9 @@ export const useSocketListeners = (
                                 }));
                             }
                         );
-                    }
-
-                    // SIEMPRE mostrar SweetAlert Toast SI TENEMOS EL FOCO
-                    if (document.hasFocus()) {
+                    } else {
+                        // Si pestaña es visible, mostrar toast siempre
+                        console.log('🚀 [ALERT TRIGGER] Llamando a Swal.fire (DM)');
                         Swal.fire({
                             toast: true,
                             position: "top-end",
@@ -1063,6 +1191,16 @@ export const useSocketListeners = (
 
 
         s.on("unreadCountReset", (data) => {
+            // 🔥 FIX: Manejar reset de conversaciones asignadas (por conversationId)
+            if (data.conversationId) {
+                console.log(`📬 unreadCountReset para conversación asignada: ${data.conversationId}`);
+                setUnreadMessages((prev) => ({ ...prev, [data.conversationId]: 0 }));
+                setAssignedConversations(prev => prev.map(c =>
+                    c.id === data.conversationId ? { ...c, unreadCount: 0 } : c
+                ));
+                return;
+            }
+
             // 🔥 FIX: Solo resetear el contador si el chat está actualmente abierto
             // Si el chat NO está abierto, mantener el contador para que el punto rojo persista
             const currentIsGroup = isGroupRef.current;
@@ -1085,6 +1223,39 @@ export const useSocketListeners = (
                 }
             } else {
                 console.log(`⏭️ Ignorando unreadCountReset para ${data.roomCode} - chat no está abierto`);
+            }
+        });
+
+        // 🔥 NUEVO: Listener para actualización de lectura en conversaciones (Blue Checks)
+        s.on("conversationRead", (data) => {
+            console.log("👁️ conversationRead recibido:", data);
+
+            // Si tenemos messageIds, actualizar esos mensajes específicos
+            if (data.messageIds && data.messageIds.length > 0) {
+                const messageIdsSet = new Set(data.messageIds);
+
+                // Actualizar mensajes en la vista actual
+                if (messageFunctions.setInitialMessages) {
+                    messageFunctions.setInitialMessages(prevMessages => {
+                        return prevMessages.map(msg => {
+                            if (messageIdsSet.has(msg.id)) {
+                                // Agregar el usuario a readBy si no está
+                                const currentReadBy = msg.readBy || [];
+                                const newReadBy = currentReadBy.includes(data.readBy)
+                                    ? currentReadBy
+                                    : [...currentReadBy, data.readBy];
+
+                                return {
+                                    ...msg,
+                                    isRead: true,
+                                    readBy: newReadBy,
+                                    readAt: data.readAt || new Date().toISOString()
+                                };
+                            }
+                            return msg;
+                        });
+                    });
+                }
             }
         });
 

@@ -353,18 +353,16 @@ export const useConversations = (
         [loadAssignedConversations]
     );
 
-    // Effect para cargar conversaciones asignadas
-    // Effect para cargar conversaciones asignadas
     useEffect(() => {
         if (!isAuthenticated || !username) {
             return;
         }
 
-        // ✅ FIX: Verificar si ya tenemos conversaciones cargadas para no repetir
-        if (chatState.assignedConversations.length > 0) return;
+        // ✅ FIX: Verificar si ya tenemos conversaciones cargadas o si está cargando para no repetir
+        if (chatState.assignedConversations.length > 0 || chatState.assignedLoading) return;
 
         loadAssignedConversations(1); // Cargar solo página 1
-    }, [isAuthenticated, username, loadAssignedConversations, chatState.assignedConversations.length]); // Agregamos length a dependencias
+    }, [isAuthenticated, username, loadAssignedConversations, chatState.assignedConversations.length, chatState.assignedLoading]); // Agregamos length y loading a dependencias
 
     return {
         loadAssignedConversations,

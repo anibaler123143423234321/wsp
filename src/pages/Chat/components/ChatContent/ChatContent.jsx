@@ -17,6 +17,7 @@ import {
   FaChevronUp, // NUEVO: Para botón Load Newer Messages
   FaPoll,
   FaArrowDown,
+  FaArrowLeft, // NUEVO: Para botón de volver en info de mensaje
   FaFileExcel,
   FaFileWord,
   FaFilePdf,
@@ -1211,7 +1212,7 @@ const ChatContent = ({
 
     //  NUEVO: No hacer scroll automático hasta que hayamos completado el scroll inicial a no leídos
     if (!hasScrolledToUnreadRef.current) return;
-    
+
     // 🔥 FIX: No hacer scroll automático si estamos cargando mensajes antiguos
     if (isLoadingMore) {
       console.log('🚫 Scroll automático bloqueado: isLoadingMore = true');
@@ -1233,7 +1234,7 @@ const ChatContent = ({
 
     // 🔥 CRÍTICO: Solo hacer scroll si es un mensaje NUEVO y propio, no si ya existía
     const shouldScroll = messages.length > lastMessageCountRef.current && (isAtBottom || (isLastMessageNew && isLastMessageSelf));
-    
+
     if (shouldScroll) {
       console.log('📜 Haciendo scroll automático:', {
         prevCount: lastMessageCountRef.current,
@@ -1280,21 +1281,10 @@ const ChatContent = ({
   // usando markRoomMessagesAsRead (bulk) para evitar múltiples emisiones de socket.
   // NO usar un forEach aquí porque causa bucles cuando hay múltiples clusters.
 
-  // Marcar mensajes de conversaciones individuales como leídos
-  useEffect(() => {
-    if (!socket?.connected || isGroup || !to || !currentUsername) return;
-
-    const unreadMessages = messages.filter(
-      (msg) => msg.id && msg.sender !== currentUsername && msg.sender !== "Tú" && !msg.isRead
-    );
-
-    if (unreadMessages.length === 0) return;
-
-    socket.emit("markConversationAsRead", {
-      from: to,
-      to: currentUsername,
-    });
-  }, [messages, socket, isGroup, to, currentUsername]);
+  // 🔥 REMOVIDO: El marcado automático de chats individuales
+  // Los chats 1 a 1 NO deben marcarse como leídos automáticamente al abrir
+  // Solo se marcan cuando el usuario escribe (onClearUnreadOnTyping)
+  // Esto es consistente con el comportamiento de WhatsApp y otros chats
 
   // Cerrar menú desplegable al hacer clic fuera
   useEffect(() => {
@@ -1946,6 +1936,86 @@ const ChatContent = ({
   };
 
   // ============================================================
+  // FUNCIÓN DE RENDERIZADO - Vista previa de mensaje (para info)
+  // ============================================================
+  const renderMessagePreview = (message) => {
+    if (!message) return null;
+
+    const messageText = message.text || message.message || "";
+
+    // Si tiene attachments (imágenes, videos, archivos)
+    if (message.attachments && message.attachments.length > 0) {
+      const attachment = message.attachments[0];
+
+      if (attachment.type === 'image') {
+        return (
+          <div>
+            <img
+              src={attachment.url}
+              alt="Preview"
+              style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '8px' }}
+            />
+            {messageText && <p style={{ marginTop: '8px', fontSize: '14px' }}>{messageText}</p>}
+          </div>
+        );
+      }
+
+      if (attachment.type === 'video') {
+        return (
+          <div>
+            <video
+              src={attachment.url}
+              style={{ maxWidth: '200px', maxHeight: '200px', borderRadius: '8px' }}
+              controls
+            />
+            {messageText && <p style={{ marginTop: '8px', fontSize: '14px' }}>{messageText}</p>}
+          </div>
+        );
+      }
+
+      if (attachment.type === 'audio') {
+        return (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FaFileAudio size={24} color="#00a884" />
+              <span style={{ fontSize: '14px' }}>Audio</span>
+            </div>
+            {messageText && <p style={{ marginTop: '8px', fontSize: '14px' }}>{messageText}</p>}
+          </div>
+        );
+      }
+
+      // Otros archivos
+      return (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FaFileAlt size={24} color="#00a884" />
+            <span style={{ fontSize: '14px' }}>{attachment.name || 'Archivo'}</span>
+          </div>
+          {messageText && <p style={{ marginTop: '8px', fontSize: '14px' }}>{messageText}</p>}
+        </div>
+      );
+    }
+
+    // Si es una encuesta
+    if (message.type === 'poll' || message.poll) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <FaPoll size={20} color="#00a884" />
+          <span style={{ fontSize: '14px' }}>📊 Encuesta</span>
+        </div>
+      );
+    }
+
+    // Mensaje de texto normal
+    return (
+      <p style={{ margin: 0, fontSize: '14px', wordBreak: 'break-word' }}>
+        {messageText}
+      </p>
+    );
+  };
+
+  // ============================================================
   // FUNCIÓN DE RENDERIZADO - Mensaje individual
   // ============================================================
   const renderMessage = (message, index, isGroupStartProp) => {
@@ -2008,6 +2078,27 @@ const ChatContent = ({
 
     // DEBUG: Verificar por qué falla la foto
     // if (message.picture) console.log('🖼️ Render message picture:', { id: message.id, sender: message.sender, pic: message.picture, isOwn: isOwnMessage });
+
+    // 🔥 FIX: Generar indicador de estado (Vistos) para mensajes propios - REUTILIZABLE
+    const renderStatusCheck = () => {
+      if (!isOwnMessage) return null;
+
+      const isRead = message.isRead || (message.readBy && message.readBy.length > 0);
+      const color = isRead ? '#53bdeb' : '#8696a0';
+      const title = isRead ? "Leído" : "Enviado";
+
+      return (
+        <span style={{ marginLeft: '4px', display: 'inline-flex', alignItems: 'center', color: color, verticalAlign: 'middle' }} title={title}>
+          {message.isSent === false ? (
+            <span style={{ fontSize: '10px' }}>⏳</span>
+          ) : (
+            <svg viewBox="0 0 16 11" height="11" width="16" preserveAspectRatio="xMidYMid meet" fill="currentColor">
+              <path d="M11.071.653a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178l-6.19 7.636-2.405-2.272a.463.463 0 0 0-.336-.146.47.47 0 0 0-.343.146l-.311.31a.445.445 0 0 0-.14.337c0 .136.047.25.14.343l2.996 2.996a.724.724 0 0 0 .27.18.652.652 0 0 0 .3.07.596.596 0 0 0 .274-.07.716.716 0 0 0 .253-.18L11.071 1.27a.445.445 0 0 0 .14-.337.453.453 0 0 0-.14-.28zm3.486 0a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178L7.682 8.365l-.376-.377-.19.192 1.07 1.07a.724.724 0 0 0 .27.18.652.652 0 0 0 .3.07.596.596 0 0 0 .274-.07.716.716 0 0 0 .253-.18l6.19-7.636a.445.445 0 0 0 .14-.337.453.453 0 0 0-.14-.28z"></path>
+            </svg>
+          )}
+        </span>
+      );
+    };
 
     const isMenuOpen = showMessageMenu === message.id;
     const isHighlighted = String(highlightedMessageId) === String(message.id);
@@ -2496,6 +2587,21 @@ const ChatContent = ({
                                         {formatFileSize(file.fileSize)} • {isPdf ? 'Click para ver' : 'Click para descargar'}
                                       </div>
                                     </div>
+
+                                    {/* Footer para Archivos - SIN READER */}
+                                    <div style={{
+                                      display: 'flex',
+                                      justifyContent: 'flex-end',
+                                      alignItems: 'center',
+                                      marginTop: '2px',
+                                      paddingRight: '6px',
+                                      paddingBottom: '2px',
+                                      fontSize: '11px',
+                                      color: '#8696a0'
+                                    }}>
+                                      {formatTime(message.time)}
+                                    </div>
+
                                     <div className="wa-download-icon" onClick={(e) => {
                                       e.stopPropagation(); // Evitar abrir el visor
                                       handleDownload(fileUrl, file.fileName);
@@ -2705,6 +2811,8 @@ const ChatContent = ({
                         padding: isJumbo ? '3px 0' : '0'
                       }}>
                         {renderTextWithMentions(txt)}
+
+
                       </div>
                     );
                   })()
@@ -3049,9 +3157,9 @@ const ChatContent = ({
           )
         }
 
-        {/* === 🛡️ AVATARES DE LECTURA (LAZY LOADING) 🛡️ === */}
+        {/* === 🛡️ AVATARES DE LECTURA (SIDE STYLE - SIEMPRE VISIBLE SI HAY LECTURA O ES MÍO) 🛡️ === */}
         {
-          message.readByCount > 0 && (
+          (message.readByCount > 0 || (isOwnMessage && (message.isRead || (message.readBy && message.readBy.length > 0)))) && (
             <div className="read-by-avatars-container">
 
               {/* 1. ZONA INTERACTIVA - Muestra check + contador */}
@@ -3084,8 +3192,11 @@ const ChatContent = ({
                   <svg viewBox="0 0 16 11" height="11" width="16" preserveAspectRatio="xMidYMid meet">
                     <path fill="currentColor" d="M11.071.653a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178l-6.19 7.636-2.405-2.272a.463.463 0 0 0-.336-.146.47.47 0 0 0-.343.146l-.311.31a.445.445 0 0 0-.14.337c0 .136.047.25.14.343l2.996 2.996a.724.724 0 0 0 .27.18.652.652 0 0 0 .3.07.596.596 0 0 0 .274-.07.716.716 0 0 0 .253-.18L11.071 1.27a.445.445 0 0 0 .14-.337.453.453 0 0 0-.14-.28zm3.486 0a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178L7.682 8.365l-.376-.377-.19.192 1.07 1.07a.724.724 0 0 0 .27.18.652.652 0 0 0 .3.07.596.596 0 0 0 .274-.07.716.716 0 0 0 .253-.18l6.19-7.636a.445.445 0 0 0 .14-.337.453.453 0 0 0-.14-.28z"></path>
                   </svg>
-                  {/* Contador */}
-                  <span style={{ fontWeight: '500' }}>{message.readByCount}</span>
+                  {/* Contador: Mostrar solo si hay más de 0 lectores (en grupos) O si es individual al menos mostrar algo si se quiere */}
+                  {(message.readByCount > 0) && <span style={{ fontWeight: '500' }}>{message.readByCount}</span>}
+
+                  {/* Si es chat individual y está leído pero readByCount es 0 (legacy), mostrar 1 */}
+                  {(!message.readByCount && message.isRead) ? <span style={{ fontWeight: '500' }}>1</span> : null}
                 </div>
               </div>
 
@@ -3109,55 +3220,78 @@ const ChatContent = ({
                       <div className="popover-item" style={{ justifyContent: 'center' }}>
                         <span style={{ color: '#666', fontSize: '12px' }}>Cargando...</span>
                       </div>
-                    ) : (message.readByData || loadedReadBy[message.id] || message.readBy) ? (
-                      (message.readByData || loadedReadBy[message.id] || message.readBy).map((readerItem, idx) => {
-                        let userPic = null;
-                        let fullName = "";
-                        let username = "";
+                    ) : (() => {
+                      // 🔥 FIX: Construcción inteligente de la lista
+                      let readerList = message.readByData || loadedReadBy[message.id] || message.readBy || [];
 
-                        // Manejar si es objeto (readByData) o string (readBy/loadedReadBy antiguo)
-                        if (typeof readerItem === 'object' && readerItem !== null) {
-                          username = readerItem.username;
-                          fullName = readerItem.nombre && readerItem.apellido ? `${readerItem.nombre} ${readerItem.apellido}` : readerItem.username;
-                          userPic = readerItem.picture;
-                        } else {
-                          username = readerItem;
-                          fullName = readerItem;
+                      // Si es mensaje entrante (no mío) y está leído, YO debería estar en la lista
+                      if (!isOwnMessage && (message.isRead || (message.readBy && message.readBy.length > 0))) {
+                        const amIInList = readerList.some(r => {
+                          const rName = (typeof r === 'object' ? (r.username || r.nombre) : r);
+                          return rName && currentUsername && rName.toLowerCase() === currentUsername.toLowerCase();
+                        });
+
+                        if (!amIInList && currentUsername) {
+                          // Agregarme a mí mismo visualmente
+                          readerList = [...readerList, {
+                            username: currentUsername,
+                            nombre: user?.nombre || currentUsername,
+                            apellido: user?.apellido || "",
+                            picture: user?.picture
+                          }];
                         }
+                      }
 
-                        // Intentar enriquecer con roomUsers si falta info (fallback)
-                        if (!userPic || !fullName || fullName === username) {
-                          const searchName = username?.toLowerCase().trim();
-                          if (roomUsers && Array.isArray(roomUsers)) {
-                            const u = roomUsers.find(u => {
-                              const uName = (u.username || "").toLowerCase();
-                              const uFull = (u.nombre && u.apellido) ? `${u.nombre} ${u.apellido}`.toLowerCase() : "";
-                              return uName === searchName || uFull === searchName;
-                            });
-                            if (u) {
-                              userPic = u.picture || userPic;
-                              fullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : (u.username || fullName);
+                      return readerList.length > 0 ? (
+                        readerList.map((readerItem, idx) => {
+                          let userPic = null;
+                          let fullName = "";
+                          let username = "";
+
+                          // Manejar si es objeto (readByData) o string (readBy/loadedReadBy antiguo)
+                          if (typeof readerItem === 'object' && readerItem !== null) {
+                            username = readerItem.username;
+                            fullName = readerItem.nombre && readerItem.apellido ? `${readerItem.nombre} ${readerItem.apellido}` : readerItem.username;
+                            userPic = readerItem.picture;
+                          } else {
+                            username = readerItem;
+                            fullName = readerItem;
+                          }
+
+                          // Intentar enriquecer con roomUsers si falta info (fallback)
+                          if (!userPic || !fullName || fullName === username) {
+                            const searchName = username?.toLowerCase().trim();
+                            if (roomUsers && Array.isArray(roomUsers)) {
+                              const u = roomUsers.find(u => {
+                                const uName = (u.username || "").toLowerCase();
+                                const uFull = (u.nombre && u.apellido) ? `${u.nombre} ${u.apellido}`.toLowerCase() : "";
+                                return uName === searchName || uFull === searchName;
+                              });
+                              if (u) {
+                                userPic = u.picture || userPic;
+                                fullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : (u.username || fullName);
+                              }
                             }
                           }
-                        }
 
-                        return (
-                          <div key={idx} className="popover-item">
-                            <div className="popover-avatar">
-                              {userPic ? <img src={userPic} alt={fullName} /> : <span className="popover-avatar-initial">{fullName ? fullName.charAt(0).toUpperCase() : "?"}</span>}
+                          return (
+                            <div key={idx} className="popover-item">
+                              <div className="popover-avatar">
+                                {userPic ? <img src={userPic} alt={fullName} /> : <span className="popover-avatar-initial">{fullName ? fullName.charAt(0).toUpperCase() : "?"}</span>}
+                              </div>
+                              <div className="popover-info">
+                                <div className="popover-name">{fullName}</div>
+                                <div className="popover-status">Visto</div>
+                              </div>
                             </div>
-                            <div className="popover-info">
-                              <div className="popover-name">{fullName}</div>
-                              <div className="popover-status">Visto</div>
-                            </div>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div className="popover-item" style={{ justifyContent: 'center' }}>
-                        <span style={{ color: '#666', fontSize: '12px' }}>Sin datos</span>
-                      </div>
-                    )}
+                          );
+                        })
+                      ) : (
+                        <div className="popover-item" style={{ justifyContent: 'center' }}>
+                          <span style={{ color: '#999', fontSize: '12px' }}>Sin información</span>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               )}

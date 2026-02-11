@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { FaBars, FaStar, FaRegStar, FaChevronDown, FaChevronRight, FaChevronLeft } from 'react-icons/fa';
 import { MessageSquare, Home, Users } from 'lucide-react';
 import clsx from 'clsx';
@@ -165,6 +165,8 @@ const ConversationList = ({
   const [showFavorites, setShowFavorites] = useState(true);
   const [showGroups, setShowGroups] = useState(true);
   const [showAssigned, setShowAssigned] = useState(true);
+  // 🔥 FIX: Estado para forzar re-render cuando se quita un favorito
+  const [favoriteToggleTimestamp, setFavoriteToggleTimestamp] = useState(Date.now());
 
   // 🔥 Estados para controlar "Ver más / Ver menos" en cada sección
   const INITIAL_ITEMS_TO_SHOW = 20;
@@ -355,32 +357,32 @@ const ConversationList = ({
   // 🔥 NUEVO: Función para verificar si hay menciones pendientes en una sala/conversación
   const hasPendingMentions = useCallback((roomCodeOrConvId, lastMessage, roomData) => {
     // Si el chat está actualmente abierto, NO mostrar el punto rojo
-    const isCurrentChat = isGroup 
-      ? currentRoomCode === roomCodeOrConvId 
+    const isCurrentChat = isGroup
+      ? currentRoomCode === roomCodeOrConvId
       : to && (String(currentRoomCode) === String(roomCodeOrConvId) || to === roomCodeOrConvId);
-    
+
     if (isCurrentChat) {
       return false;
     }
-    
+
     // Verificar si hay menciones pendientes en el estado
     const hasPending = pendingMentions[roomCodeOrConvId];
     if (hasPending) {
       console.log(`✅ hasPendingMentions: TRUE para ${roomCodeOrConvId} (en estado pendingMentions)`);
       return true;
     }
-    
+
     // 🔥 NUEVO: Verificar menciones en hilos (independiente de unreadCount)
     if (roomData && roomData.hasUnreadThreadMentions) {
       return true;
     }
-    
+
     // Verificar unreadCount para mensajes principales
     const unreadCount = unreadMessages[roomCodeOrConvId] || 0;
     if (unreadCount === 0) {
       return false;
     }
-    
+
     // Verificar menciones en mensaje principal
     if (lastMessage && lastMessage.text) {
       const hasMention = hasMentionToUser(lastMessage.text);
@@ -389,7 +391,7 @@ const ConversationList = ({
       }
       return hasMention;
     }
-    
+
     return false;
   }, [pendingMentions, hasMentionToUser, isGroup, currentRoomCode, to, unreadMessages]);
 
@@ -431,25 +433,30 @@ const ConversationList = ({
       const displayName = getDisplayName();
       if (!displayName || !isMounted) return;
 
-      // 🔥 Siempre recargar favoritos para mantener sincronizado
       try {
-        // console.log('🔥 Cargando favoritos para:', displayName);
-        // Cargar grupos favoritos con datos completos
-        const roomsWithData = await apiService.getUserFavoriteRoomsWithData(displayName);
-        // console.log('🔥 Favoritos cargados:', roomsWithData);
-        if (isMounted) {
-          setFavoriteRooms(roomsWithData);
-          const codes = roomsWithData.map(r => r.roomCode);
-          setFavoriteRoomCodes(codes);
-          //  SINCRONIZAR con chatState para ordenamiento en useSocketListeners
-          if (setExternalFavoriteRoomCodes) {
-            setExternalFavoriteRoomCodes(codes);
-          }
-        }
+        // 🔥 El endpoint ahora devuelve tanto salas como conversaciones unificadas
+        const allFavorites = await apiService.getUserFavoriteRoomsWithData(displayName);
 
-        // Cargar IDs de conversaciones favoritas
-        const conversationIds = await apiService.getUserFavoriteConversationIds(displayName);
-        if (isMounted) setFavoriteConversationIds(conversationIds);
+        if (isMounted) {
+          // 1. Guardar la lista completa para la sección de FAVORITOS
+          // El backend ya los devuelve unificados, filtrados y ordenados
+          setFavoriteRooms(allFavorites);
+
+          // 2. Solo guardamos los códigos para el icono de estrella/pin en las listas
+          const roomCodes = allFavorites
+            .filter(f => f.type === 'room')
+            .map(r => r.roomCode);
+          setFavoriteRoomCodes(roomCodes);
+
+          if (setExternalFavoriteRoomCodes) {
+            setExternalFavoriteRoomCodes(roomCodes);
+          }
+
+          const convIds = allFavorites
+            .filter(f => f.type === 'conv')
+            .map(c => c.id);
+          setFavoriteConversationIds(convIds);
+        }
       } catch (error) {
         console.error('Error al cargar favoritos:', error);
       }
@@ -538,7 +545,18 @@ const ConversationList = ({
         console.log('⭐ Agregando a favoritos');
         const newCodes = [...favoriteRoomCodes, room.roomCode];
         setFavoriteRoomCodes(newCodes);
-        setFavoriteRooms(prev => [...prev, { ...room, isFavorite: true }]);
+
+        setFavoriteRooms(prev => {
+          const newRoom = { ...room, type: 'room', isFavorite: true };
+          const updated = [...prev, newRoom];
+          // Reordenar por fecha del último mensaje
+          return updated.sort((a, b) => {
+            const dateA = new Date(a.lastMessage?.sentAt || 0);
+            const dateB = new Date(b.lastMessage?.sentAt || 0);
+            return dateB - dateA;
+          });
+        });
+
         //  SINCRONIZAR con chatState
         if (setExternalFavoriteRoomCodes) setExternalFavoriteRoomCodes(newCodes);
       } else if (wasAlreadyFavorite) {
@@ -553,6 +571,9 @@ const ConversationList = ({
         });
         //  SINCRONIZAR con chatState
         if (setExternalFavoriteRoomCodes) setExternalFavoriteRoomCodes(newCodes);
+        
+        // 🔥 FIX: Forzar re-render para que el grupo aparezca inmediatamente en la lista
+        setFavoriteToggleTimestamp(Date.now());
       }
     } catch (error) {
       console.error('Error al alternar favorito:', error);
@@ -566,9 +587,36 @@ const ConversationList = ({
     try {
       const result = await apiService.toggleConversationFavorite(displayName, conversation.id);
       if (result.isFavorite) {
+        // 🔥 Agregar a IDs y a la lista unificada
         setFavoriteConversationIds(prev => [...prev, conversation.id]);
+        setFavoriteRooms(prev => {
+          // Evitar duplicados
+          if (prev.some(f => f.type === 'conv' && f.id === conversation.id)) return prev;
+
+          // Preparar objeto para la lista unificada (compatibilidad con backend)
+          const newFav = {
+            ...conversation,
+            type: 'conv',
+            isFavorite: true,
+            roomCode: conversation.id.toString(),
+            description: conversation.picture
+          };
+
+          const updated = [...prev, newFav];
+          // Reordenar por fecha
+          return updated.sort((a, b) => {
+            const dateA = new Date(a.lastMessage?.sentAt || 0);
+            const dateB = new Date(b.lastMessage?.sentAt || 0);
+            return dateB - dateA;
+          });
+        });
       } else {
+        // 🔥 Quitar de IDs y de la lista unificada
         setFavoriteConversationIds(prev => prev.filter(id => id !== conversation.id));
+        setFavoriteRooms(prev => prev.filter(f => !(f.type === 'conv' && f.id === conversation.id)));
+        
+        // 🔥 FIX: Forzar re-render para que la conversación aparezca inmediatamente en la lista
+        setFavoriteToggleTimestamp(Date.now());
       }
     } catch (error) {
       console.error('Error al alternar favorito de conversación:', error);
@@ -896,10 +944,15 @@ const ConversationList = ({
 
   // --- LÓGICA DE CONTADORES CORREGIDA ---
   // Filtramos las conversaciones asignadas que pertenecen al usuario actual
-  const myAssignedConversations = assignedConversations.filter(conv => {
-    const displayName = getDisplayName();
-    return conv.participants?.includes(displayName);
-  });
+  // 🔥 FIX: También excluir favoritos del conteo - Usar useMemo para recalcular automáticamente
+  const myAssignedConversations = useMemo(() => {
+    return assignedConversations.filter(conv => {
+      const displayName = getDisplayName();
+      const belongsToUser = conv.participants?.includes(displayName);
+      const isFavorite = favoriteConversationIds.includes(conv.id);
+      return belongsToUser && !isFavorite;
+    });
+  }, [assignedConversations, favoriteConversationIds, user]);
 
   // 🔥 CALCULO DE NO LEÍDOS PARA ASIGNADOS (Combinando prop interna + unreadMessages global)
   const unreadAssignedCount = myAssignedConversations.reduce((acc, conv) => {
@@ -914,13 +967,20 @@ const ConversationList = ({
 
   const unreadMonitoringCount = monitoringConversations.filter(conv => conv.unreadCount > 0).length;
 
+  // 🔥 FIX: Filtrar grupos activos excluyendo favoritos - Usar useMemo para recalcular automáticamente
+  const myActiveRoomsFiltered = useMemo(() => {
+    return (myActiveRooms || []).filter(room => !favoriteRoomCodes.includes(room.roomCode));
+  }, [myActiveRooms, favoriteRoomCodes]);
+
   // 🔥 CALCULO DE NO LEÍDOS PARA GRUPOS
-  const unreadRoomsCount = myActiveRooms?.filter(room => {
-    const roomUnread = unreadMessages?.[room.roomCode];
-    // Si viene del socket, usarlo. Si no, fallback a propiedad del objeto si existiera (room.unreadCount)
-    const count = (roomUnread !== undefined) ? roomUnread : (room.unreadCount || 0);
-    return count > 0;
-  }).length || 0;
+  const unreadRoomsCount = useMemo(() => {
+    return myActiveRoomsFiltered.filter(room => {
+      const roomUnread = unreadMessages?.[room.roomCode];
+      // Si viene del socket, usarlo. Si no, fallback a propiedad del objeto si existiera (room.unreadCount)
+      const count = (roomUnread !== undefined) ? roomUnread : (room.unreadCount || 0);
+      return count > 0;
+    }).length;
+  }, [myActiveRoomsFiltered, unreadMessages]);
 
   // --- DEFINICIÓN DE PESTAÑAS (TABS) ---
   const tabs = [
@@ -1395,9 +1455,7 @@ const ConversationList = ({
 
             {/* 0. SECCIÓN DE FAVORITOS - Siempre fijos arriba */}
             {(searchFilter === 'select_option' || searchFilter === 'favorites') && (() => {
-              // 🔥 Calcular favoritos REALES (que existen y se pueden mostrar)
-              const realFavoriteConversations = myAssignedConversations.filter(conv => favoriteConversationIds.includes(conv.id));
-              const totalRealFavorites = favoriteRooms.length + realFavoriteConversations.length;
+              const totalRealFavorites = favoriteRooms.length;
 
               if (totalRealFavorites === 0) return null;
 
@@ -1412,12 +1470,12 @@ const ConversationList = ({
                     count={totalRealFavorites}
                   />
                   {showFavorites && (() => {
-                    // Combinar grupos y conversaciones favoritas ordenados por fecha
-                    const allFavorites = [
-                      ...favoriteRooms.map(room => ({ type: 'room', data: room, date: new Date(room.lastMessage?.sentAt || 0) })),
-                      ...realFavoriteConversations
-                        .map(conv => ({ type: 'conv', data: conv, date: new Date(conv.lastMessage?.sentAt || conv.updatedAt || conv.createdAt || 0) }))
-                    ].sort((a, b) => b.date - a.date);
+                    // El backend ya devuelve ambos unificados y ordenados
+                    const allFavorites = favoriteRooms.map(item => ({
+                      type: item.type,
+                      data: item,
+                      date: new Date(item.lastMessage?.sentAt || 0)
+                    }));
 
                     const totalFavorites = allFavorites.length;
                     const itemsToShow = favoritesExpanded ? allFavorites : allFavorites.slice(0, INITIAL_ITEMS_TO_SHOW);
@@ -1455,16 +1513,16 @@ const ConversationList = ({
                                   )}
                                   {/* 🔥 NUEVO: Punto rojo para menciones */}
                                   {hasMentions && (
-                                    <div 
-                                      className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white" 
+                                    <div
+                                      className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white"
                                       style={{ width: '10px', height: '10px' }}
                                       title="Tienes menciones pendientes"
                                     />
                                   )}
                                   {/* 🔥 NUEVO: Punto verde para mensajes nuevos (sin menciones) */}
                                   {!hasMentions && (roomUnreadCount > 0 || pendingThreads[room.roomCode]) && (
-                                    <div 
-                                      className="absolute top-0 right-0 rounded-full border-2 border-white" 
+                                    <div
+                                      className="absolute top-0 right-0 rounded-full border-2 border-white"
                                       style={{ width: '10px', height: '10px', backgroundColor: '#10b981' }}
                                       title="Mensajes nuevos"
                                     />
@@ -1554,34 +1612,49 @@ const ConversationList = ({
                                   )}
                                   {/* 🔥 NUEVO: Punto rojo para menciones */}
                                   {hasMentions && (
-                                    <div 
-                                      className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white" 
+                                    <div
+                                      className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white"
                                       style={{ width: '10px', height: '10px' }}
                                       title="Tienes menciones pendientes"
                                     />
                                   )}
                                   {/* 🔥 NUEVO: Punto verde para mensajes nuevos (sin menciones) */}
                                   {!hasMentions && (itemUnreadCount > 0 || pendingThreads[conv.id]) && (
-                                    <div 
-                                      className="absolute top-0 right-0 rounded-full border-2 border-white" 
+                                    <div
+                                      className="absolute top-0 right-0 rounded-full border-2 border-white"
                                       style={{ width: '10px', height: '10px', backgroundColor: '#10b981' }}
                                       title="Mensajes nuevos"
                                     />
                                   )}
                                 </div>
-                                <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '4px', display: isCompact ? 'none' : 'flex' }}>
+                                <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px', display: isCompact ? 'none' : 'flex' }}>
                                   <div className="flex items-center justify-between gap-2">
-                                    <div className="flex flex-col gap-1 flex-1 min-w-0">
-                                      <span className="flex-shrink-0 text-yellow-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px' }}><FaStar size={10} /> CHAT ASIGNADO</span>
-                                      <h3 className="font-semibold text-[#111] truncate" style={{ fontSize: '11.5px', fontWeight: 600 }}>{otherParticipant}</h3>
+                                    <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                                      {/* Etiqueta de Favorito (arriba del todo si existe) */}
+                                      {isFavorite && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-red-500" /> Favorito</span>}
+                                      
+                                      {/* 1. NOMBRE DEL USUARIO (Arriba) */}
+                                      <div className="flex items-center gap-2 w-full min-w-0">
+                                        <h3 className="font-semibold text-[#111] truncate flex-1" style={{ fontSize: '11.5px', lineHeight: '14px', fontWeight: 600 }}>
+                                          {displayName}
+                                        </h3>
+                                        {/* Badge de no leídos al lado del nombre */}
+                                        {itemUnreadCount > 0 && (
+                                          <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center ml-2" style={{ minWidth: '18px', height: '18px', fontSize: '10px', fontWeight: 'bold' }}>
+                                            {itemUnreadCount > 99 ? '99+' : itemUnreadCount}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* 2. ROL O AGENTE (Debajo del nombre - Gris) */}
+                                      {(numeroAgente || role) && (
+                                        <span style={{ fontSize: '10px', color: '#667781', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.3px', lineHeight: '12px' }}>
+                                          {numeroAgente ? `N.º ${numeroAgente}` : role}
+                                        </span>
+                                      )}
                                     </div>
                                     <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-1 hover:bg-gray-200 rounded-full transition-colors" style={{ color: '#ff453a' }}><FaStar /></button>
                                   </div>
-                                  {itemUnreadCount > 0 && (
-                                    <div className="flex items-center justify-end gap-2">
-                                      <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '18px', height: '18px', fontSize: '10px', fontWeight: 600 }}>{itemUnreadCount > 99 ? '99+' : itemUnreadCount}</div>
-                                    </div>
-                                  )}
                                 </div>
                               </div>
                             );
@@ -1613,7 +1686,7 @@ const ConversationList = ({
                   icon={Users}
                   isOpen={showGroups}
                   onToggle={() => setShowGroups(prev => !prev)}
-                  count={(myActiveRooms || []).filter(r => !favoriteRoomCodes.includes(r.roomCode)).length}
+                  count={(myActiveRooms || []).length}
                   isLoading={roomsLoading}
                 />
                 {showGroups && (
@@ -1633,15 +1706,22 @@ const ConversationList = ({
                         }
                       }
 
-                      // 🔥 El backend excluye favoritos, pero filtramos aquí también para
-                      // reactividad inmediata cuando marcas un nuevo favorito (myActiveRooms está cacheado)
+                      // 🔥 El backend ya excluye favoritos por SQL
                       let filteredRooms;
                       if (hasApiSearch) {
-                        filteredRooms = [...apiSearchResults.groups].filter(room => !favoriteRoomCodes.includes(room.roomCode));
+                        filteredRooms = [...apiSearchResults.groups];
                       } else {
                         filteredRooms = [...(myActiveRooms || [])]
-                          .filter(room => !favoriteRoomCodes.includes(room.roomCode)) // 🔥 Excluir favoritos
-                          .filter(room => assignedSearchTerm.trim() === '' || room.name.toLowerCase().includes(assignedSearchTerm.toLowerCase()) || room.roomCode.toLowerCase().includes(assignedSearchTerm.toLowerCase()));
+                          .filter(room => {
+                            const matchesSearch = assignedSearchTerm.trim() === '' ||
+                              room.name.toLowerCase().includes(assignedSearchTerm.toLowerCase()) ||
+                              room.roomCode.toLowerCase().includes(assignedSearchTerm.toLowerCase());
+
+                            // 🔥 FIX: Excluir favoritos TAMBIÉN aquí para evitar reaparición por updates de socket
+                            const isFavorite = favoriteRoomCodes.includes(room.roomCode);
+
+                            return matchesSearch && !isFavorite;
+                          });
                       }
 
                       // Ordenar: SOLO por fecha del último mensaje (más reciente primero)
@@ -1715,7 +1795,7 @@ const ConversationList = ({
 
                             return (
                               <div
-                                key={room.id}
+                                key={room.roomCode}
                                 id={chatId}
                                 className={`flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer ${currentRoomCode === room.roomCode ? 'selected-conversation' : ''} ${isHighlighted ? 'highlighted-chat' : ''}`}
                                 style={{ padding: '4px 12px', gap: '6px', minHeight: '40px' }}
@@ -1737,16 +1817,16 @@ const ConversationList = ({
                                   )}
                                   {/* 🔥 NUEVO: Punto rojo para menciones */}
                                   {hasMentions && (
-                                    <div 
-                                      className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white" 
+                                    <div
+                                      className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white"
                                       style={{ width: '10px', height: '10px' }}
                                       title="Tienes menciones pendientes"
                                     />
                                   )}
                                   {/* 🔥 NUEVO: Punto verde para mensajes nuevos (sin menciones) */}
                                   {!hasMentions && (roomUnreadCount > 0 || pendingThreads[room.roomCode]) && (
-                                    <div 
-                                      className="absolute top-0 right-0 rounded-full border-2 border-white" 
+                                    <div
+                                      className="absolute top-0 right-0 rounded-full border-2 border-white"
                                       style={{ width: '10px', height: '10px', backgroundColor: '#10b981' }}
                                       title="Mensajes nuevos"
                                     />
@@ -1755,7 +1835,7 @@ const ConversationList = ({
                                 <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px', display: isCompact ? 'none' : 'flex' }}>
                                   <div className="flex items-center justify-between gap-2">
                                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                                      {isFavorite && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-red-500" /> Fijado</span>}
+                                      {isFavorite && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-red-500" /> Favorito</span>}
                                       <h3 className="font-semibold text-[#111] truncate flex-1" style={{ fontSize: '11.5px', lineHeight: '14px', fontWeight: 600 }}>{room.name}</h3>
                                       {roomUnreadCount > 0 && <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center ml-2" style={{ minWidth: '18px', height: '18px', fontSize: '10px', fontWeight: 'bold', padding: roomUnreadCount > 99 ? '0 4px' : '0' }}>{roomUnreadCount > 99 ? '99+' : roomUnreadCount}</div>}
                                     </div>
@@ -1805,10 +1885,10 @@ const ConversationList = ({
               <>
                 <SectionHeader
                   title="ASIGNADOS"
-                  icon={CommunityIcon}
+                  icon={MessageSquare}
                   isOpen={showAssigned}
                   onToggle={() => setShowAssigned(prev => !prev)}
-                  count={myAssignedConversations.filter(c => !favoriteConversationIds.includes(c.id)).length}
+                  count={myAssignedConversations.length}
                   isLoading={assignedLoading}
                 />
                 {showAssigned && (
@@ -1825,23 +1905,25 @@ const ConversationList = ({
                           </div>
                         );
                       }
-
-                      // 🔥 NUEVO: Usar resultados de API si hay búsqueda, sino filtrar localmente
-                      let myConversations;
+                      // 🔥 El backend ya excluye favoritos por SQL, pero filtramos aquí también para reactividad inmediata
+                      let filteredConversations;
                       if (hasApiSearch) {
-                        myConversations = apiSearchResults.assigned.filter(conv => !favoriteConversationIds.includes(conv.id));
+                        filteredConversations = [...apiSearchResults.assigned];
                       } else {
-                        myConversations = myAssignedConversations.filter(conv => !favoriteConversationIds.includes(conv.id)).filter(conv => {
-                          if (!assignedSearchTerm.trim()) return true;
-                          const searchLower = assignedSearchTerm.toLowerCase();
-                          const participants = conv.participants || [];
-                          const lastMsg = typeof conv.lastMessage === 'string' ? conv.lastMessage : (conv.lastMessage?.message || conv.lastMessage?.text || '');
-                          return (conv.name?.toLowerCase().includes(searchLower) || participants.some(p => p?.toLowerCase().includes(searchLower)) || lastMsg.toLowerCase().includes(searchLower));
-                        });
+                        filteredConversations = myAssignedConversations
+                          // 🔥 FIX: Excluir conversaciones que ya están en favoritos
+                          .filter(conv => !favoriteConversationIds.includes(conv.id))
+                          .filter(conv => {
+                            if (!assignedSearchTerm.trim()) return true;
+                            const searchLower = assignedSearchTerm.toLowerCase();
+                            const participants = conv.participants || [];
+                            const lastMsg = typeof conv.lastMessage === 'string' ? conv.lastMessage : (conv.lastMessage?.message || conv.lastMessage?.text || '');
+                            return (conv.name?.toLowerCase().includes(searchLower) || participants.some(p => p?.toLowerCase().includes(searchLower)) || lastMsg.toLowerCase().includes(searchLower));
+                          });
                       }
 
                       // Mostrar mensaje si no hay resultados de búsqueda
-                      if (hasApiSearch && myConversations.length === 0) {
+                      if (hasApiSearch && filteredConversations.length === 0) {
                         return (
                           <div className="flex flex-col items-center justify-center py-[40px] px-5 text-center">
                             <div className="text-3xl mb-2 opacity-50">🔍</div>
@@ -1850,7 +1932,7 @@ const ConversationList = ({
                         );
                       }
 
-                      const sortedConversations = myConversations.sort((a, b) => {
+                      const sortedConversations = filteredConversations.sort((a, b) => {
                         const aIsFavorite = favoriteConversationIds.includes(a.id);
                         const bIsFavorite = favoriteConversationIds.includes(b.id);
                         if (aIsFavorite && !bIsFavorite) return -1;
@@ -1865,7 +1947,7 @@ const ConversationList = ({
                       const convsToShow = assignedExpanded ? sortedConversations : sortedConversations.slice(0, INITIAL_ITEMS_TO_SHOW);
                       const hasMoreLocalAssigned = totalAssigned > INITIAL_ITEMS_TO_SHOW;
 
-                      return myConversations.length > 0 ? (
+                      return filteredConversations.length > 0 ? (
                         <>
                           {convsToShow.map((conv) => {
                             const participants = conv.participants || [];
@@ -1916,6 +1998,10 @@ const ConversationList = ({
 
                             const isSelected = (!isGroup && to && participants.some(p => p?.toLowerCase().trim() === to?.toLowerCase().trim())) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
 
+                            // 🔥 NUEVO: Obtener numeroAgente y role si existen
+                            const numeroAgente = conv.numeroAgente;
+                            const role = conv.role;
+
                             return (
                               <div
                                 key={conv.id}
@@ -1937,16 +2023,16 @@ const ConversationList = ({
                                   )}
                                   {/* 🔥 NUEVO: Punto rojo para menciones */}
                                   {hasMentions && (
-                                    <div 
-                                      className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white" 
+                                    <div
+                                      className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white"
                                       style={{ width: '10px', height: '10px' }}
                                       title="Tienes menciones pendientes"
                                     />
                                   )}
                                   {/* 🔥 NUEVO: Punto verde para mensajes nuevos (sin menciones) */}
                                   {!hasMentions && (itemUnreadCount > 0 || pendingThreads[conv.id]) && (
-                                    <div 
-                                      className="absolute top-0 right-0 rounded-full border-2 border-white" 
+                                    <div
+                                      className="absolute top-0 right-0 rounded-full border-2 border-white"
                                       style={{ width: '10px', height: '10px', backgroundColor: '#10b981' }}
                                       title="Mensajes nuevos"
                                     />
@@ -1954,11 +2040,31 @@ const ConversationList = ({
                                 </div>
                                 <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px', display: isCompact ? 'none' : 'flex' }}>
                                   <div className="flex items-center justify-between gap-2">
-                                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                                      {isFavorite && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px' }}><PinIcon size={10} className="text-red-500" /> Fijado</span>}
-                                      <h3 className="font-semibold text-[#111] truncate flex-1" style={{ fontSize: '11.5px', fontWeight: 600 }}>{displayName}</h3>
-                                      {itemUnreadCount > 0 && <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center ml-2" style={{ minWidth: '18px', height: '18px', fontSize: '10px', fontWeight: 'bold' }}>{itemUnreadCount > 99 ? '99+' : itemUnreadCount}</div>}
+                                    <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                                      {/* Etiqueta de Favorito (arriba del todo si existe) */}
+                                      {isFavorite && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-red-500" /> Favorito</span>}
+                                      
+                                      {/* 1. NOMBRE DEL USUARIO (Arriba) */}
+                                      <div className="flex items-center gap-2 w-full min-w-0">
+                                        <h3 className="font-semibold text-[#111] truncate flex-1" style={{ fontSize: '11.5px', lineHeight: '14px', fontWeight: 600 }}>
+                                          {displayName}
+                                        </h3>
+                                        {/* Badge de no leídos al lado del nombre */}
+                                        {itemUnreadCount > 0 && (
+                                          <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center ml-2" style={{ minWidth: '18px', height: '18px', fontSize: '10px', fontWeight: 'bold' }}>
+                                            {itemUnreadCount > 99 ? '99+' : itemUnreadCount}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* 2. ROL O AGENTE (Debajo del nombre - Gris) */}
+                                      {(numeroAgente || role) && (
+                                        <span style={{ fontSize: '10px', color: '#667781', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.3px', lineHeight: '12px' }}>
+                                          {numeroAgente ? `N.º ${numeroAgente}` : role}
+                                        </span>
+                                      )}
                                     </div>
+                                    {/* Botón de Estrella */}
                                     <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-1 rounded-full hover:bg-gray-200 transition-all duration-200" style={{ color: isFavorite ? '#ff453a' : '#9ca3af' }}>{isFavorite ? <FaStar size={14} /> : <FaRegStar size={14} />}</button>
                                   </div>
                                 </div>
@@ -2069,13 +2175,16 @@ const ConversationList = ({
           <div className="flex-1 overflow-y-auto bg-white px-4 w-full min-w-0">
             {isSearching && <div className="flex items-center justify-center py-8"><div className="text-sm text-gray-500">Buscando mensajes...</div></div>}
             {(() => {
-              const filteredMonitoring = monitoringConversations.filter(conv => {
-                if (!assignedSearchTerm.trim()) return true;
-                const searchLower = assignedSearchTerm.toLowerCase();
-                const participants = conv.participants || [];
-                const lastMsg = typeof conv.lastMessage === 'string' ? conv.lastMessage : (conv.lastMessage?.message || conv.lastMessage?.text || '');
-                return (conv.name?.toLowerCase().includes(searchLower) || participants.some(p => p?.toLowerCase().includes(searchLower)) || lastMsg.toLowerCase().includes(searchLower));
-              });
+              const filteredMonitoring = monitoringConversations
+                // 🔥 FIX: Excluir conversaciones que ya están en favoritos
+                .filter(conv => !favoriteConversationIds.includes(conv.id))
+                .filter(conv => {
+                  if (!assignedSearchTerm.trim()) return true;
+                  const searchLower = assignedSearchTerm.toLowerCase();
+                  const participants = conv.participants || [];
+                  const lastMsg = typeof conv.lastMessage === 'string' ? conv.lastMessage : (conv.lastMessage?.message || conv.lastMessage?.text || '');
+                  return (conv.name?.toLowerCase().includes(searchLower) || participants.some(p => p?.toLowerCase().includes(searchLower)) || lastMsg.toLowerCase().includes(searchLower));
+                });
               return filteredMonitoring.length > 0 ? (
                 <>
                   {filteredMonitoring.sort((a, b) => {
@@ -2112,7 +2221,7 @@ const ConversationList = ({
                         <div className="flex-1 min-w-0 flex flex-col relative" style={{ gap: '2px', position: 'relative' }}>
                           <div className="flex items-start justify-between gap-2 w-full min-w-0 relative" style={{ position: 'relative' }}>
                             <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                              {isFavorite && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-red-500" /> Fijado</span>}
+                              {isFavorite && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-red-500" /> Favorito</span>}
                               <div className="flex items-center gap-1 w-full min-w-0">
                                 <div className="flex-1 min-w-0"><p className="font-semibold text-[#111]" style={{ fontSize: '11.5px', lineHeight: '14px', fontWeight: 600, width: '100%', minWidth: 0, maxWidth: '100%', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }} title={`${participant1Name} • ${participant2Name}`}>{participant1Name} • {participant2Name}</p></div>
                                 <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-0.5 rounded-full hover:bg-gray-200 transition-all duration-200 opacity-0 group-hover:opacity-100" style={{ opacity: isFavorite ? 1 : undefined, width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}>{isFavorite ? <FaStar className="text-red-500" size={10} /> : <FaRegStar className="text-gray-400" size={10} />}</button>

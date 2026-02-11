@@ -45,6 +45,7 @@ export const useChatState = () => {
     const [myActiveRooms, setMyActiveRooms] = useState([]);
     const [isSending, setIsSending] = useState(false);
     const [favoriteRoomCodes, setFavoriteRoomCodes] = useState([]); //  Códigos de salas favoritas
+    const [favoriteRooms, setFavoriteRooms] = useState([]); //  🔥 NUEVO: Salas favoritas con datos completos (incluido unreadCount)
     const [lastFavoriteUpdate, setLastFavoriteUpdate] = useState(null); //  Notifica actualizaciones a favoritos
 
     // 🔥 Función para cargar favoritos tempranamente (llamada desde ChatPage)
@@ -53,8 +54,9 @@ export const useChatState = () => {
         try {
             const roomsWithData = await apiService.getUserFavoriteRoomsWithData(displayName);
             const codes = roomsWithData.map(r => r.roomCode);
-            console.log('🔥 useChatState: Favoritos cargados tempranamente:', codes);
+            console.log('🔥 useChatState: Favoritos cargados tempranamente:', { codes, count: roomsWithData.length });
             setFavoriteRoomCodes(codes);
+            setFavoriteRooms(roomsWithData); // Guardar datos completos
         } catch (error) {
             console.error('Error al cargar favoritos en useChatState:', error);
         }
@@ -202,6 +204,7 @@ export const useChatState = () => {
         isSending,
         setIsSending,
         favoriteRoomCodes,
+        favoriteRooms, // 🔥 NUEVO: Exponer datos completos
         setFavoriteRoomCodes,
         loadFavoriteRoomCodes,
         lastFavoriteUpdate,

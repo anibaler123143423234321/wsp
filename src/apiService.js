@@ -1,13 +1,12 @@
 // Servicio para conectar con la API (múltiples backends según sede)
 // URLs para CHICLAYO / PIURA
-const API_BASE_URL_CHICLAYO = "https://apisozarusac.com/BackendJava/";
-const API_BASECHAT_URL_CHICLAYO = "https://apisozarusac.com/BackendChat/";
-//const API_BASECHAT_URL_CHICLAYO = "http://localhost:8747/"; // Solo para desarrollo local
+// URLs para CHICLAYO / PIURA
+const API_BASE_URL_CHICLAYO = import.meta.env.VITE_API_BASE_URL_CHICLAYO;
+const API_BASECHAT_URL_CHICLAYO = import.meta.env.VITE_API_BASECHAT_URL_CHICLAYO;
 
 // URLs para LIMA
-const API_BASE_URL_LIMA = "https://apisozarusac.com/BackendJavaMidas/";
-const API_BASECHAT_URL_LIMA = "https://apisozarusac.com/BackendChat/";
-//const API_BASECHAT_URL_LIMA = "http://localhost:8747/"; // Solo para desarrollo local
+const API_BASE_URL_LIMA = import.meta.env.VITE_API_BASE_URL_LIMA;
+const API_BASECHAT_URL_LIMA = import.meta.env.VITE_API_BASECHAT_URL_LIMA;
 
 class ApiService {
   constructor() {

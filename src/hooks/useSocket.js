@@ -40,7 +40,7 @@ export const useSocket = (isAuthenticated, username, user) => {
         socket.current = io(socketUrl, {
           transports: ["websocket", "polling"],
           timeout: 30000, // OPTIMIZADO: 45s - sincronizado con backend connectTimeout
-          path: "/BackendChat/socket.io/", // Ruta específica de tu backend
+          path: import.meta.env.VITE_SOCKET_PATH || "/BackendChat/socket.io/", // Ruta específica de tu backend
           //path: "/socket.io/", // Solo para desarrollo local
           forceNew: true,
           reconnection: true,

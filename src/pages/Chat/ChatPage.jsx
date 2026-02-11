@@ -224,17 +224,54 @@ const ChatPage = () => {
       return conv.participants?.includes(displayName);
     });
 
-    const unreadAssignedCount = myAssignedConversations.filter(
-      (conv) => conv.unreadCount > 0
-    ).length;
+    // 1. Unread count from Assigned Conversations
+    const unreadAssignedCount = myAssignedConversations.filter((conv) => {
+      const realtimeCount = chatState.unreadMessages?.[conv.id];
+      const count = (realtimeCount !== undefined) ? realtimeCount : (conv.unreadCount || 0);
+      return count > 0;
+    }).length;
 
-    const unreadRoomsCount =
-      chatState.myActiveRooms?.filter((room) => {
-        const roomUnread = chatState.unreadMessages?.[room.roomCode] || 0;
-        return roomUnread > 0;
-      }).length || 0;
+    // 2. Unread count from Rooms (Active + Favorites)
+    // 🔥 FIX: Combinar myActiveRooms y favoriteRooms para asegurar que tenemos todos los datos
+    // y usar un Map por roomCode para evitar duplicados y tomar el objeto con datos más frescos
+    const allUniqueRooms = new Map();
+
+    // Primero agregar activeRooms
+    chatState.myActiveRooms?.forEach(room => {
+      allUniqueRooms.set(room.roomCode, { ...room, source: 'active' });
+    });
+
+    // Luego agregar/sobreescribir con favoriteRooms (que suelen tener datos más frescos de unreadCount si vienen de reload)
+    chatState.favoriteRooms?.forEach(room => {
+      const existing = allUniqueRooms.get(room.roomCode);
+      // Si ya existe, preferir el que tenga unreadCount > 0, o priorizar favorito si active no tiene
+      if (existing) {
+        if ((room.unreadCount || 0) > (existing.unreadCount || 0)) {
+          allUniqueRooms.set(room.roomCode, { ...room, source: 'favorite' });
+        }
+      } else {
+        allUniqueRooms.set(room.roomCode, { ...room, source: 'favorite' });
+      }
+    });
+
+    let unreadRoomsCount = 0;
+    allUniqueRooms.forEach((room) => {
+      const realtimeCount = chatState.unreadMessages?.[room.roomCode];
+      // Prioridad: 1. Socket (realtime), 2. API (room.unreadCount)
+      const count = (realtimeCount !== undefined) ? realtimeCount : (room.unreadCount || 0);
+      if (count > 0) {
+        unreadRoomsCount++;
+      }
+    });
 
     const totalUnread = unreadAssignedCount + unreadRoomsCount;
+
+    console.log('📊 [TITLE/FAVICON] totalUnread:', totalUnread, {
+      unreadAssignedCount,
+      unreadRoomsCount,
+      uniqueRoomsCount: allUniqueRooms.size,
+      unreadMessages: chatState.unreadMessages
+    });
 
     // Actualizar título de la pestaña
     if (totalUnread > 0) {
@@ -244,8 +281,12 @@ const ChatPage = () => {
     }
 
     //  NUEVO: Actualizar badge del favicon
-    faviconBadge.update(totalUnread);
-  }, [chatState.assignedConversations, chatState.myActiveRooms, chatState.unreadMessages, user]);
+    try {
+      faviconBadge.update(totalUnread);
+    } catch (err) {
+      console.error('❌ Error en faviconBadge.update:', err);
+    }
+  }, [chatState.assignedConversations, chatState.myActiveRooms, chatState.favoriteRooms, chatState.unreadMessages, user]);
 
   // Efecto para estado del socket
   useEffect(() => {
@@ -290,22 +331,19 @@ const ChatPage = () => {
     [socket, username]
   );
 
-  //  Cargar favoritos ANTES de las salas
-  //  Cargar favoritos ANTES de las salas
-  // REMOVIDO: Se carga en ConversationList para evitar duplicidad
-  /*
+  // Efecto para cargar códigos de salas favoritas
+  // 🔥 FIX: Se restaura para que ChatPage tenga acceso a los favoritos en chatState
+  // y se actualice cuando el socket notifique cambios (lastFavoriteUpdate)
   useEffect(() => {
     if (!user) return;
     const displayName = user?.nombre && user?.apellido
       ? `${user.nombre} ${user.apellido}`
       : user?.username;
-    if (displayName) {
+
+    if (displayName && !chatState.monitoringLoading) {
       chatState.loadFavoriteRoomCodes(displayName);
     }
-  }, [user?.id]); 
-  */
-
-  // Efecto para restaurar sala
+  }, [user, username, chatState.monitoringLoading, chatState.lastFavoriteUpdate]);
   useEffect(() => {
     if (!isAuthenticated || !username) return;
 
@@ -363,75 +401,66 @@ const ChatPage = () => {
       }
     }
 
-    // B. Lógica para CHATS INDIVIDUALES (Asignados)
-    // Quité la condición !chatState.adminViewConversation para que funcione en ambos modos
+    // B. 🔥 RESTAURADO: Marcar como leído al abrir chats asignados
     if (!chatState.isGroup && chatState.to && messages.length > 0) {
-      // 🔥 Usar key que incluye messages.length para re-marcar cuando llegan nuevos mensajes
-      const conversationKey = `user:${chatState.to}:${messages.length}`;
+      const chatKey = `chat:${chatState.to}:${messages.length}`;
+      if (lastMarkedChatRef.current !== chatKey) {
+        lastMarkedChatRef.current = chatKey;
 
-      if (lastMarkedChatRef.current !== conversationKey) {
-        lastMarkedChatRef.current = conversationKey;
-
-        // 🔥 OPTIMIZACIÓN: Buscar conversación para verificar contador
-        const conversation = chatState.assignedConversations.find(c =>
-          c.participants && c.participants.some(p =>
-            p?.toLowerCase().trim() === chatState.to?.toLowerCase().trim()
-          )
+        // Buscar conversación asignada
+        const normalizedTo = chatState.to.toLowerCase().trim();
+        const conv = chatState.assignedConversations?.find(c =>
+          c.participants?.some(p => p?.toLowerCase().trim() === normalizedTo)
         );
 
-        const chatUnreadCount = conversation
-          ? (chatState.unreadMessages?.[conversation.id] ?? conversation.unreadCount ?? 0)
-          : 0;
+        if (conv) {
+          // 🔥 FIX: No verificar convUnread > 0 aquí.
+          // Si el chat está abierto, el contador local se mantiene en 0 (por useSocketListeners),
+          // pero el mensaje en el backend sigue como "no leído".
+          // Debemos forzar el marcado como leído siempre que haya habido cambios en messages.length
 
-        // Solo skipear si ya cargaron los contadores Y es 0
-        if (chatState.unreadCountsLoaded && chatUnreadCount === 0) {
-          console.log(`⏭️ Skip markConversationAsRead - contador ya es 0 (loaded: true)`);
-          return;
-        }
+          // const convUnread = chatState.unreadMessages?.[conv.id] || conv.unreadCount || 0;
 
-        console.log(`📝 Marcando chat como leído. Unread: ${chatUnreadCount}, Loaded: ${chatState.unreadCountsLoaded}`);
+          console.log(`📝 Marcando chat asignado como leído (trigger por messages.length). Conv: ${conv.id}`);
 
-        (async () => {
-          try {
-            // 1. Marcar en Backend
-            await apiService.markConversationAsRead(currentUserFullName, chatState.to);
+          // 1. Marcar en Backend (API)
+          // 🔥 FIX DIRECCIÓN: markConversationAsRead(from, to) marca mensajes ENVIADOS POR from A to
+          // Queremos marcar los mensajes que ME ENVIARON (from=partner, to=me) como leídos
+          apiService.markConversationAsRead(chatState.to, currentUserFullName).catch(err =>
+            console.error('Error al marcar conversación como leída:', err)
+          );
 
-            // 2. Emitir Socket
-            if (socket && socket.connected) {
-              socket.emit('markConversationAsRead', {
-                from: currentUserFullName,
-                to: chatState.to
-              });
-            }
-
-            // 3. RESETEAR CONTADOR LOCAL
-            if (conversation) {
-              chatState.setUnreadMessages(prev => ({
-                ...prev,
-                [conversation.id]: 0
-              }));
-              chatState.setAssignedConversations(prev => prev.map(c =>
-                c.id === conversation.id ? { ...c, unreadCount: 0 } : c
-              ));
-            }
-
-          } catch (error) {
-            console.error("Error marking chat as read:", error);
+          // 2. Emitir Socket para sincronizar con otros clientes
+          if (socket?.connected) {
+            socket.emit('markConversationAsRead', {
+              from: chatState.to,
+              to: currentUserFullName,
+              conversationId: conv.id
+            });
           }
-        })();
+
+          // 3. Resetear contador local (unreadMessages)
+          chatState.setUnreadMessages(prev => ({ ...prev, [conv.id]: 0 }));
+
+          // 4. Actualizar unreadCount en la conversación
+          chatState.setAssignedConversations(prev =>
+            prev.map(c => c.id === conv.id ? { ...c, unreadCount: 0 } : c)
+          );
+        }
       }
     }
   }, [
     chatState.isGroup,
     chatState.currentRoomCode,
     chatState.to,
+    chatState.assignedConversations,
     messages.length,
     markRoomMessagesAsRead,
     username,
-    socket
-    // NOTA: NO incluir chatState.assignedConversations aquí
-    // porque causa que el efecto se re-ejecute cuando llega un mensaje
-    // y resetea el contador que acabamos de incrementar
+    currentUserFullName,
+    socket,
+    chatState.unreadCountsLoaded,
+    chatState.unreadMessages
   ]);
 
   // Limpiar referencia cuando cambiamos de chat (para permitir re-marcar)
@@ -1249,7 +1278,7 @@ const ChatPage = () => {
   }, [chatState]);
 
   // Limpiar mensajes no leídos cuando el usuario empieza a escribir
-  const handleClearUnreadOnTyping = useCallback(() => {
+  const handleClearUnreadOnTyping = useCallback(async () => {
     if (chatState.isGroup && chatState.currentRoomCode) {
       // Para grupos, limpiar por roomCode
       chatState.setUnreadMessages(prev => {
@@ -1257,18 +1286,45 @@ const ChatPage = () => {
         return { ...prev, [chatState.currentRoomCode]: 0 };
       });
     } else if (!chatState.isGroup && chatState.to) {
-      // Para chats individuales, buscar conversación
+      // 🔥 FIX: Para chats individuales, marcar como leído cuando el usuario escribe
       const conv = chatState.assignedConversations?.find(c =>
         c.participants?.some(p => normalizeUsername(p) === normalizeUsername(chatState.to))
       );
+
       if (conv) {
-        chatState.setUnreadMessages(prev => {
-          if (prev[conv.id] === 0) return prev;
-          return { ...prev, [conv.id]: 0 };
-        });
+        // Verificar si hay mensajes no leídos
+        const hasUnread = (chatState.unreadMessages?.[conv.id] || 0) > 0;
+
+        if (hasUnread) {
+          try {
+            // 1. Marcar en Backend
+            await apiService.markConversationAsRead(currentUserFullName, chatState.to);
+
+            // 2. Emitir Socket
+            if (socket && socket.connected) {
+              socket.emit('markConversationAsRead', {
+                from: currentUserFullName,
+                to: chatState.to
+              });
+            }
+
+            // 3. Limpiar contador local
+            chatState.setUnreadMessages(prev => ({
+              ...prev,
+              [conv.id]: 0
+            }));
+
+            // 4. Actualizar conversación
+            chatState.setAssignedConversations(prev => prev.map(c =>
+              c.id === conv.id ? { ...c, unreadCount: 0 } : c
+            ));
+          } catch (error) {
+            console.error("Error marking chat as read on typing:", error);
+          }
+        }
       }
     }
-  }, [chatState]);
+  }, [chatState, currentUserFullName, socket]);
 
   const handleSendVoiceMessage = useCallback(async (audioFile) => {
     if (!audioFile || !chatState.to) return;
