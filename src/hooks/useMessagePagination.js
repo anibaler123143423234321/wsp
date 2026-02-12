@@ -18,7 +18,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
 
   const currentOffset = useRef(0);
   const initialLoadComplete = useRef(false);
-  const MESSAGES_PER_PAGE = 10;
+  const MESSAGES_PER_PAGE = 20;
 
   // Cargar mensajes iniciales (más recientes)
   const loadInitialMessages = useCallback(async () => {

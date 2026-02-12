@@ -70,6 +70,19 @@ export const useRoomManagement = (
                         ? response.data.filter((room) => room.isActive)
                         : [];
 
+                    // 🔥 DEBUG: Log para SUPERADMIN - ver qué unreadCount viene del backend
+                    if (user?.role === 'SUPERADMIN') {
+                        const room2E104789 = activeRooms.find(r => r.roomCode === '2E104789');
+                        if (room2E104789) {
+                            console.log('🔍 [BACKEND] Sala 2E104789 desde getAdminRooms:', {
+                                roomCode: room2E104789.roomCode,
+                                name: room2E104789.name,
+                                unreadCount: room2E104789.unreadCount,
+                                hasUnreadCount: 'unreadCount' in room2E104789
+                            });
+                        }
+                    }
+
                     loadedRooms = activeRooms; // Guardar para retornar
 
                     const nextPage = Number(response.page ?? page) || page;

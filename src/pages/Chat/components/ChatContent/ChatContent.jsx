@@ -778,7 +778,19 @@ const ChatContent = ({
       // Esto soluciona el bug visual donde un mensaje se agrupaba incorrectamente con el anterior
       // debido a mismatch de índices con el array original 'messages'
       const prevMsg = index > 0 ? uniqueMessages[index - 1] : null;
-      const isGroupStart = !prevMsg || prevMsg.sender !== message.sender || prevMsg.type === 'info' || prevMsg.type === 'error';
+      
+      // 🔥 FIX: También verificar si el elemento anterior en groups es un separador de fecha
+      // Si es así, el mensaje actual debe ser inicio de grupo
+      const prevGroupItem = groups.length > 0 ? groups[groups.length - 1] : null;
+      const isPrevItemDateSeparator = prevGroupItem && prevGroupItem.type === 'date-separator';
+      const isPrevItemUnreadSeparator = prevGroupItem && prevGroupItem.type === 'unread-separator';
+      
+      const isGroupStart = !prevMsg 
+        || prevMsg.sender !== message.sender 
+        || prevMsg.type === 'info' 
+        || prevMsg.type === 'error'
+        || isPrevItemDateSeparator  // 🔥 NUEVO: Después de separador de fecha, siempre es inicio
+        || isPrevItemUnreadSeparator; // 🔥 NUEVO: Después de separador de no leídos, siempre es inicio
 
       groups.push({
         type: "message",

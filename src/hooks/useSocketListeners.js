@@ -1209,6 +1209,8 @@ export const useSocketListeners = (
 
 
         s.on("unreadCountReset", (data) => {
+            console.log('📥 EVENTO unreadCountReset RECIBIDO:', data);
+            
             // 🔥 FIX: Manejar reset de conversaciones asignadas (por conversationId)
             if (data.conversationId) {
                 console.log(`📬 unreadCountReset para conversación asignada: ${data.conversationId}`);
@@ -1229,16 +1231,22 @@ export const useSocketListeners = (
                 ? currentRoom === data.roomCode
                 : currentTo === data.roomCode || String(currentRoom) === String(data.roomCode);
 
+            console.log('📥 unreadCountReset - Estado:', {
+                roomCode: data.roomCode,
+                currentRoom,
+                currentIsGroup,
+                isChatOpen
+            });
+
             if (isChatOpen) {
+                console.log('✅ Reseteando contador para:', data.roomCode);
                 setUnreadMessages((prev) => ({ ...prev, [data.roomCode]: 0 }));
-                // 🔥 Limpiar la marca de menciones en hilos cuando se leen todos los mensajes
-                if (data.roomCode) {
-                    setMyActiveRooms(prev => prev.map(room =>
-                        room.roomCode === data.roomCode
-                            ? { ...room, hasUnreadThreadMentions: false }
-                            : room
-                    ));
-                }
+                // 🔥 NUEVO: También actualizar unreadCount en myActiveRooms para sincronización completa
+                setMyActiveRooms(prev => prev.map(room =>
+                    room.roomCode === data.roomCode
+                        ? { ...room, unreadCount: 0, hasUnreadThreadMentions: false }
+                        : room
+                ));
             } else {
                 console.log(`⏭️ Ignorando unreadCountReset para ${data.roomCode} - chat no está abierto`);
             }

@@ -261,6 +261,17 @@ const ChatPage = () => {
       const realtimeCount = chatState.unreadMessages?.[room.roomCode];
       // Prioridad: 1. Socket (realtime), 2. API (room.unreadCount)
       const count = (realtimeCount !== undefined) ? realtimeCount : (room.unreadCount || 0);
+      
+      // 🔥 DEBUG: Log para diagnosticar el problema del contador
+      if (room.roomCode === '2E104789') {
+        console.log('🔍 DEBUG contador para 2E104789:', {
+          realtimeCount,
+          roomUnreadCount: room.unreadCount,
+          finalCount: count,
+          willIncrement: count > 0
+        });
+      }
+      
       if (count > 0) {
         unreadRoomsCount++;
       }
@@ -325,6 +336,7 @@ const ChatPage = () => {
         return;
       }
 
+      console.log('📤 Emitiendo markRoomMessagesAsRead:', { roomCode, username });
       socket.emit('markRoomMessagesAsRead', {
         roomCode,
         username,
@@ -381,15 +393,11 @@ const ChatPage = () => {
       if (lastMarkedChatRef.current !== roomKey) {
         lastMarkedChatRef.current = roomKey;
 
-        // 🔥 OPTIMIZACIÓN: Solo skipear si ya cargaron los contadores Y es 0
-        const roomUnreadCount = chatState.unreadMessages?.[chatState.currentRoomCode] || 0;
-
-        if (chatState.unreadCountsLoaded && roomUnreadCount === 0) {
-          console.log(`⏭️ Skip markRoomMessagesAsRead - contador ya es 0 (loaded: true)`);
-        } else {
-          console.log(`📝 Marcando grupo como leído. Unread: ${roomUnreadCount}, Loaded: ${chatState.unreadCountsLoaded}`);
-          markRoomMessagesAsRead(chatState.currentRoomCode);
-        }
+        // 🔥 FIX: SIEMPRE marcar como leído cuando entramos a un grupo con mensajes
+        // El backend se encargará de verificar si realmente hay mensajes no leídos
+        // Esto evita el problema de race condition con getUnreadCounts()
+        console.log(`📝 Marcando grupo como leído: ${chatState.currentRoomCode}`);
+        markRoomMessagesAsRead(chatState.currentRoomCode);
       }
     }
 

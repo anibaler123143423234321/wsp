@@ -1602,6 +1602,17 @@ const ConversationList = ({
                             const typingUsers = roomTypingUsers[room.roomCode] || [];
                             const isTypingInRoom = typingUsers.length > 0;
                             const roomUnreadCount = unreadMessages?.[room.roomCode] !== undefined ? unreadMessages[room.roomCode] : (room.unreadCount || 0);
+                            
+                            // 🔥 DEBUG: Log para diagnosticar el problema del contador
+                            if (room.roomCode === '2E104789') {
+                              console.log('🔍 [ConversationList] DEBUG contador para 2E104789:', {
+                                unreadMessagesValue: unreadMessages?.[room.roomCode],
+                                roomUnreadCount: room.unreadCount,
+                                finalRoomUnreadCount: roomUnreadCount,
+                                willShowBadge: roomUnreadCount > 0
+                              });
+                            }
+                            
                             const chatId = `room-${room.roomCode}`;
                             const isHighlighted = highlightedChatId === chatId;
                             // 🔥 NUEVO: Verificar si hay menciones pendientes
@@ -1929,6 +1940,19 @@ const ConversationList = ({
                             const isHighlighted = highlightedChatId === chatId;
                             // 🔥 NUEVO: Verificar si hay menciones pendientes
                             const hasMentions = hasPendingMentions(room.roomCode, room.lastMessage, room);
+                            
+                            // 🔥 DEBUG: Log para diagnosticar el problema del contador
+                            if (room.roomCode === '2E104789') {
+                              console.log('🔍 [ConversationList GRUPOS] DEBUG contador para 2E104789:', {
+                                unreadMessagesValue: unreadMessages?.[room.roomCode],
+                                roomUnreadCount: room.unreadCount,
+                                finalRoomUnreadCount: roomUnreadCount,
+                                willShowBadge: roomUnreadCount > 0,
+                                pendingMentions: pendingMentions[room.roomCode],
+                                pendingThreads: pendingThreads[room.roomCode],
+                                hasMentions: hasMentions
+                              });
+                            }
 
                             return (
                               <div
