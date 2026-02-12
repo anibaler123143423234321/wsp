@@ -1739,6 +1739,12 @@ const ChatPage = () => {
     localStorage.setItem('soundsEnabled', String(newValue));
   }, [chatState.soundsEnabled, chatState]);
 
+  // 🔥 NUEVO: Función para probar sonido desde ajustes
+  const handleTestSound = useCallback(() => {
+    console.log('🔊 Probando sonido de mención...');
+    playMessageSound(true, true); // Forzar sonido de mención
+  }, [playMessageSound]);
+
   const handleLoginSuccess = async (userData) => {
     // Mostrar pantalla de carga
     setIsPostLoginLoading(true);
@@ -2195,6 +2201,7 @@ const ChatPage = () => {
         user={user}
         isSoundEnabled={chatState.soundsEnabled}
         onSoundToggle={handleSoundToggle}
+        onTestSound={handleTestSound} // 🔥 Pasamos la función de prueba
       />
     </>
   );

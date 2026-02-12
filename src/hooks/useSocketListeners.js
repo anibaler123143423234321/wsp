@@ -805,7 +805,7 @@ export const useSocketListeners = (
                     //  NOTIFICACIÓN TOAST para grupos (solo si NO es mensaje propio y chat NO está abierto)
                     if (!isOwnMessage && !isChatOpen) {
                         // 🔥 NUEVO: Detectar si hay mención al usuario actual
-                        const hasMention = hasMentionToCurrentUser(messageText, currentUserFullName);
+                        const hasMention = hasMentionToCurrentUser(messageText, currentFullName || username);
                         console.log('🔊 [GRUPO] Reproduciendo sonido:', { hasMention, messageText });
                         playMessageSound(soundsEnabledRef.current, hasMention);
 
@@ -814,8 +814,8 @@ export const useSocketListeners = (
                         // Si la pestaña está visible, mostrar SweetAlert (independientemente del foco).
                         if (systemNotifications.canShow()) {
                             systemNotifications.show(
-                                `Nuevo mensaje en ${data.roomName || data.roomCode}`,
-                                `${data.from}: ${messageText}`,
+                                hasMention ? `🔴 Te mencionaron en ${data.roomName || data.roomCode}` : `Nuevo mensaje en ${data.roomName || data.roomCode}`,
+                                hasMention ? `${data.from} te mencionó: ${messageText}` : `${data.from}: ${messageText}`,
                                 { tag: `room-${data.roomCode}`, silent: !soundsEnabledRef.current },
                                 () => {
                                     const realId = getRealMessageId(data.id);
@@ -832,8 +832,8 @@ export const useSocketListeners = (
                             Swal.fire({
                                 toast: true,
                                 position: "top-end",
-                                icon: "info",
-                                title: `Mensaje en ${data.roomName || data.roomCode}`,
+                                icon: hasMention ? "warning" : "info", // Icono distinto para mención
+                                title: hasMention ? `🔴 Te mencionaron en ${data.roomName || data.roomCode}` : `Mensaje en ${data.roomName || data.roomCode}`,
                                 html: `
                                 <div class="toast-content">
                                     <div class="toast-sender">${data.from}</div>
@@ -843,7 +843,7 @@ export const useSocketListeners = (
                                 showConfirmButton: true,
                                 confirmButtonText: "Ver",
                                 showCloseButton: true,
-                                timer: 6000,
+                                timer: hasMention ? 10000 : 6000, // Más tiempo para menciones
                                 customClass: {
                                     popup: 'modern-toast',
                                     title: 'modern-toast-title',
@@ -918,14 +918,14 @@ export const useSocketListeners = (
                 //  NOTIFICACIONES SOLO si NO es mensaje propio y chat NO está abierto
                 if (!isOwnMessage && !isChatOpen) {
                     // 🔥 NUEVO: Detectar si hay mención al usuario actual
-                    const hasMention = hasMentionToCurrentUser(messageText, currentUserFullName);
+                    const hasMention = hasMentionToCurrentUser(messageText, currentFullName || username);
                     console.log('🔊 [DIRECTO] Reproduciendo sonido:', { hasMention, messageText });
                     playMessageSound(soundsEnabledRef.current, hasMention);
 
                     // 🔥 LÓGICA DE NOTIFICACIÓN MEJORADA (DM):
                     if (systemNotifications.canShow()) {
                         systemNotifications.show(
-                            `Nuevo mensaje de ${data.from}`,
+                            hasMention ? `🔴 ${data.from} te mencionó` : `Nuevo mensaje de ${data.from}`,
                             messageText,
                             { tag: `chat-${data.from}`, silent: !soundsEnabledRef.current },
                             () => {
@@ -940,8 +940,8 @@ export const useSocketListeners = (
                         Swal.fire({
                             toast: true,
                             position: "top-end",
-                            icon: "info",
-                            title: `Mensaje de ${data.from}`,
+                            icon: hasMention ? "warning" : "info",
+                            title: hasMention ? `🔴 ${data.from} te mencionó` : `Mensaje de ${data.from}`,
                             html: `
                             <div class="toast-content">
                                 <div class="toast-message">${messageText.substring(0, 80)}${messageText.length > 80 ? "..." : ""}</div>
@@ -950,7 +950,7 @@ export const useSocketListeners = (
                             showConfirmButton: true,
                             confirmButtonText: "Ver",
                             showCloseButton: true,
-                            timer: 6000,
+                            timer: hasMention ? 10000 : 6000,
                             customClass: {
                                 popup: 'modern-toast',
                                 title: 'modern-toast-title',
@@ -1557,13 +1557,13 @@ export const useSocketListeners = (
                     }
 
                     const notificationTitle = data.isGroup
-                        ? `Nueva respuesta en hilo - ${groupName}`
-                        : `Nueva respuesta en hilo`;
+                        ? (hasMention ? `🔴 Te mencionaron en hilo - ${groupName}` : `Nueva respuesta en hilo - ${groupName}`)
+                        : (hasMention ? `🔴 Te mencionaron en hilo` : `Nueva respuesta en hilo`);
 
                     if (systemNotifications.canShow()) {
                         systemNotifications.show(
                             notificationTitle,
-                            `${data.lastReplyFrom} respondió en un hilo`,
+                            `${data.lastReplyFrom} respondió en un hilo: ${data.lastReplyText}`,
                             { tag: `thread-${data.messageId}`, silent: !soundsEnabledRef.current },
                             () => {
                                 if (data.isGroup && data.roomCode) {
@@ -1584,7 +1584,7 @@ export const useSocketListeners = (
                         Swal.fire({
                             toast: true,
                             position: "top-end",
-                            icon: "info",
+                            icon: hasMention ? "warning" : "info",
                             title: notificationTitle,
                             html: `
                             <div class="toast-content">
@@ -1595,7 +1595,7 @@ export const useSocketListeners = (
                             showConfirmButton: true,
                             confirmButtonText: "Ver",
                             showCloseButton: true,
-                            timer: 6000,
+                            timer: hasMention ? 10000 : 6000,
                             customClass: {
                                 popup: 'modern-toast',
                                 title: 'modern-toast-title',

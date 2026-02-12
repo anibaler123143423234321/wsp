@@ -1,4 +1,79 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import whatsappSoundUrl from '../assets/sonidos/whatsapp_pc.mp3';
+import mentionSoundUrl from '../assets/sonidos/etiqueta.mp3';
+
+// ============================================================
+// 🔊 SISTEMA DE SONIDO CON WEB AUDIO API
+// Usa AudioContext + AudioBuffer para evitar bloqueos de autoplay.
+// Solo necesita audioContext.resume() en la primera interacción
+// del usuario (NO reproduce ningún sonido).
+// ============================================================
+let _audioCtx = null;
+let _whatsappBuffer = null;
+let _mentionBuffer = null;
+let _audioReady = false;
+
+function getAudioContext() {
+  if (!_audioCtx) {
+    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return _audioCtx;
+}
+
+// Pre-cargar sonidos en AudioBuffers
+async function preloadSound(url) {
+  const ctx = getAudioContext();
+  const response = await fetch(url);
+  const arrayBuffer = await response.arrayBuffer();
+  return ctx.decodeAudioData(arrayBuffer);
+}
+
+// Iniciar pre-carga al importar el módulo
+(async () => {
+  try {
+    const [wb, mb] = await Promise.all([
+      preloadSound(whatsappSoundUrl),
+      preloadSound(mentionSoundUrl)
+    ]);
+    _whatsappBuffer = wb;
+    _mentionBuffer = mb;
+    _audioReady = true;
+    console.log('🔊 Sonidos pre-cargados en AudioBuffers ✅');
+  } catch (err) {
+    console.warn('🔊 Error pre-cargando sonidos:', err);
+  }
+})();
+
+// Desbloquear AudioContext en la primera interacción (NO produce sonido)
+function unlockAudioOnInteraction() {
+  const ctx = getAudioContext();
+  if (ctx.state === 'suspended') {
+    ctx.resume().then(() => {
+      console.log('🔊 AudioContext desbloqueado por interacción del usuario ✅');
+    }).catch(() => { });
+  }
+  // Remover listeners después de desbloquear
+  document.removeEventListener('click', unlockAudioOnInteraction);
+  document.removeEventListener('keydown', unlockAudioOnInteraction);
+  document.removeEventListener('touchstart', unlockAudioOnInteraction);
+}
+document.addEventListener('click', unlockAudioOnInteraction);
+document.addEventListener('keydown', unlockAudioOnInteraction);
+document.addEventListener('touchstart', unlockAudioOnInteraction);
+
+// Reproducir un AudioBuffer via Web Audio API
+function playBuffer(buffer) {
+  const ctx = getAudioContext();
+  if (ctx.state === 'suspended') {
+    ctx.resume(); // Intentar resumir por si acaso
+  }
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(ctx.destination);
+  source.start(0);
+  return source;
+}
+// ============================================================
 
 export const useMessages = () => {
   const [messages, setMessages] = useState([]);
@@ -8,26 +83,52 @@ export const useMessages = () => {
   const [uploadedFiles, setUploadedFiles] = useState([]); // URLs de archivos subidos
   const [isRecording, setIsRecording] = useState(false);
   const messageSound = useRef(null);
-  const mentionSound = useRef(null); // 🔥 NUEVO: Sonido para menciones
-  const ringtoneSound = useRef(null); //  Referencia para el tono de llamada
+  const mentionSound = useRef(null);
+  const lastPlayTime = useRef(0);
+  const ringtoneSound = useRef(null);
 
   const playMessageSound = useCallback((soundsEnabled = true, isMention = false) => {
-    //  Reproducir sonido solo si está habilitado
     if (!soundsEnabled) return;
 
+    // Debounce de 500ms
+    const now = Date.now();
+    if (now - lastPlayTime.current < 500) {
+      console.log('🔊 playMessageSound IGNORADO (debounce 500ms)');
+      return;
+    }
+    lastPlayTime.current = now;
+
+    const label = isMention ? 'etiqueta.mp3' : 'whatsapp_pc.mp3';
     console.log('🔊 playMessageSound llamado:', { soundsEnabled, isMention });
 
-    try {
-      // 🔥 NUEVO: Seleccionar el sonido según si es mención o no
-      const soundRef = isMention ? mentionSound : messageSound;
-      
-      if (soundRef.current) {
-        soundRef.current.currentTime = 0;
-        soundRef.current.play().catch((error) => {
-          // Silenciar errores de autoplay - es normal si no hay interacción previa
-          console.warn("Audio play failed:", error);
-        });
+    // 🔥 Intentar Web Audio API primero (más confiable)
+    if (_audioReady) {
+      const buffer = isMention ? _mentionBuffer : _whatsappBuffer;
+      if (buffer) {
+        try {
+          playBuffer(buffer);
+          console.log('🔊 ✅ Sonido reproducido via Web Audio API:', label);
+          return; // Éxito, no necesitamos fallback
+        } catch (err) {
+          console.warn('🔊 Web Audio API falló, intentando fallback:', err);
+        }
       }
+    }
+
+    // Fallback: new Audio()
+    try {
+      const audio = new Audio(isMention ? mentionSoundUrl : whatsappSoundUrl);
+      audio.play().then(() => {
+        console.log('🔊 ✅ Sonido reproducido via new Audio():', label);
+      }).catch((error) => {
+        console.warn('🔊 ❌ Audio bloqueado:', error.name);
+        // Último fallback: <audio> ref
+        const ref = isMention ? mentionSound : messageSound;
+        if (ref.current) {
+          ref.current.currentTime = 0;
+          ref.current.play().catch(() => { });
+        }
+      });
     } catch (error) {
       console.error("Error playing sound:", error);
     }
