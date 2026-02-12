@@ -436,9 +436,9 @@ const ConversationList = ({
       try {
         // 🔥 El endpoint ahora devuelve tanto salas como conversaciones unificadas
         const allFavorites = await apiService.getUserFavoriteRoomsWithData(displayName);
-        
+
         console.log('🔍 Favoritos recibidos del backend:', allFavorites);
-        
+
         // Log detallado de cada favorito
         allFavorites.forEach((fav, index) => {
           console.log(`📋 Favorito ${index + 1}:`, {
@@ -463,7 +463,7 @@ const ConversationList = ({
             }
             return fav;
           });
-          
+
           console.log('✅ Favoritos normalizados:', normalizedFavorites);
 
           // 1. Guardar la lista completa para la sección de FAVORITOS
@@ -564,19 +564,13 @@ const ConversationList = ({
     setFavoriteRooms(prevFavorites => {
       // 🔥 FIX: Filtrar conversaciones que NO tienen roomCode (excluir grupos)
       const assignedConvsOnly = assignedConversations.filter(c => !c.roomCode);
-      
+
       // Crear mapa de assignedConversations para búsqueda rápida (usando ID como string)
       const assignedMap = new Map(assignedConvsOnly.map(c => [String(c.id), c]));
 
       // Actualizar cada favorito con datos frescos de assignedConversations
+      // 🔥 FIX: No filtrar conv favorites por roomCode — el backend les asigna roomCode: id.toString()
       const updatedFavorites = prevFavorites
-        .filter(favItem => {
-          // 🔥 FIX: Si es una conversación con roomCode, eliminarla de favoritos
-          if (favItem.type === 'conv' && favItem.roomCode) {
-            return false;
-          }
-          return true;
-        })
         .map(favItem => {
           // Solo intentar actualizar si es una conversación
           if (favItem.type === 'conv') {
@@ -592,6 +586,8 @@ const ConversationList = ({
                 isFavorite: true
               };
             }
+            // 🔥 FIX: Si no se encuentra en assignedConversations, mantener el favorito tal cual
+            // (El backend ya excluye favoritos de la lista de asignados)
           }
           return favItem;
         });
@@ -1602,7 +1598,7 @@ const ConversationList = ({
                             const typingUsers = roomTypingUsers[room.roomCode] || [];
                             const isTypingInRoom = typingUsers.length > 0;
                             const roomUnreadCount = unreadMessages?.[room.roomCode] !== undefined ? unreadMessages[room.roomCode] : (room.unreadCount || 0);
-                            
+
                             // 🔥 DEBUG: Log para diagnosticar el problema del contador
                             if (room.roomCode === '2E104789') {
                               console.log('🔍 [ConversationList] DEBUG contador para 2E104789:', {
@@ -1612,7 +1608,7 @@ const ConversationList = ({
                                 willShowBadge: roomUnreadCount > 0
                               });
                             }
-                            
+
                             const chatId = `room-${room.roomCode}`;
                             const isHighlighted = highlightedChatId === chatId;
                             // 🔥 NUEVO: Verificar si hay menciones pendientes
@@ -1940,7 +1936,7 @@ const ConversationList = ({
                             const isHighlighted = highlightedChatId === chatId;
                             // 🔥 NUEVO: Verificar si hay menciones pendientes
                             const hasMentions = hasPendingMentions(room.roomCode, room.lastMessage, room);
-                            
+
                             // 🔥 DEBUG: Log para diagnosticar el problema del contador
                             if (room.roomCode === '2E104789') {
                               console.log('🔍 [ConversationList GRUPOS] DEBUG contador para 2E104789:', {
@@ -2059,200 +2055,200 @@ const ConversationList = ({
                     assignedLoading
                   });
                   return (
-                  <>
-                    {(() => {
-                      // 🔥 NUEVO: Si hay búsqueda activa con resultados de API, usar esos resultados
-                      const hasApiSearch = assignedSearchTerm.trim().length >= 2 && apiSearchResults.assigned.length > 0;
+                    <>
+                      {(() => {
+                        // 🔥 NUEVO: Si hay búsqueda activa con resultados de API, usar esos resultados
+                        const hasApiSearch = assignedSearchTerm.trim().length >= 2 && apiSearchResults.assigned.length > 0;
 
-                      // Mostrar indicador de búsqueda
-                      if (isApiSearching && assignedSearchTerm.trim().length >= 2) {
-                        return (
-                          <div className="flex items-center justify-center py-4">
-                            <div className="text-sm text-gray-500">Buscando chats asignados...</div>
-                          </div>
-                        );
-                      }
-                      // 🔥 El backend ya excluye favoritos por SQL, pero filtramos aquí también para reactividad inmediata
-                      let filteredConversations;
-                      if (hasApiSearch) {
-                        filteredConversations = [...apiSearchResults.assigned];
-                      } else {
-                        filteredConversations = myAssignedConversations
-                          // 🔥 FIX: Excluir conversaciones que ya están en favoritos
-                          .filter(conv => !favoriteConversationIds.includes(conv.id))
-                          .filter(conv => {
-                            if (!assignedSearchTerm.trim()) return true;
-                            const searchLower = assignedSearchTerm.toLowerCase();
-                            const participants = conv.participants || [];
-                            const lastMsg = typeof conv.lastMessage === 'string' ? conv.lastMessage : (conv.lastMessage?.message || conv.lastMessage?.text || '');
-                            return (conv.name?.toLowerCase().includes(searchLower) || participants.some(p => p?.toLowerCase().includes(searchLower)) || lastMsg.toLowerCase().includes(searchLower));
-                          });
-                      }
+                        // Mostrar indicador de búsqueda
+                        if (isApiSearching && assignedSearchTerm.trim().length >= 2) {
+                          return (
+                            <div className="flex items-center justify-center py-4">
+                              <div className="text-sm text-gray-500">Buscando chats asignados...</div>
+                            </div>
+                          );
+                        }
+                        // 🔥 El backend ya excluye favoritos por SQL, pero filtramos aquí también para reactividad inmediata
+                        let filteredConversations;
+                        if (hasApiSearch) {
+                          filteredConversations = [...apiSearchResults.assigned];
+                        } else {
+                          filteredConversations = myAssignedConversations
+                            // 🔥 FIX: Excluir conversaciones que ya están en favoritos
+                            .filter(conv => !favoriteConversationIds.includes(conv.id))
+                            .filter(conv => {
+                              if (!assignedSearchTerm.trim()) return true;
+                              const searchLower = assignedSearchTerm.toLowerCase();
+                              const participants = conv.participants || [];
+                              const lastMsg = typeof conv.lastMessage === 'string' ? conv.lastMessage : (conv.lastMessage?.message || conv.lastMessage?.text || '');
+                              return (conv.name?.toLowerCase().includes(searchLower) || participants.some(p => p?.toLowerCase().includes(searchLower)) || lastMsg.toLowerCase().includes(searchLower));
+                            });
+                        }
 
-                      // Mostrar mensaje si no hay resultados de búsqueda
-                      if (hasApiSearch && filteredConversations.length === 0) {
-                        return (
-                          <div className="flex flex-col items-center justify-center py-[40px] px-5 text-center">
-                            <div className="text-3xl mb-2 opacity-50">🔍</div>
-                            <div className="text-sm text-gray-600 font-medium">No se encontraron chats asignados para "{assignedSearchTerm}"</div>
-                          </div>
-                        );
-                      }
+                        // Mostrar mensaje si no hay resultados de búsqueda
+                        if (hasApiSearch && filteredConversations.length === 0) {
+                          return (
+                            <div className="flex flex-col items-center justify-center py-[40px] px-5 text-center">
+                              <div className="text-3xl mb-2 opacity-50">🔍</div>
+                              <div className="text-sm text-gray-600 font-medium">No se encontraron chats asignados para "{assignedSearchTerm}"</div>
+                            </div>
+                          );
+                        }
 
-                      const sortedConversations = filteredConversations.sort((a, b) => {
-                        const aIsFavorite = favoriteConversationIds.includes(a.id);
-                        const bIsFavorite = favoriteConversationIds.includes(b.id);
-                        if (aIsFavorite && !bIsFavorite) return -1;
-                        if (!aIsFavorite && bIsFavorite) return 1;
-                        if (sortBy === 'newest') return new Date(b.lastMessage?.sentAt || b.createdAt) - new Date(a.lastMessage?.sentAt || a.createdAt);
-                        else if (sortBy === 'oldest') return new Date(a.lastMessage?.sentAt || a.createdAt) - new Date(b.lastMessage?.sentAt || b.createdAt);
-                        else if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '');
-                        return 0;
-                      });
+                        const sortedConversations = filteredConversations.sort((a, b) => {
+                          const aIsFavorite = favoriteConversationIds.includes(a.id);
+                          const bIsFavorite = favoriteConversationIds.includes(b.id);
+                          if (aIsFavorite && !bIsFavorite) return -1;
+                          if (!aIsFavorite && bIsFavorite) return 1;
+                          if (sortBy === 'newest') return new Date(b.lastMessage?.sentAt || b.createdAt) - new Date(a.lastMessage?.sentAt || a.createdAt);
+                          else if (sortBy === 'oldest') return new Date(a.lastMessage?.sentAt || a.createdAt) - new Date(b.lastMessage?.sentAt || b.createdAt);
+                          else if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '');
+                          return 0;
+                        });
 
-                      const totalAssigned = sortedConversations.length;
-                      const convsToShow = assignedExpanded ? sortedConversations : sortedConversations.slice(0, INITIAL_ITEMS_TO_SHOW);
-                      const hasMoreLocalAssigned = totalAssigned > INITIAL_ITEMS_TO_SHOW;
+                        const totalAssigned = sortedConversations.length;
+                        const convsToShow = assignedExpanded ? sortedConversations : sortedConversations.slice(0, INITIAL_ITEMS_TO_SHOW);
+                        const hasMoreLocalAssigned = totalAssigned > INITIAL_ITEMS_TO_SHOW;
 
-                      return filteredConversations.length > 0 ? (
-                        <>
-                          {convsToShow.map((conv) => {
-                            const participants = conv.participants || [];
-                            const participant1Name = participants[0] || 'Usuario 1';
-                            const participant2Name = participants[1] || 'Usuario 2';
-                            const currentUserFullName = user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.username;
-                            let displayName = conv.name;
-                            let otherParticipantName = null;
-                            const currentUserNormalized = currentUserFullName?.toLowerCase().trim();
-                            const participant1Normalized = participant1Name?.toLowerCase().trim();
-                            const participant2Normalized = participant2Name?.toLowerCase().trim();
+                        return filteredConversations.length > 0 ? (
+                          <>
+                            {convsToShow.map((conv) => {
+                              const participants = conv.participants || [];
+                              const participant1Name = participants[0] || 'Usuario 1';
+                              const participant2Name = participants[1] || 'Usuario 2';
+                              const currentUserFullName = user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.username;
+                              let displayName = conv.name;
+                              let otherParticipantName = null;
+                              const currentUserNormalized = currentUserFullName?.toLowerCase().trim();
+                              const participant1Normalized = participant1Name?.toLowerCase().trim();
+                              const participant2Normalized = participant2Name?.toLowerCase().trim();
 
-                            if (currentUserNormalized === participant1Normalized) { displayName = participant2Name; otherParticipantName = participant2Name; }
-                            else if (currentUserNormalized === participant2Normalized) { displayName = participant1Name; otherParticipantName = participant1Name; }
-                            else if (!conv.name) { displayName = `${participant1Name} ↔️ ${participant2Name}`; }
+                              if (currentUserNormalized === participant1Normalized) { displayName = participant2Name; otherParticipantName = participant2Name; }
+                              else if (currentUserNormalized === participant2Normalized) { displayName = participant1Name; otherParticipantName = participant1Name; }
+                              else if (!conv.name) { displayName = `${participant1Name} ↔️ ${participant2Name}`; }
 
-                            // 🔥 FIX: Usar conv.picture como valor base (viene de la API)
-                            let otherParticipantPicture = conv.picture || null;
-                            let isOtherParticipantOnline = false;
-                            if (otherParticipantName) {
-                              const otherParticipantNormalized = otherParticipantName?.toLowerCase().trim();
-                              const otherUser = userList.find(u => {
-                                const fullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : u.username;
-                                return fullName?.toLowerCase().trim() === otherParticipantNormalized;
-                              });
-                              if (otherUser) {
-                                // Si está en userList, usar esa foto
-                                if (otherUser.picture) otherParticipantPicture = otherUser.picture;
-                                isOtherParticipantOnline = otherUser.isOnline === true;
-                              } else {
-                                const cachedUser = userCache[otherParticipantNormalized];
-                                if (cachedUser) {
-                                  // Si está en cache, usar esa foto
-                                  if (cachedUser.picture) otherParticipantPicture = cachedUser.picture;
-                                  isOtherParticipantOnline = cachedUser.isOnline === true;
+                              // 🔥 FIX: Usar conv.picture como valor base (viene de la API)
+                              let otherParticipantPicture = conv.picture || null;
+                              let isOtherParticipantOnline = false;
+                              if (otherParticipantName) {
+                                const otherParticipantNormalized = otherParticipantName?.toLowerCase().trim();
+                                const otherUser = userList.find(u => {
+                                  const fullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : u.username;
+                                  return fullName?.toLowerCase().trim() === otherParticipantNormalized;
+                                });
+                                if (otherUser) {
+                                  // Si está en userList, usar esa foto
+                                  if (otherUser.picture) otherParticipantPicture = otherUser.picture;
+                                  isOtherParticipantOnline = otherUser.isOnline === true;
+                                } else {
+                                  const cachedUser = userCache[otherParticipantNormalized];
+                                  if (cachedUser) {
+                                    // Si está en cache, usar esa foto
+                                    if (cachedUser.picture) otherParticipantPicture = cachedUser.picture;
+                                    isOtherParticipantOnline = cachedUser.isOnline === true;
+                                  }
                                 }
                               }
-                            }
-                            const getInitials = (name) => { const parts = name.split(' '); if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase(); return name[0]?.toUpperCase() || 'U'; };
-                            const isFavorite = favoriteConversationIds.includes(conv.id);
+                              const getInitials = (name) => { const parts = name.split(' '); if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase(); return name[0]?.toUpperCase() || 'U'; };
+                              const isFavorite = favoriteConversationIds.includes(conv.id);
 
-                            const itemUnreadCount = unreadMessages?.[conv.id] !== undefined ? unreadMessages[conv.id] : (conv.unreadCount || 0);
+                              const itemUnreadCount = unreadMessages?.[conv.id] !== undefined ? unreadMessages[conv.id] : (conv.unreadCount || 0);
 
-                            const chatId = `conv-${conv.id}`;
-                            const isHighlighted = highlightedChatId === chatId;
-                            // 🔥 NUEVO: Verificar si hay menciones pendientes
-                            const hasMentions = hasPendingMentions(conv.id, conv.lastMessage, conv);
+                              const chatId = `conv-${conv.id}`;
+                              const isHighlighted = highlightedChatId === chatId;
+                              // 🔥 NUEVO: Verificar si hay menciones pendientes
+                              const hasMentions = hasPendingMentions(conv.id, conv.lastMessage, conv);
 
-                            const isSelected = (!isGroup && to && participants.some(p => p?.toLowerCase().trim() === to?.toLowerCase().trim())) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
+                              const isSelected = (!isGroup && to && participants.some(p => p?.toLowerCase().trim() === to?.toLowerCase().trim())) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
 
-                            return (
-                              <div
-                                key={conv.id}
-                                id={chatId}
-                                className={`flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group overflow-visible relative ${isSelected ? 'selected-conversation' : ''} ${isHighlighted ? 'highlighted-chat' : ''}`}
-                                style={{ padding: '4px 12px', gap: '6px', minHeight: '40px', display: 'flex', alignItems: 'center', width: '100%', minWidth: 0, position: 'relative' }}
-                                onClick={() => { if (onUserSelect) onUserSelect(displayName, null, conv); }}
-                              >
-                                <div className="relative flex-shrink-0" style={{ width: '32px', height: '32px' }}>
-                                  <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold" style={{ width: '32px', height: '32px', fontSize: '14px', backgroundColor: '#A50104' }}>
-                                    {otherParticipantPicture ? <img src={otherParticipantPicture} alt={displayName} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = getInitials(displayName); }} /> : getInitials(displayName)}
-                                  </div>
-                                  <div className="absolute bottom-0 right-0 rounded-full border-2 border-white" style={{ width: '12px', height: '12px', backgroundColor: isOtherParticipantOnline ? '#10b981' : '#9ca3af' }} title={isOtherParticipantOnline ? 'En línea' : 'Desconectado'} />
-                                  {/* 🔥 Badge de no leídos para modo compacto */}
-                                  {isCompact && itemUnreadCount > 0 && (
-                                    <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '16px', height: '16px', fontSize: '9px', fontWeight: 'bold', padding: '0 3px' }}>
-                                      {itemUnreadCount > 99 ? '99+' : itemUnreadCount}
+                              return (
+                                <div
+                                  key={conv.id}
+                                  id={chatId}
+                                  className={`flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group overflow-visible relative ${isSelected ? 'selected-conversation' : ''} ${isHighlighted ? 'highlighted-chat' : ''}`}
+                                  style={{ padding: '4px 12px', gap: '6px', minHeight: '40px', display: 'flex', alignItems: 'center', width: '100%', minWidth: 0, position: 'relative' }}
+                                  onClick={() => { if (onUserSelect) onUserSelect(displayName, null, conv); }}
+                                >
+                                  <div className="relative flex-shrink-0" style={{ width: '32px', height: '32px' }}>
+                                    <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold" style={{ width: '32px', height: '32px', fontSize: '14px', backgroundColor: '#A50104' }}>
+                                      {otherParticipantPicture ? <img src={otherParticipantPicture} alt={displayName} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = getInitials(displayName); }} /> : getInitials(displayName)}
                                     </div>
-                                  )}
-                                  {/* 🔥 NUEVO: Punto rojo para menciones */}
-                                  {hasMentions && (
-                                    <div
-                                      className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white"
-                                      style={{ width: '10px', height: '10px' }}
-                                      title="Tienes menciones pendientes"
-                                    />
-                                  )}
-                                  {/* 🔥 NUEVO: Punto verde para mensajes nuevos (sin menciones) */}
-                                  {!hasMentions && (itemUnreadCount > 0 || pendingThreads[conv.id]) && (
-                                    <div
-                                      className="absolute top-0 right-0 rounded-full border-2 border-white"
-                                      style={{ width: '10px', height: '10px', backgroundColor: '#10b981' }}
-                                      title="Mensajes nuevos"
-                                    />
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0 flex flex-col justify-center" style={{ gap: '2px', display: isCompact ? 'none' : 'flex' }}>
-                                  <div className="flex items-center justify-between gap-2">
-                                    <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                                      {/* Etiqueta de Favorito (arriba del todo si existe) */}
-                                      {isFavorite && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-red-500" /> Favorito</span>}
-
-                                      {/* 1. NOMBRE DEL USUARIO (Arriba) */}
-                                      <div className="flex items-center gap-2 w-full min-w-0">
-                                        <h3 className="font-semibold text-[#111] truncate flex-1" style={{ fontSize: '11.5px', lineHeight: '14px', fontWeight: 600 }}>
-                                          {displayName}
-                                        </h3>
-                                        {/* Badge de no leídos al lado del nombre */}
-                                        {itemUnreadCount > 0 && (
-                                          <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center ml-2" style={{ minWidth: '18px', height: '18px', fontSize: '10px', fontWeight: 'bold' }}>
-                                            {itemUnreadCount > 99 ? '99+' : itemUnreadCount}
-                                          </div>
-                                        )}
+                                    <div className="absolute bottom-0 right-0 rounded-full border-2 border-white" style={{ width: '12px', height: '12px', backgroundColor: isOtherParticipantOnline ? '#10b981' : '#9ca3af' }} title={isOtherParticipantOnline ? 'En línea' : 'Desconectado'} />
+                                    {/* 🔥 Badge de no leídos para modo compacto */}
+                                    {isCompact && itemUnreadCount > 0 && (
+                                      <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '16px', height: '16px', fontSize: '9px', fontWeight: 'bold', padding: '0 3px' }}>
+                                        {itemUnreadCount > 99 ? '99+' : itemUnreadCount}
                                       </div>
+                                    )}
+                                    {/* 🔥 NUEVO: Punto rojo para menciones */}
+                                    {hasMentions && (
+                                      <div
+                                        className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white"
+                                        style={{ width: '10px', height: '10px' }}
+                                        title="Tienes menciones pendientes"
+                                      />
+                                    )}
+                                    {/* 🔥 NUEVO: Punto verde para mensajes nuevos (sin menciones) */}
+                                    {!hasMentions && (itemUnreadCount > 0 || pendingThreads[conv.id]) && (
+                                      <div
+                                        className="absolute top-0 right-0 rounded-full border-2 border-white"
+                                        style={{ width: '10px', height: '10px', backgroundColor: '#10b981' }}
+                                        title="Mensajes nuevos"
+                                      />
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0 flex flex-col justify-center" style={{ gap: '2px', display: isCompact ? 'none' : 'flex' }}>
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                                        {/* Etiqueta de Favorito (arriba del todo si existe) */}
+                                        {isFavorite && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-red-500" /> Favorito</span>}
+
+                                        {/* 1. NOMBRE DEL USUARIO (Arriba) */}
+                                        <div className="flex items-center gap-2 w-full min-w-0">
+                                          <h3 className="font-semibold text-[#111] truncate flex-1" style={{ fontSize: '11.5px', lineHeight: '14px', fontWeight: 600 }}>
+                                            {displayName}
+                                          </h3>
+                                          {/* Badge de no leídos al lado del nombre */}
+                                          {itemUnreadCount > 0 && (
+                                            <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center ml-2" style={{ minWidth: '18px', height: '18px', fontSize: '10px', fontWeight: 'bold' }}>
+                                              {itemUnreadCount > 99 ? '99+' : itemUnreadCount}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                      {/* Botón de Estrella */}
+                                      <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-1 rounded-full hover:bg-gray-200 transition-all duration-200" style={{ color: isFavorite ? '#ff453a' : '#9ca3af' }}>{isFavorite ? <FaStar size={14} /> : <FaRegStar size={14} />}</button>
                                     </div>
-                                    {/* Botón de Estrella */}
-                                    <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-1 rounded-full hover:bg-gray-200 transition-all duration-200" style={{ color: isFavorite ? '#ff453a' : '#9ca3af' }}>{isFavorite ? <FaStar size={14} /> : <FaRegStar size={14} />}</button>
                                   </div>
                                 </div>
+                              );
+                            })}
+                            {/* Botón Ver más / Ver menos para asignados (local) */}
+                            {hasMoreLocalAssigned && (
+                              <div className="flex justify-center py-2">
+                                <button
+                                  onClick={() => setAssignedExpanded(prev => !prev)}
+                                  className="text-xs text-blue-500 hover:text-blue-700 font-medium px-3 py-1 rounded hover:bg-blue-50 transition-colors"
+                                >
+                                  {assignedExpanded ? `Ver menos` : `Ver más (${totalAssigned - INITIAL_ITEMS_TO_SHOW} más)`}
+                                </button>
                               </div>
-                            );
-                          })}
-                          {/* Botón Ver más / Ver menos para asignados (local) */}
-                          {hasMoreLocalAssigned && (
-                            <div className="flex justify-center py-2">
-                              <button
-                                onClick={() => setAssignedExpanded(prev => !prev)}
-                                className="text-xs text-blue-500 hover:text-blue-700 font-medium px-3 py-1 rounded hover:bg-blue-50 transition-colors"
-                              >
-                                {assignedExpanded ? `Ver menos` : `Ver más (${totalAssigned - INITIAL_ITEMS_TO_SHOW} más)`}
-                              </button>
-                            </div>
-                          )}
-                          {/* Cargar más desde API (si hay más páginas) */}
-                          {assignedExpanded && assignedPage < assignedTotalPages && !assignedLoading && (
-                            <div className="flex justify-center py-2">
-                              <button
-                                onClick={() => onLoadAssignedConversations && onLoadAssignedConversations(assignedPage + 1)}
-                                className="text-xs text-gray-500 hover:text-gray-700 font-medium px-3 py-1 rounded hover:bg-gray-100 transition-colors"
-                              >
-                                Cargar más asignados...
-                              </button>
-                            </div>
-                          )}
-                        </>
-                      ) : (<div className="flex flex-col items-center justify-center py-[60px] px-5 text-center"><div className="text-5xl mb-4 opacity-50">👁️</div><div className="text-sm text-gray-600 font-medium">{assignedSearchTerm ? `No se encontraron resultados para "${assignedSearchTerm}"` : 'No hay chats asignados'}</div></div>);
-                    })()}
-                  </>
+                            )}
+                            {/* Cargar más desde API (si hay más páginas) */}
+                            {assignedExpanded && assignedPage < assignedTotalPages && !assignedLoading && (
+                              <div className="flex justify-center py-2">
+                                <button
+                                  onClick={() => onLoadAssignedConversations && onLoadAssignedConversations(assignedPage + 1)}
+                                  className="text-xs text-gray-500 hover:text-gray-700 font-medium px-3 py-1 rounded hover:bg-gray-100 transition-colors"
+                                >
+                                  Cargar más asignados...
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        ) : (<div className="flex flex-col items-center justify-center py-[60px] px-5 text-center"><div className="text-5xl mb-4 opacity-50">👁️</div><div className="text-sm text-gray-600 font-medium">{assignedSearchTerm ? `No se encontraron resultados para "${assignedSearchTerm}"` : 'No hay chats asignados'}</div></div>);
+                      })()}
+                    </>
                   );
                 })()}
               </>
