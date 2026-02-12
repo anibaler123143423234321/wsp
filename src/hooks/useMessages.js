@@ -8,16 +8,22 @@ export const useMessages = () => {
   const [uploadedFiles, setUploadedFiles] = useState([]); // URLs de archivos subidos
   const [isRecording, setIsRecording] = useState(false);
   const messageSound = useRef(null);
+  const mentionSound = useRef(null); // 🔥 NUEVO: Sonido para menciones
   const ringtoneSound = useRef(null); //  Referencia para el tono de llamada
 
-  const playMessageSound = useCallback((soundsEnabled = true) => {
+  const playMessageSound = useCallback((soundsEnabled = true, isMention = false) => {
     //  Reproducir sonido solo si está habilitado
     if (!soundsEnabled) return;
 
+    console.log('🔊 playMessageSound llamado:', { soundsEnabled, isMention });
+
     try {
-      if (messageSound.current) {
-        messageSound.current.currentTime = 0;
-        messageSound.current.play().catch((error) => {
+      // 🔥 NUEVO: Seleccionar el sonido según si es mención o no
+      const soundRef = isMention ? mentionSound : messageSound;
+      
+      if (soundRef.current) {
+        soundRef.current.currentTime = 0;
+        soundRef.current.play().catch((error) => {
           // Silenciar errores de autoplay - es normal si no hay interacción previa
           console.warn("Audio play failed:", error);
         });
@@ -173,6 +179,7 @@ export const useMessages = () => {
     isRecording,
     setIsRecording,
     messageSound,
+    mentionSound, // 🔥 NUEVO: Exportar ref del sonido de menciones
     playMessageSound,
     ringtoneSound, //  Exportar ref
     playRingtone,  //  Exportar función play

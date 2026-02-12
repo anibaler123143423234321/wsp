@@ -436,14 +436,41 @@ const ConversationList = ({
       try {
         // 🔥 El endpoint ahora devuelve tanto salas como conversaciones unificadas
         const allFavorites = await apiService.getUserFavoriteRoomsWithData(displayName);
+        
+        console.log('🔍 Favoritos recibidos del backend:', allFavorites);
+        
+        // Log detallado de cada favorito
+        allFavorites.forEach((fav, index) => {
+          console.log(`📋 Favorito ${index + 1}:`, {
+            name: fav.name,
+            type: fav.type,
+            roomCode: fav.roomCode,
+            id: fav.id,
+            hasRoomCode: !!fav.roomCode
+          });
+        });
 
         if (isMounted) {
+          // 🔥 FIX: Normalizar el tipo basado en roomCode
+          // Si tiene roomCode, es un grupo (room), si no, es una conversación (conv)
+          const normalizedFavorites = allFavorites.map(fav => {
+            if (fav.roomCode && !fav.type) {
+              // Tiene roomCode pero no tiene type definido -> es un grupo
+              return { ...fav, type: 'room' };
+            } else if (!fav.roomCode && !fav.type) {
+              // No tiene roomCode ni type -> es una conversación
+              return { ...fav, type: 'conv' };
+            }
+            return fav;
+          });
+          
+          console.log('✅ Favoritos normalizados:', normalizedFavorites);
+
           // 1. Guardar la lista completa para la sección de FAVORITOS
-          // El backend ya los devuelve unificados, filtrados y ordenados
-          setFavoriteRooms(allFavorites);
+          setFavoriteRooms(normalizedFavorites);
 
           // 2. Solo guardamos los códigos para el icono de estrella/pin en las listas
-          const roomCodes = allFavorites
+          const roomCodes = normalizedFavorites
             .filter(f => f.type === 'room')
             .map(r => r.roomCode);
           setFavoriteRoomCodes(roomCodes);
@@ -452,7 +479,7 @@ const ConversationList = ({
             setExternalFavoriteRoomCodes(roomCodes);
           }
 
-          const convIds = allFavorites
+          const convIds = normalizedFavorites
             .filter(f => f.type === 'conv')
             .map(c => c.id);
           setFavoriteConversationIds(convIds);
@@ -535,28 +562,39 @@ const ConversationList = ({
     if (favoriteConversationIds.length === 0 || !assignedConversations || assignedConversations.length === 0) return;
 
     setFavoriteRooms(prevFavorites => {
+      // 🔥 FIX: Filtrar conversaciones que NO tienen roomCode (excluir grupos)
+      const assignedConvsOnly = assignedConversations.filter(c => !c.roomCode);
+      
       // Crear mapa de assignedConversations para búsqueda rápida (usando ID como string)
-      const assignedMap = new Map(assignedConversations.map(c => [String(c.id), c]));
+      const assignedMap = new Map(assignedConvsOnly.map(c => [String(c.id), c]));
 
       // Actualizar cada favorito con datos frescos de assignedConversations
-      const updatedFavorites = prevFavorites.map(favItem => {
-        // Solo intentar actualizar si es una conversación
-        if (favItem.type === 'conv') {
-          // Buscamos usando el ID convertido a string
-          const freshData = assignedMap.get(String(favItem.id));
-
-          if (freshData) {
-            // Mantener isFavorite pero actualizar lastMessage y otros datos
-            return {
-              ...favItem,
-              ...freshData,
-              type: 'conv', // Asegurar que el tipo se mantenga
-              isFavorite: true
-            };
+      const updatedFavorites = prevFavorites
+        .filter(favItem => {
+          // 🔥 FIX: Si es una conversación con roomCode, eliminarla de favoritos
+          if (favItem.type === 'conv' && favItem.roomCode) {
+            return false;
           }
-        }
-        return favItem;
-      });
+          return true;
+        })
+        .map(favItem => {
+          // Solo intentar actualizar si es una conversación
+          if (favItem.type === 'conv') {
+            // Buscamos usando el ID convertido a string
+            const freshData = assignedMap.get(String(favItem.id));
+
+            if (freshData) {
+              // Mantener isFavorite pero actualizar lastMessage y otros datos
+              return {
+                ...favItem,
+                ...freshData,
+                type: 'conv', // Asegurar que el tipo se mantenga
+                isFavorite: true
+              };
+            }
+          }
+          return favItem;
+        });
 
       // 🔥 Ordenar por fecha del último mensaje (más reciente primero)
       updatedFavorites.sort((a, b) => {
@@ -1002,15 +1040,32 @@ const ConversationList = ({
     }
   }, [favoriteRooms]);
 
+  // 🔥 NUEVO: Filtrar conversaciones asignadas excluyendo las que tienen roomCode (son grupos)
+  const assignedConversationsFiltered = useMemo(() => {
+    const filtered = (assignedConversations || []).filter(conv => !conv.roomCode);
+    console.log('🔍 assignedConversationsFiltered:', {
+      total: assignedConversations?.length || 0,
+      filtered: filtered.length,
+      removedWithRoomCode: (assignedConversations?.length || 0) - filtered.length
+    });
+    return filtered;
+  }, [assignedConversations]);
+
   // 🔥 FIX: También excluir favoritos del conteo - Usar useMemo para recalcular automáticamente
   const myAssignedConversations = useMemo(() => {
-    return assignedConversations.filter(conv => {
+    const result = assignedConversationsFiltered.filter(conv => {
       const displayName = getDisplayName();
       const belongsToUser = conv.participants?.includes(displayName);
       const isFavorite = favoriteConversationIds.includes(conv.id);
       return belongsToUser && !isFavorite;
     });
-  }, [assignedConversations, favoriteConversationIds, user]);
+    console.log('🔍 myAssignedConversations:', {
+      assignedConversationsFiltered: assignedConversationsFiltered.length,
+      afterUserFilter: result.length,
+      favoriteConversationIds: favoriteConversationIds.length
+    });
+    return result;
+  }, [assignedConversationsFiltered, favoriteConversationIds, user]);
 
   // 🔥 CALCULO DE NO LEÍDOS PARA ASIGNADOS (Combinando prop interna + unreadMessages global)
   const unreadAssignedCount = myAssignedConversations.reduce((acc, conv) => {
@@ -1719,8 +1774,8 @@ const ConversationList = ({
                                 <div className="flex-1 min-w-0 flex flex-col justify-end" style={{ gap: '2px', display: isCompact ? 'none' : 'flex', paddingBottom: '6px' }}>
                                   <div className="flex items-center justify-between gap-2">
                                     <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                                      {/* Etiqueta de Favorito (arriba del todo si existe) */}
-                                      {isFavorite && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-red-500" /> Asignado</span>}
+                                      {/* Etiqueta de Favorito (arriba del todo si existe) - Solo para conversaciones SIN roomCode */}
+                                      {isFavorite && !conv.roomCode && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-red-500" /> Asignado</span>}
 
                                       {/* 1. NOMBRE DEL USUARIO (Arriba) */}
                                       <div className="flex items-center gap-2 w-full min-w-0">
@@ -1973,7 +2028,13 @@ const ConversationList = ({
                   count={myAssignedConversations.length}
                   isLoading={assignedLoading}
                 />
-                {showAssigned && (
+                {showAssigned && (() => {
+                  console.log('🎨 Renderizando sección ASIGNADOS:', {
+                    showAssigned,
+                    myAssignedConversations: myAssignedConversations.length,
+                    assignedLoading
+                  });
+                  return (
                   <>
                     {(() => {
                       // 🔥 NUEVO: Si hay búsqueda activa con resultados de API, usar esos resultados
@@ -2168,7 +2229,8 @@ const ConversationList = ({
                       ) : (<div className="flex flex-col items-center justify-center py-[60px] px-5 text-center"><div className="text-5xl mb-4 opacity-50">👁️</div><div className="text-sm text-gray-600 font-medium">{assignedSearchTerm ? `No se encontraron resultados para "${assignedSearchTerm}"` : 'No hay chats asignados'}</div></div>);
                     })()}
                   </>
-                )}
+                  );
+                })()}
               </>
             )}
 

@@ -28,6 +28,7 @@ import { useSocketListeners } from '../../hooks/useSocketListeners';
 import { showSuccessAlert, showErrorAlert, showConfirmAlert } from '../../sweetalert2';
 import { faviconBadge } from '../../utils/faviconBadge'; //  NUEVO: Badge en el favicon
 import whatsappSound from '../../assets/sonidos/whatsapp_pc.mp3';
+import mentionSoundFile from '../../assets/sonidos/etiqueta.mp3'; // 🔥 NUEVO: Sonido para menciones
 import ringtoneSoundFile from '../../assets/sonidos/llamada_wsp.mp3'; //  NUEVO: Tono de llamada
 
 const ChatPage = () => {
@@ -65,6 +66,7 @@ const ChatPage = () => {
     isRecording,
     setIsRecording,
     messageSound,
+    mentionSound, // 🔥 NUEVO: Ref del sonido de menciones
     playMessageSound,
     ringtoneSound, //  Ref del tono
     playRingtone,  //  Función play
@@ -524,13 +526,33 @@ const ChatPage = () => {
     messageId = null,
     conversationData = null
   ) => {
+    // 🔥 DEBUG: Ver qué está pasando
+    console.log('🔍 handleUserSelect llamado:', {
+      userName,
+      messageId,
+      conversationData,
+      currentState: {
+        isGroup: chatState.isGroup,
+        currentRoomCode: chatState.currentRoomCode,
+        to: chatState.to,
+        messagesLength: messages.length
+      }
+    });
+
+    // 🔥 NUEVO: Si conversationData tiene roomCode, es un GRUPO, redirigir a handleGroupSelect
+    if (conversationData && conversationData.roomCode) {
+      console.log('🔄 Conversación con roomCode detectada, redirigiendo a handleGroupSelect');
+      return handleGroupSelect(conversationData);
+    }
+
     // 🔥 NUEVO: Evitar limpiar chat si ya estamos en el mismo chat asignado
     // (previene que doble clic accidental limpie el contenido)
     const normalizedUserName = userName?.toLowerCase().trim();
     const currentTo = chatState.to?.toLowerCase().trim();
 
-    // Si ya estamos en este chat y no hay messageId específico, no hacer nada
-    if (!chatState.isGroup && !chatState.currentRoomCode && currentTo === normalizedUserName && !messageId) {
+    // Si ya estamos en este chat Y hay mensajes cargados, y no hay messageId específico, no hacer nada
+    // Agregamos verificación de que realmente haya contenido visible para evitar bloquear chats vacíos
+    if (!chatState.isGroup && !chatState.currentRoomCode && currentTo === normalizedUserName && !messageId && messages.length > 0) {
       console.log('⏭️ Ya estás en este chat, ignorando clic duplicado');
       return;
     }
@@ -1954,11 +1976,16 @@ const ChatPage = () => {
 
   return (
     <>
-      {/* Elemento de audio */}
+      {/* Elementos de audio */}
       <audio
         ref={messageSound}
         preload="auto"
         src={whatsappSound}
+      />
+      <audio
+        ref={mentionSound}
+        preload="auto"
+        src={mentionSoundFile}
       />
       <audio ref={ringtoneSound} src={ringtoneSoundFile} loop /> {/*  Audio para llamadas (loop) */}
 

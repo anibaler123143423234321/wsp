@@ -804,7 +804,10 @@ export const useSocketListeners = (
 
                     //  NOTIFICACIÓN TOAST para grupos (solo si NO es mensaje propio y chat NO está abierto)
                     if (!isOwnMessage && !isChatOpen) {
-                        playMessageSound(soundsEnabledRef.current);
+                        // 🔥 NUEVO: Detectar si hay mención al usuario actual
+                        const hasMention = hasMentionToCurrentUser(messageText, currentUserFullName);
+                        console.log('🔊 [GRUPO] Reproduciendo sonido:', { hasMention, messageText });
+                        playMessageSound(soundsEnabledRef.current, hasMention);
 
                         // 🔥 LÓGICA DE NOTIFICACIÓN MEJORADA:
                         // Si la pestaña está oculta, mostrar notificación de sistema.
@@ -914,7 +917,10 @@ export const useSocketListeners = (
 
                 //  NOTIFICACIONES SOLO si NO es mensaje propio y chat NO está abierto
                 if (!isOwnMessage && !isChatOpen) {
-                    playMessageSound(soundsEnabledRef.current);
+                    // 🔥 NUEVO: Detectar si hay mención al usuario actual
+                    const hasMention = hasMentionToCurrentUser(messageText, currentUserFullName);
+                    console.log('🔊 [DIRECTO] Reproduciendo sonido:', { hasMention, messageText });
+                    playMessageSound(soundsEnabledRef.current, hasMention);
 
                     // 🔥 LÓGICA DE NOTIFICACIÓN MEJORADA (DM):
                     if (systemNotifications.canShow()) {
@@ -990,7 +996,12 @@ export const useSocketListeners = (
 
             // Sonido para todos (favoritos y no favoritos)
             if (!isCurrentRoom && incrementCount > 0) {
-                playMessageSound(soundsEnabledRef.current);
+                // 🔥 NUEVO: Detectar si hay mención en el último mensaje
+                const lastMessageText = data.lastMessage?.text || '';
+                const currentUserFullName = currentUserFullNameRef.current || username;
+                const hasMention = hasMentionToCurrentUser(lastMessageText, currentUserFullName);
+                console.log('🔊 [UNREAD_COUNT] Reproduciendo sonido:', { hasMention, lastMessageText });
+                playMessageSound(soundsEnabledRef.current, hasMention);
                 // NOTA: Eliminamos notificaciones visuales (Toast/System) de aquí para evitar
                 // duplicidad con el evento 'message' que ya las muestra con más detalle.
             }
@@ -1532,7 +1543,10 @@ export const useSocketListeners = (
 
                 // Reproducir sonido y mostrar notificación si el chat no está abierto
                 if (!isChatOpen) {
-                    playMessageSound(soundsEnabledRef.current);
+                    // 🔥 NUEVO: Detectar si hay mención en la respuesta del hilo
+                    const hasMention = hasMentionToCurrentUser(data.lastReplyText, currentFullName || username);
+                    console.log('🔊 [THREAD] Reproduciendo sonido:', { hasMention, lastReplyText: data.lastReplyText });
+                    playMessageSound(soundsEnabledRef.current, hasMention);
 
                     // Buscar nombre del grupo usando REF
                     let groupName = 'Grupo';

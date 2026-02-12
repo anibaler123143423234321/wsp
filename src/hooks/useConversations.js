@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import apiService from '../apiService';
 import { showSuccessAlert, showErrorAlert } from '../sweetalert2';
 
@@ -353,16 +353,23 @@ export const useConversations = (
         [loadAssignedConversations]
     );
 
+    // 🔥 FIX: Usar ref para evitar llamadas repetidas
+    const hasLoadedInitialConversations = useRef(false);
+
     useEffect(() => {
         if (!isAuthenticated || !username) {
+            // Reset cuando no hay autenticación
+            hasLoadedInitialConversations.current = false;
             return;
         }
 
-        // ✅ FIX: Verificar si ya tenemos conversaciones cargadas o si está cargando para no repetir
+        // ✅ FIX: Solo cargar una vez al montar el componente
+        if (hasLoadedInitialConversations.current) return;
         if (chatState.assignedConversations.length > 0 || chatState.assignedLoading) return;
 
+        hasLoadedInitialConversations.current = true;
         loadAssignedConversations(1); // Cargar solo página 1
-    }, [isAuthenticated, username, loadAssignedConversations, chatState.assignedConversations.length, chatState.assignedLoading]); // Agregamos length y loading a dependencias
+    }, [isAuthenticated, username]); // Removemos loadAssignedConversations de las dependencias
 
     return {
         loadAssignedConversations,
