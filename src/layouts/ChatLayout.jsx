@@ -29,6 +29,8 @@ const ChatLayout = ({
   //  NUEVOS PROPS para paginación real
   assignedPage, assignedTotal, assignedTotalPages, assignedLoading, onLoadAssignedConversations,
   roomsPage, roomsTotal, roomsTotalPages, roomsLoading, onLoadUserRooms, roomsLimit, onRoomsLimitChange, onGoToRoomsPage,
+  favoriteRooms, // 🔥 NUEVO
+  setFavoriteRooms, // 🔥 NUEVO
   pendingMentions, // 🔥 NUEVO: Para detectar menciones pendientes
   pendingThreads, // 🔥 NUEVO: Para detectar hilos pendientes
   setPendingThreads, // 🔥 NUEVO: Para limpiar hilos pendientes
@@ -352,6 +354,8 @@ const ChatLayout = ({
         onRoomSelect={onRoomSelect}
         currentRoomCode={currentRoomCode}
         favoriteRoomCodes={favoriteRoomCodes}
+        favoriteRooms={favoriteRooms}
+        setFavoriteRooms={setFavoriteRooms}
         setFavoriteRoomCodes={setFavoriteRoomCodes}
         lastFavoriteUpdate={lastFavoriteUpdate}
         onKickUser={onKickUser}

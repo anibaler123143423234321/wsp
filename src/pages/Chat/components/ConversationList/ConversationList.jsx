@@ -147,9 +147,11 @@ const ConversationList = ({
   onLoadUserRooms,
   onGoToRoomsPage,
   isCompact = false,
-  to, //  <- AGREGAR ESTA LÍNEA
-  pendingMentions = {}, // 🔥 NUEVO: Para detectar menciones pendientes
-  pendingThreads = {} // 🔥 NUEVO: Para detectar hilos no leídos
+  to,
+  pendingMentions = {},
+  pendingThreads = {},
+  favoriteRooms = [], // 🔥 RECIBIR DE PROPS
+  setFavoriteRooms,   // 🔥 RECIBIR DE PROPS
 }) => {
   const [activeModule, setActiveModule] = useState('chats');
   const [searchTerm, setSearchTerm] = useState('');
@@ -158,7 +160,7 @@ const ConversationList = ({
   const [isSearching, setIsSearching] = useState(false);
   const conversationsListRef = useRef(null);
   const [favoriteRoomCodes, setFavoriteRoomCodes] = useState([]);
-  const [favoriteRooms, setFavoriteRooms] = useState([]); // 🔥 NUEVO: Grupos favoritos con datos completos
+  // const [favoriteRooms, setFavoriteRooms] = useState([]); // 🔥 ELIMINADO: Ahora viene por props
   const [favoriteConversationIds, setFavoriteConversationIds] = useState([]);
   const [userCache, setUserCache] = useState({});
   const [messageSearchResults, setMessageSearchResults] = useState([]);
@@ -478,14 +480,18 @@ const ConversationList = ({
           // 1. Guardar la lista completa para la sección de FAVORITOS
           setFavoriteRooms(normalizedFavorites);
 
-          // 2. Solo guardamos los códigos para el icono de estrella/pin en las listas
-          const roomCodes = normalizedFavorites
-            .filter(f => f.type === 'room')
-            .map(r => r.roomCode);
-          setFavoriteRoomCodes(roomCodes);
+          // 2. Guardar TODOS los identificadores para el sistema de ordenamiento y estrellas
+          // Incluimos tanto roomCodes como IDs de conversaciones (como strings)
+          const allCodes = [
+            ...normalizedFavorites.filter(f => f.roomCode).map(f => f.roomCode),
+            ...normalizedFavorites.filter(f => f.type === 'conv').map(f => String(f.id))
+          ];
+
+          console.log('⭐ All favorite codes (unified):', allCodes);
+          setFavoriteRoomCodes(allCodes);
 
           if (setExternalFavoriteRoomCodes) {
-            setExternalFavoriteRoomCodes(roomCodes);
+            setExternalFavoriteRoomCodes(allCodes);
           }
 
           const convIds = normalizedFavorites
@@ -501,116 +507,8 @@ const ConversationList = ({
     return () => { isMounted = false; };
   }, [user?.id]);
 
-  //  NUEVO: Escuchar actualizaciones de favoritos desde useSocketListeners
-  useEffect(() => {
-    if (!lastFavoriteUpdate) return;
-
-    console.log('⭐ ConversationList: Recibida actualización de favorito:', lastFavoriteUpdate.roomCode);
-
-    setFavoriteRooms(prevFavorites => {
-      const updated = prevFavorites.map(room =>
-        room.roomCode === lastFavoriteUpdate.roomCode
-          ? { ...room, lastMessage: lastFavoriteUpdate.lastMessage }
-          : room
-      );
-
-      // Ordenar por fecha del último mensaje
-      updated.sort((a, b) => {
-        const dateA = new Date(a.lastMessage?.sentAt || 0);
-        const dateB = new Date(b.lastMessage?.sentAt || 0);
-        return dateB - dateA;
-      });
-
-      console.log('⭐ Favoritos reordenados, primero:', updated[0]?.roomCode);
-      return updated;
-    });
-  }, [lastFavoriteUpdate]);
-
-  // 🔥 NUEVO: Sincronizar favoriteRooms con myActiveRooms cuando lleguen mensajes nuevos
-  // Esto actualiza lastMessage y ordena los favoritos por mensaje más reciente
-  useEffect(() => {
-    if (favoriteRoomCodes.length === 0 || !myActiveRooms || myActiveRooms.length === 0) return;
-
-    setFavoriteRooms(prevFavorites => {
-      // Crear mapa de myActiveRooms para búsqueda rápida
-      const activeRoomsMap = new Map(myActiveRooms.map(r => [r.roomCode, r]));
-
-      // Actualizar cada favorito con datos frescos de myActiveRooms
-      const updatedFavorites = prevFavorites.map(favRoom => {
-        // Solo intentar actualizar si es un room
-        if (favRoom.type === 'room') {
-          const freshData = activeRoomsMap.get(favRoom.roomCode);
-          if (freshData) {
-            // Mantener isFavorite pero actualizar lastMessage y otros datos
-            return {
-              ...favRoom,
-              ...freshData,
-              isFavorite: true
-            };
-          }
-        }
-        return favRoom;
-      });
-
-      // 🔥 Ordenar por fecha del último mensaje (más reciente primero)
-      updatedFavorites.sort((a, b) => {
-        const dateA = new Date(a.lastMessage?.sentAt || a.updatedAt || a.createdAt || 0);
-        const dateB = new Date(b.lastMessage?.sentAt || b.updatedAt || b.createdAt || 0);
-        return dateB - dateA;
-      });
-
-      return updatedFavorites;
-    });
-  }, [myActiveRooms, favoriteRoomCodes]);
-
-  // 🔥 NUEVO: Sincronizar favoriteRooms con assignedConversations cuando lleguen mensajes nuevos
-  // Esto actualiza lastMessage y unreadCount de las conversaciones favoritas
-  // 🔥 NUEVO: Sincronizar favoriteRooms con assignedConversations cuando lleguen mensajes nuevos
-  // Esto actualiza lastMessage y unreadCount de las conversaciones favoritas
-  useEffect(() => {
-    if (favoriteConversationIds.length === 0 || !assignedConversations || assignedConversations.length === 0) return;
-
-    setFavoriteRooms(prevFavorites => {
-      // 🔥 FIX: Filtrar conversaciones que NO tienen roomCode (excluir grupos)
-      const assignedConvsOnly = assignedConversations.filter(c => !c.roomCode);
-
-      // Crear mapa de assignedConversations para búsqueda rápida (usando ID como string)
-      const assignedMap = new Map(assignedConvsOnly.map(c => [String(c.id), c]));
-
-      // Actualizar cada favorito con datos frescos de assignedConversations
-      // 🔥 FIX: No filtrar conv favorites por roomCode — el backend les asigna roomCode: id.toString()
-      const updatedFavorites = prevFavorites
-        .map(favItem => {
-          // Solo intentar actualizar si es una conversación
-          if (favItem.type === 'conv') {
-            // Buscamos usando el ID convertido a string
-            const freshData = assignedMap.get(String(favItem.id));
-
-            if (freshData) {
-              // Mantener isFavorite pero actualizar lastMessage y otros datos
-              return {
-                ...favItem,
-                ...freshData,
-                type: 'conv', // Asegurar que el tipo se mantenga
-                isFavorite: true
-              };
-            }
-            // 🔥 FIX: Si no se encuentra en assignedConversations, mantener el favorito tal cual
-            // (El backend ya excluye favoritos de la lista de asignados)
-          }
-          return favItem;
-        });
-
-      // 🔥 Ordenar por fecha del último mensaje (más reciente primero)
-      updatedFavorites.sort((a, b) => {
-        const dateA = new Date(a.lastMessage?.sentAt || a.updatedAt || a.createdAt || 0);
-        const dateB = new Date(b.lastMessage?.sentAt || b.updatedAt || b.createdAt || 0);
-        return dateB - dateA;
-      });
-
-      return updatedFavorites;
-    });
-  }, [assignedConversations, favoriteConversationIds]);
+  // 🔥 EFECTOS DE SINCRONIZACIÓN ELIMINADOS
+  // Se han unificado en useSocketListeners.js para garantizar el ordenamiento en tiempo real.
 
   const handleToggleFavorite = async (room, e) => {
     e.stopPropagation();
@@ -692,6 +590,12 @@ const ConversationList = ({
           };
 
           const updated = [...prev, newFav];
+
+          // 🔥 SINCRONIZAR con chatState: Agregar el ID de la conversación a la lista global de códigos
+          const newCodes = [...favoriteRoomCodes, conversation.id.toString()];
+          setFavoriteRoomCodes(newCodes);
+          if (setExternalFavoriteRoomCodes) setExternalFavoriteRoomCodes(newCodes);
+
           // Reordenar por fecha
           return updated.sort((a, b) => {
             const dateA = new Date(a.lastMessage?.sentAt || 0);
@@ -703,6 +607,11 @@ const ConversationList = ({
         // 🔥 Quitar de IDs y de la lista unificada
         setFavoriteConversationIds(prev => prev.filter(id => id !== conversation.id));
         setFavoriteRooms(prev => prev.filter(f => !(f.type === 'conv' && f.id === conversation.id)));
+
+        // 🔥 SINCRONIZAR con chatState: Quitar el ID de la conversación de la lista global de códigos
+        const newCodes = favoriteRoomCodes.filter(c => String(c) !== String(conversation.id));
+        setFavoriteRoomCodes(newCodes);
+        if (setExternalFavoriteRoomCodes) setExternalFavoriteRoomCodes(newCodes);
 
         // 🔥 FIX: Refrescar la lista de chats asignados para que la conversación vuelva a aparecer
         // ya que el backend la excluye de la lista activa si es favorito.

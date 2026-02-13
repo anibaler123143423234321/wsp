@@ -407,30 +407,30 @@ const ChatPage = () => {
       if (lastMarkedChatRef.current !== chatKey) {
         lastMarkedChatRef.current = chatKey;
 
-        // Buscar conversación asignada
+        // Buscar conversación asignada o en favoritos
         const normalizedTo = chatState.to.toLowerCase().trim();
-        const conv = chatState.assignedConversations?.find(c =>
+
+        // 1. Buscar en asignados
+        const assignedConv = chatState.assignedConversations?.find(c =>
           c.participants?.some(p => p?.toLowerCase().trim() === normalizedTo)
         );
 
+        // 2. Buscar en favoritos (donde type === 'conv')
+        const favoriteConv = chatState.favoriteRooms?.find(f =>
+          f.type === 'conv' && f.participants?.some(p => p?.toLowerCase().trim() === normalizedTo)
+        );
+
+        const conv = assignedConv || favoriteConv;
+
         if (conv) {
-          // 🔥 FIX: No verificar convUnread > 0 aquí.
-          // Si el chat está abierto, el contador local se mantiene en 0 (por useSocketListeners),
-          // pero el mensaje en el backend sigue como "no leído".
-          // Debemos forzar el marcado como leído siempre que haya habido cambios en messages.length
-
-          // const convUnread = chatState.unreadMessages?.[conv.id] || conv.unreadCount || 0;
-
-          console.log(`📝 Marcando chat asignado como leído (trigger por messages.length). Conv: ${conv.id}`);
+          console.log(`📝 Marcando chat asignado/favorito como leído. Conv: ${conv.id}`);
 
           // 1. Marcar en Backend (API)
-          // 🔥 FIX DIRECCIÓN: markConversationAsRead(from, to) marca mensajes ENVIADOS POR from A to
-          // Queremos marcar los mensajes que ME ENVIARON (from=partner, to=me) como leídos
           apiService.markConversationAsRead(chatState.to, currentUserFullName).catch(err =>
             console.error('Error al marcar conversación como leída:', err)
           );
 
-          // 2. Emitir Socket para sincronizar con otros clientes
+          // 2. Emitir Socket
           if (socket?.connected) {
             socket.emit('markConversationAsRead', {
               from: chatState.to,
@@ -439,13 +439,22 @@ const ChatPage = () => {
             });
           }
 
-          // 3. Resetear contador local (unreadMessages)
+          // 3. Resetear contador local global
           chatState.setUnreadMessages(prev => ({ ...prev, [conv.id]: 0 }));
 
-          // 4. Actualizar unreadCount en la conversación
-          chatState.setAssignedConversations(prev =>
-            prev.map(c => c.id === conv.id ? { ...c, unreadCount: 0 } : c)
-          );
+          // 4. Actualizar estado de Asignados
+          if (assignedConv) {
+            chatState.setAssignedConversations(prev =>
+              prev.map(c => c.id === conv.id ? { ...c, unreadCount: 0 } : c)
+            );
+          }
+
+          // 5. Actualizar estado de Favoritos (🔥 CLAVE)
+          if (favoriteConv) {
+            chatState.setFavoriteRooms(prev =>
+              prev.map(f => f.id === conv.id ? { ...f, unreadCount: 0 } : f)
+            );
+          }
         }
       }
     }
@@ -2051,7 +2060,9 @@ const ChatPage = () => {
         unreadMessages={chatState.unreadMessages}
         myActiveRooms={chatState.myActiveRooms}
         favoriteRoomCodes={chatState.favoriteRoomCodes}
+        favoriteRooms={chatState.favoriteRooms}
         setFavoriteRoomCodes={chatState.setFavoriteRoomCodes}
+        setFavoriteRooms={chatState.setFavoriteRooms}
         lastFavoriteUpdate={chatState.lastFavoriteUpdate}
         pendingMentions={chatState.pendingMentions} // 🔥 NUEVO: Pasar menciones pendientes
         pendingThreads={chatState.pendingThreads} // 🔥 NUEVO: Pasar hilos pendientes

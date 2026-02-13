@@ -117,35 +117,52 @@ export const useSocketListeners = (
 
     //  FUNCIÓN DE ORDENAMIENTO IDÉNTICA AL BACKEND
     const sortRoomsByBackendLogic = (rooms, favoriteRoomCodes) => {
+        if (!rooms || !Array.isArray(rooms)) return rooms;
+        const codes = Array.isArray(favoriteRoomCodes) ? favoriteRoomCodes.map(c => String(c).toLowerCase().trim()) : [];
+
+        console.log('🔍 [SORT-DEBUG] Iniciando ordenamiento:', {
+            roomsCount: rooms.length,
+            favoriteRoomCodes: codes
+        });
+
         // Separar favoritas y no favoritas
-        const favorites = rooms.filter(r => favoriteRoomCodes.includes(r.roomCode));
-        const nonFavorites = rooms.filter(r => !favoriteRoomCodes.includes(r.roomCode));
+        const favorites = rooms.filter(r => {
+            const rCode = r.roomCode ? String(r.roomCode).toLowerCase().trim() : '';
+            const rId = r.id ? String(r.id).toLowerCase().trim() : '';
+            const isFav = codes.includes(rCode) || codes.includes(rId);
 
-        // Función para ordenar un grupo (CON mensajes primero, SIN mensajes después)
-        const sortGroup = (group, groupName) => {
-            const withMessages = group.filter(r => r.lastMessage?.sentAt);
-            const withoutMessages = group.filter(r => !r.lastMessage?.sentAt);
+            if (isFav) console.log(`⭐ [SORT-DEBUG] Favorito detectado: ${r.name || rCode} (id: ${rId}, code: ${rCode})`);
+            return isFav;
+        });
 
-            // Ordenar CON mensajes por sentAt DESC
-            withMessages.sort((a, b) => {
-                const aDate = new Date(a.lastMessage.sentAt).getTime();
-                const bDate = new Date(b.lastMessage.sentAt).getTime();
-                return bDate - aDate;
-            });
+        const nonFavorites = rooms.filter(r => {
+            const rCode = r.roomCode ? String(r.roomCode).toLowerCase().trim() : '';
+            const rId = r.id ? String(r.id).toLowerCase().trim() : '';
+            return !codes.includes(rCode) && !codes.includes(rId);
+        });
 
-            // Ordenar SIN mensajes por createdAt DESC
-            withoutMessages.sort((a, b) => {
-                const aDate = new Date(a.createdAt).getTime();
-                const bDate = new Date(b.createdAt).getTime();
-                return bDate - aDate;
-            });
-
-            return [...withMessages, ...withoutMessages];
+        const parseDate = (r) => {
+            const dateStr = r.lastMessage?.sentAt || r.lastMessage?.time || r.lastMessageTime || r.createdAt;
+            if (!dateStr) return 0;
+            const d = new Date(dateStr).getTime();
+            return isNaN(d) ? 0 : d;
         };
 
-        // Ordenar cada grupo y combinar
-        const sortedFavorites = sortGroup(favorites, 'FAVORITOS');
-        const sortedNonFavorites = sortGroup(nonFavorites, 'NO-FAVORITOS');
+        // Función para ordenar un grupo
+        const sortGroup = (group, label) => {
+            return [...group].sort((a, b) => {
+                const aTime = parseDate(a);
+                const bTime = parseDate(b);
+                console.log(`⏱️ [SORT-DEBUG] Comparando en ${label}:`, {
+                    a: a.name || a.roomCode, aTime: new Date(aTime).toISOString(),
+                    b: b.name || b.roomCode, bTime: new Date(bTime).toISOString()
+                });
+                return bTime - aTime;
+            });
+        };
+
+        const sortedFavorites = sortGroup(favorites, 'FAVS');
+        const sortedNonFavorites = sortGroup(nonFavorites, 'NON-FAVS');
 
         return [...sortedFavorites, ...sortedNonFavorites];
     };
@@ -823,7 +840,7 @@ export const useSocketListeners = (
                                         text: messageText,
                                         from: data.from,
                                         time: timeString,
-                                        sentAt: sentAt,
+                                        sentAt: sentAt, // ISO date string
                                         mediaType: data.mediaType,
                                         fileName: data.fileName
                                     },
@@ -935,6 +952,39 @@ export const useSocketListeners = (
                 //  NO actualizar assignedConversations aquí
                 // El evento 'assignedConversationUpdated' del backend se encarga de esto
                 // para evitar incremento doble del contador
+
+                // 🔥 NUEVO: Sincronizar FAVORITOS para DMs en tiempo real (COMO REFUERZO)
+                setFavoriteRooms(prev => {
+                    if (!data.conversationId) return prev;
+
+                    const targetFav = prev.find(c => String(c.id) === String(data.conversationId));
+                    if (!targetFav) return prev;
+
+                    console.log('⭐ [SYNC-FAV] Mensaje recibido para favorito (DM):', targetFav.name || targetFav.id);
+
+                    const shouldIncrement = !isOwnMessage && !isChatOpen;
+                    const newUnreadCount = shouldIncrement ? (targetFav.unreadCount || 0) + 1 : targetFav.unreadCount;
+
+                    const updated = prev.map(conv => {
+                        if (String(conv.id) === String(data.conversationId)) {
+                            return {
+                                ...conv,
+                                lastMessage: {
+                                    text: messageText,
+                                    from: data.from,
+                                    time: timeString,
+                                    sentAt: data.sentAt || new Date().toISOString(),
+                                    mediaType: data.mediaType,
+                                    fileName: data.fileName
+                                },
+                                unreadCount: newUnreadCount
+                            };
+                        }
+                        return conv;
+                    });
+
+                    return sortRoomsByBackendLogic(updated, favoriteRoomCodesRef.current);
+                });
 
                 // 🔥 NUEVO: Detectar menciones en chats individuales (no asignados)
                 if (!isOwnMessage && !isChatOpen && !data.isAssignedConversation) {
@@ -1048,8 +1098,11 @@ export const useSocketListeners = (
                 const newSentAt = data.lastMessage.sentAt || new Date().toISOString();
 
                 //  Si es un favorito, notificar para que ConversationList actualice su estado local
-                if (favoriteRoomCodesRef.current.includes(data.roomCode)) {
-                    console.log('⭐ unreadCountUpdate: Notificando actualización de favorito:', data.roomCode);
+                const isFavorite = favoriteRoomCodesRef.current.includes(String(data.roomCode)) ||
+                    (data.conversationId && favoriteRoomCodesRef.current.includes(String(data.conversationId)));
+
+                if (isFavorite) {
+                    console.log('⭐ unreadCountUpdate: Notificando actualización de favorito:', data.roomCode || data.conversationId);
                     setLastFavoriteUpdate({
                         roomCode: data.roomCode,
                         lastMessage: {
@@ -1217,21 +1270,22 @@ export const useSocketListeners = (
                     if (String(conv.id) === String(data.conversationId)) {
                         return {
                             ...conv,
-                            lastMessage: data.lastMessage,
-                            lastMessageTime: data.lastMessageTime,
-                            lastMessageFrom: data.lastMessageFrom,
-                            lastMessageMediaType: data.lastMessageMediaType,
+                            // Unificar estructura para que sortRoomsByBackendLogic funcione
+                            lastMessage: {
+                                text: data.lastMessage,
+                                from: data.lastMessageFrom || data.from,
+                                time: data.lastMessageTime,
+                                sentAt: data.lastMessageTime, // ISO string
+                                mediaType: data.lastMessageMediaType
+                            },
                             unreadCount: newUnreadCount
                         };
                     }
                     return conv;
                 });
 
-                return updated.sort((a, b) => {
-                    const aTime = a.lastMessageTime || a.createdAt || '';
-                    const bTime = b.lastMessageTime || b.createdAt || '';
-                    return new Date(bTime) - new Date(aTime);
-                });
+                // 🔥 CRÍTICO: Usar el ordenamiento unificado para que suba al principio
+                return sortRoomsByBackendLogic(updated, favoriteRoomCodesRef.current);
             });
 
             // 3. 🔥 CRÍTICO: Asegurar que el contador global se actualice siempre
@@ -1259,8 +1313,15 @@ export const useSocketListeners = (
             if (data.conversationId) {
                 console.log(`📬 unreadCountReset para conversación asignada: ${data.conversationId}`);
                 setUnreadMessages((prev) => ({ ...prev, [data.conversationId]: 0 }));
+
+                // 1. Resetear en Asignados
                 setAssignedConversations(prev => prev.map(c =>
                     c.id === data.conversationId ? { ...c, unreadCount: 0 } : c
+                ));
+
+                // 2. Resetear en Favoritos (si aplica)
+                setFavoriteRooms(prev => prev.map(f =>
+                    (f.type === 'conv' && f.id === data.conversationId) ? { ...f, unreadCount: 0 } : f
                 ));
                 return;
             }
@@ -1285,11 +1346,19 @@ export const useSocketListeners = (
             if (isChatOpen) {
                 console.log('✅ Reseteando contador para:', data.roomCode);
                 setUnreadMessages((prev) => ({ ...prev, [data.roomCode]: 0 }));
-                // 🔥 NUEVO: También actualizar unreadCount en myActiveRooms para sincronización completa
+
+                // 1. Resetear en Salas Activas
                 setMyActiveRooms(prev => prev.map(room =>
                     room.roomCode === data.roomCode
                         ? { ...room, unreadCount: 0, hasUnreadThreadMentions: false }
                         : room
+                ));
+
+                // 2. Resetear en Favoritos (si aplica)
+                setFavoriteRooms(prev => prev.map(f =>
+                    (f.type === 'room' && f.roomCode === data.roomCode)
+                        ? { ...f, unreadCount: 0 }
+                        : f
                 ));
             } else {
                 console.log(`⏭️ Ignorando unreadCountReset para ${data.roomCode} - chat no está abierto`);

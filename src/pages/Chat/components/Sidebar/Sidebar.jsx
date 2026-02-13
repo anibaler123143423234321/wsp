@@ -57,6 +57,8 @@ const Sidebar = ({
   onGoToRoomsPage,
   soundsEnabled,
   onEnableSounds,
+  favoriteRooms, // 🔥 NUEVO
+  setFavoriteRooms, // 🔥 NUEVO
   pendingMentions = {}, // 🔥 NUEVO: Para detectar menciones pendientes
   pendingThreads = {} // 🔥 NUEVO: Para detectar hilos pendientes
 }) => {
@@ -171,6 +173,8 @@ const Sidebar = ({
             onUserSelect={onUserSelect}
             onRoomSelect={onRoomSelect}
             favoriteRoomCodes={favoriteRoomCodes}
+            favoriteRooms={favoriteRooms}
+            setFavoriteRooms={setFavoriteRooms}
             setFavoriteRoomCodes={setFavoriteRoomCodes}
             lastFavoriteUpdate={lastFavoriteUpdate}
             unreadMessages={unreadMessages}

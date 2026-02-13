@@ -49,8 +49,8 @@ export const useSocket = (isAuthenticated, username, user) => {
           reconnectionDelayMax: 5000,
           randomizationFactor: 0.5,
           autoConnect: true,
-          pingInterval: 15000, // 15s - sincronizado con backend
-          pingTimeout: 7000,   // 7s - sincronizado con backend
+          pingInterval: 10000, // 10s - sincronizado con backend (Bug 8)
+          pingTimeout: 60000,  // 60s - mayor tolerancia para pestañas en segundo plano
         });
 
         // Timeout de seguridad por si la conexión se queda colgada
