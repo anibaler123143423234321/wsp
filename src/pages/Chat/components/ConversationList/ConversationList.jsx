@@ -222,17 +222,26 @@ const ConversationList = ({
             onRoomSelect(room, selectedResult.id); // Pasar messageId como segundo parámetro
           }
         } else {
-          // Es un mensaje directo - buscar en conversaciones asignadas
+          // === ES MENSAJE PRIVADO ===
+          // Determinar destinatario: si Yo lo envié, el destinatario es 'to'. Si no, es 'from'.
+          const currentUserName = user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.username;
+          const targetUsername = selectedResult.from === currentUserName ? selectedResult.to : selectedResult.from;
+
+          console.log('👤 Mensaje privado detectado:', { from: selectedResult.from, to: selectedResult.to, targetUsername });
+
+          // Buscar en conversaciones asignadas
           const conversation = assignedConversations?.find(conv =>
-            conv.participants?.some(p => p.toLowerCase().includes(selectedResult.from.toLowerCase()))
+            conv.participants?.some(p => p.toLowerCase().trim() === targetUsername?.toLowerCase().trim())
           );
+
           if (conversation && onUserSelect) {
             chatId = `conv-${conversation.id}`;
-            onUserSelect(selectedResult.from, selectedResult.id, conversation);
+            // Usamos el nombre de la conversación si está disponible para que el header se vea bien
+            onUserSelect(selectedResult.conversationName || targetUsername, selectedResult.id, conversation);
           } else if (onUserSelect) {
             // Si no está en asignadas, abrir chat directo
-            chatId = `user-${selectedResult.from}`;
-            onUserSelect(selectedResult.from, selectedResult.id);
+            chatId = `user-${targetUsername}`;
+            onUserSelect(selectedResult.conversationName || targetUsername, selectedResult.id);
           }
         }
       } else if (selectedResult.type === 'room') {

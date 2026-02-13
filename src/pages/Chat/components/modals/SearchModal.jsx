@@ -84,17 +84,20 @@ const SearchModal = ({ isOpen, onClose, onSearch }) => {
         try {
           const messagesResponse = await apiService.searchMessages(searchTerm, 1, 20);
           const messages = messagesResponse?.data || [];
-          
+
           const messageResults = messages.map(msg => ({
             id: msg.id,
             type: 'message',
             from: msg.from || msg.username || 'Desconocido',
+            to: msg.to || null,
             text: msg.text || msg.message || '',
             sentAt: msg.sentAt,
             roomCode: msg.roomCode || null,
-            isGroup: !!msg.roomCode
+            isGroup: !!msg.isGroup,
+            conversationId: msg.conversationId || null,
+            conversationName: msg.conversationName || null
           }));
-          
+
           allResults = [...allResults, ...messageResults];
         } catch (error) {
           console.error('Error buscando mensajes:', error);
@@ -105,7 +108,7 @@ const SearchModal = ({ isOpen, onClose, onSearch }) => {
         try {
           const roomsResponse = await apiService.searchRooms(searchTerm, 1, 20);
           const rooms = roomsResponse?.data || [];
-          
+
           const roomResults = rooms.map(room => ({
             id: room.id,
             type: 'room',
@@ -114,7 +117,7 @@ const SearchModal = ({ isOpen, onClose, onSearch }) => {
             description: room.description || '',
             currentMembers: room.currentMembers
           }));
-          
+
           allResults = [...allResults, ...roomResults];
         } catch (error) {
           console.error('Error buscando grupos:', error);
