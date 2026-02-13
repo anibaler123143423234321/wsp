@@ -205,6 +205,7 @@ export const useChatState = () => {
         setIsSending,
         favoriteRoomCodes,
         favoriteRooms, // 🔥 NUEVO: Exponer datos completos
+        setFavoriteRooms, // 🔥 NUEVO: Permitir actualización externa (sockets)
         setFavoriteRoomCodes,
         loadFavoriteRoomCodes,
         lastFavoriteUpdate,
