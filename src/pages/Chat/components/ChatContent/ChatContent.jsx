@@ -313,6 +313,7 @@ const ChatContent = ({
   onOpenPollModal,
   onPollVote, //  FIX: Pasar prop de votación
   onGoToLatest, //  NUEVO: Ir al final
+  chatInfo, // 🔥 FIX: Info del chat (picture, name, isOnline)
 }) => {
   // ============================================================
   // REFS
@@ -2081,6 +2082,11 @@ const ChatContent = ({
         if (conv?.picture) {
           finalPicture = conv.picture;
         }
+      }
+
+      // 3. 🔥 FIX: Fallback a chatInfo.picture (para favoritos privados que no están en assignedConversations)
+      if (!finalPicture && !isGroup && chatInfo?.picture) {
+        finalPicture = chatInfo.picture;
       }
     }
     // Si es propio, usar siempre user.picture si está disponible

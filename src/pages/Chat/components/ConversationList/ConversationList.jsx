@@ -672,13 +672,11 @@ const ConversationList = ({
           // Evitar duplicados
           if (prev.some(f => f.type === 'conv' && f.id === conversation.id)) return prev;
 
-          // Preparar objeto para la lista unificada (compatibilidad con backend)
           const newFav = {
             ...conversation,
             type: 'conv',
             isFavorite: true,
             roomCode: conversation.id.toString(),
-            description: conversation.picture
           };
 
           const updated = [...prev, newFav];
