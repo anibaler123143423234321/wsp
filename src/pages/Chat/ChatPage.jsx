@@ -261,7 +261,7 @@ const ChatPage = () => {
       const realtimeCount = chatState.unreadMessages?.[room.roomCode];
       // Prioridad: 1. Socket (realtime), 2. API (room.unreadCount)
       const count = (realtimeCount !== undefined) ? realtimeCount : (room.unreadCount || 0);
-      
+
       // 🔥 DEBUG: Log para diagnosticar el problema del contador
       if (room.roomCode === '2E104789') {
         console.log('🔍 DEBUG contador para 2E104789:', {
@@ -271,7 +271,7 @@ const ChatPage = () => {
           willIncrement: count > 0
         });
       }
-      
+
       if (count > 0) {
         unreadRoomsCount++;
       }
@@ -547,9 +547,10 @@ const ChatPage = () => {
       }
     });
 
-    // 🔥 NUEVO: Si conversationData tiene roomCode, es un GRUPO, redirigir a handleGroupSelect
-    if (conversationData && conversationData.roomCode) {
-      console.log('🔄 Conversación con roomCode detectada, redirigiendo a handleGroupSelect');
+    // 🔥 NUEVO: Si conversationData tiene roomCode Y es tipo 'room', redirigir a handleGroupSelect
+    // Evitamos redirigir si es un favorito tipo 'conv' (que también trae roomCode por compatibilidad)
+    if (conversationData && conversationData.roomCode && (conversationData.type === 'room' || !conversationData.participants)) {
+      console.log('🔄 Grupo detectado, redirigiendo a handleGroupSelect');
       return handleGroupSelect(conversationData);
     }
 
@@ -577,7 +578,7 @@ const ChatPage = () => {
     // (Asumiendo que 'clearMessages' viene de useMessagePagination o roomManagement)
     if (typeof clearMessages === 'function') clearMessages();
 
-    setSelectedRoomData(null); //  Limpiar datos de sala seleccionada
+    setSelectedRoomData(conversationData?.picture ? { picture: conversationData.picture } : null); // 🔥 FIX: Preservar picture de favoritos
 
     // 🔥 NUEVO: Limpiar pendingMentions para este chat
     // Puede ser conversationId (asignado) o userName (chat directo)

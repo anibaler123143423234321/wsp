@@ -291,6 +291,9 @@ const ChatLayout = ({
       if (conv?.picture) return conv.picture;
     }
 
+    // 3. 🔥 FIX: Intentar obtener de selectedRoomData (para favoritos privados)
+    if (selectedRoomData?.picture) return selectedRoomData.picture;
+
     return null;
   };
 
