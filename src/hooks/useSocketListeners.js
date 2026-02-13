@@ -743,16 +743,15 @@ export const useSocketListeners = (
                     });
                 }
 
-                //  Incrementar contador si NO estamos en esa sala y NO es mensaje propio
-                // FIX: También incrementar para favoritos, ya que unreadCountUpdate no siempre llega
+                const shouldIncrement = !isChatOpen && !isOwnMessage;
                 console.log('🔍 Evaluando incremento de contador:', {
                     isChatOpen,
                     isOwnMessage,
-                    shouldIncrement: !isChatOpen && !isOwnMessage,
+                    shouldIncrement,
                     roomCode: data.roomCode
                 });
 
-                if (!isChatOpen && !isOwnMessage) {
+                if (shouldIncrement) {
                     setUnreadMessages(prev => ({
                         ...prev,
                         [data.roomCode]: (prev[data.roomCode] || 0) + 1
@@ -808,7 +807,7 @@ export const useSocketListeners = (
                             console.log('📬 newMessage: Sala no encontrada, agregando:', data.roomCode);
                             const newRoom = {
                                 roomCode: data.roomCode,
-                                name: data.groupName || data.group || data.roomName || data.roomCode,
+                                name: data.roomName || data.roomCode,
                                 lastMessage: {
                                     text: messageText,
                                     from: data.from,
@@ -817,47 +816,47 @@ export const useSocketListeners = (
                                     mediaType: data.mediaType,
                                     fileName: data.fileName
                                 },
-                                isActive: true
+                                unreadCount: (!isChatOpen && !isOwnMessage) ? 1 : 0
                             };
                             updated = [newRoom, ...prev];
                         }
                         return sortRoomsByBackendLogic(updated, favoriteRoomCodesRef.current);
                     });
 
-                    // 🔥 NUEVO: Sincronizar FAVORITOS en tiempo real
+                    // 🔥 CRÍTICO: También actualizar FAVORITOS si es un grupo favorito
                     setFavoriteRooms(prev => {
-                        const targetFav = prev.find(c => c.roomCode === data.roomCode);
-                        if (!targetFav) return prev;
+                        const targetFav = prev.find(f => String(f.roomCode) === String(data.roomCode));
 
-                        const shouldIncrement = !isOwnMessage && !isChatOpen;
-                        const newUnreadCount = shouldIncrement ? (targetFav.unreadCount || 0) + 1 : targetFav.unreadCount;
+                        // Si es favorito pero no está en la lista (recién agregado),
+                        // pero tenemos el código en el ref, intentamos actualizar de todos modos
+                        const isFavCode = favoriteRoomCodesRef.current.includes(String(data.roomCode));
+                        if (!targetFav && !isFavCode) return prev;
 
-                        const updated = prev.map(conv => {
-                            if (conv.roomCode === data.roomCode) {
+                        const updated = targetFav ? prev.map(f => {
+                            if (String(f.roomCode) === String(data.roomCode)) {
                                 return {
-                                    ...conv,
+                                    ...f,
                                     lastMessage: {
                                         text: messageText,
                                         from: data.from,
                                         time: timeString,
-                                        sentAt: sentAt, // ISO date string
+                                        sentAt: sentAt,
                                         mediaType: data.mediaType,
                                         fileName: data.fileName
                                     },
-                                    unreadCount: newUnreadCount
+                                    unreadCount: shouldIncrement ? (f.unreadCount || 0) + 1 : f.unreadCount
                                 };
                             }
-                            return conv;
-                        });
-
-                        // Reordenar favoritos igual que la lista general
+                            return f;
+                        }) : prev; // Por ahora no creamos esqueletos si no existe
                         return sortRoomsByBackendLogic(updated, favoriteRoomCodesRef.current);
                     });
 
                     //  NOTIFICACIÓN TOAST para grupos (solo si NO es mensaje propio y chat NO está abierto)
                     if (!isOwnMessage && !isChatOpen) {
                         // 🔥 NUEVO: Detectar si hay mención al usuario actual
-                        const hasMention = hasMentionToCurrentUser(messageText, currentFullName || username);
+                        const currentUserFullName = currentUserFullNameRef.current || username;
+                        const hasMention = hasMentionToCurrentUser(messageText, currentUserFullName);
                         console.log('🔊 [GRUPO] Reproduciendo sonido:', { hasMention, messageText });
                         playMessageSound(soundsEnabledRef.current, hasMention);
 
@@ -1102,18 +1101,35 @@ export const useSocketListeners = (
                     (data.conversationId && favoriteRoomCodesRef.current.includes(String(data.conversationId)));
 
                 if (isFavorite) {
-                    console.log('⭐ unreadCountUpdate: Notificando actualización de favorito:', data.roomCode || data.conversationId);
-                    setLastFavoriteUpdate({
-                        roomCode: data.roomCode,
-                        lastMessage: {
-                            text: data.lastMessage.text || "",
-                            from: data.lastMessage.from,
-                            time: data.lastMessage.time,
-                            sentAt: newSentAt,
-                            mediaType: data.lastMessage.mediaType || null,
-                            fileName: data.lastMessage.fileName || null
-                        },
-                        timestamp: Date.now() // Para forzar re-render
+                    console.log('⭐ [SYNC-FAV] unreadCountUpdate: Actualizando favorito:', data.roomCode || data.conversationId);
+
+                    setFavoriteRooms(prev => {
+                        const targetId = data.conversationId || data.roomCode;
+
+                        // Si no está en favoritos pero sabemos que es un favorito (por el ref), 
+                        // pero no queremos crear esqueletos aquí, solo actualizamos si existe.
+                        const updated = prev.map(f => {
+                            const isMatch = (data.roomCode && String(f.roomCode) === String(data.roomCode)) ||
+                                (data.conversationId && String(f.id) === String(data.conversationId));
+
+                            if (isMatch) {
+                                return {
+                                    ...f,
+                                    lastMessage: {
+                                        text: data.lastMessage.text || "",
+                                        from: data.lastMessage.from,
+                                        time: data.lastMessage.time,
+                                        sentAt: newSentAt,
+                                        mediaType: data.lastMessage.mediaType || null,
+                                        fileName: data.lastMessage.fileName || null
+                                    },
+                                    unreadCount: incrementCount
+                                };
+                            }
+                            return f;
+                        });
+
+                        return sortRoomsByBackendLogic(updated, favoriteRoomCodesRef.current);
                     });
                 }
 
@@ -1249,7 +1265,12 @@ export const useSocketListeners = (
             // 2. 🔥 NUEVO: También actualizar FAVORITOS si la conversación está ahí
             setFavoriteRooms(prev => {
                 const targetFav = prev.find(c => String(c.id) === String(data.conversationId));
-                if (!targetFav) return prev;
+                const isFavCode = favoriteRoomCodesRef.current.includes(String(data.conversationId));
+
+                // Si no está en favoritos pero el ref dice que debería serlo, 
+                // por ahora no lo "creamos" aquí para evitar inconsistencias,
+                // rely on ConversationList to have added it initially.
+                if (!targetFav && !isFavCode) return prev;
 
                 let isChatOpen = false;
                 if (!currentIsGroup) {
@@ -1258,16 +1279,16 @@ export const useSocketListeners = (
                     } else if (adminConv?.id === data.conversationId) {
                         isChatOpen = true;
                     } else if (currentTo) {
-                        const participants = (targetFav.participants || []).map(p => p?.toLowerCase().trim());
+                        const participants = (targetFav?.participants || []).map(p => p?.toLowerCase().trim());
                         isChatOpen = participants.includes(currentTo);
                     }
                 }
 
                 const shouldIncrement = !isOwnMessage && !isChatOpen;
-                const newUnreadCount = shouldIncrement ? (targetFav.unreadCount || 0) + 1 : targetFav.unreadCount;
-
+                // Si targetFav no existe, usamos null-coalescing pero el map no hará nada.
                 const updated = prev.map(conv => {
                     if (String(conv.id) === String(data.conversationId)) {
+                        const currentUnread = conv.unreadCount || 0;
                         return {
                             ...conv,
                             // Unificar estructura para que sortRoomsByBackendLogic funcione
@@ -1278,7 +1299,7 @@ export const useSocketListeners = (
                                 sentAt: data.lastMessageTime, // ISO string
                                 mediaType: data.lastMessageMediaType
                             },
-                            unreadCount: newUnreadCount
+                            unreadCount: shouldIncrement ? currentUnread + 1 : currentUnread
                         };
                     }
                     return conv;

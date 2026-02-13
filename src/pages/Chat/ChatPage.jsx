@@ -1137,6 +1137,46 @@ const ChatPage = () => {
 
       } // Fin del bucle
 
+      // 🔥 NUEVO: Reordenar FAVORITOS inmediatamente cuando YO escribo
+      chatState.setFavoriteRooms(prev => {
+        const isCurrentFav = chatState.favoriteRoomCodes.includes(String(messageObj.roomCode)) ||
+          (messageObj.conversationId && chatState.favoriteRoomCodes.includes(String(messageObj.conversationId)));
+
+        if (!isCurrentFav) return prev;
+
+        const sentAt = new Date().toISOString();
+        const updated = prev.map(conv => {
+          const isTarget = (messageObj.roomCode && conv.roomCode === messageObj.roomCode) ||
+            (messageObj.conversationId && String(conv.id) === String(messageObj.conversationId));
+
+          if (isTarget) {
+            return {
+              ...conv,
+              lastMessage: {
+                text: messageObj.message,
+                from: currentUserFullName,
+                time: new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
+                sentAt: sentAt,
+                mediaType: messageObj.mediaType,
+                fileName: messageObj.fileName
+              }
+            };
+          }
+          return conv;
+        });
+
+        // Reordenar usando la lógica compartida que ahora es más robusta con parseDate mejorado
+        // Nota: Importamos sortRoomsByBackendLogic indirectamente vía chatState si estuviera disponible,
+        // pero como no lo está, usaremos un sort local simple aquí que imite la lógica
+        return [...updated].sort((a, b) => {
+          const getT = (r) => {
+            const d = r.lastMessage?.sentAt || r.lastMessageTime || r.createdAt;
+            return d ? new Date(d).getTime() : 0;
+          };
+          return getT(b) - getT(a);
+        });
+      });
+
       // Limpieza final exitosa
       clearInput();
       chatState.setReplyingTo(null);
