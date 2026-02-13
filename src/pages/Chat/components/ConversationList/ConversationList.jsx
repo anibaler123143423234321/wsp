@@ -649,9 +649,12 @@ const ConversationList = ({
           return filtered;
         });
         //  SINCRONIZAR con chatState
-        if (setExternalFavoriteRoomCodes) setExternalFavoriteRoomCodes(newCodes);
+        // 🔥 FIX: Refrescar la lista de salas para que el grupo vuelva a aparecer en GRUPOS
+        // ya que el backend lo excluye de la lista activa si es favorito.
+        if (onLoadUserRooms) {
+          onLoadUserRooms(1, false);
+        }
 
-        // 🔥 FIX: Forzar re-render para que el grupo aparezca inmediatamente en la lista
         setFavoriteToggleTimestamp(Date.now());
       }
     } catch (error) {
@@ -691,6 +694,12 @@ const ConversationList = ({
         // 🔥 Quitar de IDs y de la lista unificada
         setFavoriteConversationIds(prev => prev.filter(id => id !== conversation.id));
         setFavoriteRooms(prev => prev.filter(f => !(f.type === 'conv' && f.id === conversation.id)));
+
+        // 🔥 FIX: Refrescar la lista de chats asignados para que la conversación vuelva a aparecer
+        // ya que el backend la excluye de la lista activa si es favorito.
+        if (onLoadAssignedConversations) {
+          onLoadAssignedConversations(1);
+        }
 
         // 🔥 FIX: Forzar re-render para que la conversación aparezca inmediatamente en la lista
         setFavoriteToggleTimestamp(Date.now());
