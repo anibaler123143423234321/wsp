@@ -1599,9 +1599,10 @@ html.dark .chat-input-mention-item:hover {
   position: relative;
   /* Ancho reducido para cards más compactos */
   min-width: 180px !important;
-  max-width: 240px;
-  /* Padding más pequeño */
-  padding: 6px 8px 20px 8px !important;
+  max-width: 450px;
+  width: fit-content;
+  /* Padding más pequeño para compactar */
+  padding: 4px 8px 4px 8px !important;
   background-color: rgba(0, 0, 0, 0.04);
   /* Gris muy suave */
   border-radius: 8px;
@@ -1667,15 +1668,14 @@ html.dark .chat-input-mention-item:hover {
 
 /* Hora y checks flotantes (Esquina inferior derecha) */
 .wa-file-timestamp {
-  position: absolute;
-  bottom: 3px;
-  right: 6px;
   display: flex;
   align-items: center;
   gap: 3px;
   font-size: 10px;
   color: #8696a0;
   background: transparent;
+  margin-left: auto;
+  align-self: flex-end;
 }
 
 /* Icono de descarga (derecha) */

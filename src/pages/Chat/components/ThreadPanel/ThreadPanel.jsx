@@ -34,7 +34,7 @@ import { handleSmartPaste } from "../utils/pasteHandler"; // Utilidad reutilizab
 import { useMessageSelection } from "../../../../hooks/useMessageSelection"; //  NUEVO: Hook de selección
 import useEnterToSend from "../../../../hooks/useEnterToSend"; // NUEVO: Hook para enviar con Enter
 import MessageSelectionManager from "../ChatContent/MessageSelectionManager/MessageSelectionManager"; //  NUEVO: Barra de selección
-import ImageGalleryGrid from "../ImageGalleryGrid/ImageGalleryGrid"; // Para multi-attachments
+import ImageGalleryGrid from "../../../../components/ImageGalleryGrid/ImageGalleryGrid"; // Para multi-attachments
 
 import PDFViewer from "../../../../components/PDFViewer/PDFViewer"; // Importar PDFViewer
 

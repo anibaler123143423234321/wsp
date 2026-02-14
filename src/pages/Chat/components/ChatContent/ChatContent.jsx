@@ -46,7 +46,7 @@ import ChatInput from '../../../../components/ChatInput/ChatInput'; //  NUEVO: C
 import AddReactionButton from '../../../../components/AddReactionButton/AddReactionButton'; // Componente reutilizable botón +
 import { useMessageSelection } from '../../../../hooks/useMessageSelection'; // Hook personalizado
 import { groupMessagesForGallery } from "../../utils/messageGrouper";
-import ImageGalleryGrid from "../ImageGalleryGrid/ImageGalleryGrid";
+import ImageGalleryGrid from "../../../../components/ImageGalleryGrid/ImageGalleryGrid";
 import "./ChatContent.css";
 
 // Función para formatear tiempo
@@ -2382,16 +2382,17 @@ const ChatContent = ({
                       style={{
                         backgroundColor: 'rgba(0, 0, 0, 0.05)',
                         borderRadius: '8px',
-                        padding: '6px 10px',
-                        marginBottom: '6px',
+                        padding: '4px 8px',
+                        marginBottom: '4px',
                         cursor: 'pointer',
                         borderLeft: '4px solid #00a884', // Color verde WhatsApp
                         display: 'flex',
                         flexDirection: hasMedia ? 'row' : 'column',
-                        gap: hasMedia ? '8px' : '2px',
+                        gap: hasMedia ? '6px' : '2px',
                         position: 'relative',
                         overflow: 'hidden',
-                        alignItems: hasMedia ? 'center' : 'flex-start'
+                        alignItems: hasMedia ? 'center' : 'flex-start',
+                        maxHeight: '60px'
                       }}
                     >
                       {/* Contenido de texto */}
@@ -2434,8 +2435,8 @@ const ChatContent = ({
                               src={originalMsg.mediaData}
                               alt="preview"
                               style={{
-                                width: '48px',
-                                height: '48px',
+                                width: '32px',
+                                height: '32px',
                                 objectFit: 'cover',
                                 borderRadius: '4px',
                                 border: '1px solid rgba(0, 0, 0, 0.1)'
@@ -2443,7 +2444,7 @@ const ChatContent = ({
                             />
                           ) : originalMsg.mediaType === 'video' && !/\.(mp3|wav|ogg|m4a|aac|opus|flac)$/i.test(originalMsg.fileName || "") ? (
                             // Miniatura de video con ícono de play
-                            <div style={{ position: 'relative', width: '48px', height: '48px' }}>
+                            <div style={{ position: 'relative', width: '32px', height: '32px' }}>
                               <video
                                 src={originalMsg.mediaData}
                                 style={{
@@ -2459,8 +2460,8 @@ const ChatContent = ({
                                 top: '50%',
                                 left: '50%',
                                 transform: 'translate(-50%, -50%)',
-                                width: '20px',
-                                height: '20px',
+                                width: '16px',
+                                height: '16px',
                                 backgroundColor: 'rgba(0, 0, 0, 0.6)',
                                 borderRadius: '50%',
                                 display: 'flex',
@@ -2470,18 +2471,18 @@ const ChatContent = ({
                                 <div style={{
                                   width: 0,
                                   height: 0,
-                                  borderLeft: '6px solid white',
-                                  borderTop: '4px solid transparent',
-                                  borderBottom: '4px solid transparent',
-                                  marginLeft: '2px'
+                                  borderLeft: '4px solid white',
+                                  borderTop: '3px solid transparent',
+                                  borderBottom: '3px solid transparent',
+                                  marginLeft: '1px'
                                 }} />
                               </div>
                             </div>
                           ) : (originalMsg.mediaType === 'audio' || (originalMsg.mediaType === 'video' && /\.(mp3|wav|ogg|m4a|aac|opus|flac)$/i.test(originalMsg.fileName || ""))) ? (
                             // Ícono de audio
                             <div style={{
-                              width: '48px',
-                              height: '48px',
+                              width: '32px',
+                              height: '32px',
                               backgroundColor: '#e1f4d6',
                               borderRadius: '4px',
                               display: 'flex',
@@ -2489,7 +2490,7 @@ const ChatContent = ({
                               justifyContent: 'center',
                               border: '1px solid rgba(0, 0, 0, 0.1)'
                             }}>
-                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00a884" strokeWidth="2">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00a884" strokeWidth="2">
                                 <path d="M9 18V5l12-2v13M9 13l12-2" />
                                 <circle cx="6" cy="18" r="3" />
                                 <circle cx="18" cy="16" r="3" />
@@ -2498,8 +2499,8 @@ const ChatContent = ({
                           ) : (
                             // Ícono de archivo genérico
                             <div style={{
-                              width: '48px',
-                              height: '48px',
+                              width: '32px',
+                              height: '32px',
                               backgroundColor: '#f0f0f0',
                               borderRadius: '4px',
                               display: 'flex',
@@ -2507,7 +2508,7 @@ const ChatContent = ({
                               justifyContent: 'center',
                               border: '1px solid rgba(0, 0, 0, 0.1)'
                             }}>
-                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
                                 <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
                                 <polyline points="13 2 13 9 20 9" />
                               </svg>

@@ -3,6 +3,8 @@
     gap: 4px;
     width: 100%;
     max-width: 330px;
+    max-height: 400px;
+    /* Limitar altura máxima general */
     /* Ancho similar al de un mensaje con imagen único */
     border-radius: 8px;
     overflow: hidden;
@@ -16,6 +18,8 @@
     overflow: hidden;
     background-color: #f0f0f0;
     line-height: 0;
+    max-height: inherit;
+    /* Heredar límite de altura */
 }
 
 .grid-item img {
@@ -33,6 +37,7 @@
 
 .grid-1 {
     grid-template-columns: 1fr;
+    max-height: 400px;
 }
 
 .grid-2 {
@@ -80,17 +85,18 @@
     position: absolute;
     top: 8px;
     right: 8px;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
     background-color: rgba(255, 255, 255, 0.9);
-    border: none;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(0, 0, 0, 0.05);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #54656f;
+    color: #5e5e5e;
     cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     z-index: 10;
     opacity: 0;
     transform: scale(0.9);
@@ -103,10 +109,10 @@
 }
 
 .grid-reply-btn:hover {
-    background-color: #ffffff;
-    color: #00a884;
-    transform: scale(1.1);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    background-color: #f3f4f6;
+    color: #111;
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .grid-thread-indicator {
@@ -137,19 +143,20 @@
 
 .grid-thread-btn {
     position: absolute;
-    top: 50px;
+    top: 42px;
     right: 8px;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background-color: rgba(255, 255, 255, 0.95);
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    background-color: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(4px);
     border: 1px solid rgba(0, 0, 0, 0.05);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #54656f;
+    color: #5e5e5e;
     cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     z-index: 20;
     opacity: 0;
     transform: scale(0.9);
@@ -163,8 +170,22 @@
 }
 
 .grid-thread-btn:hover {
-    background-color: #ffffff;
-    color: #00a884;
-    transform: scale(1.1);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    background-color: #f3f4f6;
+    color: #111;
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Dark Mode Overrides for Image Buttons */
+html.dark .grid-reply-btn,
+html.dark .grid-thread-btn {
+    background-color: rgba(42, 42, 42, 0.9) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #9ca3af !important;
+}
+
+html.dark .grid-reply-btn:hover,
+html.dark .grid-thread-btn:hover {
+    background-color: #3a3a3a !important;
+    color: #ffffff !important;
 }
