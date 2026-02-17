@@ -94,6 +94,7 @@ export const useSocketListeners = (
     const myActiveRoomsRef = useRef(myActiveRooms || []); //  Nuevo Ref
     const favoriteRoomCodesRef = useRef(favoriteRoomCodes); //  Ref para favoritos
     const lastThreadUpdateRef = useRef({}); // Para deduplicación de eventos de hilo
+    const processedMessagesRef = useRef(new Set()); // 🔥 NUEVO: Para deduplicación de mensajes
 
     // Actualizar ref cuando cambie soundsEnabled
     useEffect(() => {
@@ -593,10 +594,13 @@ export const useSocketListeners = (
         // =====================================================
         s.on("message", (data) => {
             console.log('📨 LISTENER message recibido:', {
+                id: data.id,
                 from: data.from,
                 roomCode: data.roomCode,
                 isGroup: data.isGroup,
-                messagePreview: (data.text || data.message || '').substring(0, 50)
+                conversationId: data.conversationId,
+                messagePreview: (data.text || data.message || '').substring(0, 50),
+                timestamp: new Date().toISOString()
             });
 
             // Si es un mensaje de monitoreo, ignorarlo aquí
@@ -690,6 +694,14 @@ export const useSocketListeners = (
             }
             // CASO A: GRUPOS
             if (data.isGroup) {
+                console.log('📬 [GRUPO] Procesando mensaje:', {
+                    roomCode: data.roomCode,
+                    from: data.from,
+                    isOwnMessage,
+                    isChatOpen,
+                    currentRoom: currentRoomCodeRef.current
+                });
+
                 //  Limpiar indicador de typing inmediatamente cuando llega el mensaje
                 if (data.roomCode) {
                     setRoomTypingUsers(prev => {
@@ -752,10 +764,25 @@ export const useSocketListeners = (
                 });
 
                 if (shouldIncrement) {
-                    setUnreadMessages(prev => ({
-                        ...prev,
-                        [data.roomCode]: (prev[data.roomCode] || 0) + 1
-                    }));
+                    console.log(`✅ [GRUPO] Incrementando contador:`, {
+                        roomCode: data.roomCode,
+                        from: data.from,
+                        timestamp: new Date().toISOString()
+                    });
+                    
+                    setUnreadMessages(prev => {
+                        const prevCount = prev[data.roomCode] || 0;
+                        const newCount = prevCount + 1;
+                        console.log(`   📊 Estado ANTES: unreadMessages[${data.roomCode}] = ${prevCount}`);
+                        console.log(`   📊 Estado DESPUÉS: unreadMessages[${data.roomCode}] = ${newCount}`);
+                        console.log(`   📊 Estado completo ANTES:`, prev);
+                        const newState = {
+                            ...prev,
+                            [data.roomCode]: newCount
+                        };
+                        console.log(`   📊 Estado completo DESPUÉS:`, newState);
+                        return newState;
+                    });
 
                     // 🔥 NUEVO: Detectar si el mensaje menciona al usuario actual
                     const currentUserFullName = currentUserFullNameRef.current || username;
@@ -948,24 +975,163 @@ export const useSocketListeners = (
                     });
                 }
 
-                //  NO actualizar assignedConversations aquí
-                // El evento 'assignedConversationUpdated' del backend se encarga de esto
-                // para evitar incremento doble del contador
+                //  🔥 ACTUALIZAR assignedConversations como FALLBACK
+                // El evento 'assignedConversationUpdated' del backend debería encargarse de esto,
+                // pero si no llega en 300ms, actualizamos aquí para evitar que el chat no suba
+                
+                // 🔥 FIX: Si no hay conversationId, buscar la conversación por participantes
+                {
+                    const explicitConvId = data.conversationId;
+                    const fromLower = data.from?.toLowerCase().trim();
+                    const toLower = data.to?.toLowerCase().trim();
 
-                // 🔥 NUEVO: Sincronizar FAVORITOS para DMs en tiempo real (COMO REFUERZO)
+                    // Función para resolver el conversationId y ejecutar el fallback
+                    const runDmFallback = (convId) => {
+                        if (!convId) return;
+                        
+                        const messageKey = `${convId}-${data.id}`;
+                        
+                        // Marcar como procesado por 'message'
+                        processedMessagesRef.current.add(messageKey);
+                        
+                        // Esperar 300ms para ver si llega assignedConversationUpdated
+                        setTimeout(() => {
+                            if (!processedMessagesRef.current.has(messageKey)) {
+                                console.log(`⏭️ [FALLBACK] assignedConversationUpdated SÍ llegó, ignorando fallback`);
+                                return;
+                            }
+                            
+                            console.log(`🔄 [FALLBACK] assignedConversationUpdated NO llegó, usando fallback para ${convId}`);
+                            
+                            setAssignedConversations(prev => {
+                                const targetConv = prev.find(c => c.id === convId);
+                                if (!targetConv) return prev;
+
+                                let isChatOpenLocal = false;
+                                if (!currentIsGroup) {
+                                    if (String(currentRoomCodeRef.current) === String(convId)) {
+                                        isChatOpenLocal = true;
+                                    } else if (adminViewConversationRef?.current?.id === convId) {
+                                        isChatOpenLocal = true;
+                                    } else if (currentTo) {
+                                        const participants = (targetConv.participants || []).map(p => p?.toLowerCase().trim());
+                                        isChatOpenLocal = participants.includes(currentTo);
+                                    }
+                                }
+
+                                const shouldInc = !isOwnMessage && !isChatOpenLocal;
+                                const newUnreadCount = shouldInc ? (targetConv.unreadCount || 0) + 1 : targetConv.unreadCount;
+
+                                console.log('📬 [FALLBACK] Actualizando assignedConversations:', {
+                                    convId,
+                                    shouldInc,
+                                    newUnreadCount,
+                                    isChatOpenLocal
+                                });
+
+                                const updated = prev.map(conv => {
+                                    if (conv.id === convId) {
+                                        return {
+                                            ...conv,
+                                            lastMessage: {
+                                                text: messageText,
+                                                sentAt: data.sentAt || new Date().toISOString(),
+                                                from: data.from,
+                                                mediaType: data.mediaType
+                                            },
+                                            lastMessageTime: data.sentAt || new Date().toISOString(),
+                                            lastMessageFrom: data.from,
+                                            lastMessageMediaType: data.mediaType,
+                                            unreadCount: newUnreadCount
+                                        };
+                                    }
+                                    return conv;
+                                });
+
+                                return updated.sort((a, b) => {
+                                    const aTime = a.lastMessage?.sentAt || a.lastMessageTime || a.createdAt || '';
+                                    const bTime = b.lastMessage?.sentAt || b.lastMessageTime || b.createdAt || '';
+                                    return new Date(bTime) - new Date(aTime);
+                                });
+                            });
+
+                            // También actualizar unreadMessages
+                            if (!isOwnMessage && !isChatOpen) {
+                                console.log(`✅ [ASIGNADO-FALLBACK] Incrementando contador:`, {
+                                    conversationId: convId,
+                                    from: data.from
+                                });
+                                
+                                setUnreadMessages(prev => {
+                                    const prevCount = prev[convId] || 0;
+                                    const newCount = prevCount + 1;
+                                    console.log(`   Contador ASIGNADO ${convId}: ${prevCount} → ${newCount}`);
+                                    return {
+                                        ...prev,
+                                        [convId]: newCount
+                                    };
+                                });
+
+                                setFavoriteRooms(prev => {
+                                    const targetFav = prev.find(c => String(c.id) === String(convId));
+                                    if (!targetFav) return prev;
+                                    return prev.map(conv => {
+                                        if (String(conv.id) === String(convId)) {
+                                            return { ...conv, unreadCount: (conv.unreadCount || 0) + 1 };
+                                        }
+                                        return conv;
+                                    });
+                                });
+                            }
+                            
+                            processedMessagesRef.current.delete(messageKey);
+                        }, 300);
+                    };
+
+                    if (explicitConvId) {
+                        // Caso normal: el backend envió conversationId
+                        runDmFallback(explicitConvId);
+                    } else if (!data.isGroup && fromLower && toLower) {
+                        // 🔥 FIX: Buscar conversación por participantes
+                        setAssignedConversations(prev => {
+                            const found = prev.find(c => {
+                                const participants = (c.participants || []).map(p => p?.toLowerCase().trim());
+                                return participants.includes(fromLower) && participants.includes(toLower);
+                            });
+                            if (found) {
+                                console.log(`🔍 [DM-RESOLVE] Conversación encontrada por participantes: ${found.id} (${data.from} ↔ ${data.to})`);
+                                // Ejecutar el fallback con el ID encontrado (en el siguiente tick)
+                                setTimeout(() => runDmFallback(found.id), 0);
+                            }
+                            return prev; // No modificar
+                        });
+                    }
+                }
+
+                // 🔥 Sincronizar FAVORITOS para DMs: solo lastMessage (NO contador)
+                // El contador se maneja en assignedConversationUpdated o en el fallback
                 setFavoriteRooms(prev => {
-                    if (!data.conversationId) return prev;
+                    // 🔥 FIX: Buscar por conversationId o por participantes
+                    let favConvId = data.conversationId;
+                    if (!favConvId && !data.isGroup && data.from && data.to) {
+                        const fromL = data.from?.toLowerCase().trim();
+                        const toL = data.to?.toLowerCase().trim();
+                        const found = prev.find(c => {
+                            if (c.type !== 'conv') return false;
+                            const participants = (c.participants || []).map(p => p?.toLowerCase().trim());
+                            return participants.includes(fromL) && participants.includes(toL);
+                        });
+                        if (found) favConvId = found.id;
+                    }
+                    if (!favConvId) return prev;
 
-                    const targetFav = prev.find(c => String(c.id) === String(data.conversationId));
+                    const targetFav = prev.find(c => String(c.id) === String(favConvId));
                     if (!targetFav) return prev;
 
-                    console.log('⭐ [SYNC-FAV] Mensaje recibido para favorito (DM):', targetFav.name || targetFav.id);
-
-                    const shouldIncrement = !isOwnMessage && !isChatOpen;
-                    const newUnreadCount = shouldIncrement ? (targetFav.unreadCount || 0) + 1 : targetFav.unreadCount;
+                    console.log('⭐ [SYNC-FAV] Actualizando lastMessage para favorito (DM):', targetFav.name || targetFav.id);
 
                     const updated = prev.map(conv => {
-                        if (String(conv.id) === String(data.conversationId)) {
+                        if (String(conv.id) === String(favConvId)) {
                             return {
                                 ...conv,
                                 lastMessage: {
@@ -975,8 +1141,8 @@ export const useSocketListeners = (
                                     sentAt: data.sentAt || new Date().toISOString(),
                                     mediaType: data.mediaType,
                                     fileName: data.fileName
-                                },
-                                unreadCount: newUnreadCount
+                                }
+                                // 🔥 FIX: NO tocar unreadCount aquí - lo maneja assignedConversationUpdated o fallback
                             };
                         }
                         return conv;
@@ -1065,30 +1231,16 @@ export const useSocketListeners = (
             // Solo incrementar contador si NO estamos en esa sala
             const isCurrentRoom = data.roomCode === currentRoomCodeRef.current;
 
-            //  FIX: Si hay lastMessage, significa que llegó un mensaje nuevo
-            // Incrementar en 1 aunque el backend envíe count: 0
-            const incrementCount = data.lastMessage ? Math.max(data.count || 0, 1) : (data.count || 0);
-
             console.log('📬 unreadCountUpdate:', {
                 roomCode: data.roomCode,
                 isCurrentRoom,
                 hasLastMessage: !!data.lastMessage,
-                incrementCount
+                backendCount: data.count
             });
-            // NOTA: Ya no incrementamos contador aquí para favoritos porque roomMessage ya lo hace
-            // Esto evita duplicación del contador
-
-            // Sonido para todos (favoritos y no favoritos)
-            if (!isCurrentRoom && incrementCount > 0) {
-                // 🔥 NUEVO: Detectar si hay mención en el último mensaje
-                const lastMessageText = data.lastMessage?.text || '';
-                const currentUserFullName = currentUserFullNameRef.current || username;
-                const hasMention = hasMentionToCurrentUser(lastMessageText, currentUserFullName);
-                console.log('🔊 [UNREAD_COUNT] Reproduciendo sonido:', { hasMention, lastMessageText });
-                playMessageSound(soundsEnabledRef.current, hasMention);
-                // NOTA: Eliminamos notificaciones visuales (Toast/System) de aquí para evitar
-                // duplicidad con el evento 'message' que ya las muestra con más detalle.
-            }
+            
+            // 🔥 FIX: NO actualizar contador NI reproducir sonido aquí
+            // El evento 'message' ya maneja ambos correctamente
+            // Este listener solo actualiza lastMessage para el ordenamiento
 
             //  SIEMPRE actualizar lastMessage y reordenar (fuera del if anterior)
             if (data.lastMessage) {
@@ -1122,8 +1274,9 @@ export const useSocketListeners = (
                                         sentAt: newSentAt,
                                         mediaType: data.lastMessage.mediaType || null,
                                         fileName: data.lastMessage.fileName || null
-                                    },
-                                    unreadCount: incrementCount
+                                    }
+                                    // 🔥 FIX: NO actualizar unreadCount aquí
+                                    // El evento 'message' ya lo actualizó correctamente
                                 };
                             }
                             return f;
@@ -1198,6 +1351,16 @@ export const useSocketListeners = (
         s.on("assignedConversationUpdated", (data) => {
             console.log("💬 assignedConversationUpdated recibido:", data);
 
+            // 🔥 NUEVO: Limpiar marca de procesamiento para evitar que el fallback se ejecute
+            const messageKey = `${data.conversationId}-*`;
+            // Limpiar todas las marcas de este conversationId
+            for (const key of processedMessagesRef.current) {
+                if (key.startsWith(`${data.conversationId}-`)) {
+                    processedMessagesRef.current.delete(key);
+                    console.log(`🧹 Limpiando marca de fallback: ${key}`);
+                }
+            }
+
             // Verificar si es mensaje propio
             const currentFullName = currentUserFullNameRef.current;
             const isOwnMessage = data.lastMessageFrom === username || data.lastMessageFrom === currentFullName;
@@ -1244,8 +1407,13 @@ export const useSocketListeners = (
                     if (conv.id === data.conversationId) {
                         return {
                             ...conv,
-                            lastMessage: data.lastMessage,
-                            lastMessageTime: data.lastMessageTime,
+                            lastMessage: {
+                                text: data.lastMessage,
+                                sentAt: data.lastMessageTime, // 🔥 FIX: Usar estructura correcta
+                                from: data.lastMessageFrom,
+                                mediaType: data.lastMessageMediaType
+                            },
+                            lastMessageTime: data.lastMessageTime, // Mantener por compatibilidad
                             lastMessageFrom: data.lastMessageFrom,
                             lastMessageMediaType: data.lastMessageMediaType,
                             unreadCount: newUnreadCount
@@ -1256,8 +1424,8 @@ export const useSocketListeners = (
 
                 // Reordenar: más recientes primero
                 return updated.sort((a, b) => {
-                    const aTime = a.lastMessageTime || a.createdAt || '';
-                    const bTime = b.lastMessageTime || b.createdAt || '';
+                    const aTime = a.lastMessage?.sentAt || a.lastMessageTime || a.createdAt || '';
+                    const bTime = b.lastMessage?.sentAt || b.lastMessageTime || b.createdAt || '';
                     return new Date(bTime) - new Date(aTime);
                 });
             });

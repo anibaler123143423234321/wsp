@@ -70,6 +70,19 @@ export const useSocket = (isAuthenticated, username, user) => {
           isConnecting.current = false;
           console.log("✅ Socket conectado:", socket.current.id);
 
+          // 🔍 DEBUG: Interceptar TODAS las emisiones de socket para diagnosticar
+          const originalEmit = socket.current.emit.bind(socket.current);
+          socket.current.emit = function(...args) {
+            const eventName = args[0];
+            if (eventName !== 'ping' && eventName !== 'pong') {
+              console.log(`🔍 [SOCKET-EMIT] ${eventName}`, args.length > 1 ? args[1] : '');
+              if (eventName.toLowerCase().includes('read') || eventName.toLowerCase().includes('mark')) {
+                console.trace(`🚨 [SOCKET-EMIT-TRACE] ${eventName} emitido desde:`);
+              }
+            }
+            return originalEmit(...args);
+          };
+
           const displayName =
             user.nombre && user.apellido
               ? `${user.nombre} ${user.apellido}`

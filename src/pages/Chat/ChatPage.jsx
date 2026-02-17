@@ -131,18 +131,73 @@ const ChatPage = () => {
     }
   );
 
+  // 🔥 FIX: Restaurar contadores desde localStorage al iniciar (antes de que el backend los corrompa)
+  const hasRestoredFromLocalStorage = useRef(false);
+  useEffect(() => {
+    if (!username || hasRestoredFromLocalStorage.current) return;
+    hasRestoredFromLocalStorage.current = true;
+    try {
+      const saved = localStorage.getItem(`unreadCounts_${username}`);
+      if (saved) {
+        const savedCounts = JSON.parse(saved);
+        console.log('💾 [RESTORE] Contadores restaurados desde localStorage:', savedCounts);
+        chatState.setUnreadMessages(prev => {
+          const merged = { ...prev };
+          for (const key of Object.keys(savedCounts)) {
+            if ((savedCounts[key] || 0) > (merged[key] || 0)) {
+              merged[key] = savedCounts[key];
+            }
+          }
+          return merged;
+        });
+      }
+    } catch (e) {
+      console.error('Error restaurando contadores desde localStorage:', e);
+    }
+  }, [username]);
+
+  // 🔥 FIX: Persistir contadores en localStorage cada vez que cambien
+  useEffect(() => {
+    if (!username) return;
+    // Solo guardar si hay datos (evitar guardar {} vacío al inicio)
+    const keys = Object.keys(chatState.unreadMessages);
+    if (keys.length > 0) {
+      try {
+        localStorage.setItem(`unreadCounts_${username}`, JSON.stringify(chatState.unreadMessages));
+      } catch (e) {
+        // Silenciar errores de localStorage
+      }
+    }
+  }, [chatState.unreadMessages, username]);
+
   useEffect(() => {
     const fetchUnreadCounts = async () => {
       if (!username) return;
       try {
         // 1. Obtener conteos de mensajes no leídos globales
         const counts = await apiService.getUnreadCounts();
-        //console.log("🔢 Unread counts response:", counts); //  DEBUG REQUESTED BY USER
 
-        // 2. Si tienes una estructura específica, adáptala aquí.
-        // Suponiendo que 'counts' es un objeto { "roomCode": 5, "userId": 2 }
+        // 2. MERGE con el estado actual en lugar de reemplazar
+        // Esto preserva los contadores incrementados por socket en tiempo real
+        // y los contadores guardados en localStorage (que son los reales antes del F5)
         if (counts) {
-          chatState.setUnreadMessages(counts);
+          chatState.setUnreadMessages(prev => {
+            const merged = { ...counts };
+            // Preservar contadores locales que sean MAYORES que los del backend
+            for (const key of Object.keys(prev)) {
+              if (prev[key] > (merged[key] || 0)) {
+                merged[key] = prev[key];
+              }
+            }
+            // Limpiar keys con valor 0 que el backend no devuelve
+            // (si el backend dice 0 y local dice 0, no necesitamos la key)
+            for (const key of Object.keys(merged)) {
+              if (merged[key] === 0) {
+                delete merged[key];
+              }
+            }
+            return merged;
+          });
         }
       } catch (error) {
         console.error("Error cargando mensajes no leídos:", error);
@@ -336,7 +391,6 @@ const ChatPage = () => {
         return;
       }
 
-      console.log('📤 Emitiendo markRoomMessagesAsRead:', { roomCode, username });
       socket.emit('markRoomMessagesAsRead', {
         roomCode,
         username,
@@ -393,11 +447,32 @@ const ChatPage = () => {
       if (lastMarkedChatRef.current !== roomKey) {
         lastMarkedChatRef.current = roomKey;
 
-        // 🔥 FIX: SIEMPRE marcar como leído cuando entramos a un grupo con mensajes
-        // El backend se encargará de verificar si realmente hay mensajes no leídos
-        // Esto evita el problema de race condition con getUnreadCounts()
         console.log(`📝 Marcando grupo como leído: ${chatState.currentRoomCode}`);
         markRoomMessagesAsRead(chatState.currentRoomCode);
+
+        // 🔥 FIX: Resetear contador local inmediatamente (no esperar al backend)
+        chatState.setUnreadMessages(prev => ({ ...prev, [chatState.currentRoomCode]: 0 }));
+
+        // También resetear en myActiveRooms y favoriteRooms
+        chatState.setMyActiveRooms(prev => prev.map(room =>
+          room.roomCode === chatState.currentRoomCode
+            ? { ...room, unreadCount: 0 }
+            : room
+        ));
+        chatState.setFavoriteRooms(prev => prev.map(f =>
+          (f.type === 'room' && f.roomCode === chatState.currentRoomCode)
+            ? { ...f, unreadCount: 0 }
+            : f
+        ));
+
+        // Limpiar pendingMentions para este grupo
+        if (chatState.pendingMentions[chatState.currentRoomCode]) {
+          chatState.setPendingMentions(prev => {
+            const updated = { ...prev };
+            delete updated[chatState.currentRoomCode];
+            return updated;
+          });
+        }
       }
     }
 
@@ -671,9 +746,26 @@ const ChatPage = () => {
     // Establecer nuevo estado
     chatState.setTo(group.name);
     chatState.setIsGroup(true);
-    chatState.setCurrentRoomCode(group.roomCode); // ✅ CORREGIDO: Establecer el roomCode de la nueva sala
-    chatState.currentRoomCodeRef.current = group.roomCode; // ✅ CORREGIDO: Actualizar la ref también
-    setSelectedRoomData(group); //  Guardar datos completos de la sala (incluyendo imagen de favoritos)
+    chatState.setCurrentRoomCode(group.roomCode);
+    chatState.currentRoomCodeRef.current = group.roomCode;
+    setSelectedRoomData(group);
+
+    // 🔥 FIX: Resetear contador inmediatamente al entrar al grupo
+    chatState.setUnreadMessages(prev => ({ ...prev, [group.roomCode]: 0 }));
+    chatState.setMyActiveRooms(prev => prev.map(room =>
+      room.roomCode === group.roomCode ? { ...room, unreadCount: 0 } : room
+    ));
+    chatState.setFavoriteRooms(prev => prev.map(f =>
+      (f.type === 'room' && f.roomCode === group.roomCode) ? { ...f, unreadCount: 0 } : f
+    ));
+    // Limpiar pendingMentions
+    if (chatState.pendingMentions[group.roomCode]) {
+      chatState.setPendingMentions(prev => {
+        const updated = { ...prev };
+        delete updated[group.roomCode];
+        return updated;
+      });
+    }
 
     //  NUEVO: Cargar usuarios de la sala desde la API (con displayName, role, email, etc.)
     try {
