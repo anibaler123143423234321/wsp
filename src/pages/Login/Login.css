@@ -397,61 +397,54 @@
 }
 
 /* ========================================
-   DARK MODE OVERRIDES
+   DARK MODE OVERRIDES - FORZADO A LIGHT (Pedido usuario)
    ======================================== */
 .dark .login-card {
-  background: #1f2937;
-  /* gray-800 */
+  background: white;
+  /* Mantener blanco */
 }
 
-.dark .welcome-title {
-  color: #f3f4f6;
-  /* gray-100 */
+/* 🔥 FIX: Aumentar especificidad y usar body.dark */
+body.dark .login-card .welcome-title {
+  color: #1a1a1a !important;
 }
 
-.dark .welcome-subtitle {
-  color: #9ca3af;
-  /* gray-400 */
+body.dark .login-card .welcome-subtitle {
+  color: #4b5563 !important;
+  /* gray-600 */
 }
 
 .dark .login-card input {
-  background-color: #374151 !important;
-  /* gray-700 */
-  color: #f9fafb !important;
-  /* gray-50 */
-  border-color: #4b5563 !important;
-  /* gray-600 */
+  background-color: #f9fafb !important;
+  color: #1a1a1a !important;
+  border: 1.5px solid #e5e7eb !important;
 }
 
 .dark .login-card input::placeholder {
   color: #9ca3af !important;
-  /* gray-400 */
 }
 
 .dark .login-card input:focus {
-  background-color: #374151 !important;
-  border-color: #ef4444 !important;
-  /* red-500 */
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+  background-color: white !important;
+  border-color: #c62d42 !important;
+  box-shadow: 0 0 0 3px rgba(198, 45, 66, 0.1) !important;
 }
 
 .dark .sede-toggle {
-  background: #374151;
-  /* gray-700 */
+  background: #f3f4f6;
 }
 
 .dark .sede-toggle-option {
-  color: #9ca3af;
-  /* gray-400 */
+  color: #6b7280;
 }
 
 .dark .sede-toggle-option.active {
-  color: #ffffff;
+  color: white;
 }
 
 .dark .login-card label {
-  color: #e5e7eb;
-  /* gray-200 */
+  color: #1f2937;
+  /* Forzar oscuro */
 }
 
 .dark .forgot-password a {
@@ -459,6 +452,16 @@
 }
 
 .dark .forgot-password a:hover {
-  color: #ef4444;
-  /* red-500 */
+  color: #c62d42;
+}
+
+/* 🔥 OVERRIDE NUCLEAR: Forzar color negro pase lo que pase */
+.force-light-text {
+  color: #000000 !important;
+  fill: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 100 !important;
+  position: relative !important;
 }

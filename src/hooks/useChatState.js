@@ -70,6 +70,21 @@ export const useChatState = () => {
         const saved = localStorage.getItem('soundsEnabled');
         return saved === 'true';
     });
+    // 🔥 NUEVO: Estado global para silenciar TODAS las alertas (sonidos y notificaciones)
+    const [areAlertsEnabled, setAreAlertsEnabled] = useState(() => {
+        const saved = localStorage.getItem('areAlertsEnabled');
+        // Por defecto TRUE (alertas activadas)
+        return saved !== 'false';
+    });
+    // 🔥 NUEVO: Estados granulares (Hilos vs Mensajes)
+    const [areThreadAlertsEnabled, setAreThreadAlertsEnabled] = useState(() => {
+        const saved = localStorage.getItem('areThreadAlertsEnabled');
+        return saved !== 'false';
+    });
+    const [areMessageAlertsEnabled, setAreMessageAlertsEnabled] = useState(() => {
+        const saved = localStorage.getItem('areMessageAlertsEnabled');
+        return saved !== 'false';
+    });
     const [pendingMentions, setPendingMentions] = useState({});
     const [pendingThreads, setPendingThreads] = useState({}); // 🔥 NUEVO: Rastrea salas con hilos no leídos
     const [typingUser, setTypingUser] = useState(null);
@@ -220,6 +235,12 @@ export const useChatState = () => {
         setSocketConnected,
         soundsEnabled,
         setSoundsEnabled,
+        areAlertsEnabled,
+        setAreAlertsEnabled,
+        areThreadAlertsEnabled,
+        setAreThreadAlertsEnabled,
+        areMessageAlertsEnabled,
+        setAreMessageAlertsEnabled,
         pendingMentions,
         setPendingMentions,
         pendingThreads,

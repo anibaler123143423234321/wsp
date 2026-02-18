@@ -7,8 +7,14 @@ const SettingsPanel = ({
   user,
   isSoundEnabled,   // Nueva prop
   onSoundToggle,    // Nueva prop
-  onTestSound,      // 🔥 Nueva prop: Función para probar sonido mención
-  onTestNormalSound // 🔥 Nueva prop: Función para probar sonido normal
+  onTestSound,      //  Nueva prop: Función para probar sonido mención
+  onTestNormalSound,//  Nueva prop: Función para probar sonido normal
+  areAlertsEnabled, //  Nueva prop: Estado global de alertas
+  onAlertsToggle,    //  Nueva prop: Función para alternar alertas
+  areThreadAlertsEnabled, // 🔥 NUEVO
+  onThreadAlertsToggle,   // 🔥 NUEVO
+  areMessageAlertsEnabled,// 🔥 NUEVO
+  onMessageAlertsToggle   // 🔥 NUEVO
 }) => {
   if (!isOpen) return null;
 
@@ -70,11 +76,53 @@ const SettingsPanel = ({
               </div>
 
               <div className="settings-toggle-item">
+                <span className="settings-toggle-label">Silenciar todas las alertas</span>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={!areAlertsEnabled}
+                    onChange={onAlertsToggle}
+                  />
+                  <span className="slider round"></span>
+                </label>
+              </div>
+
+              {/* 🔥 NUEVO: Controles Granulares (Solo si alertas globales están activadas) */}
+              {areAlertsEnabled && (
+                <div style={{ paddingLeft: '10px', borderLeft: '2px solid #333', marginBottom: '10px' }}>
+                  <div className="settings-toggle-item">
+                    <span className="settings-toggle-label">Alertas de Mensajes</span>
+                    <label className="toggle-switch">
+                      <input
+                        type="checkbox"
+                        checked={areMessageAlertsEnabled}
+                        onChange={onMessageAlertsToggle}
+                      />
+                      <span className="slider round"></span>
+                    </label>
+                  </div>
+
+                  <div className="settings-toggle-item">
+                    <span className="settings-toggle-label">Alertas de Hilos</span>
+                    <label className="toggle-switch">
+                      <input
+                        type="checkbox"
+                        checked={areThreadAlertsEnabled}
+                        onChange={onThreadAlertsToggle}
+                      />
+                      <span className="slider round"></span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              <div className="settings-toggle-item">
                 <span className="settings-toggle-label">Sonido de notificaciones</span>
                 <label className="toggle-switch">
                   <input
                     type="checkbox"
-                    checked={isSoundEnabled}
+                    checked={areAlertsEnabled && isSoundEnabled}
+                    disabled={!areAlertsEnabled}
                     onChange={onSoundToggle}
                   />
                   <span className="slider round"></span>

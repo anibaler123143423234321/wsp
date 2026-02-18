@@ -43,6 +43,17 @@ const ChatPage = () => {
     refreshAuth,
   } = useAuth();
 
+  // 🔥 NUEVO: Inicializar tema desde localStorage (Persistencia de Modo Oscuro)
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
+
+    // Aplicar clase 'dark' al elemento raíz html
+    document.documentElement.classList.toggle('dark', isDark);
+    console.log('🎨 Tema inicializado:', isDark ? 'Modo Oscuro' : 'Modo Claro');
+  }, []); // Se ejecuta solo al montar
+
   const socket = useSocket(isAuthenticated, username, user);
 
   // 1.  NUEVO ESTADO: Guardar el objeto del mensaje fijado
@@ -610,7 +621,16 @@ const ChatPage = () => {
       loadMyActiveRooms: roomManagement.loadMyActiveRooms,
       clearMessages
     },
-    { user, username, isAdmin, soundsEnabled: chatState.soundsEnabled, favoriteRoomCodes: chatState.favoriteRoomCodes } //  Pasar soundsEnabled y favoritos
+    {
+      user,
+      username,
+      isAdmin,
+      soundsEnabled: chatState.soundsEnabled,
+      favoriteRoomCodes: chatState.favoriteRoomCodes,
+      areAlertsEnabled: chatState.areAlertsEnabled,
+      areThreadAlertsEnabled: chatState.areThreadAlertsEnabled, // 🔥 NUEVO
+      areMessageAlertsEnabled: chatState.areMessageAlertsEnabled // 🔥 NUEVO
+    }
   );
 
   const handleUserSelect = async (
@@ -1889,6 +1909,32 @@ const ChatPage = () => {
     localStorage.setItem('soundsEnabled', String(newValue));
   }, [chatState.soundsEnabled, chatState]);
 
+  // 🔥 NUEVO: Toggle para silenciar TODAS las alertas
+  const handleAlertsToggle = useCallback(() => {
+    // Si areAlertsEnabled es true, el usuario quiere DESACTIVARLAS (silenciar)
+    // Si areAlertsEnabled es false (silenciado), quiere ACTIVARLAS
+    const newValue = !chatState.areAlertsEnabled;
+    chatState.setAreAlertsEnabled(newValue);
+    localStorage.setItem('areAlertsEnabled', String(newValue));
+    console.log('🔔 Alertas globales cambiadas a:', newValue ? 'ACTIVADAS' : 'DESACTIVADAS');
+  }, [chatState.areAlertsEnabled, chatState]);
+
+  // 🔥 NUEVO: Toggle para alertas de hilos
+  const handleThreadAlertsToggle = useCallback(() => {
+    const newValue = !chatState.areThreadAlertsEnabled;
+    chatState.setAreThreadAlertsEnabled(newValue);
+    localStorage.setItem('areThreadAlertsEnabled', String(newValue));
+    console.log('🧵 Alertas de hilos:', newValue ? 'ACTIVADAS' : 'DESACTIVADAS');
+  }, [chatState.areThreadAlertsEnabled, chatState]);
+
+  // 🔥 NUEVO: Toggle para alertas de mensajes
+  const handleMessageAlertsToggle = useCallback(() => {
+    const newValue = !chatState.areMessageAlertsEnabled;
+    chatState.setAreMessageAlertsEnabled(newValue);
+    localStorage.setItem('areMessageAlertsEnabled', String(newValue));
+    console.log('💬 Alertas de mensajes:', newValue ? 'ACTIVADAS' : 'DESACTIVADAS');
+  }, [chatState.areMessageAlertsEnabled, chatState]);
+
   // 🔥 NUEVO: Función para probar sonido desde ajustes
   const handleTestSound = useCallback(() => {
     console.log('🔊 Probando sonido de mención...');
@@ -2361,6 +2407,12 @@ const ChatPage = () => {
         onSoundToggle={handleSoundToggle}
         onTestSound={handleTestSound} // 🔥 Pasamos la función de prueba
         onTestNormalSound={handleTestNormalSound} // 🔥 Pasamos la función de prueba de sonido normal
+        areAlertsEnabled={chatState.areAlertsEnabled}
+        onAlertsToggle={handleAlertsToggle}
+        areThreadAlertsEnabled={chatState.areThreadAlertsEnabled}
+        onThreadAlertsToggle={handleThreadAlertsToggle}
+        areMessageAlertsEnabled={chatState.areMessageAlertsEnabled}
+        onMessageAlertsToggle={handleMessageAlertsToggle}
       />
     </>
   );

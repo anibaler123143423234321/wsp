@@ -87,10 +87,11 @@ export const useSocketListeners = (
         loadAssignedConversations, loadMyActiveRooms, clearMessages
     } = messageFunctions;
 
-    const { username, user, soundsEnabled, favoriteRoomCodes = [] } = authData;
+    const { username, user, soundsEnabled, favoriteRoomCodes = [], areAlertsEnabled = true } = authData;
 
     //  CRÍTICO: Usar ref para tener siempre el valor actualizado
     const soundsEnabledRef = useRef(soundsEnabled);
+    const areAlertsEnabledRef = useRef(areAlertsEnabled); // 🔥 NUEVO Ref para alertas globales
     const myActiveRoomsRef = useRef(myActiveRooms || []); //  Nuevo Ref
     const favoriteRoomCodesRef = useRef(favoriteRoomCodes); //  Ref para favoritos
     const lastThreadUpdateRef = useRef({}); // Para deduplicación de eventos de hilo
@@ -101,10 +102,25 @@ export const useSocketListeners = (
         soundsEnabledRef.current = soundsEnabled;
     }, [soundsEnabled]);
 
+    // 🔥 NUEVO: Actualizar ref cuando cambie areAlertsEnabled
+    useEffect(() => {
+        console.log('🔄 useSocketListeners: areAlertsEnabled actualizado a:', areAlertsEnabled);
+        areAlertsEnabledRef.current = areAlertsEnabled;
+    }, [areAlertsEnabled]);
+
     // 🔥 NUEVO: Mantener sincronizado el ref de favoritos
     useEffect(() => {
         favoriteRoomCodesRef.current = favoriteRoomCodes;
     }, [favoriteRoomCodes]);
+
+    // 🔥 NUEVO: Refs para alertas granulares
+    const areThreadAlertsEnabledRef = useRef(authData.areThreadAlertsEnabled);
+    const areMessageAlertsEnabledRef = useRef(authData.areMessageAlertsEnabled);
+
+    useEffect(() => {
+        areThreadAlertsEnabledRef.current = authData.areThreadAlertsEnabled;
+        areMessageAlertsEnabledRef.current = authData.areMessageAlertsEnabled;
+    }, [authData.areThreadAlertsEnabled, authData.areMessageAlertsEnabled]);
 
     // 🔥 SYNC: Mantener myActiveRoomsRef sincronizado con el estado
     useEffect(() => {
@@ -521,68 +537,71 @@ export const useSocketListeners = (
                         const notificationTitle = `Hilo en ${roomName}`;
                         const notificationBody = `${data.lastReplyFrom}: ${data.lastReplyText}`;
 
-                        if (systemNotifications.canShow()) {
-                            systemNotifications.show(
-                                notificationTitle,
-                                notificationBody,
-                                { tag: `thread-${data.messageId}`, silent: !soundsEnabledRef.current },
-                                () => {
-                                    // 🔥 FIX: Si no hay roomCode (es DM/Asignado), navegar por usuario
-                                    if (data.roomCode) {
-                                        window.dispatchEvent(new CustomEvent("navigateToRoom", {
-                                            detail: { roomCode: data.roomCode, messageId: data.messageId, isThread: true }
-                                        }));
-                                    } else {
-                                        // Navegación para chats directos/asignados
-                                        const targetUser = data.from === username ? data.to : data.from;
-                                        window.dispatchEvent(new CustomEvent("navigateToChat", {
-                                            detail: { to: targetUser, messageId: data.messageId }
-                                        }));
+                        // 🔥 CHECK: Alertas Globales AND Alertas de Hilos
+                        if (areAlertsEnabledRef.current && areThreadAlertsEnabledRef.current) {
+                            if (systemNotifications.canShow()) {
+                                systemNotifications.show(
+                                    notificationTitle,
+                                    notificationBody,
+                                    { tag: `thread-${data.messageId}`, silent: !soundsEnabledRef.current },
+                                    () => {
+                                        // 🔥 FIX: Si no hay roomCode (es DM/Asignado), navegar por usuario
+                                        if (data.roomCode) {
+                                            window.dispatchEvent(new CustomEvent("navigateToRoom", {
+                                                detail: { roomCode: data.roomCode, messageId: data.messageId, isThread: true }
+                                            }));
+                                        } else {
+                                            // Navegación para chats directos/asignados
+                                            const targetUser = data.from === username ? data.to : data.from;
+                                            window.dispatchEvent(new CustomEvent("navigateToChat", {
+                                                detail: { to: targetUser, messageId: data.messageId }
+                                            }));
+                                        }
                                     }
-                                }
-                            );
-                        } else {
-                            // Toast fallback
-                            Swal.fire({
-                                toast: true,
-                                position: "top-end",
-                                icon: "info",
-                                title: notificationTitle,
-                                html: `
+                                );
+                            } else {
+                                // Toast fallback
+                                Swal.fire({
+                                    toast: true,
+                                    position: "top-end",
+                                    icon: "info",
+                                    title: notificationTitle,
+                                    html: `
                                 <div class="toast-content">
                                     <div class="toast-sender">${data.lastReplyFrom}</div>
                                     <div class="toast-message">${(data.lastReplyText || '').substring(0, 80)}</div>
                                 </div>
                             `,
-                                showConfirmButton: true,
-                                confirmButtonText: "Ver Hilo",
-                                showCloseButton: true,
-                                timer: 6000,
-                                customClass: {
-                                    popup: 'modern-toast',
-                                    title: 'modern-toast-title',
-                                    htmlContainer: 'modern-toast-html',
-                                    confirmButton: 'modern-toast-btn',
-                                    icon: 'modern-toast-icon',
-                                    closeButton: 'modern-toast-close'
-                                }
-                            }).then((result) => {
-                                if (result.isConfirmed) {
-                                    // 🔥 FIX: Si no hay roomCode (es DM/Asignado), navegar por usuario
-                                    if (data.roomCode) {
-                                        window.dispatchEvent(new CustomEvent("navigateToRoom", {
-                                            detail: { roomCode: data.roomCode, messageId: data.messageId, isThread: true }
-                                        }));
-                                    } else {
-                                        // Navegación para chats directos/asignados (usando remitente)
-                                        // Si yo envié la respuesta, el destino es 'to', si me respondieron, es 'from'
-                                        const targetUser = data.from === username ? data.to : data.from;
-                                        window.dispatchEvent(new CustomEvent("navigateToChat", {
-                                            detail: { to: targetUser, messageId: data.messageId }
-                                        }));
+                                    showConfirmButton: true,
+                                    confirmButtonText: "Ver Hilo",
+                                    showCloseButton: true,
+                                    timer: 6000,
+                                    customClass: {
+                                        popup: 'modern-toast',
+                                        title: 'modern-toast-title',
+                                        htmlContainer: 'modern-toast-html',
+                                        confirmButton: 'modern-toast-btn',
+                                        icon: 'modern-toast-icon',
+                                        closeButton: 'modern-toast-close'
                                     }
-                                }
-                            });
+                                }).then((result) => {
+                                    if (result.isConfirmed) {
+                                        // 🔥 FIX: Si no hay roomCode (es DM/Asignado), navegar por usuario
+                                        if (data.roomCode) {
+                                            window.dispatchEvent(new CustomEvent("navigateToRoom", {
+                                                detail: { roomCode: data.roomCode, messageId: data.messageId, isThread: true }
+                                            }));
+                                        } else {
+                                            // Navegación para chats directos/asignados (usando remitente)
+                                            // Si yo envié la respuesta, el destino es 'to', si me respondieron, es 'from'
+                                            const targetUser = data.from === username ? data.to : data.from;
+                                            window.dispatchEvent(new CustomEvent("navigateToChat", {
+                                                detail: { to: targetUser, messageId: data.messageId }
+                                            }));
+                                        }
+                                    }
+                                });
+                            }
                         }
                     }
                 }
@@ -769,7 +788,7 @@ export const useSocketListeners = (
                         from: data.from,
                         timestamp: new Date().toISOString()
                     });
-                    
+
                     setUnreadMessages(prev => {
                         const prevCount = prev[data.roomCode] || 0;
                         const newCount = prevCount + 1;
@@ -885,60 +904,68 @@ export const useSocketListeners = (
                         const currentUserFullName = currentUserFullNameRef.current || username;
                         const hasMention = hasMentionToCurrentUser(messageText, currentUserFullName);
                         console.log('🔊 [GRUPO] Reproduciendo sonido:', { hasMention, messageText });
-                        playMessageSound(soundsEnabledRef.current, hasMention);
+                        // 🔥 CHECK: Solo reproducir si las alertas globales están activadas
+                        if (areAlertsEnabledRef.current) {
+                            playMessageSound(soundsEnabledRef.current, hasMention);
+                        } else {
+                            console.log('🔇 Sonido grupo silenciado por "Silenciar todas las alertas"');
+                        }
 
                         // 🔥 LÓGICA DE NOTIFICACIÓN MEJORADA:
                         // Si la pestaña está oculta, mostrar notificación de sistema.
                         // Si la pestaña está visible, mostrar SweetAlert (independientemente del foco).
-                        if (systemNotifications.canShow()) {
-                            systemNotifications.show(
-                                hasMention ? `🔴 Te mencionaron en ${data.roomName || data.roomCode}` : `Nuevo mensaje en ${data.roomName || data.roomCode}`,
-                                hasMention ? `${data.from} te mencionó: ${messageText}` : `${data.from}: ${messageText}`,
-                                { tag: `room-${data.roomCode}`, silent: !soundsEnabledRef.current },
-                                () => {
-                                    const realId = getRealMessageId(data.id);
-                                    const messageId = realId || (data.id?.toString().startsWith('temp_') ? null : data.id);
-                                    window.dispatchEvent(new CustomEvent("navigateToRoom", {
-                                        detail: { roomCode: data.roomCode, messageId }
-                                    }));
-                                }
-                            );
-                        } else {
-                            // Si no podemos mostrar notificación de sistema (pestaña visible),
-                            // mostramos el SweetAlert Toast siempre (antes requería focus)
-                            console.log('🚀 [ALERT TRIGGER] Llamando a Swal.fire (GRUPO)');
-                            Swal.fire({
-                                toast: true,
-                                position: "top-end",
-                                icon: hasMention ? "warning" : "info", // Icono distinto para mención
-                                title: hasMention ? `🔴 Te mencionaron en ${data.roomName || data.roomCode}` : `Mensaje en ${data.roomName || data.roomCode}`,
-                                html: `
+                        // 🔥 CHECK: Alertas Globales AND Alertas de Mensajes
+                        if (areAlertsEnabledRef.current && areMessageAlertsEnabledRef.current) {
+                            if (systemNotifications.canShow()) {
+                                systemNotifications.show(
+                                    hasMention ? `🔴 Te mencionaron en ${data.roomName || data.roomCode}` : `Nuevo mensaje en ${data.roomName || data.roomCode}`,
+                                    hasMention ? `${data.from} te mencionó: ${messageText}` : `${data.from}: ${messageText}`,
+                                    { tag: `room-${data.roomCode}`, silent: !soundsEnabledRef.current },
+                                    () => {
+                                        const realId = getRealMessageId(data.id);
+                                        const messageId = realId || (data.id?.toString().startsWith('temp_') ? null : data.id);
+                                        window.dispatchEvent(new CustomEvent("navigateToRoom", {
+                                            detail: { roomCode: data.roomCode, messageId }
+                                        }));
+                                    }
+                                );
+                            } else {
+                                // Si no podemos mostrar notificación de sistema (pestaña visible),
+                                // mostramos el SweetAlert Toast siempre (antes requería focus)
+                                console.log('🚀 [ALERT TRIGGER] Llamando a Swal.fire (GRUPO)');
+                                Swal.fire({
+                                    toast: true,
+                                    position: "top-end",
+                                    icon: hasMention ? "warning" : "info", // Icono distinto para mención
+                                    title: hasMention ? `🔴 Te mencionaron en ${data.roomName || data.roomCode}` : `Mensaje en ${data.roomName || data.roomCode}`,
+                                    html: `
                                 <div class="toast-content">
                                     <div class="toast-sender">${data.from}</div>
                                     <div class="toast-message">${messageText.substring(0, 80)}${messageText.length > 80 ? "..." : ""}</div>
                                 </div>
                             `,
-                                showConfirmButton: true,
-                                confirmButtonText: "Ver",
-                                showCloseButton: true,
-                                timer: hasMention ? 10000 : 6000, // Más tiempo para menciones
-                                customClass: {
-                                    popup: 'modern-toast',
-                                    title: 'modern-toast-title',
-                                    htmlContainer: 'modern-toast-html',
-                                    confirmButton: 'modern-toast-btn',
-                                    icon: 'modern-toast-icon',
-                                    closeButton: 'modern-toast-close'
-                                }
-                            }).then((result) => {
-                                if (result.isConfirmed) {
-                                    const realId = getRealMessageId(data.id);
-                                    const messageId = realId || (data.id?.toString().startsWith('temp_') ? null : data.id);
-                                    window.dispatchEvent(new CustomEvent("navigateToRoom", {
-                                        detail: { roomCode: data.roomCode, messageId }
-                                    }));
-                                }
-                            });
+                                    showConfirmButton: true,
+                                    confirmButtonText: "Ver",
+                                    showCloseButton: true,
+                                    timer: hasMention ? 10000 : 6000, // Más tiempo para menciones
+                                    customClass: {
+                                        popup: 'modern-toast',
+                                        title: 'modern-toast-title',
+                                        htmlContainer: 'modern-toast-html',
+                                        confirmButton: 'modern-toast-btn',
+                                        icon: 'modern-toast-icon',
+                                        closeButton: 'modern-toast-close'
+                                    }
+                                }).then((result) => {
+                                    if (result.isConfirmed) {
+                                        const realId = getRealMessageId(data.id);
+                                        const messageId = realId || (data.id?.toString().startsWith('temp_') ? null : data.id);
+                                        window.dispatchEvent(new CustomEvent("navigateToRoom", {
+                                            detail: { roomCode: data.roomCode, messageId }
+                                        }));
+                                    }
+                                });
+                            }
                         }
                     }
                 }
@@ -978,7 +1005,7 @@ export const useSocketListeners = (
                 //  🔥 ACTUALIZAR assignedConversations como FALLBACK
                 // El evento 'assignedConversationUpdated' del backend debería encargarse de esto,
                 // pero si no llega en 300ms, actualizamos aquí para evitar que el chat no suba
-                
+
                 // 🔥 FIX: Si no hay conversationId, buscar la conversación por participantes
                 {
                     const explicitConvId = data.conversationId;
@@ -988,21 +1015,21 @@ export const useSocketListeners = (
                     // Función para resolver el conversationId y ejecutar el fallback
                     const runDmFallback = (convId) => {
                         if (!convId) return;
-                        
+
                         const messageKey = `${convId}-${data.id}`;
-                        
+
                         // Marcar como procesado por 'message'
                         processedMessagesRef.current.add(messageKey);
-                        
+
                         // Esperar 300ms para ver si llega assignedConversationUpdated
                         setTimeout(() => {
                             if (!processedMessagesRef.current.has(messageKey)) {
                                 console.log(`⏭️ [FALLBACK] assignedConversationUpdated SÍ llegó, ignorando fallback`);
                                 return;
                             }
-                            
+
                             console.log(`🔄 [FALLBACK] assignedConversationUpdated NO llegó, usando fallback para ${convId}`);
-                            
+
                             setAssignedConversations(prev => {
                                 const targetConv = prev.find(c => c.id === convId);
                                 if (!targetConv) return prev;
@@ -1061,7 +1088,7 @@ export const useSocketListeners = (
                                     conversationId: convId,
                                     from: data.from
                                 });
-                                
+
                                 setUnreadMessages(prev => {
                                     const prevCount = prev[convId] || 0;
                                     const newCount = prevCount + 1;
@@ -1083,7 +1110,7 @@ export const useSocketListeners = (
                                     });
                                 });
                             }
-                            
+
                             processedMessagesRef.current.delete(messageKey);
                         }, 300);
                     };
@@ -1170,52 +1197,60 @@ export const useSocketListeners = (
                     // 🔥 NUEVO: Detectar si hay mención al usuario actual
                     const hasMention = hasMentionToCurrentUser(messageText, currentFullName || username);
                     console.log('🔊 [DIRECTO] Reproduciendo sonido:', { hasMention, messageText });
-                    playMessageSound(soundsEnabledRef.current, hasMention);
+                    // 🔥 CHECK: Solo reproducir si las alertas globales están activadas
+                    if (areAlertsEnabledRef.current) {
+                        playMessageSound(soundsEnabledRef.current, hasMention);
+                    } else {
+                        console.log('🔇 Sonido mención silenciado por "Silenciar todas las alertas"');
+                    }
 
                     // 🔥 LÓGICA DE NOTIFICACIÓN MEJORADA (DM):
-                    if (systemNotifications.canShow()) {
-                        systemNotifications.show(
-                            hasMention ? `🔴 ${data.from} te mencionó` : `Nuevo mensaje de ${data.from}`,
-                            messageText,
-                            { tag: `chat-${data.from}`, silent: !soundsEnabledRef.current },
-                            () => {
-                                window.dispatchEvent(new CustomEvent("navigateToChat", {
-                                    detail: { to: data.from, messageId: data.id }
-                                }));
-                            }
-                        );
-                    } else {
-                        // Si pestaña es visible, mostrar toast siempre
-                        console.log('🚀 [ALERT TRIGGER] Llamando a Swal.fire (DM)');
-                        Swal.fire({
-                            toast: true,
-                            position: "top-end",
-                            icon: hasMention ? "warning" : "info",
-                            title: hasMention ? `🔴 ${data.from} te mencionó` : `Mensaje de ${data.from}`,
-                            html: `
+                    // 🔥 CHECK: Alertas Globales AND Alertas de Mensajes
+                    if (areAlertsEnabledRef.current && areMessageAlertsEnabledRef.current) {
+                        if (systemNotifications.canShow()) {
+                            systemNotifications.show(
+                                hasMention ? `🔴 ${data.from} te mencionó` : `Nuevo mensaje de ${data.from}`,
+                                messageText,
+                                { tag: `chat-${data.from}`, silent: !soundsEnabledRef.current },
+                                () => {
+                                    window.dispatchEvent(new CustomEvent("navigateToChat", {
+                                        detail: { to: data.from, messageId: data.id }
+                                    }));
+                                }
+                            );
+                        } else {
+                            // Si pestaña es visible, mostrar toast siempre
+                            console.log('🚀 [ALERT TRIGGER] Llamando a Swal.fire (DM)');
+                            Swal.fire({
+                                toast: true,
+                                position: "top-end",
+                                icon: hasMention ? "warning" : "info",
+                                title: hasMention ? `🔴 ${data.from} te mencionó` : `Mensaje de ${data.from}`,
+                                html: `
                             <div class="toast-content">
                                 <div class="toast-message">${messageText.substring(0, 80)}${messageText.length > 80 ? "..." : ""}</div>
                             </div>
                         `,
-                            showConfirmButton: true,
-                            confirmButtonText: "Ver",
-                            showCloseButton: true,
-                            timer: hasMention ? 10000 : 6000,
-                            customClass: {
-                                popup: 'modern-toast',
-                                title: 'modern-toast-title',
-                                htmlContainer: 'modern-toast-html',
-                                confirmButton: 'modern-toast-btn',
-                                icon: 'modern-toast-icon',
-                                closeButton: 'modern-toast-close'
-                            }
-                        }).then((result) => {
-                            if (result.isConfirmed) {
-                                window.dispatchEvent(new CustomEvent("navigateToChat", {
-                                    detail: { to: data.from, messageId: data.id }
-                                }));
-                            }
-                        });
+                                showConfirmButton: true,
+                                confirmButtonText: "Ver",
+                                showCloseButton: true,
+                                timer: hasMention ? 10000 : 6000,
+                                customClass: {
+                                    popup: 'modern-toast',
+                                    title: 'modern-toast-title',
+                                    htmlContainer: 'modern-toast-html',
+                                    confirmButton: 'modern-toast-btn',
+                                    icon: 'modern-toast-icon',
+                                    closeButton: 'modern-toast-close'
+                                }
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    window.dispatchEvent(new CustomEvent("navigateToChat", {
+                                        detail: { to: data.from, messageId: data.id }
+                                    }));
+                                }
+                            });
+                        }
                     }
                 }
 
@@ -1237,7 +1272,7 @@ export const useSocketListeners = (
                 hasLastMessage: !!data.lastMessage,
                 backendCount: data.count
             });
-            
+
             // 🔥 FIX: NO actualizar contador NI reproducir sonido aquí
             // El evento 'message' ya maneja ambos correctamente
             // Este listener solo actualiza lastMessage para el ordenamiento
@@ -1852,7 +1887,8 @@ export const useSocketListeners = (
                 }
 
                 // Reproducir sonido y mostrar notificación si el chat no está abierto
-                if (!isChatOpen) {
+                // 🔥 CHECK: Globales AND Hilos
+                if (!isChatOpen && areAlertsEnabledRef.current && areThreadAlertsEnabledRef.current) {
                     // 🔥 NUEVO: Detectar si hay mención en la respuesta del hilo
                     const hasMention = hasMentionToCurrentUser(data.lastReplyText, currentFullName || username);
                     console.log('🔊 [THREAD] Reproduciendo sonido:', { hasMention, lastReplyText: data.lastReplyText });

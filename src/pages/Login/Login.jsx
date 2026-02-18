@@ -48,8 +48,8 @@ const Login = ({ onLoginSuccess }) => {
   return (
     <div className="login-card">
       <div className="login-header">
-        <h1 className="welcome-title">Acceso al Sistema</h1>
-        <p className="welcome-subtitle">AI Chat de +34 Call Center</p>
+        <h1 className="welcome-title force-light-text">Acceso al Sistema</h1>
+        <p className="welcome-subtitle force-light-text">AI Chat de +34 Call Center</p>
       </div>
 
       <form onSubmit={handleSubmit} className="login-form">
