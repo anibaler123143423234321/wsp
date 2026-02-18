@@ -141,16 +141,54 @@ const ChatLayout = ({
 
   // Handler para abrir panel de hilos
   const handleOpenThread = async (message, attachment = null) => {
-    console.log('🧵 handleOpenThread:', message.id, 'unread:', message.unreadThreadCount, 'attachmentId:', attachment?.id);
-    setThreadMessage(message);
-    setSelectedAttachment(attachment); // 🔥 NUEVO: Guardar adjunto específico si existe
+    // 🔥 FIX: Si el mensaje viene de una galería de imágenes, su ID es "gallery-XXXXX"
+    // Necesitamos extraer el ID numérico real para que ThreadPanel funcione
+    let resolvedMessage = message;
+    let resolvedAttachment = attachment;
+    if (message && typeof message.id === 'string' && message.id.startsWith('gallery-')) {
+      const realId = Number(message.id.replace('gallery-', ''));
+      
+      // Construir attachments a partir de los mensajes de la galería
+      const galleryMessages = message.messages || [];
+      const builtAttachments = galleryMessages.map(msg => ({
+        id: msg.id,
+        mediaType: msg.mediaType || 'image',
+        mediaData: msg.mediaData,
+        url: msg.mediaData,
+        fileName: msg.fileName || 'imagen',
+        fileSize: msg.fileSize,
+        threadCount: msg.threadCount || 0,
+      }));
+
+      // Usar el primer mensaje como base pero con attachments construidos
+      if (galleryMessages.length > 0) {
+        resolvedMessage = {
+          ...galleryMessages[0],
+          id: realId,
+          attachments: builtAttachments,
+        };
+      } else {
+        resolvedMessage = { ...message, id: realId };
+      }
+
+      // Asegurar que selectedAttachment coincida con un attachment construido
+      if (attachment && builtAttachments.length > 0) {
+        resolvedAttachment = builtAttachments.find(att => String(att.id) === String(attachment.id)) || builtAttachments[0];
+      }
+
+      console.log('🖼️ handleOpenThread: ID de galería resuelto:', message.id, '→', realId, 'attachments:', builtAttachments.length);
+    }
+
+    console.log('🧵 handleOpenThread:', resolvedMessage.id, 'unread:', resolvedMessage.unreadThreadCount, 'attachmentId:', resolvedAttachment?.id);
+    setThreadMessage(resolvedMessage);
+    setSelectedAttachment(resolvedAttachment); // 🔥 NUEVO: Guardar adjunto específico si existe
     setShowThreadPanel(true);
     setShowThreadsListPanel(false); // Cerrar lista de hilos al abrir un hilo específico
 
     // 🔥 NUEVO: Actualizar mensaje en la lista para poner SVG gris inmediatamente
-    if (updateMessage && message.unreadThreadCount > 0) {
-      console.log('🔧 Llamando updateMessage para id:', message.id);
-      updateMessage(message.id, {
+    if (updateMessage && resolvedMessage.unreadThreadCount > 0) {
+      console.log('🔧 Llamando updateMessage para id:', resolvedMessage.id);
+      updateMessage(resolvedMessage.id, {
         unreadThreadCount: 0,
         hasUnreadThreadMentions: false // 🔥 Limpiar marca de menciones
       });
@@ -162,8 +200,8 @@ const ChatLayout = ({
           : user?.username;
 
         if (currentUserName) {
-          console.log('📡 Marcando hilo como leído en backend:', message.id);
-          await apiService.markThreadAsRead(message.id, currentUserName);
+          console.log('📡 Marcando hilo como leído en backend:', resolvedMessage.id);
+          await apiService.markThreadAsRead(resolvedMessage.id, currentUserName);
         }
       } catch (error) {
         console.error('Error al marcar hilo como leído:', error);
