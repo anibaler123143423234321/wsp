@@ -36,10 +36,12 @@
 
 @media (max-width: 600px) {
   .chat-header {
-    height: 56px; /* Altura fija para evitar colapso */
+    height: 56px;
+    /* Altura fija para evitar colapso */
     min-height: 56px;
     padding: 0 8px;
-    display: flex !important; /* Forzar display */
+    display: flex !important;
+    /* Forzar display */
   }
 
   .chat-header-content {

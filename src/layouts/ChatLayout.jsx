@@ -471,7 +471,7 @@ const ChatLayout = ({
             />
           )}
 
-          {/*  NUEVO: Banner de mensaje fijado */}
+          {/* Banner de mensaje fijado */}
           {isGroup && pinnedMessage && (
             <PinnedMessageBanner
               pinnedMessage={pinnedMessage}
@@ -544,89 +544,89 @@ const ChatLayout = ({
             onGoToLatest={onGoToLatest} //  NUEVO: Ir al final
           />
         </div>
-        {/* Thread Panel (Displacement Layout) */}
-        <ThreadPanel
-          isOpen={showThreadPanel}
-          message={threadMessage}
-          selectedAttachment={selectedAttachment} // 🔥 NUEVO
-          onSelectAttachment={setSelectedAttachment} // 🔥 NUEVO: Cambiar a hilo de adjunto
-          onClose={() => {
-            setShowThreadPanel(false);
-            setThreadMessage(null); // Limpiar mensaje al cerrar
-            setSelectedAttachment(null); // 🔥 Limpiar
-          }}
-          currentUsername={currentUsername}
-          socket={socket}
-          onSendMessage={onSendThreadMessage}
-          currentRoomCode={currentRoomCode}
-          roomUsers={roomUsers}
-          myActiveRooms={myActiveRooms} //  NUEVO: Para modal de reenvío
-          assignedConversations={assignedConversations} //  NUEVO: Para modal de reenvío
-          user={user} //  NUEVO: Para modal de reenvío
-          onBackToThreadsList={handleBackToThreadsList} //  NUEVO: Volver a lista de hilos
-          onUpdateParentMessage={updateMessage} // 🔥 NUEVO: Para actualizar contador de hilos
-        />
+      </div>
 
-        {/* Members Panel (Displacement Layout) */}
-        <MembersPanel
-          isOpen={showMembersPanel}
-          onClose={() => setShowMembersPanel(false)}
-          roomUsers={roomUsers}
-          onAddUsersToRoom={onAddUsersToRoom}
-          currentRoomCode={currentRoomCode}
-          user={user}
-          userList={userList}
-          socket={socket}
-        />
+      {/* Thread Panel (Displacement Layout) */}
+      <ThreadPanel
+        isOpen={showThreadPanel}
+        message={threadMessage}
+        selectedAttachment={selectedAttachment} // 🔥 NUEVO
+        onSelectAttachment={setSelectedAttachment} // 🔥 NUEVO: Cambiar a hilo de adjunto
+        onClose={() => {
+          setShowThreadPanel(false);
+          setThreadMessage(null); // Limpiar mensaje al cerrar
+          setSelectedAttachment(null); // 🔥 Limpiar
+        }}
+        currentUsername={currentUsername}
+        socket={socket}
+        onSendMessage={onSendThreadMessage}
+        currentRoomCode={currentRoomCode}
+        roomUsers={roomUsers}
+        myActiveRooms={myActiveRooms} //  NUEVO: Para modal de reenvío
+        assignedConversations={assignedConversations} //  NUEVO: Para modal de reenvío
+        user={user} //  NUEVO: Para modal de reenvío
+        onBackToThreadsList={handleBackToThreadsList} //  NUEVO: Volver a lista de hilos
+        onUpdateParentMessage={updateMessage} // 🔥 NUEVO: Para actualizar contador de hilos
+      />
 
-        {/* Info Panel (Displacement Layout) */}
-        <InfoPanel
-          isOpen={showInfoPanel}
-          onClose={() => setShowInfoPanel(false)}
-          chatInfo={{
-            isGroup: isGroup,
-            roomCode: currentRoomCode,
-            roomName: to,
-            roomUsers: roomUsers,
-            to: to,
-            picture: getUserPicture(),
-            description: isGroup
-              ? (myActiveRooms?.find(r => r.roomCode === currentRoomCode)?.description || selectedRoomData?.description)
-              : null,
-            roomId: currentRoomCode
-          }}
-          onCreatePoll={handleCreatePoll}
-          user={user} //  Pass user for permission checks
-          onRoomUpdated={onRoomUpdated} //  Pass callback for updates
-          onGoToMessage={onGoToMessage} //  Pass callback for mentions navigation
-        />
+      {/* Members Panel (Displacement Layout) */}
+      <MembersPanel
+        isOpen={showMembersPanel}
+        onClose={() => setShowMembersPanel(false)}
+        roomUsers={roomUsers}
+        onAddUsersToRoom={onAddUsersToRoom}
+        currentRoomCode={currentRoomCode}
+        user={user}
+        userList={userList}
+        socket={socket}
+      />
 
-        {/* Mentions Panel (Displacement Layout) */}
-        <MentionsPanel
-          isOpen={showMentionsPanel}
-          onClose={() => setShowMentionsPanel(false)}
-          currentUsername={currentUsername}
-          isGroup={isGroup}
-          roomCode={currentRoomCode}
-          roomName={to}
-          onGoToMessage={onGoToMessage}
-          roomUsers={roomUsers}
-        />
+      {/* Info Panel (Displacement Layout) */}
+      <InfoPanel
+        isOpen={showInfoPanel}
+        onClose={() => setShowInfoPanel(false)}
+        chatInfo={{
+          isGroup: isGroup,
+          roomCode: currentRoomCode,
+          roomName: to,
+          roomUsers: roomUsers,
+          to: to,
+          picture: getUserPicture(),
+          description: isGroup
+            ? (myActiveRooms?.find(r => r.roomCode === currentRoomCode)?.description || selectedRoomData?.description)
+            : null,
+          roomId: currentRoomCode
+        }}
+        onCreatePoll={handleCreatePoll}
+        user={user} //  Pass user for permission checks
+        onRoomUpdated={onRoomUpdated} //  Pass callback for updates
+        onGoToMessage={onGoToMessage} //  Pass callback for mentions navigation
+      />
 
-        {/* Threads List Panel (Lista de hilos padres) */}
-        <ThreadsListPanel
-          isOpen={showThreadsListPanel}
-          onClose={() => setShowThreadsListPanel(false)}
-          isGroup={isGroup}
-          roomCode={currentRoomCode}
-          currentUsername={currentUsername}
-          to={to}
-          onOpenThread={handleOpenThread}
-          roomUsers={roomUsers}
-          roomName={to}
-        />
+      {/* Mentions Panel (Displacement Layout) */}
+      <MentionsPanel
+        isOpen={showMentionsPanel}
+        onClose={() => setShowMentionsPanel(false)}
+        currentUsername={currentUsername}
+        isGroup={isGroup}
+        roomCode={currentRoomCode}
+        roomName={to}
+        onGoToMessage={onGoToMessage}
+        roomUsers={roomUsers}
+      />
 
-      </div >
+      {/* Threads List Panel (Lista de hilos padres) */}
+      <ThreadsListPanel
+        isOpen={showThreadsListPanel}
+        onClose={() => setShowThreadsListPanel(false)}
+        isGroup={isGroup}
+        roomCode={currentRoomCode}
+        currentUsername={currentUsername}
+        to={to}
+        onOpenThread={handleOpenThread}
+        roomUsers={roomUsers}
+        roomName={to}
+      />
 
       {/* Modales */}
       {
