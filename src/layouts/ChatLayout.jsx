@@ -147,7 +147,7 @@ const ChatLayout = ({
     let resolvedAttachment = attachment;
     if (message && typeof message.id === 'string' && message.id.startsWith('gallery-')) {
       const realId = Number(message.id.replace('gallery-', ''));
-      
+
       // Construir attachments a partir de los mensajes de la galería
       const galleryMessages = message.messages || [];
       const builtAttachments = galleryMessages.map(msg => ({
@@ -425,7 +425,7 @@ const ChatLayout = ({
 
 
       {/* ChatContent - Desktop: siempre visible | Mobile: solo cuando hay chat seleccionado */}
-      <div className={`flex-1 flex flex-row bg-white relative transition-all duration-300 ease-in-out max-[768px]:h-[calc(100vh-60px)] max-[600px]:h-screen overflow-hidden max-w-full ${!to ? 'max-[768px]:hidden' : ''}`}>
+      <div className={`flex-1 flex flex-col bg-white relative transition-all duration-300 ease-in-out h-[100dvh] max-h-[100dvh] overflow-hidden max-w-full ${!to ? 'max-[768px]:hidden' : ''}`}>
 
         {/* Main Chat Area (Header + Content) */}
         <div className="flex-1 flex flex-col h-full min-w-0 relative">

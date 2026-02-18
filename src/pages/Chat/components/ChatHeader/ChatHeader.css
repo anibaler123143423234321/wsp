@@ -36,16 +36,18 @@
 
 @media (max-width: 600px) {
   .chat-header {
-    height: auto;
-    min-height: 50px;
-    padding: 0 12px;
+    height: 56px; /* Altura fija para evitar colapso */
+    min-height: 56px;
+    padding: 0 8px;
+    display: flex !important; /* Forzar display */
   }
 
   .chat-header-content {
     padding: 0;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: nowrap;
     align-items: center;
+    width: 100%;
   }
 
   .chat-header-info {
