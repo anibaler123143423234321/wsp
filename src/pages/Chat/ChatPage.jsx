@@ -1895,6 +1895,12 @@ const ChatPage = () => {
     playMessageSound(true, true); // Forzar sonido de mención
   }, [playMessageSound]);
 
+  // 🔥 NUEVO: Función para probar sonido normal
+  const handleTestNormalSound = useCallback(() => {
+    console.log('🔊 Probando sonido normal...');
+    playMessageSound(true, false); // Forzar sonido normal
+  }, [playMessageSound]);
+
   const handleLoginSuccess = async (userData) => {
     // Mostrar pantalla de carga
     setIsPostLoginLoading(true);
@@ -2354,6 +2360,7 @@ const ChatPage = () => {
         isSoundEnabled={chatState.soundsEnabled}
         onSoundToggle={handleSoundToggle}
         onTestSound={handleTestSound} // 🔥 Pasamos la función de prueba
+        onTestNormalSound={handleTestNormalSound} // 🔥 Pasamos la función de prueba de sonido normal
       />
     </>
   );

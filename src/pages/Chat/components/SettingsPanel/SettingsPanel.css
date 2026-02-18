@@ -1,13 +1,14 @@
-/* Overlay oscuro */
+/* Overlay oscuro con blur suave */
 .settings-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: rgba(0, 0, 0, 0.3);
   z-index: 999;
-  animation: fadeIn 0.2s ease-in-out;
+  animation: fadeIn 0.3s ease-in-out;
+  backdrop-filter: blur(4px);
 }
 
 /* Panel de configuración */
@@ -15,50 +16,55 @@
   position: fixed;
   top: 0;
   right: 0;
-  width: 450px;
+  width: 380px;
+  /* Ancho cómodo */
   height: 100vh;
-  background-color: #FFFFFF;
-  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  background-color: #ffffff;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   display: flex;
   flex-direction: column;
-  animation: slideInRight 0.3s ease-out;
+  animation: slideInRight 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+  /* Easing muy suave */
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-/* Header del panel */
+/* Header Minimalista */
 .settings-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 20px 24px;
-  border-bottom: 1px solid #E5E7EB;
-  background-color: #F9FAFB;
+  background-color: transparent;
 }
 
 .settings-header h2 {
   margin: 0;
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 22px;
+  font-weight: 700;
   color: #111827;
-  font-family: 'Inter', sans-serif;
+  letter-spacing: -0.02em;
 }
 
 .settings-close-btn {
-  background: none;
+  background: transparent;
   border: none;
   cursor: pointer;
   padding: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
-  transition: background-color 0.2s;
-  color: #6B7280;
+  border-radius: 50%;
+  transition: all 0.2s;
+  color: #9CA3AF;
+  width: 36px;
+  height: 36px;
 }
 
 .settings-close-btn:hover {
-  background-color: #E5E7EB;
-  color: #111827;
+  background-color: #F3F4F6;
+  color: #1F2937;
+  transform: rotate(90deg);
 }
 
 .settings-close-btn svg {
@@ -66,92 +72,223 @@
   height: 20px;
 }
 
-/* Contenido del panel */
+/* Contenido */
 .settings-content {
   flex: 1;
   overflow-y: auto;
-  padding: 24px;
+  padding: 0;
+  /* Sin padding global para bordes a sangre */
 }
 
-/* Sección */
-.settings-section {
-  margin-bottom: 32px;
+/* --- PERFIL HERO --- */
+.settings-profile-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 24px 32px;
+  border-bottom: 1px solid #F3F4F6;
+  background: linear-gradient(to bottom, #ffffff 0%, #fafafa 100%);
 }
 
-.settings-section:last-child {
-  margin-bottom: 0;
+.settings-avatar-container {
+  margin-bottom: 12px;
+  position: relative;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.05));
 }
 
-.settings-section-header {
+.settings-user-avatar-large {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #ffffff;
+}
+
+.settings-user-avatar-placeholder {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  /* Verde WhatsApp */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 32px;
+  font-weight: 600;
+  border: 4px solid #ffffff;
+}
+
+.settings-user-name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  text-align: center;
+  letter-spacing: -0.01em;
+}
+
+.settings-user-info {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #6B7280;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* --- SECCIONES LIMPIAS (Sin Cards) --- */
+.settings-cards-container {
+  padding: 24px 0;
+}
+
+.settings-card {
+  /* Ya no parece una "tarjeta", es una sección */
+  background-color: transparent;
+  border-radius: 0;
+  padding: 0 24px 32px;
+  border: none;
+}
+
+.settings-card-header {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 16px;
 }
 
-.settings-section-icon {
-  width: 20px;
-  height: 20px;
-  color: #6B7280;
+.settings-card-icon {
+  color: #10B981;
+  /* Verde WhatsApp */
+  font-size: 18px;
+  opacity: 0.9;
 }
 
-.settings-section-header h3 {
+.settings-card-header h4 {
   margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #111827;
-  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #9CA3AF;
 }
 
-.settings-section-content {
-  background-color: #F9FAFB;
-  border-radius: 8px;
-  padding: 16px;
+/* Items de lista */
+.settings-toggle-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
 }
 
-/* Item de configuración */
-.settings-item {
-  padding: 12px 0;
-  border-bottom: 1px solid #E5E7EB;
-}
-
-.settings-item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.settings-item:first-child {
-  padding-top: 0;
-}
-
-.settings-item-label {
-  font-size: 13px;
-  color: #6B7280;
-  margin-bottom: 4px;
-  font-family: 'Inter', sans-serif;
-}
-
-.settings-item-value {
+.settings-toggle-label {
   font-size: 15px;
-  color: #111827;
+  color: #374151;
   font-weight: 500;
-  font-family: 'Inter', sans-serif;
 }
 
-/* Info box */
-.settings-info-box {
-  background-color: #EFF6FF;
-  border-left: 3px solid #3B82F6;
-  padding: 12px 16px;
-  border-radius: 6px;
-}
-
-.settings-info-box p {
+/* Texto descriptivo */
+.settings-card-text {
   margin: 0;
   font-size: 14px;
-  color: #1E40AF;
-  line-height: 1.5;
-  font-family: 'Inter', sans-serif;
+  color: #6B7280;
+  line-height: 1.6;
+}
+
+/* Botones de acción refinados */
+.settings-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.settings-btn-pill {
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  /* Menos redondeado, más app-like */
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: #FFFFFF;
+  color: #374151;
+}
+
+.settings-btn-pill:hover {
+  background-color: #F9FAFB;
+  border-color: #D1D5DB;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.settings-btn-pill.primary {
+  background-color: #F0FDF4;
+  /* Verde muy claro */
+  border-color: #BBF7D0;
+  color: #15803D;
+}
+
+.settings-btn-pill.primary:hover {
+  background-color: #DCFCE7;
+  border-color: #86EFAC;
+}
+
+/* Toggle Switch iOS Style */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #E5E7EB;
+  transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+input:checked+.slider {
+  background-color: #10B981;
+}
+
+input:checked+.slider:before {
+  transform: translateX(20px);
+}
+
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
 }
 
 /* Animaciones */
@@ -176,181 +313,87 @@
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 480px) {
   .settings-panel {
     width: 100%;
   }
 }
 
-/* Contenedor para el item de tipo toggle */
-.settings-toggle-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 0;
-  /* Un padding un poco menor que el item normal */
-}
-
-/* Etiqueta de texto para el toggle */
-.settings-toggle-label {
-  font-size: 15px;
-  color: #111827;
-  font-weight: 500;
-  font-family: 'Inter', sans-serif;
-  margin-right: 16px;
-}
-
-/* El interruptor (switch) */
-.toggle-switch {
-  position: relative;
-  display: inline-block;
-  width: 50px;
-  /* Ancho del switch */
-  height: 28px;
-  /* Alto del switch */
-}
-
-/* Oculta el checkbox nativo */
-.toggle-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-/* La barra deslizante (track) */
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  /* Color de fondo (apagado) */
-  transition: .4s;
-}
-
-/* El círculo (thumb) */
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 20px;
-  /* Tamaño del círculo */
-  width: 20px;
-  /* Tamaño del círculo */
-  left: 4px;
-  /* Posición inicial (izq) */
-  bottom: 4px;
-  /* Posición inicial (abajo) */
-  background-color: white;
-  transition: .4s;
-}
-
-/* Estilos cuando está ACTIVADO (checked) */
-input:checked+.slider {
-  background-color: #3B82F6;
-  /* Color azul (encendido) */
-}
-
-input:checked+.slider:before {
-  transform: translateX(22px);
-  /* Mueve el círculo a la derecha */
-}
-
-/* Versión redondeada */
-.slider.round {
-  border-radius: 34px;
-}
-
-.slider.round:before {
-  border-radius: 50%;
-}
-
 /* =========================================
-   🌙 DARK MODE STYLES - SETTINGS PANEL
+   🌙 DARK MODE STYLES
    ========================================= */
 
-/* Panel principal */
 html.dark .settings-panel {
-  background-color: #1D1F1F !important;
-  /* Coincidir con LeftSidebar */
-  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.5);
-  border-left: 1px solid #3a3a3a;
-}
-
-/* Header */
-html.dark .settings-header {
-  background-color: #1D1F1F !important;
-  border-bottom-color: #3a3a3a !important;
+  background-color: #111b21;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
 }
 
 html.dark .settings-header h2 {
-  color: #ffffff !important;
+  color: #E9EDEF;
 }
 
 html.dark .settings-close-btn {
-  color: #9ca3af !important;
+  color: #8696a0;
 }
 
 html.dark .settings-close-btn:hover {
-  background-color: #2a2a2a !important;
-  color: #ffffff !important;
+  background-color: #202c33;
+  color: #E9EDEF;
 }
 
-/* Secciones */
-html.dark .settings-section-header h3 {
-  color: #ffffff !important;
+html.dark .settings-profile-section {
+  border-bottom-color: #202c33;
+  background: linear-gradient(to bottom, #111b21 0%, #0b141a 100%);
 }
 
-html.dark .settings-section-icon {
-  color: #9ca3af !important;
+html.dark .settings-user-avatar-large,
+html.dark .settings-user-avatar-placeholder {
+  border-color: #111b21;
 }
 
-html.dark .settings-section-content {
-  background-color: #2a2a2a !important;
-  border: 1px solid #3a3a3a;
+html.dark .settings-user-name {
+  color: #E9EDEF;
 }
 
-/* Items */
-html.dark .settings-item {
-  border-bottom-color: #3a3a3a !important;
+html.dark .settings-user-info {
+  color: #8696a0;
 }
 
-html.dark .settings-item-label {
-  color: #9ca3af !important;
-}
-
-html.dark .settings-item-value {
-  color: #e5e5e5 !important;
+html.dark .settings-card-header h4 {
+  color: #8696a0;
 }
 
 html.dark .settings-toggle-label {
-  color: #e5e5e5 !important;
+  color: #E9EDEF;
 }
 
-/* Toggle Switch */
+html.dark .settings-card-text {
+  color: #8696a0;
+}
+
+html.dark .settings-btn-pill {
+  background-color: #202c33;
+  border-color: #2a3942;
+  color: #E9EDEF;
+}
+
+html.dark .settings-btn-pill:hover {
+  background-color: #2a3942;
+  border-color: #37404a;
+}
+
+html.dark .settings-btn-pill.primary {
+  background-color: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.2);
+  color: #34D399;
+  /* Verde neon en dark mode */
+}
+
+html.dark .settings-btn-pill.primary:hover {
+  background-color: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
 html.dark .slider {
-  background-color: #4b5563;
-  /* Gris oscuro para estado inactivo */
-}
-
-html.dark input:checked+.slider {
-  background-color: #3B82F6;
-  /* Azul mantenido */
-}
-
-html.dark .slider:before {
-  background-color: #e5e5e5;
-}
-
-/* Info Box */
-html.dark .settings-info-box {
-  background-color: rgba(59, 130, 246, 0.1) !important;
-  /* Azul muy tenue */
-  border-left-color: #3B82F6 !important;
-}
-
-html.dark .settings-info-box p {
-  color: #93c5fd !important;
-  /* Azul claro legible */
+  background-color: #37404a;
 }

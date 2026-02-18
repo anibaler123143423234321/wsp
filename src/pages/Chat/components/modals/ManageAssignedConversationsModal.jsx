@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FaEdit, FaTrash, FaUsers, FaClock, FaCalendarAlt, FaClipboardList, FaSearch, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaUsers, FaSearch, FaChevronLeft, FaChevronRight, FaPause, FaPlay, FaCircle, FaSave, FaTimes } from 'react-icons/fa';
+import SidebarMenuButton from '../../../../components/SidebarMenuButton/SidebarMenuButton';
 import BaseModal from './BaseModal';
 import './ManageAssignedConversationsModal.css';
 import './Modal.css';
@@ -70,19 +71,6 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
     setSearchTimeout(timeout);
   };
 
-  //  Navegación de páginas
-  const handlePrevPage = () => {
-    if (currentPage > 1) {
-      loadConversations(currentPage - 1, searchTerm);
-    }
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      loadConversations(currentPage + 1, searchTerm);
-    }
-  };
-
   const goToPage = (page) => {
     if (page >= 1 && page <= totalPages) {
       loadConversations(page, searchTerm);
@@ -104,12 +92,9 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
 
   const handleSaveEdit = async (convId) => {
     try {
-      // Encontrar la conversación que se está editando
       const conv = conversations.find(c => c.id === convId);
-
       await apiService.updateAssignedConversation(convId, editForm);
 
-      //  Actualizar la lista local inmediatamente (sin recargar desde el servidor)
       setConversations(prevConversations =>
         prevConversations.map(c =>
           c.id === convId
@@ -118,7 +103,6 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
         )
       );
 
-      // Emitir evento WebSocket para notificar a los participantes
       if (socket && socket.connected && conv) {
         socket.emit('conversationUpdated', {
           conversationId: convId,
@@ -130,10 +114,8 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
       setEditingConv(null);
       setEditForm({ name: '', description: '' });
 
-      //  Mostrar alerta de éxito UNA SOLA VEZ
       await showSuccessAlert('¡Actualizado!', 'La conversación ha sido actualizada correctamente');
 
-      // Notificar al componente padre (sin mostrar otra alerta)
       if (onConversationUpdated) {
         onConversationUpdated();
       }
@@ -146,7 +128,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
   const handleDelete = async (conv) => {
     const result = await showConfirmAlert(
       '¿Eliminar conversación?',
-      `¿Estás seguro de que deseas eliminar la conversación "${conv.name}"? Esta acción no se puede deshacer.`,
+      `¿Estás seguro de que deseas eliminar la conversación "${conv.name}"?`,
       'warning'
     );
 
@@ -154,7 +136,6 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
       try {
         await apiService.deleteAssignedConversation(conv.id);
 
-        //  Emitir websocket para notificar a los participantes
         if (socket && socket.connected && conv.participants) {
           socket.emit('conversationRemoved', {
             conversationId: conv.id,
@@ -169,19 +150,12 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
           onConversationUpdated();
         }
       } catch (error) {
-        console.error('Error al eliminar conversación:', error);
-
-        // Manejar error 404 (conversación ya eliminada o no encontrada)
-        if (error.message.includes('404') || error.message.includes('Not Found') || error.message.includes('no encontrada')) {
+        if (error.message.includes('404') || error.message.includes('Not Found')) {
           await showErrorAlert(
             'Conversación no encontrada',
             'La conversación ya fue eliminada o no existe. Se actualizará la lista.'
           );
-          // Recargar la lista para sincronizar con el backend
           loadConversations(currentPage, searchTerm);
-          if (onConversationUpdated) {
-            onConversationUpdated();
-          }
         } else {
           await showErrorAlert('Error', 'No se pudo eliminar la conversación: ' + error.message);
         }
@@ -204,7 +178,6 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
           onConversationUpdated();
         }
       } catch (error) {
-        console.error('Error al desactivar conversación:', error);
         await showErrorAlert('Error', 'No se pudo desactivar la conversación: ' + error.message);
       }
     }
@@ -225,7 +198,6 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
           onConversationUpdated();
         }
       } catch (error) {
-        console.error('Error al activar conversación:', error);
         await showErrorAlert('Error', 'No se pudo activar la conversación: ' + error.message);
       }
     }
@@ -236,9 +208,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
     return date.toLocaleDateString('es-ES', {
       day: '2-digit',
       month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      year: 'numeric'
     });
   };
 
@@ -249,15 +219,15 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) {
-      return { text: 'Expirada', className: 'expired' };
+      return { text: 'CADUCADA', className: 'expired' };
     } else if (diffDays === 0) {
-      return { text: 'Expira hoy', className: 'expiring-soon' };
+      return { text: 'HOY', className: 'expiring-soon' };
     } else if (diffDays === 1) {
-      return { text: 'Expira mañana', className: 'expiring-soon' };
+      return { text: 'MAÑANA', className: 'expiring-soon' };
     } else if (diffDays <= 7) {
-      return { text: `Expira en ${diffDays} días`, className: 'expiring-soon' };
+      return { text: `${diffDays} DÍAS`, className: 'expiring-soon' };
     } else {
-      return { text: `Expira en ${diffDays} días`, className: 'active' };
+      return { text: `${diffDays} DÍAS`, className: 'active' };
     }
   };
 
@@ -266,326 +236,228 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
       isOpen={show}
       onClose={onClose}
       title="Gestionar Conversaciones Asignadas"
-      icon={<FaClipboardList />}
-      headerBgColor="#A50104"
-      bodyBgColor="#FFFFFF"
+      icon={null}
+      headerBgColor="#A50104" // Red Header Restored
+      bodyBgColor="#ffffff"   // Light Body (Default)
       titleColor="#FFFFFF"
       maxWidth="1000px"
+      closeOnOverlayClick={false}
     >
-      {/*  Barra de búsqueda y contador */}
-      {/*  Barra de búsqueda y contador (Estilo Compacto) */}
-      <div style={{
-        marginBottom: '20px',
-        padding: '0 20px',
-        paddingTop: '20px'
-      }}>
-        <div style={{
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center'
-        }}>
+      {/* Filtros y Búsqueda */}
+      <div className="search-container">
+        <div className="search-wrapper">
           <FaSearch style={{
             position: 'absolute',
             left: '12px',
-            color: '#666666',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            color: '#9ca3af',
             fontSize: '14px'
           }} />
           <input
             type="text"
+            className="search-input"
             placeholder="Buscar por nombre o participante..."
             value={searchTerm}
             onChange={handleSearchChange}
             disabled={loading}
-            autoComplete="off"
-            style={{
-              width: '100%',
-              padding: '10px 10px 10px 40px',
-              border: '1px solid #d1d7db',
-              borderRadius: '8px',
-              fontSize: '14px',
-              backgroundColor: loading ? '#f5f5f5' : '#FFFFFF',
-              color: '#000000',
-              outline: 'none',
-              transition: 'border-color 0.2s',
-              cursor: loading ? 'not-allowed' : 'text'
-            }}
-            onFocus={(e) => !loading && (e.target.style.borderColor = '#A50104')}
-            onBlur={(e) => e.target.style.borderColor = '#d1d7db'}
           />
         </div>
         {!loading && (
-          <div style={{
-            marginTop: '8px',
-            fontSize: '13px',
-            color: '#666666'
-          }}>
-            {total} {total === 1 ? 'conversación encontrada' : 'conversaciones encontradas'}
+          <div style={{ fontSize: '13px', color: '#6b7280', fontWeight: '500' }}>
+            {total} {total === 1 ? 'resultado' : 'resultados'}
           </div>
         )}
       </div>
 
-      {loading ? (
-        <div className="loading-state">
-          <div className="spinner"></div>
-          <p style={{ color: '#666666' }}>Cargando conversaciones...</p>
-        </div>
-      ) : conversations.length === 0 ? (
-        <div className="empty-state">
-          <FaUsers size={48} style={{ color: '#A50104' }} />
-          <p style={{ color: '#666666' }}>
-            {searchTerm ? 'No se encontraron conversaciones' : 'No hay conversaciones asignadas'}
-          </p>
-        </div>
-      ) : (
-        <div className="rooms-list">
-          {conversations.map((conv) => (
-            <div key={conv.id} className="room-item" style={{ backgroundColor: '#f5f5f5', border: '1px solid #e0e0e0' }}>
+      {/* Header de la Lista (Tipo Tabla) */}
+      <div className="list-header">
+        <div className="header-cell">NOMBRE Y DESCRIPCIÓN</div>
+        <div className="header-cell">PARTICIPANTES</div>
+        <div className="header-cell">ESTADO</div>
+        <div className="header-cell">CREADO</div>
+        <div className="header-cell" style={{ justifyContent: 'flex-end' }}>ACCIONES</div>
+      </div>
+
+      <div className="conversations-list">
+        {loading ? (
+          <div className="loading-state">
+            <div className="spinner"></div>
+            <p style={{ color: '#6b7280', marginTop: '10px' }}>Cargando datos...</p>
+          </div>
+        ) : conversations.length === 0 ? (
+          <div className="empty-state">
+            <FaUsers size={40} style={{ color: '#e5e7eb', marginBottom: '16px' }} />
+            <p style={{ color: '#6b7280', fontWeight: '500' }}>
+              {searchTerm ? 'No se encontraron coincidencias' : 'No hay conversaciones asignadas'}
+            </p>
+          </div>
+        ) : (
+          conversations.map((conv) => (
+            <div key={conv.id} className="room-item">
               {editingConv === conv.id ? (
-                // Modo edición (Mantenemos el estilo de formulario pero dentro del item)
-                <div className="edit-mode" style={{ width: '100%', padding: '10px' }}>
-                  <div className="form-group">
-                    <label style={{ color: '#000000' }}>Nombre</label>
-                    <input
-                      type="text"
-                      value={editForm.name}
-                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                      placeholder="Nombre"
-                      style={{ backgroundColor: '#FFFFFF', color: '#000000', border: '1px solid #d1d7db' }}
+                // Edición en línea
+                <div className="edit-mode-grid">
+                  <input
+                    type="text"
+                    className="input-inline"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    placeholder="Nombre de la conversación"
+                    autoFocus
+                    style={{ flex: 1 }}
+                  />
+                  <input
+                    type="text"
+                    className="input-inline"
+                    value={editForm.description}
+                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                    placeholder="Descripción (opcional)"
+                    style={{ flex: 2 }}
+                  />
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <SidebarMenuButton
+                      onClick={() => handleSaveEdit(conv.id)}
+                      label="Guardar"
+                      icon={FaSave}
+                      className="sidebar-menu-btn primary"
+                      style={{ padding: '6px 12px', height: 'auto', fontSize: '0.8rem' }}
                     />
-                  </div>
-                  <div className="form-group">
-                    <label style={{ color: '#000000' }}>Descripción</label>
-                    <textarea
-                      value={editForm.description}
-                      onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                      rows="2"
-                      style={{ backgroundColor: '#FFFFFF', color: '#000000', border: '1px solid #d1d7db' }}
+                    <SidebarMenuButton
+                      onClick={handleCancelEdit}
+                      label="Cancelar"
+                      icon={FaTimes}
+                      className="sidebar-menu-btn light"
+                      style={{ padding: '6px 12px', height: 'auto', fontSize: '0.8rem' }}
                     />
-                  </div>
-                  <div className="edit-actions">
-                    <button className="btn-save" onClick={() => handleSaveEdit(conv.id)}>
-                      Guardar
-                    </button>
-                    <button className="btn-cancel" onClick={handleCancelEdit}>
-                      Cancelar
-                    </button>
                   </div>
                 </div>
               ) : (
-                // Modo vista (Compacto estilo AdminRooms)
+                // Vista Grid
                 <>
-                  <div className="room-info">
-                    <div className="room-name" style={{ color: '#000000', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {/* Celda 1: Nombre */}
+                  <div className="cell-name">
+                    <div className="room-name-text" title={conv.name}>
                       {conv.name}
-                      {!conv.isActive && (
-                        <span style={{ fontSize: '11px', color: '#999', fontWeight: 'normal' }}>(Inactiva)</span>
-                      )}
+                      {!conv.isActive && <span style={{ color: '#ef4444', fontSize: '11px', marginLeft: '6px' }}>(Inactiva)</span>}
                     </div>
-
-                    <div className="room-details">
-                      <span className="room-code" style={{ backgroundColor: '#e0e0e0', color: '#000000' }} title="Participantes">
-                        <FaUsers size={10} style={{ marginRight: '4px' }} />
-                        {conv.participants?.length || 0}
-                      </span>
-
-                      <span className={`room-status ${formatExpiration(conv.expiresAt).className}`} style={{ fontSize: '10px' }}>
-                        {formatExpiration(conv.expiresAt).text}
-                      </span>
-
-                      {conv.description && (
-                        <span style={{ color: '#666', fontStyle: 'italic', maxWidth: '200px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                          {conv.description}
-                        </span>
-                      )}
-
-                      <span style={{ color: '#666' }}>
-                        {formatDate(conv.createdAt)}
-                      </span>
-                    </div>
+                    {conv.description && (
+                      <div className="room-desc-text" title={conv.description}>
+                        {conv.description}
+                      </div>
+                    )}
                   </div>
 
-                  <div className="room-actions">
-                    <button
-                      className="btn btn-edit" // Usando estilo de Modal.css
-                      onClick={() => handleEdit(conv)}
-                      title="Editar"
-                      style={{ padding: '6px 10px' }}
-                    >
-                      <FaEdit />
+                  {/* Celda 2: Participantes */}
+                  <div className="cell-participants" title={`${conv.participants?.length || 0} participantes`}>
+                    <FaUsers size={14} style={{ color: '#9ca3af' }} />
+                    <span>{conv.participants?.length || 0}</span>
+                  </div>
+
+                  {/* Celda 3: Estado */}
+                  <div className="cell-status">
+                    <span className={`status-app-badge ${formatExpiration(conv.expiresAt).className}`}>
+                      {formatExpiration(conv.expiresAt).text}
+                    </span>
+                  </div>
+
+                  {/* Celda 4: Fecha */}
+                  <div className="cell-date">
+                    {formatDate(conv.createdAt)}
+                  </div>
+
+                  {/* Celda 5: Acciones */}
+                  <div className="cell-actions">
+                    <button className="action-icon-btn edit" onClick={() => handleEdit(conv)} title="Editar">
+                      <FaEdit size={14} />
                     </button>
+
                     {canDelete && conv.isActive && (
-                      <button
-                        className="btn btn-warning"
-                        onClick={() => handleDeactivate(conv)}
-                        title="Desactivar"
-                        style={{ padding: '6px 10px' }}
-                      >
-                        ⏸️
+                      <button className="action-icon-btn pause" onClick={() => handleDeactivate(conv)} title="Desactivar">
+                        <FaPause size={12} />
                       </button>
                     )}
+
                     {canDelete && !conv.isActive && (
-                      <button
-                        className="btn btn-success"
-                        onClick={() => handleActivate(conv)}
-                        title="Activar"
-                        style={{ padding: '6px 10px' }}
-                      >
-                        ▶️
+                      <button className="action-icon-btn active" onClick={() => handleActivate(conv)} title="Activar">
+                        <FaPlay size={12} />
                       </button>
                     )}
+
                     {canDelete && (
-                      <button
-                        className="btn btn-danger"
-                        onClick={() => handleDelete(conv)}
-                        title="Eliminar"
-                        style={{ padding: '6px 10px' }}
-                      >
-                        <FaTrash />
+                      <button className="action-icon-btn delete" onClick={() => handleDelete(conv)} title="Eliminar">
+                        <FaTrash size={12} />
                       </button>
                     )}
                   </div>
                 </>
               )}
             </div>
-          ))}
-        </div>
-      )}
-
-      {/*  Paginación Compacta */}
-      {totalPages > 1 && (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '16px 20px',
-          borderTop: '1px solid #e0e0e0',
-          marginTop: '12px'
-        }}>
-          {/* Primera página */}
-          <button
-            onClick={() => goToPage(1)}
-            disabled={currentPage === 1}
-            title="Primera página"
-            style={{
-              width: '34px',
-              height: '34px',
-              border: '1px solid #d1d7db',
-              borderRadius: '6px',
-              backgroundColor: currentPage === 1 ? '#f5f5f5' : '#fff',
-              color: currentPage === 1 ? '#bbb' : '#555',
-              cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '14px',
-              fontWeight: 'bold',
-              transition: 'all 0.15s'
-            }}
-          >
-            «
-          </button>
-
-          {/* Anterior */}
-          <button
-            onClick={() => goToPage(currentPage - 1)}
-            disabled={currentPage === 1}
-            title="Página anterior"
-            style={{
-              width: '34px',
-              height: '34px',
-              border: '1px solid #d1d7db',
-              borderRadius: '6px',
-              backgroundColor: currentPage === 1 ? '#f5f5f5' : '#fff',
-              color: currentPage === 1 ? '#bbb' : '#555',
-              cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.15s'
-            }}
-          >
-            <FaChevronLeft size={11} />
-          </button>
-
-          {/* Indicador de página */}
-          <div style={{
-            padding: '8px 20px',
-            backgroundColor: '#A50104',
-            color: '#fff',
-            borderRadius: '6px',
-            fontSize: '13px',
-            fontWeight: '600',
-            textAlign: 'center',
-            userSelect: 'none',
-            whiteSpace: 'nowrap'
-          }}>
-            Página {currentPage} de {totalPages}
-          </div>
-
-          {/* Siguiente */}
-          <button
-            onClick={() => goToPage(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            title="Página siguiente"
-            style={{
-              width: '34px',
-              height: '34px',
-              border: '1px solid #d1d7db',
-              borderRadius: '6px',
-              backgroundColor: currentPage === totalPages ? '#f5f5f5' : '#fff',
-              color: currentPage === totalPages ? '#bbb' : '#555',
-              cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.15s'
-            }}
-          >
-            <FaChevronRight size={11} />
-          </button>
-
-          {/* Última página */}
-          <button
-            onClick={() => goToPage(totalPages)}
-            disabled={currentPage === totalPages}
-            title="Última página"
-            style={{
-              width: '34px',
-              height: '34px',
-              border: '1px solid #d1d7db',
-              borderRadius: '6px',
-              backgroundColor: currentPage === totalPages ? '#f5f5f5' : '#fff',
-              color: currentPage === totalPages ? '#bbb' : '#555',
-              cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '14px',
-              fontWeight: 'bold',
-              transition: 'all 0.15s'
-            }}
-          >
-            »
-          </button>
-        </div>
-      )}
-
-      {/* Info de paginación */}
-      <div style={{
-        textAlign: 'center',
-        padding: '10px 20px',
-        fontSize: '13px',
-        color: '#666666',
-        borderTop: totalPages > 1 ? 'none' : '1px solid #e0e0e0'
-      }}>
-        Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, total)} de {total} {total === 1 ? 'conversación' : 'conversaciones'}
+          ))
+        )}
       </div>
 
-      <div className="modal-footer" style={{ borderTop: '1px solid #e0e0e0', backgroundColor: '#FFFFFF' }}>
-        <button className="btn-secondary" onClick={onClose}>
-          Cerrar
-        </button>
+      {/* Pagination Footer */}
+      <div className="modal-footer-custom">
+        <div className="pagination-info" style={{ fontSize: '13px', color: '#6b7280' }}>
+          Página {currentPage} de {totalPages}
+        </div>
+
+        {totalPages > 1 && (
+          <div className="pagination-modern">
+            <button
+              className="page-btn"
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              <FaChevronLeft size={10} />
+            </button>
+
+            {/* Generar números de página simple */}
+            {[...Array(totalPages)].map((_, idx) => {
+              const pageNum = idx + 1;
+              // Mostrar solo páginas cercanas a la actual para no saturar si hay muchas
+              if (
+                totalPages <= 7 ||
+                pageNum === 1 ||
+                pageNum === totalPages ||
+                (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+              ) {
+                return (
+                  <button
+                    key={pageNum}
+                    className={`page-btn ${currentPage === pageNum ? 'active' : ''}`}
+                    onClick={() => goToPage(pageNum)}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              } else if (
+                (pageNum === currentPage - 2 && pageNum > 1) ||
+                (pageNum === currentPage + 2 && pageNum < totalPages)
+              ) {
+                return <span key={pageNum} style={{ padding: '0 4px', color: '#9ca3af' }}>...</span>;
+              }
+              return null;
+            })}
+
+            <button
+              className="page-btn"
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              <FaChevronRight size={10} />
+            </button>
+          </div>
+        )}
+
+        <SidebarMenuButton
+          onClick={onClose}
+          label="Cerrar"
+          icon={FaTimes}
+          className="sidebar-menu-btn light"
+          style={{ width: 'auto', padding: '8px 16px' }}
+        />
       </div>
     </BaseModal>
   );

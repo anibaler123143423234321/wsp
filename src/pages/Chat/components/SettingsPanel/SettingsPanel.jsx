@@ -7,7 +7,8 @@ const SettingsPanel = ({
   user,
   isSoundEnabled,   // Nueva prop
   onSoundToggle,    // Nueva prop
-  onTestSound       // 🔥 Nueva prop: Función para probar sonido
+  onTestSound,      // 🔥 Nueva prop: Función para probar sonido mención
+  onTestNormalSound // 🔥 Nueva prop: Función para probar sonido normal
 }) => {
   if (!isOpen) return null;
 
@@ -35,40 +36,39 @@ const SettingsPanel = ({
 
         {/* Contenido */}
         <div className="settings-content">
-          {/* Información de la cuenta */}
-          <div className="settings-section">
-            <div className="settings-section-header">
-              <FaUserCircle className="settings-section-icon" />
-              <h3>Cuenta</h3>
-            </div>
-            <div className="settings-section-content">
-              {/* ... (items de Nombre de usuario, Nombre completo, Rol se mantienen igual) ... */}
-              <div className="settings-item">
-                <div className="settings-item-label">Nombre de usuario</div>
-                <div className="settings-item-value">{user?.username || 'N/A'}</div>
-              </div>
-              <div className="settings-item">
-                <div className="settings-item-label">Nombre completo</div>
-                <div className="settings-item-value">
-                  {user?.nombre && user?.apellido
-                    ? `${user.nombre} ${user.apellido}`
-                    : 'N/A'}
+
+          {/* PERFIL (Centrado y Compacto) */}
+          <div className="settings-profile-section">
+            <div className="settings-avatar-container">
+              {user?.picture ? (
+                <img
+                  src={user.picture}
+                  alt="Avatar"
+                  className="settings-user-avatar-large"
+                />
+              ) : (
+                <div className="settings-user-avatar-placeholder">
+                  {(user?.nombre?.[0] || user?.username?.[0] || 'U').toUpperCase()}
                 </div>
-              </div>
-              <div className="settings-item">
-                <div className="settings-item-label">Rol</div>
-                <div className="settings-item-value">{user?.role || 'N/A'}</div>
-              </div>
+              )}
             </div>
+            <h3 className="settings-user-name">
+              {user?.nombre && user?.apellido
+                ? `${user.nombre} ${user.apellido}`
+                : user?.username || 'Usuario'}
+            </h3>
+            <p className="settings-user-info">
+              @{user?.username} • {user?.role}
+            </p>
           </div>
 
-          {/* --- NUEVA SECCIÓN: PREFERENCIAS --- */}
-          <div className="settings-section">
-            <div className="settings-section-header">
-              <FaCog className="settings-section-icon" />
-              <h3>Preferencias</h3>
-            </div>
-            <div className="settings-section-content">
+          <div className="settings-cards-container">
+            {/* PREFERENCIAS */}
+            <div className="settings-card">
+              <div className="settings-card-header">
+                <h4 style={{ color: '#10B981' }}>Preferencias</h4>
+              </div>
+
               <div className="settings-toggle-item">
                 <span className="settings-toggle-label">Sonido de notificaciones</span>
                 <label className="toggle-switch">
@@ -81,47 +81,24 @@ const SettingsPanel = ({
                 </label>
               </div>
 
-              {/* Botón para probar sonido */}
-              <div style={{ marginTop: '15px', display: 'flex', justifyContent: 'center' }}>
-                <button
-                  onClick={onTestSound}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: '#00a884',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    transition: 'background-color 0.2s'
-                  }}
-                  onMouseOver={(e) => e.target.style.backgroundColor = '#008f6f'}
-                  onMouseOut={(e) => e.target.style.backgroundColor = '#00a884'}
-                >
-                  🔊 Probar Sonido de Mención
+              <div className="settings-actions">
+                <button onClick={onTestNormalSound} className="settings-btn-pill primary" title="Sonido Normal">
+                  🔔 Normal
+                </button>
+                <button onClick={onTestSound} className="settings-btn-pill primary" title="Sonido Mención">
+                  🔊 Mención
                 </button>
               </div>
-              {/* Aquí podrías añadir más toggles, como "Modo Oscuro" */}
             </div>
-          </div>
-          {/* --- FIN DE LA NUEVA SECCIÓN --- */}
 
-          {/* Notificaciones de seguridad */}
-          <div className="settings-section">
-            <div className="settings-section-header">
-              <FaKey className="settings-section-icon" />
-              <h3>Notificaciones de seguridad</h3>
-            </div>
-            <div className="settings-section-content">
-              <div className="settings-info-box">
-                <p>
-                  Las notificaciones de seguridad te alertan sobre cambios importantes en tu cuenta,
-                  como inicios de sesión desde nuevos dispositivos o cambios en la configuración de seguridad.
-                </p>
+            {/* SEGURIDAD */}
+            <div className="settings-card" style={{ marginTop: '12px' }}>
+              <div className="settings-card-header">
+                <h4 style={{ color: '#EF4444' }}>Seguridad y Privacidad</h4>
               </div>
+              <p className="settings-card-text">
+                Te avisaremos si detectamos actividad inusual o nuevos inicios de sesión en tu cuenta.
+              </p>
             </div>
           </div>
         </div>
