@@ -231,12 +231,18 @@
 
 /* Estilos del contenido del chat */
 
+/* Estilos del contenido del chat */
+
 .chat-content {
   flex: 1;
   display: flex;
   flex-direction: column;
   height: 100vh;
+  /* Fallback */
+  height: 100dvh;
+  /* Móviles modernos */
   max-height: 100vh;
+  max-height: 100dvh;
   overflow: hidden;
   background-color: #f0f2f5;
   position: relative;
@@ -245,36 +251,24 @@
 @media (max-width: 900px) {
   .chat-content {
     height: 100vh;
+    height: 100dvh;
     max-height: 100vh;
+    max-height: 100dvh;
     padding: 0 4px;
   }
 
-  .welcome-screen {
-    padding: 20px;
-  }
-
-  .welcome-title {
-    font-size: 22px;
-  }
-
-  .welcome-subtitle,
-  .welcome-description {
-    font-size: 13px;
-    max-width: 90vw;
-  }
-
-  .chat-history {
-    padding: 8px 6px;
-    /* max-height removed */
-  }
+  /* ... */
 }
 
 @media (max-width: 600px) {
   .chat-content {
     height: 100vh;
+    height: 100dvh;
     max-height: 100vh;
+    max-height: 100dvh;
     padding: 0 1px;
   }
+
 
   .welcome-screen {
     padding: 8px;

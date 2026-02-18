@@ -12,9 +12,8 @@
     flex-direction: column;
     align-items: stretch;
     position: relative;
-    padding-bottom: 1px;
-    /* Minimal bottom padding */
-    /* Small breathing room but tight */
+    padding-bottom: calc(6px + env(safe-area-inset-bottom));
+    /* Safe area for iPhone */
     margin-bottom: 0px;
 }
 
@@ -521,6 +520,7 @@ html.dark .chat-input-send-btn:hover:not(:disabled) {
 .dark .chat-input-mention-avatar {
     color: #fff !important;
 }
+
 .chat-input-preview-body {
     display: flex;
     align-items: center;
