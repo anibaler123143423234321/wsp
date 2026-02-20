@@ -364,6 +364,10 @@ html.dark .thread-message:hover {
 .thread-message-own .thread-message-text {
   background: #e1f4d6 !important;
   color: #111b21 !important;
+  min-width: 80px;
+  padding-left: 28px !important;
+  /* Espacio para el check a la izquierda */
+  border-radius: 12px 2px 12px 12px;
 }
 
 .thread-message-other .thread-message-text {
@@ -2089,9 +2093,6 @@ html.dark .thread-message:hover .thread-message-timestamp-left {
 }
 
 /* Burbuja del mensaje propio: estilos ya definidos con e1f4d6, sin sobrecargar */
-.thread-message.thread-message-own .thread-message-text {
-  border-radius: 12px 2px 12px 12px;
-}
 
 /* Gutter del mensaje propio centrado verticalmente */
 .thread-message.thread-message-own .thread-message-gutter {

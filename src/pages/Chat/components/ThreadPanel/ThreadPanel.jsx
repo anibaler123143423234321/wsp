@@ -1444,18 +1444,24 @@ const ThreadPanel = ({
   const formatTime = (msg) => {
     if (!msg) return "";
 
-    //  IMPORTANTE: Si el mensaje tiene 'time' ya formateado, usarlo directamente
-    // El backend ya envía 'time' en formato de Perú (HH:mm)
-    if (msg.time) {
-      return msg.time;
+    const timeSource = msg.time || msg.sentAt;
+    if (!timeSource) return "";
+
+    // Si ya parece estar formateado (HH:mm), devolverlo
+    if (typeof timeSource === 'string' && timeSource.includes(':') && !timeSource.includes('T')) {
+      return timeSource;
     }
 
-    // Si solo tiene sentAt, usar directamente (backend ya formatea)
-    if (msg.sentAt) {
-      return msg.sentAt;
+    try {
+      const date = new Date(timeSource);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      }
+    } catch (e) {
+      console.error("Error formatting time:", e);
     }
 
-    return "";
+    return timeSource;
   };
 
   //  NUEVO: Cerrar menú y picker de reacciones al hacer clic fuera
@@ -1587,7 +1593,7 @@ const ThreadPanel = ({
               {threadMessages.length === 1 ? "respuesta" : "respuestas"}
             </span>
             <span className="thread-main-message-time">
-              {formatTime(message)}
+              {formatDateLabel(message.sentAt)}, {formatTime(message)}
             </span>
           </div>
         </div>
@@ -1847,7 +1853,9 @@ const ThreadPanel = ({
 
               // Mensaje normal
               const msg = item;
-              const isOwnMessage = msg.from === currentUsername;
+              const isOwnMessage = msg.isSelf !== undefined
+                ? msg.isSelf
+                : msg.from === "Tú" || msg.from === currentUsername || (user && (msg.from === user.username || msg.from === (user.nombre + ' ' + user.apellido)));
               const userColor = getUserColor(msg.from, isOwnMessage);
 
               const mentionRegex = new RegExp(`@${currentUsername?.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w])`, 'i');
@@ -1858,7 +1866,7 @@ const ThreadPanel = ({
               const isGroupStart = msg.isGroupStart !== false; // Si no está definido, es inicio de grupo
 
               // Definir JSX de Read Receipts para reutilizar dentro de las burbujas
-              const readReceiptsJSX = msg.readBy && msg.readBy.length > 0 ? (
+              const readReceiptsJSX = (msg.readBy && msg.readBy.length > 0) || (isOwnMessage && msg.isRead) ? (
                 <div
                   className="thread-read-receipts"
                   style={{
@@ -1897,7 +1905,8 @@ const ThreadPanel = ({
                     <svg viewBox="0 0 16 11" height="11" width="16" preserveAspectRatio="xMidYMid meet">
                       <path fill="currentColor" d="M11.071.653a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178l-6.19 7.636-2.405-2.272a.463.463 0 0 0-.336-.146.47.47 0 0 0-.343.146l-.311.31a.445.445 0 0 0-.14.337c0 .136.047.25.14.343l2.996 2.996a.724.724 0 0 0 .27.18.652.652 0 0 0 .3.07.596.596 0 0 0 .274-.07.716.716 0 0 0 .253-.18L11.071 1.27a.445.445 0 0 0 .14-.337.453.453 0 0 0-.14-.28zm3.486 0a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178L7.682 8.365l-.376-.377-.19.192 1.07 1.07a.724.724 0 0 0 .27.18.652.652 0 0 0 .3.07.596.596 0 0 0 .274-.07.716.716 0 0 0 .253-.18l6.19-7.636a.445.445 0 0 0 .14-.337.453.453 0 0 0-.14-.28z"></path>
                     </svg>
-                    <span style={{ fontWeight: '500' }}>{msg.readBy.length}</span>
+                    {(msg.readBy && msg.readBy.length > 0) && <span style={{ fontWeight: '500' }}>{msg.readBy.length}</span>}
+                    {(!msg.readBy || msg.readBy.length === 0) && msg.isRead && <span style={{ fontWeight: '500' }}>1</span>}
                   </div>
 
                   {/*  POPOVER DE DETALLES */}
@@ -2407,8 +2416,8 @@ const ThreadPanel = ({
                           {readReceiptsJSX && (
                             <div style={{
                               position: 'absolute',
-                              bottom: '4px',
-                              ...(isOwnMessage ? { left: '6px' } : { right: '6px' }),
+                              bottom: '3px',
+                              ...(isOwnMessage ? { left: '4px' } : { right: '6px' }),
                               lineHeight: 1,
                             }}>
                               {readReceiptsJSX}
