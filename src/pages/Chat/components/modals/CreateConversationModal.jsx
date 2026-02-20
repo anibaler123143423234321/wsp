@@ -70,6 +70,13 @@ const CreateConversationModal = ({
     }
   }, [isOpen]); //  Solo cargar cuando se abre el modal, NO cuando cambia la sede
 
+  // 🔥 Cargar usuarios cuando cambia la sede
+  useEffect(() => {
+    if (isOpen) {
+      loadBackendUsers();
+    }
+  }, [sedeUser1, sedeUser2]);
+
   // Cargar usuarios del backend para ambos contenedores
   const loadBackendUsers = async () => {
     //  Cargar usuarios para la sede del primer usuario si no hay caché
@@ -424,6 +431,8 @@ const CreateConversationModal = ({
     }
   };
 
+  const isDark = document.documentElement.classList.contains('dark');
+
   return (
     <BaseModal
       isOpen={isOpen}
@@ -432,42 +441,25 @@ const CreateConversationModal = ({
       icon={<FaComments />}
       onSubmit={handleSubmit}
       headerBgColor="#A50104"
-      bodyBgColor="#FFFFFF"
+      bodyBgColor={isDark ? '#111b21' : '#ffffff'}
       titleColor="#FFFFFF"
       maxWidth="1000px"
     >
-      <div className="create-conversation-content">
+      <div className="ccm-content">
         {error && (
-          <div className="error-message" style={{
-            backgroundColor: '#fee',
-            border: '1px solid #fcc',
-            borderRadius: '4px',
-            padding: '10px',
-            marginBottom: '15px',
-            color: '#c00',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
+          <div className="ccm-error-banner">
             <FaInfoCircle />
             <span>{error}</span>
           </div>
         )}
 
         {/* Selector de sede */}
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{
-            display: 'block',
-            marginBottom: '8px',
-            color: '#000',
-            fontWeight: '500',
-            fontSize: '14px'
-          }}>
-            Buscar usuarios en:
-          </label>
-          <div style={{ display: 'flex', gap: '10px' }}>
+        <div className="ccm-sede-section">
+          <label className="ccm-label">Buscar usuarios en:</label>
+          <div className="ccm-sede-buttons">
             <button
               type="button"
+              className={`ccm-sede-btn ${selectedSede === 'CHICLAYO_PIURA' ? 'active' : ''}`}
               onClick={() => {
                 setSelectedSede('CHICLAYO_PIURA');
                 setSearchUser1('');
@@ -478,24 +470,12 @@ const CreateConversationModal = ({
                 setPageUser2(1);
               }}
               disabled={loadingBackendUsers}
-              style={{
-                flex: 1,
-                padding: '8px 16px',
-                background: selectedSede === 'CHICLAYO_PIURA' ? '#A50104' : '#f0f0f0',
-                color: selectedSede === 'CHICLAYO_PIURA' ? '#fff' : '#333',
-                border: selectedSede === 'CHICLAYO_PIURA' ? '2px solid #A50104' : '2px solid #ddd',
-                borderRadius: '6px',
-                cursor: loadingBackendUsers ? 'not-allowed' : 'pointer',
-                fontWeight: '600',
-                fontSize: '13px',
-                transition: 'all 0.2s',
-                opacity: loadingBackendUsers ? 0.5 : 1
-              }}
             >
               CHICLAYO / PIURA
             </button>
             <button
               type="button"
+              className={`ccm-sede-btn ${selectedSede === 'LIMA' ? 'active' : ''}`}
               onClick={() => {
                 setSelectedSede('LIMA');
                 setSearchUser1('');
@@ -506,19 +486,6 @@ const CreateConversationModal = ({
                 setPageUser2(1);
               }}
               disabled={loadingBackendUsers}
-              style={{
-                flex: 1,
-                padding: '8px 16px',
-                background: selectedSede === 'LIMA' ? '#A50104' : '#f0f0f0',
-                color: selectedSede === 'LIMA' ? '#fff' : '#333',
-                border: selectedSede === 'LIMA' ? '2px solid #A50104' : '2px solid #ddd',
-                borderRadius: '6px',
-                cursor: loadingBackendUsers ? 'not-allowed' : 'pointer',
-                fontWeight: '600',
-                fontSize: '13px',
-                transition: 'all 0.2s',
-                opacity: loadingBackendUsers ? 0.5 : 1
-              }}
             >
               LIMA
             </button>
@@ -526,76 +493,30 @@ const CreateConversationModal = ({
         </div>
 
         {/* Grid de 2 columnas */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '20px',
-          marginBottom: '20px'
-        }}>
+        <div className="ccm-users-grid">
           {/* Usuario 1 */}
-          <div style={{
-            border: '1px solid #ddd',
-            borderRadius: '8px',
-            overflow: 'hidden',
-            backgroundColor: '#fafafa'
-          }}>
-            <div style={{
-              background: '#A50104',
-              padding: '10px 15px',
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <FaUser />
-              <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '600' }}>Primer Usuario</h3>
+          <div className="ccm-user-card">
+            <div className="ccm-card-header">
+              <FaUser size={12} />
+              <span>Primer Usuario</span>
             </div>
-
-            <div style={{ padding: '15px' }}>
-              {/* Búsqueda */}
-              <div style={{ position: 'relative', marginBottom: '10px' }}>
-                <FaSearch style={{
-                  position: 'absolute',
-                  left: '10px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: '#999',
-                  fontSize: '12px'
-                }} />
+            <div className="ccm-card-body">
+              <div className="ccm-search-wrap">
+                <FaSearch className="ccm-search-icon" />
                 <input
                   type="text"
+                  className="ccm-search-input"
                   placeholder="Buscar por nombre o usuario..."
                   value={searchUser1}
                   onChange={(e) => handleSearchUser1(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px 8px 32px',
-                    border: '1px solid #ddd',
-                    borderRadius: '6px',
-                    fontSize: '13px',
-                    outline: 'none',
-                    backgroundColor: '#fff',
-                    color: '#000'
-                  }}
                 />
               </div>
 
-              {/* Lista de usuarios */}
-              <div style={{
-                maxHeight: '200px',
-                overflowY: 'auto',
-                border: '1px solid #ddd',
-                borderRadius: '6px',
-                backgroundColor: '#fff'
-              }}>
+              <div className="ccm-users-list">
                 {loadingBackendUsers ? (
-                  <div style={{ padding: '20px', textAlign: 'center', color: '#999', fontSize: '13px' }}>
-                    <p>⏳ Cargando usuarios...</p>
-                  </div>
+                  <div className="ccm-empty-state">⏳ Cargando usuarios...</div>
                 ) : paginatedUsers1.length === 0 ? (
-                  <div style={{ padding: '20px', textAlign: 'center', color: '#999', fontSize: '13px' }}>
-                    <p>No se encontraron usuarios</p>
-                  </div>
+                  <div className="ccm-empty-state">No se encontraron usuarios</div>
                 ) : (
                   paginatedUsers1.map((user, index) => {
                     const username = typeof user === 'string' ? user : user.username;
@@ -607,6 +528,7 @@ const CreateConversationModal = ({
                     return (
                       <div
                         key={index}
+                        className={`ccm-user-item ${isSelected ? 'selected' : ''}`}
                         onClick={() => {
                           if (isSelected) {
                             setSelectedUser1(null);
@@ -616,68 +538,13 @@ const CreateConversationModal = ({
                             setSelectedUser1Obj(user);
                           }
                         }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px',
-                          padding: '8px 12px',
-                          cursor: 'pointer',
-                          borderBottom: '1px solid #f0f0f0',
-                          backgroundColor: isSelected ? '#fff5f5' : 'transparent',
-                          borderLeft: isSelected ? '3px solid #A50104' : '3px solid transparent',
-                          transition: 'all 0.2s'
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!isSelected) e.currentTarget.style.backgroundColor = '#f9f9f9';
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
-                        }}
                       >
-                        <div style={{
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '6px',
-                          background: '#A50104',
-                          color: '#fff',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: '600',
-                          fontSize: '14px',
-                          flexShrink: 0
-                        }}>
+                        <div className="ccm-user-avatar">
                           {displayName.charAt(0).toUpperCase()}
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{
-                            margin: 0,
-                            fontSize: '13px',
-                            fontWeight: '500',
-                            color: '#000',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                          }}>
-                            {displayName}
-                          </p>
-                        </div>
+                        <div className="ccm-user-name">{displayName}</div>
                         {isSelected && (
-                          <div style={{
-                            width: '20px',
-                            height: '20px',
-                            borderRadius: '50%',
-                            background: '#A50104',
-                            color: '#fff',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            flexShrink: 0
-                          }}>
-                            <FaCheck />
-                          </div>
+                          <div className="ccm-check-icon"><FaCheck size={8} /></div>
                         )}
                       </div>
                     );
@@ -685,53 +552,13 @@ const CreateConversationModal = ({
                 )}
               </div>
 
-              {/* Paginación */}
               {totalPagesUser1 > 1 && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginTop: '10px',
-                  paddingTop: '10px',
-                  borderTop: '1px solid #eee'
-                }}>
-                  <button
-                    type="button"
-                    onClick={() => setPageUser1(prev => Math.max(1, prev - 1))}
-                    disabled={pageUser1 === 1}
-                    style={{
-                      padding: '5px 12px',
-                      background: pageUser1 === 1 ? '#f0f0f0' : '#fff',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      cursor: pageUser1 === 1 ? 'not-allowed' : 'pointer',
-                      fontSize: '12px',
-                      fontWeight: '500',
-                      color: pageUser1 === 1 ? '#999' : '#000',
-                      opacity: pageUser1 === 1 ? 0.5 : 1
-                    }}
-                  >
+                <div className="ccm-pagination">
+                  <button type="button" className="ccm-page-btn" onClick={() => setPageUser1(prev => Math.max(1, prev - 1))} disabled={pageUser1 === 1}>
                     ← Anterior
                   </button>
-                  <span style={{ color: '#666', fontSize: '12px', fontWeight: '500' }}>
-                    {pageUser1} / {totalPagesUser1}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setPageUser1(prev => Math.min(totalPagesUser1, prev + 1))}
-                    disabled={pageUser1 === totalPagesUser1}
-                    style={{
-                      padding: '5px 12px',
-                      background: pageUser1 === totalPagesUser1 ? '#f0f0f0' : '#fff',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      cursor: pageUser1 === totalPagesUser1 ? 'not-allowed' : 'pointer',
-                      fontSize: '12px',
-                      fontWeight: '500',
-                      color: pageUser1 === totalPagesUser1 ? '#999' : '#000',
-                      opacity: pageUser1 === totalPagesUser1 ? 0.5 : 1
-                    }}
-                  >
+                  <span className="ccm-page-info">{pageUser1} / {totalPagesUser1}</span>
+                  <button type="button" className="ccm-page-btn" onClick={() => setPageUser1(prev => Math.min(totalPagesUser1, prev + 1))} disabled={pageUser1 === totalPagesUser1}>
                     Siguiente →
                   </button>
                 </div>
@@ -740,69 +567,28 @@ const CreateConversationModal = ({
           </div>
 
           {/* Usuario 2 */}
-          <div style={{
-            border: '1px solid #ddd',
-            borderRadius: '8px',
-            overflow: 'hidden',
-            backgroundColor: '#fafafa'
-          }}>
-            <div style={{
-              background: '#A50104',
-              padding: '10px 15px',
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <FaUser />
-              <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '600' }}>Segundo Usuario</h3>
+          <div className="ccm-user-card">
+            <div className="ccm-card-header">
+              <FaUser size={12} />
+              <span>Segundo Usuario</span>
             </div>
-
-            <div style={{ padding: '15px' }}>
-              {/* Búsqueda */}
-              <div style={{ position: 'relative', marginBottom: '10px' }}>
-                <FaSearch style={{
-                  position: 'absolute',
-                  left: '10px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: '#999',
-                  fontSize: '12px'
-                }} />
+            <div className="ccm-card-body">
+              <div className="ccm-search-wrap">
+                <FaSearch className="ccm-search-icon" />
                 <input
                   type="text"
+                  className="ccm-search-input"
                   placeholder="Buscar por nombre o usuario..."
                   value={searchUser2}
                   onChange={(e) => handleSearchUser2(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px 8px 32px',
-                    border: '1px solid #ddd',
-                    borderRadius: '6px',
-                    fontSize: '13px',
-                    outline: 'none',
-                    backgroundColor: '#fff',
-                    color: '#000'
-                  }}
                 />
               </div>
 
-              {/* Lista de usuarios */}
-              <div style={{
-                maxHeight: '200px',
-                overflowY: 'auto',
-                border: '1px solid #ddd',
-                borderRadius: '6px',
-                backgroundColor: '#fff'
-              }}>
+              <div className="ccm-users-list">
                 {loadingBackendUsers ? (
-                  <div style={{ padding: '20px', textAlign: 'center', color: '#999', fontSize: '13px' }}>
-                    <p>⏳ Cargando usuarios...</p>
-                  </div>
+                  <div className="ccm-empty-state">⏳ Cargando usuarios...</div>
                 ) : paginatedUsers2.length === 0 ? (
-                  <div style={{ padding: '20px', textAlign: 'center', color: '#999', fontSize: '13px' }}>
-                    <p>No se encontraron usuarios</p>
-                  </div>
+                  <div className="ccm-empty-state">No se encontraron usuarios</div>
                 ) : (
                   paginatedUsers2.map((user, index) => {
                     const username = typeof user === 'string' ? user : user.username;
@@ -814,6 +600,7 @@ const CreateConversationModal = ({
                     return (
                       <div
                         key={index}
+                        className={`ccm-user-item ${isSelected ? 'selected' : ''}`}
                         onClick={() => {
                           if (isSelected) {
                             setSelectedUser2(null);
@@ -823,68 +610,13 @@ const CreateConversationModal = ({
                             setSelectedUser2Obj(user);
                           }
                         }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px',
-                          padding: '8px 12px',
-                          cursor: 'pointer',
-                          borderBottom: '1px solid #f0f0f0',
-                          backgroundColor: isSelected ? '#fff5f5' : 'transparent',
-                          borderLeft: isSelected ? '3px solid #A50104' : '3px solid transparent',
-                          transition: 'all 0.2s'
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!isSelected) e.currentTarget.style.backgroundColor = '#f9f9f9';
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
-                        }}
                       >
-                        <div style={{
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '6px',
-                          background: '#A50104',
-                          color: '#fff',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: '600',
-                          fontSize: '14px',
-                          flexShrink: 0
-                        }}>
+                        <div className="ccm-user-avatar">
                           {displayName.charAt(0).toUpperCase()}
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{
-                            margin: 0,
-                            fontSize: '13px',
-                            fontWeight: '500',
-                            color: '#000',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                          }}>
-                            {displayName}
-                          </p>
-                        </div>
+                        <div className="ccm-user-name">{displayName}</div>
                         {isSelected && (
-                          <div style={{
-                            width: '20px',
-                            height: '20px',
-                            borderRadius: '50%',
-                            background: '#A50104',
-                            color: '#fff',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            flexShrink: 0
-                          }}>
-                            <FaCheck />
-                          </div>
+                          <div className="ccm-check-icon"><FaCheck size={8} /></div>
                         )}
                       </div>
                     );
@@ -892,53 +624,13 @@ const CreateConversationModal = ({
                 )}
               </div>
 
-              {/* Paginación */}
               {totalPagesUser2 > 1 && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginTop: '10px',
-                  paddingTop: '10px',
-                  borderTop: '1px solid #eee'
-                }}>
-                  <button
-                    type="button"
-                    onClick={() => setPageUser2(prev => Math.max(1, prev - 1))}
-                    disabled={pageUser2 === 1}
-                    style={{
-                      padding: '5px 12px',
-                      background: pageUser2 === 1 ? '#f0f0f0' : '#fff',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      cursor: pageUser2 === 1 ? 'not-allowed' : 'pointer',
-                      fontSize: '12px',
-                      fontWeight: '500',
-                      color: pageUser2 === 1 ? '#999' : '#000',
-                      opacity: pageUser2 === 1 ? 0.5 : 1
-                    }}
-                  >
+                <div className="ccm-pagination">
+                  <button type="button" className="ccm-page-btn" onClick={() => setPageUser2(prev => Math.max(1, prev - 1))} disabled={pageUser2 === 1}>
                     ← Anterior
                   </button>
-                  <span style={{ color: '#666', fontSize: '12px', fontWeight: '500' }}>
-                    {pageUser2} / {totalPagesUser2}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setPageUser2(prev => Math.min(totalPagesUser2, prev + 1))}
-                    disabled={pageUser2 === totalPagesUser2}
-                    style={{
-                      padding: '5px 12px',
-                      background: pageUser2 === totalPagesUser2 ? '#f0f0f0' : '#fff',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      cursor: pageUser2 === totalPagesUser2 ? 'not-allowed' : 'pointer',
-                      fontSize: '12px',
-                      fontWeight: '500',
-                      color: pageUser2 === totalPagesUser2 ? '#999' : '#000',
-                      opacity: pageUser2 === totalPagesUser2 ? 0.5 : 1
-                    }}
-                  >
+                  <span className="ccm-page-info">{pageUser2} / {totalPagesUser2}</span>
+                  <button type="button" className="ccm-page-btn" onClick={() => setPageUser2(prev => Math.min(totalPagesUser2, prev + 1))} disabled={pageUser2 === totalPagesUser2}>
                     Siguiente →
                   </button>
                 </div>
@@ -948,119 +640,48 @@ const CreateConversationModal = ({
         </div>
 
         {/* Nombre de la conversación */}
-        <div className="form-group" style={{ marginBottom: '15px' }}>
-          <label htmlFor="conversationName" style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            color: '#000',
-            fontWeight: '500',
-            fontSize: '14px',
-            marginBottom: '8px'
-          }}>
+        <div className="ccm-name-section">
+          <label className="ccm-label">
             <FaComments style={{ color: '#A50104' }} />
             Nombre de la Conversación
           </label>
           <input
             type="text"
-            id="conversationName"
+            className="ccm-name-input"
             value={conversationName}
             onChange={(e) => setConversationName(e.target.value)}
             placeholder="Selecciona ambos usuarios para generar el nombre..."
             required
-            style={{
-              width: '100%',
-              padding: '10px 12px',
-              border: '1px solid #d1d7db',
-              borderRadius: '6px',
-              fontSize: '13px',
-              outline: 'none',
-              backgroundColor: '#fff',
-              color: '#000'
-            }}
           />
-          <p style={{
-            marginTop: '6px',
-            marginBottom: 0,
-            color: '#666',
-            fontSize: '12px',
-            fontStyle: 'italic'
-          }}>
-            {conversationName ? (
-              <>✏️ Puedes editar el nombre si lo deseas</>
-            ) : (
-              <>El nombre se genera automáticamente al seleccionar ambos usuarios</>
-            )}
+          <p className="ccm-hint">
+            {conversationName
+              ? '✏️ Puedes editar el nombre si lo deseas'
+              : 'El nombre se genera automáticamente al seleccionar ambos usuarios'}
           </p>
         </div>
 
         {/* Info */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: '10px',
-          background: '#e3f2fd',
-          border: '1px solid #90caf9',
-          borderRadius: '6px',
-          padding: '12px',
-          marginBottom: '15px'
-        }}>
-          <FaInfoCircle style={{ color: '#1976d2', fontSize: '16px', flexShrink: 0, marginTop: '2px' }} />
+        <div className="ccm-info-banner">
+          <FaInfoCircle className="ccm-info-icon" />
           <div>
-            <p style={{ margin: 0, fontWeight: '600', color: '#000', fontSize: '13px', marginBottom: '4px' }}>
-              Conversación Administrada
-            </p>
-            <p style={{ margin: 0, color: '#555', fontSize: '12px' }}>
+            <p className="ccm-info-title">Conversación Administrada</p>
+            <p className="ccm-info-text">
               Los usuarios podrán chatear entre sí, pero solo el administrador puede eliminar la conversación.
             </p>
           </div>
         </div>
 
         {/* Botones */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: '10px',
-          paddingTop: '15px',
-          borderTop: '1px solid #eee'
-        }}>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              padding: '8px 20px',
-              background: '#f0f0f0',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '13px',
-              fontWeight: '600',
-              color: '#333',
-              transition: 'all 0.2s'
-            }}
-          >
+        <div className="ccm-footer">
+          <button type="button" className="ccm-btn cancel" onClick={onClose}>
             Cancelar
           </button>
           <button
             type="submit"
+            className="ccm-btn submit"
             disabled={!selectedUser1 || !selectedUser2 || selectedUser1 === selectedUser2 || isSubmitting}
-            style={{
-              padding: '8px 20px',
-              background: (!selectedUser1 || !selectedUser2 || selectedUser1 === selectedUser2 || isSubmitting) ? '#ccc' : '#A50104',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: (!selectedUser1 || !selectedUser2 || selectedUser1 === selectedUser2 || isSubmitting) ? 'not-allowed' : 'pointer',
-              fontSize: '13px',
-              fontWeight: '600',
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.2s',
-              opacity: (!selectedUser1 || !selectedUser2 || selectedUser1 === selectedUser2 || isSubmitting) ? 0.6 : 1
-            }}
           >
-            <FaComments />
+            <FaComments size={12} />
             {isSubmitting ? 'Creando...' : 'Crear Conversación'}
           </button>
         </div>
