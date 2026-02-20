@@ -1,0 +1,132 @@
+/* ============================================
+   SimpleFormModal - sfm-* classes
+   Shared by JoinRoomModal, CreateRoomModal, etc.
+   Dark theme by default, light via html:not(.dark)
+   ============================================ */
+
+.sfm-body {
+    padding: 20px;
+}
+
+/* ── Form fields ── */
+.sfm-field {
+    margin-bottom: 16px;
+}
+
+.sfm-label {
+    display: block;
+    margin-bottom: 6px;
+    color: #e9edef;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.sfm-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #3b4a54;
+    border-radius: 8px;
+    font-size: 13px;
+    background-color: #233040;
+    color: #e9edef;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+    box-sizing: border-box;
+}
+
+.sfm-input:focus {
+    border-color: #A50104;
+    box-shadow: 0 0 0 2px rgba(165, 1, 4, .25);
+}
+
+.sfm-input::placeholder {
+    color: #8696a0;
+}
+
+/* ── Actions / Footer ── */
+.sfm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 16px;
+    margin-top: 4px;
+    border-top: 1px solid #2a3942;
+}
+
+.sfm-btn {
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sfm-btn.cancel {
+    background-color: #233040;
+    border: 1px solid #3b4a54;
+    color: #8696a0;
+}
+
+.sfm-btn.cancel:hover {
+    background-color: #2a3942;
+    color: #e9edef;
+}
+
+.sfm-btn.submit {
+    background-color: #A50104;
+    border: none;
+    color: #fff;
+}
+
+.sfm-btn.submit:hover {
+    background-color: #8b0003;
+}
+
+.sfm-btn.submit:disabled {
+    background-color: #3b4a54;
+    color: #6b7280;
+    cursor: not-allowed;
+    opacity: .6;
+}
+
+/* ══════════════════════════════════════════
+   Light mode overrides
+   ══════════════════════════════════════════ */
+
+html:not(.dark) .sfm-label {
+    color: #111827;
+}
+
+html:not(.dark) .sfm-input {
+    background-color: #fff;
+    border-color: #d1d5db;
+    color: #111827;
+}
+
+html:not(.dark) .sfm-input::placeholder {
+    color: #9ca3af;
+}
+
+html:not(.dark) .sfm-actions {
+    border-top-color: #e5e7eb;
+}
+
+html:not(.dark) .sfm-btn.cancel {
+    background-color: #f3f4f6;
+    border-color: #d1d5db;
+    color: #374151;
+}
+
+html:not(.dark) .sfm-btn.cancel:hover {
+    background-color: #e5e7eb;
+    color: #111827;
+}
+
+html:not(.dark) .sfm-btn.submit:disabled {
+    background-color: #d1d5db;
+    color: #9ca3af;
+}
