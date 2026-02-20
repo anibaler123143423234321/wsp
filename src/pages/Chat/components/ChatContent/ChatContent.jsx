@@ -38,6 +38,7 @@ import MessageSelectionManager from "./MessageSelectionManager/MessageSelectionM
 import ForwardMessageModal from "./ForwardMessageModal"; //  NUEVO: Modal de reenvío
 import PDFViewer from '../../../../components/PDFViewer/PDFViewer'; // Importar el visor de PDF
 import apiService from '../../../../apiService';
+import { useUserNameColor } from "../../../../components/userColors";
 import AttachMenu from '../AttachMenu/AttachMenu';
 import MediaPreviewList from '../MediaPreviewList/MediaPreviewList'; // Utilidad reutilizable
 import { handleSmartPaste } from '../utils/pasteHandler'; // Utilidad reutilizable
@@ -94,40 +95,6 @@ const renderFileIcon = (fileName) => {
   }
 };
 
-// Colores para nombres de usuarios (estilo Slack/Discord)
-const USER_NAME_COLORS = [
-  '#E91E63', // Rosa
-  '#9C27B0', // Púrpura
-  '#673AB7', // Violeta
-  '#3F51B5', // Índigo
-  '#2196F3', // Azul
-  '#00BCD4', // Cyan
-  '#009688', // Teal
-  '#4CAF50', // Verde
-  '#8BC34A', // Verde claro
-  '#FF9800', // Naranja
-  '#FF5722', // Naranja oscuro
-  '#795548', // Marrón
-  '#607D8B', // Gris azulado
-  '#F44336', // Rojo
-  '#00ACC1', // Cyan oscuro
-];
-
-// Color especial para el usuario logueado
-const OWN_USER_COLOR = '#dc2626'; // Rojo corporativo
-
-// Función para obtener color consistente basado en el nombre
-const getUserNameColor = (name, isOwnMessage = false) => {
-  if (isOwnMessage) return OWN_USER_COLOR;
-  if (!name) return USER_NAME_COLORS[0];
-
-  // Generar hash del nombre para obtener índice consistente
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return USER_NAME_COLORS[Math.abs(hash) % USER_NAME_COLORS.length];
-};
 
 // Icono de emoji personalizado (estilo WhatsApp)
 const EmojiIcon = ({ className, style }) => (
@@ -315,6 +282,7 @@ const ChatContent = ({
   onGoToLatest, //  NUEVO: Ir al final
   chatInfo, // 🔥 FIX: Info del chat (picture, name, isOnline)
 }) => {
+  const { getUserColor } = useUserNameColor();
   // ============================================================
   // REFS
   // ============================================================
@@ -2055,7 +2023,7 @@ const ChatContent = ({
       : !isSameGroup(prevMsg, message);
 
     // Color consistente del usuario basado en su nombre
-    const userColor = getUserNameColor(message.sender, isOwnMessage);
+    const userColor = getUserColor(message.sender, isOwnMessage);
 
     // 🔥 FALLBACK ROBUSTO: Buscar foto en roomUsers si no viene en el mensaje
     let finalPicture = message.picture || message.senderPicture;
@@ -3005,7 +2973,7 @@ const ChatContent = ({
                       );
                     })()}
                   </div>
-                  <span className="mx_ThreadLastReply" style={{ color: getUserNameColor(message.lastReplyFrom, message.lastReplyFrom === currentUsername) }}>
+                  <span className="mx_ThreadLastReply" style={{ color: getUserColor(message.lastReplyFrom, message.lastReplyFrom === currentUsername) }}>
                     {message.lastReplyFrom ? message.lastReplyFrom : "Ver"}
                   </span>
                   {/*  NUEVO: Vista previa del último mensaje del hilo - RESPONSIVO */}

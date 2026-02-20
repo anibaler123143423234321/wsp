@@ -19,6 +19,8 @@ import {
   FaFileVideo,
   FaFileAudio,
   FaDownload,
+  FaTrash,
+  FaBan,
 } from "react-icons/fa";
 import EmojiPicker from "emoji-picker-react";
 import apiService from "../../../../apiService";
@@ -39,26 +41,8 @@ import ImageGalleryGrid from "../../../../components/ImageGalleryGrid/ImageGalle
 import PDFViewer from "../../../../components/PDFViewer/PDFViewer"; // Importar PDFViewer
 
 import "./ThreadPanel.css";
+import { useUserNameColor } from "../../../../components/userColors";
 
-// Colores para nombres de usuarios (estilo Slack/Discord)
-const USER_NAME_COLORS = [
-  '#E91E63', '#9C27B0', '#673AB7', '#3F51B5', '#2196F3',
-  '#00BCD4', '#009688', '#4CAF50', '#8BC34A', '#FF9800',
-  '#FF5722', '#795548', '#607D8B', '#F44336', '#00ACC1',
-];
-
-const OWN_USER_COLOR = '#dc2626';
-
-// Función para obtener color consistente basado en el nombre
-const getUserNameColor = (name, isOwnMessage = false) => {
-  if (isOwnMessage) return OWN_USER_COLOR;
-  if (!name) return USER_NAME_COLORS[0];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return USER_NAME_COLORS[Math.abs(hash) % USER_NAME_COLORS.length];
-};
 
 const formatFileSize = (bytes) => {
   if (!bytes || bytes === 0) return '';
@@ -205,6 +189,7 @@ const ThreadPanel = ({
   selectedAttachment = null, // 🔥 NUEVO: Adjunto seleccionado para filtrar el hilo
   onSelectAttachment = null, // 🔥 NUEVO: Callback para cambiar a hilo de adjunto específico
 }) => {
+  const { getUserColor } = useUserNameColor();
   //  NUEVO: Detectar si el mensaje padre tiene un ID temporal
   const isTemporaryId = message?.id && String(message.id).startsWith('temp_');
   // if (!isOpen) return null; //  MOVIDO AL FINAL PARA RESPETAR REGLAS DE HOOKS
@@ -1369,6 +1354,44 @@ const ThreadPanel = ({
     inputRef.current?.focus();
   };
 
+  // NUEVO: Eliminar mensaje
+  const handleDeleteMessage = async (msg) => {
+    if (window.confirm(`¿Estás seguro de que quieres eliminar este mensaje de ${msg.from}?`)) {
+      try {
+        const userRole = (user?.role || "").toUpperCase();
+        const isAdminUser = ['ADMIN', 'SUPERADMIN', 'PROGRAMADOR'].includes(userRole);
+        const deletedByFullName = user?.nombre ? `${user.nombre} ${user.apellido || ''}`.trim() : currentUsername;
+
+        await apiService.deleteMessage(msg.id, currentUsername, isAdminUser, deletedByFullName);
+
+        if (socket && socket.connected) {
+          socket.emit("deleteMessage", {
+            messageId: msg.id,
+            username: currentUsername,
+            to: message.to || message.receiver || msg.to,
+            isGroup: !!(message.isGroup || currentRoomCode),
+            roomCode: currentRoomCode || message.roomCode,
+            isAdmin: isAdminUser,
+            deletedBy: deletedByFullName,
+          });
+        }
+
+        // Actualizar localmente
+        setThreadMessages((prev) =>
+          prev.map((m) =>
+            m.id === msg.id
+              ? { ...m, isDeleted: true, message: `Mensaje eliminado por ${deletedByFullName}`, text: `Mensaje eliminado por ${deletedByFullName}` }
+              : m
+          )
+        );
+      } catch (error) {
+        console.error("Error al eliminar mensaje:", error);
+        alert("Error al eliminar el mensaje. Inténtalo de nuevo.");
+      }
+    }
+    setShowMessageMenu(null);
+  };
+
   //  NUEVO: Cancelar respuesta
   const handleCancelReply = () => {
     setReplyingTo(null);
@@ -1555,7 +1578,7 @@ const ThreadPanel = ({
         style={{ marginTop: isSelectionMode ? '54px' : '4px' }}
       >
         <div className="thread-main-message-header">
-          <strong style={{ color: getUserNameColor(message.from, message.from === currentUsername) }}>
+          <strong style={{ color: getUserColor(message.from, message.from === currentUsername) }}>
             {message.from}
           </strong>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1825,7 +1848,7 @@ const ThreadPanel = ({
               // Mensaje normal
               const msg = item;
               const isOwnMessage = msg.from === currentUsername;
-              const userColor = getUserNameColor(msg.from, isOwnMessage);
+              const userColor = getUserColor(msg.from, isOwnMessage);
 
               const mentionRegex = new RegExp(`@${currentUsername?.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w])`, 'i');
               const isMentioned = mentionRegex.test(msg.text || msg.message || '');
@@ -1841,11 +1864,7 @@ const ThreadPanel = ({
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    justifyContent: 'flex-end',
-                    float: 'right', // Flotar a la derecha dentro de la burbuja
-                    marginTop: '4px',
-                    marginLeft: '8px',
-                    verticalAlign: 'bottom'
+                    lineHeight: 1,
                   }}
                 >
                   <div
@@ -1967,17 +1986,26 @@ const ThreadPanel = ({
                       <input type="checkbox" checked={selectedMessages.includes(msg.id)} onChange={() => { }} />
                     </div>
                   )}
-                  {/* Avatar - Solo visible si es inicio de grupo */}
-                  <div
-                    className="thread-message-avatar"
-                    style={{
-                      background: senderPicture
-                        ? `url(${senderPicture}) center/cover no-repeat`
-                        : userColor,
-                      visibility: isGroupStart ? 'visible' : 'hidden', // Ocultar pero mantener espacio
-                    }}
-                  >
-                    {!senderPicture && isGroupStart && (msg.from?.[0]?.toUpperCase() || '?')}
+                  {/* Gutter: Avatar (si es inicio de grupo) o Timestamp (si es mensaje continuo) */}
+                  <div className="thread-message-gutter">
+                    {isGroupStart ? (
+                      <div
+                        className="thread-message-avatar"
+                        style={{
+                          background: senderPicture
+                            ? `url(${senderPicture}) center/cover no-repeat`
+                            : userColor,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: 'white', fontWeight: 'bold', fontSize: '14px'
+                        }}
+                      >
+                        {!senderPicture && (msg.from?.[0]?.toUpperCase() || '?')}
+                      </div>
+                    ) : (
+                      <span className="thread-message-timestamp-left">
+                        {formatTime(msg)}
+                      </span>
+                    )}
                   </div>
 
                   <div className="thread-message-content">
@@ -1991,10 +2019,6 @@ const ThreadPanel = ({
                         </div>
                         <span className="thread-message-time">{formatTime(msg)}</span>
                       </div>
-                    )}
-                    {/* Hora para mensajes agrupados (no inicio de grupo) */}
-                    {!isGroupStart && (
-                      <span className="thread-message-time thread-message-time-inline">{formatTime(msg)}</span>
                     )}
 
 
@@ -2365,17 +2389,30 @@ const ThreadPanel = ({
                           </div>
                         </div>
                       ) : (
-                        <div className={`thread-message-text${isMentioned ? ' mentioned' : ''}`}>
-                          {msg.message || msg.text ? (
-                            <>
-                              {renderTextWithMentions(msg.message || msg.text)}
-                              {msg.isEdited && <span className="thread-edited-label">(editado)</span>}
+                        <div style={{ position: 'relative', display: 'inline-block', maxWidth: '100%' }}>
+                          <div className={`thread-message-text${isMentioned ? ' mentioned' : ''}`}
+                          >
+                            {msg.message || msg.text ? (
+                              <>
+                                {renderTextWithMentions(msg.message || msg.text)}
+                                {msg.isEdited && <span className="thread-edited-label">(editado)</span>}
+                              </>
+                            ) : (
+                              <span style={{ fontStyle: 'italic', color: '#888' }}>
+                                (Mensaje vacío o archivo no soportado)
+                              </span>
+                            )}
+                          </div>
+                          {/* Tick: izquierda para propios, derecha para otros */}
+                          {readReceiptsJSX && (
+                            <div style={{
+                              position: 'absolute',
+                              bottom: '4px',
+                              ...(isOwnMessage ? { left: '6px' } : { right: '6px' }),
+                              lineHeight: 1,
+                            }}>
                               {readReceiptsJSX}
-                            </>
-                          ) : (
-                            <span style={{ fontStyle: 'italic', color: '#888' }}>
-                              (Mensaje vacío o archivo no soportado)
-                            </span>
+                            </div>
                           )}
                         </div>
                       )
@@ -2598,6 +2635,25 @@ const ThreadPanel = ({
                           >
                             <FaShare className="menu-icon" /> Reenviar
                           </button>
+                          {(() => {
+                            const userRole = (user?.role || "").toUpperCase();
+                            const canDelete = msg.from === currentUsername || ['ADMIN', 'SUPERADMIN', 'PROGRAMADOR'].includes(userRole);
+                            if (canDelete) {
+                              return (
+                                <>
+                                  <div style={{ height: '1px', background: '#eee', margin: '4px 0' }}></div>
+                                  <button
+                                    className="menu-item"
+                                    style={{ color: '#dc2626' }}
+                                    onClick={(e) => { e.stopPropagation(); handleDeleteMessage(msg); }}
+                                  >
+                                    <FaTrash className="menu-icon" /> Eliminar mensaje
+                                  </button>
+                                </>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                       )}
                     </div>

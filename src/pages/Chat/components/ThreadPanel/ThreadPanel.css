@@ -223,27 +223,34 @@
 }
 
 .thread-message:hover {
-  background-color: #d9dce0;
+  background-color: #c3c6ce;
+}
+
+html.dark .thread-message:hover {
+  background-color: #2a2a2a;
 }
 
 /* Avatar del mensaje en hilo */
 .thread-message-avatar {
-  width: 28px;
-  /* Avatar más pequeño */
-  height: 28px;
-  min-width: 28px;
-  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 14px;
+  background-size: cover;
+  background-position: center;
 }
 
 .thread-message-content {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Separador de fecha en hilos */
@@ -328,6 +335,8 @@
   border-radius: 8px;
   word-wrap: break-word;
   max-width: 100%;
+  min-width: 60px;
+  /* ancho mínimo para que el tick no se superponga */
 }
 
 .thread-message-media {
@@ -1258,6 +1267,14 @@ html.dark .mention-avatar-placeholder {
   border-radius: 4px;
 }
 
+/* Mentions in dark mode - keep yellow but darker text (matching ChatContent) */
+html.dark .thread-message-text .mention-span.mention-me,
+html.dark .thread-message-text .mention-span.mention-other,
+html.dark .thread-message-text .mention {
+  background-color: #b8860b !important;
+  color: #ffffff !important;
+}
+
 /*  NUEVO - Estilos para menú de opciones de mensajes */
 .thread-message {
   position: relative;
@@ -1265,13 +1282,20 @@ html.dark .mention-avatar-placeholder {
 
 .thread-message-actions {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: -28px !important;
+  /* Flota SOBRE el mensaje, igual que ChatContent */
+  right: 8px !important;
   opacity: 0;
   transition: opacity 0.2s;
   display: flex;
   gap: 2px;
   align-items: center;
+  z-index: 100;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+  padding: 2px;
 }
 
 .thread-message:hover .thread-message-actions {
@@ -1287,12 +1311,12 @@ html.dark .mention-avatar-placeholder {
 /* Los estilos de .reaction-picker-popup ahora están en el componente reutilizable */
 
 .thread-message-menu-btn {
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
   padding: 4px 6px;
   cursor: pointer;
-  color: #666;
+  color: #5e5e5e;
   transition: all 0.2s;
   display: flex;
   align-items: center;
@@ -1300,9 +1324,8 @@ html.dark .mention-avatar-placeholder {
 }
 
 .thread-message-menu-btn:hover {
-  background: white;
-  color: #333;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: #f3f4f6;
+  color: #111;
 }
 
 .thread-message-menu {
@@ -1628,10 +1651,10 @@ html.dark .thread-empty {
   color: #6b7280 !important;
 }
 
-/* Mensajes individuales */
-html.dark .thread-message-header strong {
+/* Mensajes individuales (el color del nombre se maneja dinámicamente vía React inline style) */
+/* html.dark .thread-message-header strong {
   color: #9ca3af !important;
-}
+} */
 
 html.dark .thread-message-time {
   color: #6b7280 !important;
@@ -1648,6 +1671,17 @@ html.dark .thread-message-own .thread-message-text {
   background: #005c4b !important;
   color: #e5e5e5 !important;
 }
+
+/* Ticks (visto) siempre azules aunque estén dentro de burbuja propia */
+html.dark .thread-read-receipts-trigger,
+html.dark .thread-read-receipts-trigger div,
+html.dark .thread-read-receipts-trigger svg,
+html.dark .thread-read-receipts-trigger span {
+  color: #53bdeb !important;
+  -webkit-text-fill-color: #53bdeb !important;
+  fill: #53bdeb !important;
+}
+
 
 /* Input container */
 html.dark .thread-input-container {
@@ -1963,6 +1997,7 @@ html.dark .new-messages-count {
 html.dark .thread-message-text.mentioned {
   background-color: rgba(253, 230, 234, 0.15) !important;
 }
+
 .wa-reply-icon-small {
   color: #8696a0;
   font-size: 14px;
@@ -1990,4 +2025,107 @@ html.dark .thread-message-text.mentioned {
   border-radius: 10px;
   font-weight: 500;
   margin-left: 8px;
+}
+
+/* ============================================================
+   GUTTER Y TIMESTAMPS INLINE (IGUAL QUE CHATCONTENT)
+   ============================================================ */
+
+.thread-message-gutter {
+  width: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+
+.thread-message-timestamp-left {
+  font-size: 10px;
+  color: #9ca3af;
+  opacity: 0;
+  margin-top: 6px;
+  transition: opacity 0.1s;
+  white-space: nowrap;
+}
+
+.thread-message:hover .thread-message-timestamp-left {
+  opacity: 1;
+}
+
+/* No mostrar hora si es inicio de grupo (tiene avatar) */
+.thread-message:not(.thread-message-grouped) .thread-message-timestamp-left {
+  display: none;
+}
+
+/* Hora y texto en dark no se vuelven blancos */
+html.dark .thread-message:hover .thread-message-timestamp-left {
+  color: #6b7280 !important;
+}
+
+/* ============================================================
+   MENSAJES PROPIOS: alineados a la DERECHA (igual que ChatContent)
+   ============================================================ */
+
+/* Invertir columnas: gutter va a la DERECHA, content a la IZQUIERDA del gutter */
+.thread-message.thread-message-own {
+  flex-direction: row-reverse;
+}
+
+/* Alinear el contenido del mensaje hacia la derecha */
+.thread-message.thread-message-own .thread-message-content {
+  align-items: flex-end;
+}
+
+/* Header: nombre + hora alineados a la derecha */
+.thread-message.thread-message-own .thread-message-header {
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* En mensajes propios: el tiempo aparece ANTES del nombre (a la izquierda del nombre) */
+.thread-message.thread-message-own .thread-message-header .thread-message-time {
+  order: -1;
+}
+
+/* Burbuja del mensaje propio: estilos ya definidos con e1f4d6, sin sobrecargar */
+.thread-message.thread-message-own .thread-message-text {
+  border-radius: 12px 2px 12px 12px;
+}
+
+/* Gutter del mensaje propio centrado verticalmente */
+.thread-message.thread-message-own .thread-message-gutter {
+  align-items: center;
+}
+
+/* La hora que aparece en el gutter (mensajes agrupados continuos) */
+.thread-message.thread-message-own .thread-message-timestamp-left {
+  text-align: center;
+}
+
+/* === READ RECEIPTS (TICKS) en mensajes propios ===
+   Equivalente a .message-row.is-own .read-by-avatars-container de ChatContent */
+.thread-message.thread-message-own .thread-read-receipts {
+  left: 0;
+  right: 0;
+}
+
+/* ============================================================
+   DARK MODE: Toolbar de acciones
+   ============================================================ */
+html.dark .thread-message-actions {
+  background-color: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3) !important;
+}
+
+html.dark .thread-message-menu-btn {
+  background: #2a2a2a !important;
+  border-color: #3a3a3a !important;
+  color: #9ca3af !important;
+}
+
+html.dark .thread-message-menu-btn:hover {
+  background: #1f1f1f !important;
+  color: #e5e5e5 !important;
 }
