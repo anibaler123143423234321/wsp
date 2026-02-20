@@ -281,6 +281,8 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
     }
   };
 
+  const isDark = document.documentElement.classList.contains('dark');
+
   return (
     <BaseModal
       isOpen={isOpen}
@@ -288,88 +290,41 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
       title="Agregar Usuarios a la Sala"
       icon={<FaUserPlus />}
       headerBgColor="#A50104"
-      bodyBgColor="#FFFFFF"
+      bodyBgColor={isDark ? '#111b21' : '#ffffff'}
       titleColor="#FFFFFF"
       maxWidth="700px"
       closeOnOverlayClick={false}
     >
-      <div style={{ padding: '0' }}>
+      <div className="aum-content">
         {/* Info de la sala */}
-        <div style={{
-          marginBottom: '15px',
-          padding: '12px 15px',
-          background: '#f9f9f9',
-          borderRadius: '6px',
-          border: '1px solid #ddd'
-        }}>
-          <div style={{ fontWeight: 600, color: '#000', fontSize: '14px', marginBottom: '4px' }}>{roomName}</div>
-          <div style={{ fontSize: '12px', color: '#666', marginBottom: '2px' }}>
-            <span style={{ fontFamily: 'monospace', background: '#e0e0e0', padding: '2px 6px', borderRadius: '3px', color: '#000' }}>
-              {roomCode}
-            </span>
+        <div className="aum-room-info">
+          <div className="aum-room-name">{roomName}</div>
+          <div className="aum-room-code">
+            <span className="aum-code-badge">{roomCode}</span>
           </div>
-          <div style={{ fontSize: '12px', color: '#A50104', marginTop: '4px', fontWeight: '500' }}>
+          <div className="aum-room-members">
             {currentMembers.length} miembro{currentMembers.length !== 1 ? 's' : ''} actual{currentMembers.length !== 1 ? 'es' : ''}
           </div>
-          <div style={{
-            fontSize: '11px',
-            color: '#666',
-            marginTop: '6px',
-            padding: '6px',
-            background: '#fff',
-            borderRadius: '4px',
-            fontStyle: 'italic',
-            border: '1px solid #e0e0e0'
-          }}>
+          <div className="aum-hint">
             💡 Solo se muestran usuarios que no están en la sala
           </div>
         </div>
 
         {/* Selector de Sede */}
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{
-            display: 'block',
-            marginBottom: '8px',
-            color: '#000',
-            fontWeight: '500',
-            fontSize: '13px'
-          }}>
-            🏢 Seleccionar Sede
-          </label>
-          <div style={{ display: 'flex', gap: '10px' }}>
+        <div className="aum-sede-section">
+          <label className="aum-label">🏢 Seleccionar Sede</label>
+          <div className="aum-sede-buttons">
             <button
               type="button"
+              className={`aum-sede-btn ${selectedSede === 'CHICLAYO_PIURA' ? 'active' : ''}`}
               onClick={() => setSelectedSede('CHICLAYO_PIURA')}
-              style={{
-                flex: 1,
-                padding: '8px 16px',
-                background: selectedSede === 'CHICLAYO_PIURA' ? '#A50104' : '#f0f0f0',
-                color: selectedSede === 'CHICLAYO_PIURA' ? '#fff' : '#333',
-                border: selectedSede === 'CHICLAYO_PIURA' ? '2px solid #A50104' : '2px solid #ddd',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '12px',
-                transition: 'all 0.2s'
-              }}
             >
               CHICLAYO / PIURA
             </button>
             <button
               type="button"
+              className={`aum-sede-btn ${selectedSede === 'LIMA' ? 'active' : ''}`}
               onClick={() => setSelectedSede('LIMA')}
-              style={{
-                flex: 1,
-                padding: '8px 16px',
-                background: selectedSede === 'LIMA' ? '#A50104' : '#f0f0f0',
-                color: selectedSede === 'LIMA' ? '#fff' : '#333',
-                border: selectedSede === 'LIMA' ? '2px solid #A50104' : '2px solid #ddd',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '12px',
-                transition: 'all 0.2s'
-              }}
             >
               LIMA
             </button>
@@ -377,73 +332,34 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
         </div>
 
         {/* Buscador */}
-        <div style={{ marginBottom: '15px', position: 'relative' }}>
-          <FaSearch style={{
-            position: 'absolute',
-            left: '12px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            color: '#999',
-            fontSize: '12px'
-          }} />
+        <div className="aum-search-wrap">
+          <FaSearch className="aum-search-icon" />
           <input
             type="text"
+            className="aum-search-input"
             placeholder="Buscar usuarios..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '10px 12px 10px 36px',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              fontSize: '13px',
-              outline: 'none',
-              backgroundColor: '#fff',
-              color: '#000'
-            }}
           />
         </div>
 
         {/* Lista de usuarios */}
-        <div
-          onScroll={handleScroll}
-          style={{
-            maxHeight: '350px',
-            overflowY: 'auto',
-            border: '1px solid #ddd',
-            borderRadius: '6px',
-            backgroundColor: '#fff',
-            padding: '8px'
-          }}
-        >
+        <div className="aum-users-list" onScroll={handleScroll}>
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '20px', color: '#999', fontSize: '13px' }}>
-              Cargando usuarios...
-            </div>
+            <div className="aum-empty-state">⏳ Cargando usuarios...</div>
           ) : users.length === 0 ? (
-            <div style={{
-              textAlign: 'center',
-              padding: '30px 16px',
-              color: '#999',
-              background: '#f9f9f9',
-              borderRadius: '6px',
-              border: '1px solid #e0e0e0'
-            }}>
-              <div style={{ fontSize: '40px', marginBottom: '10px', opacity: 0.5 }}>
-                {searchTerm ? '🔍' : '👥'}
-              </div>
-              <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: '4px', color: '#000' }}>
+            <div className="aum-empty-state">
+              <div className="aum-empty-icon">{searchTerm ? '🔍' : '👥'}</div>
+              <div className="aum-empty-title">
                 {searchTerm ? 'No se encontraron usuarios' : 'No hay usuarios disponibles'}
               </div>
               {!searchTerm && (
-                <div style={{ fontSize: '12px', marginTop: '6px' }}>
-                  Todos los usuarios ya están en la sala
-                </div>
+                <div className="aum-empty-sub">Todos los usuarios ya están en la sala</div>
               )}
             </div>
           ) : (
             <>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div className="aum-users-cards">
                 {users.map((user) => {
                   const displayName = user.nombre && user.apellido
                     ? `${user.nombre} ${user.apellido}`
@@ -453,107 +369,39 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
                   return (
                     <div
                       key={user.username}
+                      className={`aum-user-card ${isSelected ? 'selected' : ''}`}
                       onClick={() => handleToggleUser(user)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        padding: '10px 12px',
-                        border: `2px solid ${isSelected ? '#A50104' : '#e0e0e0'}`,
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        background: isSelected ? '#fff5f5' : '#fff',
-                        transition: 'all 0.2s ease'
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isSelected) {
-                          e.currentTarget.style.background = '#f9f9f9';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isSelected) {
-                          e.currentTarget.style.background = '#fff';
-                        }
-                      }}
                     >
-                      {/* Avatar */}
                       {user.picture ? (
-                        <img
-                          src={user.picture}
-                          alt={displayName}
-                          style={{
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: '6px',
-                            objectFit: 'cover'
-                          }}
-                        />
+                        <img src={user.picture} alt={displayName} className="aum-user-avatar-img" />
                       ) : (
-                        <div
-                          style={{
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: '6px',
-                            background: '#A50104',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: 'white',
-                            fontWeight: 600,
-                            fontSize: '16px'
-                          }}
-                        >
+                        <div className="aum-user-avatar">
                           {displayName[0]?.toUpperCase() || '?'}
                         </div>
                       )}
 
-                      {/* Info */}
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, color: '#000', fontSize: '14px' }}>{displayName}</div>
-                        <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>@{user.username}</div>
+                      <div className="aum-user-info">
+                        <div className="aum-user-displayname">{displayName}</div>
+                        <div className="aum-user-username">@{user.username}</div>
                         {user.numeroAgente && (
-                          <div style={{ fontSize: '11px', color: '#A50104', marginTop: '3px', fontWeight: 500 }}>
-                            N° Agente: {user.numeroAgente}
-                          </div>
+                          <div className="aum-user-agent">N° Agente: {user.numeroAgente}</div>
                         )}
                       </div>
 
-                      {/* Checkbox */}
-                      <div
-                        style={{
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '50%',
-                          border: `2px solid ${isSelected ? '#A50104' : '#ccc'}`,
-                          background: isSelected ? '#A50104' : 'transparent',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'white',
-                          fontWeight: 'bold',
-                          fontSize: '12px',
-                          flexShrink: 0
-                        }}
-                      >
-                        {isSelected && <FaCheck />}
+                      <div className={`aum-checkbox ${isSelected ? 'checked' : ''}`}>
+                        {isSelected && <FaCheck size={10} />}
                       </div>
                     </div>
                   );
                 })}
               </div>
 
-              {/* Indicador de carga de más usuarios */}
               {loadingMore && (
-                <div style={{ textAlign: 'center', padding: '12px', color: '#999', fontSize: '13px' }}>
-                  Cargando más usuarios...
-                </div>
+                <div className="aum-loading-more">Cargando más usuarios...</div>
               )}
 
-              {/* Mensaje de no hay más usuarios */}
               {!hasMore && users.length > 0 && (
-                <div style={{ textAlign: 'center', padding: '12px', color: '#999', fontSize: '12px' }}>
-                  No hay más usuarios
-                </div>
+                <div className="aum-no-more">No hay más usuarios</div>
               )}
             </>
           )}
@@ -561,69 +409,26 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
 
         {/* Usuarios seleccionados */}
         {selectedUsers.length > 0 && (
-          <div style={{
-            marginTop: '15px',
-            padding: '12px 15px',
-            background: '#fff5f5',
-            borderRadius: '6px',
-            border: '1px solid #A50104'
-          }}>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: '#A50104', marginBottom: '4px' }}>
+          <div className="aum-selection-summary">
+            <div className="aum-selection-count">
               {selectedUsers.length} usuario{selectedUsers.length !== 1 ? 's' : ''} seleccionado{selectedUsers.length !== 1 ? 's' : ''}
             </div>
-            <div style={{ fontSize: '11px', color: '#666' }}>
-              {selectedUsers.join(', ')}
-            </div>
+            <div className="aum-selection-names">{selectedUsers.join(', ')}</div>
           </div>
         )}
 
         {/* Botones */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: '10px',
-          paddingTop: '15px',
-          marginTop: '15px',
-          borderTop: '1px solid #eee'
-        }}>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              padding: '8px 20px',
-              background: '#f0f0f0',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '13px',
-              fontWeight: '600',
-              color: '#333',
-              transition: 'all 0.2s'
-            }}
-          >
+        <div className="aum-footer">
+          <button type="button" className="aum-btn cancel" onClick={onClose}>
             Cancelar
           </button>
           <button
             type="button"
+            className="aum-btn submit"
             onClick={handleAddUsers}
             disabled={selectedUsers.length === 0}
-            style={{
-              padding: '8px 20px',
-              background: selectedUsers.length === 0 ? '#ccc' : '#A50104',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: selectedUsers.length === 0 ? 'not-allowed' : 'pointer',
-              fontSize: '13px',
-              fontWeight: '600',
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.2s',
-              opacity: selectedUsers.length === 0 ? 0.6 : 1
-            }}
           >
-            <FaUserPlus />
+            <FaUserPlus size={12} />
             Agregar {selectedUsers.length > 0 && `(${selectedUsers.length})`}
           </button>
         </div>
