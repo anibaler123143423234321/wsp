@@ -47,7 +47,7 @@ const ChatLayout = ({
   // Props de modales
   showCreateRoomModal, setShowCreateRoomModal, roomForm, setRoomForm, onCreateRoom,
   showJoinRoomModal, setShowJoinRoomModal, joinRoomForm, setJoinRoomForm, onJoinRoom,
-  showAdminRoomsModal, setShowAdminRoomsModal, onDeleteRoom, onDeactivateRoom, onActivateRoom, onEditRoom, onViewRoomUsers,
+  showAdminRoomsModal, setShowAdminRoomsModal, onDeleteRoom, onDeactivateRoom, onActivateRoom, onViewRoomUsers,
   showRoomUsersModal, setShowRoomUsersModal, roomUsersModalData,
 
   // Props de notificaciones
@@ -661,7 +661,6 @@ const ChatLayout = ({
             onDeleteRoom={onDeleteRoom}
             onDeactivateRoom={onDeactivateRoom}
             onActivateRoom={onActivateRoom}
-            onEditRoom={onEditRoom}
             onViewRoomUsers={onViewRoomUsers}
             currentUser={user}
           />

@@ -2350,7 +2350,6 @@ const ChatPage = () => {
         onActivateRoom={(roomId, roomName) =>
           roomManagement.handleActivateRoom(roomId, roomName, user)
         }
-        onEditRoom={roomManagement.handleEditRoom}
         onViewRoomUsers={roomManagement.handleViewRoomUsers}
         showRoomUsersModal={chatState.showRoomUsersModal}
         setShowRoomUsersModal={chatState.setShowRoomUsersModal}
@@ -2361,14 +2360,6 @@ const ChatPage = () => {
 
       {/* Contenedor de modales */}
       < ChatModalsContainer
-        // Edit Room Modal
-        showEditRoomModal={chatState.showEditRoomModal}
-        setShowEditRoomModal={chatState.setShowEditRoomModal}
-        editingRoom={chatState.editingRoom}
-        setEditingRoom={chatState.setEditingRoom}
-        editForm={chatState.editForm}
-        setEditForm={chatState.setEditForm}
-        onUpdateRoom={() => roomManagement.handleUpdateRoom(user)}
         // Room Created Modal
         showRoomCreatedModal={chatState.showRoomCreatedModal}
         setShowRoomCreatedModal={chatState.setShowRoomCreatedModal}

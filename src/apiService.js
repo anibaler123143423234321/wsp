@@ -747,6 +747,37 @@ class ApiService {
     }
   }
 
+  // 🔥 NUEVO: Obtener TODAS las salas paginadas (para el modal de gestión)
+  async getAllRoomsPaginated(page = 1, limit = 10, search = '') {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+
+      if (search && search.trim()) {
+        params.append('search', search.trim());
+      }
+
+      const response = await this.fetchChatApi(
+        `${this.baseChatUrl}api/temporary-rooms/all?${params.toString()}`,
+        {
+          method: "GET",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al obtener todas las salas:", error);
+      throw error;
+    }
+  }
+
   async getAdminRooms(page = 1, limit = 10, search = '') {
     try {
       // Obtener el usuario actual para incluir su displayName y role

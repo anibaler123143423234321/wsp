@@ -142,3 +142,23 @@ export const closeAlert = async () => {
     Swal.close();
   }
 };
+
+// Función para mostrar información HTML (ej. lista de miembros)
+export const showInfoAlert = async (title, htmlContent) => {
+  const Swal = await loadSweetAlert2();
+
+  return Swal.fire({
+    title,
+    html: htmlContent,
+    icon: 'info',
+    confirmButtonColor: 'ff453a',
+    background: '#2a3942',
+    color: '#e9edef',
+    customClass: {
+      popup: 'swal-custom-popup',
+      title: 'swal-custom-title',
+      content: 'swal-custom-content',
+      confirmButton: 'swal-custom-confirm'
+    }
+  });
+};

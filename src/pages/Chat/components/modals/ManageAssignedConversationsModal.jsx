@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FaEdit, FaTrash, FaUsers, FaSearch, FaChevronLeft, FaChevronRight, FaPause, FaPlay, FaCircle, FaSave, FaTimes } from 'react-icons/fa';
-import SidebarMenuButton from '../../../../components/SidebarMenuButton/SidebarMenuButton';
+import { FaEdit, FaTrash, FaUsers, FaSearch, FaChevronLeft, FaChevronRight, FaPause, FaPlay, FaSave, FaTimes } from 'react-icons/fa';
 import BaseModal from './BaseModal';
 import './ManageAssignedConversationsModal.css';
 import './Modal.css';
 import apiService from "../../../../apiService";
-import { showSuccessAlert, showErrorAlert, showConfirmAlert } from "../../../../sweetalert2";
+import { showSuccessAlert, showErrorAlert, showConfirmAlert, showInfoAlert } from "../../../../sweetalert2";
 
 const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated, currentUser, socket }) => {
   const [conversations, setConversations] = useState([]);
@@ -15,6 +14,8 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
     name: '',
     description: ''
   });
+  const [filterType, setFilterType] = useState('assigned');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   //  Estados de paginación y búsqueda
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,17 +29,23 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
   const canDelete = ['ADMIN', 'SUPERADMIN', 'PROGRAMADOR'].includes(currentUser?.role);
 
   //  Cargar conversaciones con paginación y búsqueda
-  const loadConversations = useCallback(async (page = 1, search = '') => {
+  const loadConversations = useCallback(async (page = 1, search = '', type = 'assigned') => {
     setLoading(true);
     try {
-      const result = await apiService.getAllAssignedConversations(page, ITEMS_PER_PAGE, search);
-      setConversations(result.data || []);
+      let result;
+      if (type === 'assigned') {
+        result = await apiService.getAllAssignedConversations(page, ITEMS_PER_PAGE, search);
+        setConversations(result.data || []);
+      } else {
+        result = await apiService.getAllRoomsPaginated(page, ITEMS_PER_PAGE, search);
+        setConversations(result.data || []);
+      }
       setCurrentPage(result.page || 1);
       setTotalPages(result.totalPages || 1);
       setTotal(result.total || 0);
     } catch (error) {
       console.error('Error al cargar conversaciones:', error);
-      await showErrorAlert('Error', 'No se pudieron cargar las conversaciones asignadas');
+      await showErrorAlert('Error', 'No se pudieron cargar los datos solicitados');
     } finally {
       setLoading(false);
     }
@@ -48,9 +55,30 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
     if (show) {
       setSearchTerm('');
       setCurrentPage(1);
-      loadConversations(1, '');
+      setFilterType('assigned');
+      loadConversations(1, '', 'assigned');
     }
   }, [show, loadConversations]);
+
+  const handleFilterChange = (e) => {
+    const newType = e.target.value;
+    setFilterType(newType);
+    setStatusFilter('all');
+    setCurrentPage(1);
+    loadConversations(1, searchTerm, newType);
+  };
+
+  const handleStatusFilterChange = (e) => {
+    setStatusFilter(e.target.value);
+  };
+
+  // Client-side status filtering
+  const filteredConversations = conversations.filter(conv => {
+    if (statusFilter === 'all') return true;
+    if (statusFilter === 'active') return conv.isActive !== false;
+    if (statusFilter === 'inactive') return conv.isActive === false;
+    return true;
+  });
 
   //  Búsqueda con debounce
   const handleSearchChange = (e) => {
@@ -65,7 +93,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
     // Crear nuevo timeout para buscar después de 500ms
     const timeout = setTimeout(() => {
       setCurrentPage(1);
-      loadConversations(1, value);
+      loadConversations(1, value, filterType);
     }, 500);
 
     setSearchTimeout(timeout);
@@ -73,7 +101,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
 
   const goToPage = (page) => {
     if (page >= 1 && page <= totalPages) {
-      loadConversations(page, searchTerm);
+      loadConversations(page, searchTerm, filterType);
     }
   };
 
@@ -81,29 +109,42 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
     setEditingConv(conv.id);
     setEditForm({
       name: conv.name || '',
-      description: conv.description || ''
+      description: conv.description || '',
+      maxCapacity: conv.maxCapacity || 50
     });
   };
 
   const handleCancelEdit = () => {
     setEditingConv(null);
-    setEditForm({ name: '', description: '' });
+    setEditForm({ name: '', description: '', maxCapacity: 50 });
   };
 
   const handleSaveEdit = async (convId) => {
     try {
       const conv = conversations.find(c => c.id === convId);
-      await apiService.updateAssignedConversation(convId, editForm);
+      if (filterType === 'assigned') {
+        await apiService.updateAssignedConversation(convId, editForm);
+      } else {
+        await apiService.updateRoom(convId, {
+          description: editForm.description,
+          maxCapacity: editForm.maxCapacity
+        });
+      }
 
       setConversations(prevConversations =>
         prevConversations.map(c =>
           c.id === convId
-            ? { ...c, name: editForm.name, description: editForm.description }
+            ? {
+              ...c,
+              name: filterType === 'assigned' ? editForm.name : c.name,
+              description: editForm.description,
+              maxCapacity: filterType === 'group' ? editForm.maxCapacity : c.maxCapacity
+            }
             : c
         )
       );
 
-      if (socket && socket.connected && conv) {
+      if (socket && socket.connected && conv && filterType === 'assigned') {
         socket.emit('conversationUpdated', {
           conversationId: convId,
           conversationName: editForm.name,
@@ -112,52 +153,55 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
       }
 
       setEditingConv(null);
-      setEditForm({ name: '', description: '' });
+      setEditForm({ name: '', description: '', maxCapacity: 50 });
 
-      await showSuccessAlert('¡Actualizado!', 'La conversación ha sido actualizada correctamente');
+      await showSuccessAlert('¡Actualizado!', 'Actualizado correctamente');
 
       if (onConversationUpdated) {
         onConversationUpdated();
       }
     } catch (error) {
-      console.error('Error al actualizar conversación:', error);
-      await showErrorAlert('Error', 'No se pudo actualizar la conversación');
+      console.error('Error al actualizar:', error);
+      await showErrorAlert('Error', 'No se pudo actualizar');
     }
   };
 
   const handleDelete = async (conv) => {
     const result = await showConfirmAlert(
-      '¿Eliminar conversación?',
-      `¿Estás seguro de que deseas eliminar la conversación "${conv.name}"?`,
+      '¿Eliminar?',
+      `¿Estás seguro de que deseas eliminar "${conv.name}"?`,
       'warning'
     );
 
     if (result.isConfirmed) {
       try {
-        await apiService.deleteAssignedConversation(conv.id);
-
-        if (socket && socket.connected && conv.participants) {
-          socket.emit('conversationRemoved', {
-            conversationId: conv.id,
-            conversationName: conv.name,
-            participants: conv.participants || []
-          });
+        if (filterType === 'assigned') {
+          await apiService.deleteAssignedConversation(conv.id);
+          if (socket && socket.connected && conv.participants) {
+            socket.emit('conversationRemoved', {
+              conversationId: conv.id,
+              conversationName: conv.name,
+              participants: conv.participants || []
+            });
+          }
+        } else {
+          await apiService.deleteRoom(conv.id);
         }
 
-        await showSuccessAlert('¡Eliminado!', 'La conversación ha sido eliminada correctamente');
-        loadConversations(currentPage, searchTerm);
+        await showSuccessAlert('¡Eliminado!', 'Eliminado correctamente');
+        loadConversations(currentPage, searchTerm, filterType);
         if (onConversationUpdated) {
           onConversationUpdated();
         }
       } catch (error) {
         if (error.message.includes('404') || error.message.includes('Not Found')) {
           await showErrorAlert(
-            'Conversación no encontrada',
-            'La conversación ya fue eliminada o no existe. Se actualizará la lista.'
+            'No encontrado',
+            'Ya fue eliminado o no existe. Se actualizará la lista.'
           );
-          loadConversations(currentPage, searchTerm);
+          loadConversations(currentPage, searchTerm, filterType);
         } else {
-          await showErrorAlert('Error', 'No se pudo eliminar la conversación: ' + error.message);
+          await showErrorAlert('Error', 'No se pudo eliminar: ' + error.message);
         }
       }
     }
@@ -165,46 +209,56 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
 
   const handleDeactivate = async (conv) => {
     const result = await showConfirmAlert(
-      '¿Desactivar conversación?',
-      `¿Estás seguro de que deseas desactivar la conversación "${conv.name}"?`
+      '¿Desactivar?',
+      `¿Estás seguro de que deseas desactivar "${conv.name}"?`
     );
 
     if (result.isConfirmed) {
       try {
-        await apiService.deactivateAssignedConversation(conv.id);
-        await showSuccessAlert('¡Desactivado!', 'La conversación ha sido desactivada correctamente');
-        loadConversations(currentPage, searchTerm);
+        if (filterType === 'assigned') {
+          await apiService.deactivateAssignedConversation(conv.id);
+        } else {
+          await apiService.deactivateRoom(conv.id);
+        }
+        await showSuccessAlert('¡Desactivado!', 'Desactivado correctamente');
+        loadConversations(currentPage, searchTerm, filterType);
         if (onConversationUpdated) {
           onConversationUpdated();
         }
       } catch (error) {
-        await showErrorAlert('Error', 'No se pudo desactivar la conversación: ' + error.message);
+        await showErrorAlert('Error', 'No se pudo desactivar: ' + error.message);
       }
     }
   };
 
   const handleActivate = async (conv) => {
     const result = await showConfirmAlert(
-      '¿Activar conversación?',
-      `¿Estás seguro de que deseas activar la conversación "${conv.name}"?`
+      '¿Activar?',
+      `¿Estás seguro de que deseas activar "${conv.name}"?`
     );
 
     if (result.isConfirmed) {
       try {
-        await apiService.activateAssignedConversation(conv.id);
-        await showSuccessAlert('¡Activado!', 'La conversación ha sido activada correctamente');
-        loadConversations(currentPage, searchTerm);
+        if (filterType === 'assigned') {
+          await apiService.activateAssignedConversation(conv.id);
+        } else {
+          await apiService.activateRoom(conv.id);
+        }
+        await showSuccessAlert('¡Activado!', 'Activado correctamente');
+        loadConversations(currentPage, searchTerm, filterType);
         if (onConversationUpdated) {
           onConversationUpdated();
         }
       } catch (error) {
-        await showErrorAlert('Error', 'No se pudo activar la conversación: ' + error.message);
+        await showErrorAlert('Error', 'No se pudo activar: ' + error.message);
       }
     }
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return '-';
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '-';
     return date.toLocaleDateString('es-ES', {
       day: '2-digit',
       month: '2-digit',
@@ -213,7 +267,10 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
   };
 
   const formatExpiration = (dateString) => {
+    if (!dateString) return { text: '-', className: 'active' };
     const expirationDate = new Date(dateString);
+    if (isNaN(expirationDate.getTime())) return { text: '-', className: 'active' };
+
     const now = new Date();
     const diffTime = expirationDate - now;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -231,162 +288,221 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
     }
   };
 
+  const handleViewMembers = async (conv) => {
+    const title = 'Participantes';
+    const memberList = filterType === 'assigned'
+      ? (conv.participants || conv.users || [])
+      : (conv.members || []);
+
+    if (!memberList || memberList.length === 0) {
+      await showInfoAlert(title, '<p>No hay participantes en esta sala.</p>');
+      return;
+    }
+
+    const htmlList = `<div style="max-height: 250px; overflow-y: auto; text-align: left; padding: 10px; background: #1f2937; border-radius: 8px;">
+      ${memberList.map(member => `<div style="padding: 6px 0; border-bottom: 1px solid #374151; color: #e5e7eb; font-size: 14px;">• ${member}</div>`).join('')}
+    </div>`;
+
+    await showInfoAlert(title, htmlList);
+  };
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setFilterType('assigned');
+    setStatusFilter('all');
+    setCurrentPage(1);
+    loadConversations(1, '', 'assigned');
+  };
+
+  const hasActiveFilters = searchTerm || filterType !== 'assigned' || statusFilter !== 'all';
+
   return (
     <BaseModal
       isOpen={show}
       onClose={onClose}
-      title="Gestionar Conversaciones Asignadas"
+      title="Gestionar Conversaciones y Salas"
       icon={null}
-      headerBgColor="#A50104" // Red Header Restored
-      bodyBgColor="#ffffff"   // Light Body (Default)
+      headerBgColor="#A50104"
+      bodyBgColor="#111b21"
       titleColor="#FFFFFF"
       maxWidth="1000px"
       closeOnOverlayClick={false}
     >
-      {/* Filtros y Búsqueda */}
-      <div className="search-container">
-        <div className="search-wrapper">
-          <FaSearch style={{
-            position: 'absolute',
-            left: '12px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            color: '#9ca3af',
-            fontSize: '14px'
-          }} />
+      {/* ── Toolbar ── */}
+      <div className="mac-toolbar">
+        <select
+          className="mac-select"
+          value={filterType}
+          onChange={handleFilterChange}
+          disabled={loading}
+        >
+          <option value="assigned">Conversaciones Asignadas</option>
+          <option value="group">Chats Grupales (Salas)</option>
+        </select>
+
+        <select
+          className="mac-select"
+          value={statusFilter}
+          onChange={handleStatusFilterChange}
+          disabled={loading}
+          style={{ minWidth: '130px' }}
+        >
+          <option value="all">Todos</option>
+          <option value="active">Activos</option>
+          <option value="inactive">Inactivos</option>
+        </select>
+
+        <div className="mac-search-wrap">
+          <FaSearch className="mac-search-icon" />
           <input
             type="text"
-            className="search-input"
+            className="mac-search-input"
             placeholder="Buscar por nombre o participante..."
             value={searchTerm}
             onChange={handleSearchChange}
             disabled={loading}
           />
         </div>
+
+        {hasActiveFilters && (
+          <button className="mac-clear-btn" onClick={handleClearFilters} title="Limpiar filtros">
+            <FaTimes size={10} />
+            Limpiar
+          </button>
+        )}
+
         {!loading && (
-          <div style={{ fontSize: '13px', color: '#6b7280', fontWeight: '500' }}>
+          <span className="mac-results-count">
             {total} {total === 1 ? 'resultado' : 'resultados'}
-          </div>
+          </span>
         )}
       </div>
 
-      {/* Header de la Lista (Tipo Tabla) */}
-      <div className="list-header">
-        <div className="header-cell">NOMBRE Y DESCRIPCIÓN</div>
-        <div className="header-cell">PARTICIPANTES</div>
-        <div className="header-cell">ESTADO</div>
-        <div className="header-cell">CREADO</div>
-        <div className="header-cell" style={{ justifyContent: 'flex-end' }}>ACCIONES</div>
+      {/* ── Table Header ── */}
+      <div className="mac-list-header">
+        <div className="mac-header-cell">Nombre</div>
+        <div className="mac-header-cell">Miembros</div>
+        <div className="mac-header-cell">Estado</div>
+        <div className="mac-header-cell">Creado</div>
+        <div className="mac-header-cell" style={{ justifyContent: 'flex-end' }}>Acciones</div>
       </div>
 
-      <div className="conversations-list">
+      {/* ── List ── */}
+      <div className="mac-conversations-list">
         {loading ? (
-          <div className="loading-state">
-            <div className="spinner"></div>
-            <p style={{ color: '#6b7280', marginTop: '10px' }}>Cargando datos...</p>
+          <div className="mac-loading-state">
+            <div className="mac-spinner" />
+            <p>Cargando datos...</p>
           </div>
-        ) : conversations.length === 0 ? (
-          <div className="empty-state">
-            <FaUsers size={40} style={{ color: '#e5e7eb', marginBottom: '16px' }} />
-            <p style={{ color: '#6b7280', fontWeight: '500' }}>
-              {searchTerm ? 'No se encontraron coincidencias' : 'No hay conversaciones asignadas'}
-            </p>
+        ) : filteredConversations.length === 0 ? (
+          <div className="mac-empty-state">
+            <FaUsers size={36} />
+            <p>{searchTerm ? 'No se encontraron coincidencias' : 'No hay datos disponibles'}</p>
           </div>
         ) : (
-          conversations.map((conv) => (
-            <div key={conv.id} className="room-item">
+          filteredConversations.map((conv) => (
+            <div key={conv.id} className="mac-row">
               {editingConv === conv.id ? (
-                // Edición en línea
-                <div className="edit-mode-grid">
+                <div className="mac-edit-row">
                   <input
                     type="text"
-                    className="input-inline"
+                    className="mac-edit-input"
                     value={editForm.name}
                     onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                    placeholder="Nombre de la conversación"
-                    autoFocus
-                    style={{ flex: 1 }}
+                    placeholder="Nombre"
+                    disabled={filterType === 'group'}
+                    autoFocus={filterType !== 'group'}
+                    style={{ flex: '1 1 180px' }}
                   />
                   <input
                     type="text"
-                    className="input-inline"
+                    className="mac-edit-input"
                     value={editForm.description}
                     onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                     placeholder="Descripción (opcional)"
-                    style={{ flex: 2 }}
+                    autoFocus={filterType === 'group'}
+                    style={{ flex: '2 1 220px' }}
                   />
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <SidebarMenuButton
-                      onClick={() => handleSaveEdit(conv.id)}
-                      label="Guardar"
-                      icon={FaSave}
-                      className="sidebar-menu-btn primary"
-                      style={{ padding: '6px 12px', height: 'auto', fontSize: '0.8rem' }}
-                    />
-                    <SidebarMenuButton
-                      onClick={handleCancelEdit}
-                      label="Cancelar"
-                      icon={FaTimes}
-                      className="sidebar-menu-btn light"
-                      style={{ padding: '6px 12px', height: 'auto', fontSize: '0.8rem' }}
-                    />
+                  {filterType === 'group' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                      <span style={{ color: '#8696a0', fontSize: '11px', whiteSpace: 'nowrap' }}>Cap. máx:</span>
+                      <input
+                        type="number"
+                        className="mac-edit-input"
+                        value={editForm.maxCapacity}
+                        onChange={(e) => setEditForm({ ...editForm, maxCapacity: parseInt(e.target.value) || 1 })}
+                        min="1"
+                        max="500"
+                        style={{ width: '70px', textAlign: 'center' }}
+                      />
+                    </div>
+                  )}
+                  <div className="mac-edit-actions">
+                    <button className="mac-edit-btn save" onClick={() => handleSaveEdit(conv.id)}>
+                      <FaSave size={12} /> Guardar
+                    </button>
+                    <button className="mac-edit-btn cancel" onClick={handleCancelEdit}>
+                      <FaTimes size={11} /> Cancelar
+                    </button>
                   </div>
                 </div>
               ) : (
-                // Vista Grid
                 <>
-                  {/* Celda 1: Nombre */}
-                  <div className="cell-name">
-                    <div className="room-name-text" title={conv.name}>
+                  {/* Name */}
+                  <div className="mac-cell-name">
+                    <div className="mac-name-text" title={conv.name}>
                       {conv.name}
-                      {!conv.isActive && <span style={{ color: '#ef4444', fontSize: '11px', marginLeft: '6px' }}>(Inactiva)</span>}
+                      {!conv.isActive && <span className="mac-inactive-tag">(Inactiva)</span>}
                     </div>
                     {conv.description && (
-                      <div className="room-desc-text" title={conv.description}>
-                        {conv.description}
-                      </div>
+                      <div className="mac-desc-text" title={conv.description}>{conv.description}</div>
                     )}
                   </div>
 
-                  {/* Celda 2: Participantes */}
-                  <div className="cell-participants" title={`${conv.participants?.length || 0} participantes`}>
-                    <FaUsers size={14} style={{ color: '#9ca3af' }} />
-                    <span>{conv.participants?.length || 0}</span>
-                  </div>
-
-                  {/* Celda 3: Estado */}
-                  <div className="cell-status">
-                    <span className={`status-app-badge ${formatExpiration(conv.expiresAt).className}`}>
-                      {formatExpiration(conv.expiresAt).text}
+                  {/* Participants */}
+                  <div className="mac-cell-participants" onClick={() => handleViewMembers(conv)} title="Ver participantes">
+                    <FaUsers className="mac-p-icon" />
+                    <span className="mac-p-count">
+                      {conv.currentMembers !== undefined ? conv.currentMembers : (conv.participants || conv.users || []).length}
                     </span>
                   </div>
 
-                  {/* Celda 4: Fecha */}
-                  <div className="cell-date">
+                  {/* Status */}
+                  <div className="mac-cell-status">
+                    {filterType === 'assigned' ? (
+                      <span className={`mac-badge ${formatExpiration(conv.expiresAt).className}`}>
+                        {formatExpiration(conv.expiresAt).text}
+                      </span>
+                    ) : (
+                      <span className={`mac-badge ${conv.isActive ? 'active' : 'inactive'}`}>
+                        {conv.isActive ? 'Activa' : 'Cerrada'}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Date */}
+                  <div className="mac-cell-date">
                     {formatDate(conv.createdAt)}
                   </div>
 
-                  {/* Celda 5: Acciones */}
-                  <div className="cell-actions">
-                    <button className="action-icon-btn edit" onClick={() => handleEdit(conv)} title="Editar">
-                      <FaEdit size={14} />
+                  {/* Actions */}
+                  <div className="mac-cell-actions">
+                    <button className="mac-action-btn edit" onClick={() => handleEdit(conv)} title="Editar">
+                      <FaEdit size={13} />
                     </button>
-
                     {canDelete && conv.isActive && (
-                      <button className="action-icon-btn pause" onClick={() => handleDeactivate(conv)} title="Desactivar">
-                        <FaPause size={12} />
+                      <button className="mac-action-btn pause" onClick={() => handleDeactivate(conv)} title="Desactivar">
+                        <FaPause size={11} />
                       </button>
                     )}
-
                     {canDelete && !conv.isActive && (
-                      <button className="action-icon-btn active" onClick={() => handleActivate(conv)} title="Activar">
-                        <FaPlay size={12} />
+                      <button className="mac-action-btn play" onClick={() => handleActivate(conv)} title="Activar">
+                        <FaPlay size={11} />
                       </button>
                     )}
-
                     {canDelete && (
-                      <button className="action-icon-btn delete" onClick={() => handleDelete(conv)} title="Eliminar">
-                        <FaTrash size={12} />
+                      <button className="mac-action-btn delete" onClick={() => handleDelete(conv)} title="Eliminar">
+                        <FaTrash size={11} />
                       </button>
                     )}
                   </div>
@@ -397,26 +513,18 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
         )}
       </div>
 
-      {/* Pagination Footer */}
-      <div className="modal-footer-custom">
-        <div className="pagination-info" style={{ fontSize: '13px', color: '#6b7280' }}>
-          Página {currentPage} de {totalPages}
-        </div>
+      {/* ── Footer ── */}
+      <div className="mac-footer">
+        <span className="mac-page-info">Página {currentPage} de {totalPages}</span>
 
         {totalPages > 1 && (
-          <div className="pagination-modern">
-            <button
-              className="page-btn"
-              onClick={() => goToPage(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
+          <div className="mac-pagination">
+            <button className="mac-page-btn" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>
               <FaChevronLeft size={10} />
             </button>
 
-            {/* Generar números de página simple */}
             {[...Array(totalPages)].map((_, idx) => {
               const pageNum = idx + 1;
-              // Mostrar solo páginas cercanas a la actual para no saturar si hay muchas
               if (
                 totalPages <= 7 ||
                 pageNum === 1 ||
@@ -426,7 +534,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
                 return (
                   <button
                     key={pageNum}
-                    className={`page-btn ${currentPage === pageNum ? 'active' : ''}`}
+                    className={`mac-page-btn ${currentPage === pageNum ? 'active' : ''}`}
                     onClick={() => goToPage(pageNum)}
                   >
                     {pageNum}
@@ -436,31 +544,24 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
                 (pageNum === currentPage - 2 && pageNum > 1) ||
                 (pageNum === currentPage + 2 && pageNum < totalPages)
               ) {
-                return <span key={pageNum} style={{ padding: '0 4px', color: '#9ca3af' }}>...</span>;
+                return <span key={pageNum} className="mac-page-dots">...</span>;
               }
               return null;
             })}
 
-            <button
-              className="page-btn"
-              onClick={() => goToPage(currentPage + 1)}
-              disabled={currentPage === totalPages}
-            >
+            <button className="mac-page-btn" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>
               <FaChevronRight size={10} />
             </button>
           </div>
         )}
 
-        <SidebarMenuButton
-          onClick={onClose}
-          label="Cerrar"
-          icon={FaTimes}
-          className="sidebar-menu-btn light"
-          style={{ width: 'auto', padding: '8px 16px' }}
-        />
+        <button className="mac-close-btn" onClick={onClose}>
+          <FaTimes size={11} /> Cerrar
+        </button>
       </div>
     </BaseModal>
   );
 };
 
 export default ManageAssignedConversationsModal;
+

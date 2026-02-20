@@ -1,5 +1,4 @@
 import React from 'react';
-import EditRoomModal from './modals/EditRoomModal';
 import RoomCreatedModal from './modals/RoomCreatedModal';
 import CreateConversationModal from './modals/CreateConversationModal';
 import ManageAssignedConversationsModal from './modals/ManageAssignedConversationsModal';
@@ -11,15 +10,6 @@ import RemoveUsersFromRoomModal from './modals/RemoveUsersFromRoomModal';
  * Reduce la complejidad de ChatPage.jsx centralizando la gestión de modales
  */
 const ChatModalsContainer = ({
-    // Edit Room Modal  
-    showEditRoomModal,
-    setShowEditRoomModal,
-    editingRoom,
-    setEditingRoom,
-    editForm,
-    setEditForm,
-    onUpdateRoom,
-
     // Room Created Modal
     showRoomCreatedModal,
     setShowRoomCreatedModal,
@@ -54,19 +44,6 @@ const ChatModalsContainer = ({
 }) => {
     return (
         <>
-            {/* Edit Room Modal */}
-            <EditRoomModal
-                isOpen={showEditRoomModal}
-                onClose={() => {
-                    setShowEditRoomModal(false);
-                    setEditingRoom(null);
-                }}
-                room={editingRoom}
-                editForm={editForm}
-                setEditForm={setEditForm}
-                onUpdateRoom={onUpdateRoom}
-            />
-
             {/* Room Created Modal */}
             <RoomCreatedModal
                 isOpen={showRoomCreatedModal}

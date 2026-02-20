@@ -1,350 +1,540 @@
-.manage-conversations-modal {
-  max-width: 1000px;
-  max-height: 85vh;
-  display: flex;
-  flex-direction: column;
-  border-radius: 12px;
-  overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background-color: #ffffff;
-  /* Light background */
-  color: #111b21;
+/* ============================================
+   ManageAssignedConversationsModal - Professional
+   Dark theme by default (matches app baseline)
+   ============================================ */
+
+/* ── Override BaseModal defaults for this modal ── */
+.modal-content:has(.mac-toolbar) .modal-body {
+  padding: 0 !important;
 }
 
-/* Header */
-.manage-conversations-modal .modal-header {
-  padding: 1rem 1.5rem;
-  background-color: #A50104;
-  /* RED HEADER KEPT */
-  border-bottom: 1px solid #8B0003;
+.modal-content:has(.mac-toolbar) .modal-header {
+  border-bottom: none !important;
 }
 
-.manage-conversations-modal .modal-header h2 {
-  font-size: 1.25rem;
-  color: #FFFFFF;
-  font-weight: 600;
+/* ── Toolbar (filtros + búsqueda) ── */
+.mac-toolbar {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 12px 20px;
+  background-color: #1a2730;
+  border-bottom: 1px solid #2a3942;
+  flex-wrap: wrap;
 }
 
-.manage-conversations-modal .close-btn {
-  color: #fff;
-  border-radius: 50%;
-  padding: 8px;
-  transition: background 0.2s;
+/* Select / Dropdown */
+.mac-toolbar .mac-select {
+  padding: 7px 32px 7px 12px;
+  border-radius: 8px;
+  border: 1px solid #3b4a54;
+  font-size: 13px;
+  font-weight: 500;
+  color: #e9edef;
+  background-color: #233040;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238696a0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  min-width: 200px;
+  transition: border-color .2s, box-shadow .2s;
 }
 
-.manage-conversations-modal .close-btn:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-  color: #fff;
+.mac-toolbar .mac-select:focus {
+  border-color: #A50104;
+  box-shadow: 0 0 0 2px rgba(165, 1, 4, .25);
 }
 
-/* Filtros y Búsqueda */
-.search-container {
-  padding: 1rem 1.5rem 0.5rem;
-  background-color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.mac-toolbar .mac-select option {
+  background-color: #233040;
+  color: #e9edef;
 }
 
-.search-wrapper {
+/* Search input */
+.mac-toolbar .mac-search-wrap {
   position: relative;
   flex: 1;
-  max-width: 400px;
+  min-width: 180px;
 }
 
-.search-input {
+.mac-toolbar .mac-search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #8696a0;
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.mac-toolbar .mac-search-input {
   width: 100%;
-  padding: 8px 12px 8px 36px;
-  border: 1px solid #e0e0e0;
+  padding: 7px 12px 7px 34px;
+  border: 1px solid #3b4a54;
   border-radius: 8px;
-  font-size: 0.9rem;
-  color: #111b21;
-  transition: all 0.2s;
-  background-color: #f0f2f5;
-  /* Light gray input */
+  font-size: 13px;
+  color: #e9edef;
+  background-color: #233040;
+  transition: border-color .2s, box-shadow .2s;
+  box-sizing: border-box;
 }
 
-.search-input:focus {
-  background-color: #fff;
-  border-color: #A50104;
-  box-shadow: 0 0 0 1px #A50104;
+.mac-toolbar .mac-search-input:focus {
   outline: none;
+  border-color: #A50104;
+  box-shadow: 0 0 0 2px rgba(165, 1, 4, .25);
 }
 
-.search-input::placeholder {
-  color: #667781;
+.mac-toolbar .mac-search-input::placeholder {
+  color: #8696a0;
 }
 
-/* LISTA - GRID HEADER */
-.list-header {
+/* Clear filters button */
+.mac-toolbar .mac-clear-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid #3b4a54;
+  background-color: #233040;
+  color: #8696a0;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .2s;
+  white-space: nowrap;
+}
+
+.mac-toolbar .mac-clear-btn:hover {
+  background-color: #3b1c1c;
+  border-color: #dc2626;
+  color: #f87171;
+}
+
+/* Results count */
+.mac-toolbar .mac-results-count {
+  font-size: 12px;
+  color: #8696a0;
+  font-weight: 500;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+/* ── Table Header ── */
+.mac-list-header {
   display: grid;
-  grid-template-columns: 2fr 100px 140px 120px 100px;
-  gap: 1rem;
-  padding: 0.75rem 1.5rem;
-  background-color: #fff;
-  /* White background */
-  border-bottom: 2px solid #f0f2f5;
-  font-size: 0.75rem;
+  grid-template-columns: 2.5fr 90px 100px 100px 110px;
+  gap: 8px;
+  padding: 8px 20px;
+  background-color: #1a2730;
+  border-bottom: 1px solid #2a3942;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #54656f;
-  letter-spacing: 0.05em;
-  margin-top: 0;
+  color: #8696a0;
+  letter-spacing: 0.06em;
 }
 
-.header-cell {
+.mac-header-cell {
   display: flex;
   align-items: center;
 }
 
-.conversations-list {
-  background-color: #fff;
+/* ── List ── */
+.mac-conversations-list {
+  background-color: #111b21;
   overflow-y: auto;
   flex: 1;
+  min-height: 200px;
 }
 
-/* ITEM - GRID ROW */
-.room-item {
+/* ── Row ── */
+.mac-row {
   display: grid;
-  grid-template-columns: 2fr 100px 140px 120px 100px;
-  gap: 1rem;
-  padding: 0.75rem 1.5rem;
-  border-bottom: 1px solid #f8f9fa;
-  /* Very subtle border */
+  grid-template-columns: 2.5fr 90px 100px 100px 110px;
+  gap: 8px;
+  padding: 10px 20px;
+  border-bottom: 1px solid #1e2d36;
   align-items: center;
-  transition: background-color 0.2s;
-  background-color: #fff;
+  transition: background-color .15s;
 }
 
-.room-item:hover {
-  background-color: #fafafa;
+.mac-row:hover {
+  background-color: #1a2730;
 }
 
-/* Celda Nombre */
-.cell-name {
+/* ── Name cell ── */
+.mac-cell-name {
   display: flex;
   flex-direction: column;
   justify-content: center;
   overflow: hidden;
+  min-width: 0;
 }
 
-.room-name-text {
-  font-size: 0.8rem;
-  /* Reduced font size */
+.mac-name-text {
+  font-size: 13px;
   font-weight: 600;
-  color: #333;
-  /* Softer black */
+  color: #e9edef;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 2px;
+  line-height: 1.3;
 }
 
-.room-desc-text {
-  font-size: 0.8rem;
-  color: #667781;
+.mac-desc-text {
+  font-size: 12px;
+  color: #8696a0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-top: 1px;
 }
 
-/* Celda Participantes */
-.cell-participants {
+.mac-inactive-tag {
+  color: #f87171;
+  font-size: 10px;
+  margin-left: 4px;
+  font-weight: 600;
+}
+
+/* ── Participants cell ── */
+.mac-cell-participants {
   display: flex;
   align-items: center;
-  gap: 6px;
-  color: #54656f;
-  font-size: 0.85rem;
+  gap: 5px;
+  color: #8696a0;
+  font-size: 13px;
   font-weight: 500;
+  cursor: pointer;
+  transition: all .2s;
+  border-radius: 6px;
+  padding: 4px 6px;
+  margin: -4px -6px;
 }
 
-/* Celda Estado */
-.cell-status {
+.mac-cell-participants:hover {
+  color: #f87171;
+  background-color: rgba(248, 113, 113, .08);
+}
+
+.mac-cell-participants .mac-p-icon {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.mac-cell-participants .mac-p-count {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Status badges ── */
+.mac-cell-status {
   display: flex;
-  justify-content: flex-start;
+  align-items: center;
 }
 
-.status-app-badge {
+.mac-badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
-  border-radius: 9999px;
-  font-size: 0.7rem;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  line-height: 1.2;
+  letter-spacing: .03em;
+  line-height: 1;
+  white-space: nowrap;
 }
 
-/* Badges Light Mode */
-.status-app-badge.active {
-  background-color: #d1fae5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
+.mac-badge.active {
+  background-color: rgba(22, 101, 52, .25);
+  color: #86efac;
 }
 
-.status-app-badge.expiring-soon {
-  background-color: #fef3c7;
-  color: #92400e;
-  border: 1px solid #fde68a;
+.mac-badge.expiring-soon {
+  background-color: rgba(133, 77, 14, .25);
+  color: #fde047;
 }
 
-.status-app-badge.expired {
-  background-color: #fee2e2;
-  color: #b91c1c;
-  border: 1px solid #fecaca;
+.mac-badge.expired,
+.mac-badge.inactive {
+  background-color: rgba(153, 27, 27, .25);
+  color: #fca5a5;
 }
 
-/* Celda Fecha */
-.cell-date {
-  font-size: 0.8rem;
-  color: #667781;
+/* ── Date cell ── */
+.mac-cell-date {
+  font-size: 12px;
+  color: #8696a0;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Celda Acciones */
-.cell-actions {
+/* ── Actions cell ── */
+.mac-cell-actions {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   justify-content: flex-end;
 }
 
-.action-icon-btn {
-  width: 28px;
-  height: 28px;
+.mac-action-btn {
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  border: 1px solid transparent;
+  border: none;
   background: transparent;
   color: #8696a0;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all .15s;
+  font-size: 13px;
 }
 
-.action-icon-btn:hover {
-  background-color: #f0f2f5;
-  color: #111b21;
+.mac-action-btn:hover {
+  background-color: #233040;
+  color: #e9edef;
 }
 
-.action-icon-btn.edit:hover {
-  color: #2563eb;
-  background-color: #eff6ff;
+.mac-action-btn.edit:hover {
+  color: #60a5fa;
+  background-color: rgba(96, 165, 250, .12);
 }
 
-.action-icon-btn.delete:hover {
-  color: #dc2626;
-  background-color: #fef2f2;
+.mac-action-btn.pause:hover {
+  color: #fbbf24;
+  background-color: rgba(251, 191, 36, .12);
 }
 
-.action-icon-btn.pause:hover {
-  color: #d97706;
-  background-color: #fffbeb;
+.mac-action-btn.play:hover {
+  color: #34d399;
+  background-color: rgba(52, 211, 153, .12);
 }
 
-.action-icon-btn.active:hover {
-  color: #059669;
-  background-color: #ecfdf5;
+.mac-action-btn.delete:hover {
+  color: #f87171;
+  background-color: rgba(248, 113, 113, .12);
 }
 
-/* Edit Mode Inline */
-.edit-mode-grid {
+/* ── Edit inline ── */
+.mac-edit-row {
   grid-column: 1 / -1;
   display: flex;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
   align-items: center;
   width: 100%;
+  box-sizing: border-box;
 }
 
-.input-inline {
-  padding: 6px 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  background-color: #fff;
-  color: #111b21;
+.mac-edit-input {
+  padding: 7px 12px;
+  border: 1px solid #3b4a54;
+  border-radius: 8px;
+  font-size: 13px;
+  background-color: #233040;
+  color: #e9edef;
+  min-width: 0;
+  box-sizing: border-box;
+  transition: border-color .2s;
 }
 
-.input-inline:focus {
+.mac-edit-input:focus {
   outline: none;
   border-color: #A50104;
+  box-shadow: 0 0 0 2px rgba(165, 1, 4, .25);
 }
 
-/* Footer & Pagination */
-.modal-footer-custom {
-  padding: 1rem 1.5rem;
-  background-color: #fff;
-  border-top: 1px solid #f0f2f5;
+.mac-edit-input:disabled {
+  background-color: #1a2730;
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.mac-edit-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.mac-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+
+.mac-edit-btn.save {
+  background-color: #A50104;
+  color: #fff;
+}
+
+.mac-edit-btn.save:hover {
+  background-color: #8b0003;
+}
+
+.mac-edit-btn.cancel {
+  background-color: #233040;
+  color: #8696a0;
+}
+
+.mac-edit-btn.cancel:hover {
+  background-color: #2a3942;
+  color: #e9edef;
+}
+
+/* ── Empty / Loading states ── */
+.mac-empty-state,
+.mac-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  color: #8696a0;
+}
+
+.mac-empty-state p {
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 12px;
+}
+
+.mac-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #2a3942;
+  border-top-color: #dc2626;
+  border-radius: 50%;
+  animation: mac-spin .7s linear infinite;
+}
+
+@keyframes mac-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Footer ── */
+.mac-footer {
+  padding: 10px 20px;
+  background-color: #1a2730;
+  border-top: 1px solid #2a3942;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.pagination-modern {
+.mac-page-info {
+  font-size: 12px;
+  color: #8696a0;
+  font-weight: 500;
+}
+
+.mac-pagination {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 
-.page-btn {
-  width: 32px;
-  height: 32px;
+.mac-page-btn {
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  border: 1px solid #e0e0e0;
-  background-color: #fff;
-  color: #54656f;
-  font-size: 0.85rem;
+  border: 1px solid #3b4a54;
+  background-color: #233040;
+  color: #8696a0;
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all .15s;
 }
 
-.page-btn:hover:not(:disabled) {
-  background-color: #f0f2f5;
-  color: #111b21;
-  border-color: #d1d5db;
+.mac-page-btn:hover:not(:disabled):not(.active) {
+  background-color: #2a3942;
+  color: #e9edef;
 }
 
-.page-btn.active {
+.mac-page-btn.active {
   background-color: #A50104;
   border-color: #A50104;
-  color: white;
+  color: #fff;
 }
 
-.page-btn:disabled {
-  opacity: 0.5;
+.mac-page-btn:disabled {
+  opacity: .4;
   cursor: not-allowed;
 }
 
-/* Responsive */
+.mac-page-dots {
+  padding: 0 4px;
+  color: #3b4a54;
+  font-size: 12px;
+}
+
+.mac-close-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 18px;
+  border-radius: 8px;
+  border: 1px solid #3b4a54;
+  background-color: #233040;
+  color: #8696a0;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.mac-close-btn:hover {
+  background-color: #2a3942;
+  color: #e9edef;
+}
+
+/* ── Responsive ── */
 @media (max-width: 768px) {
-  .list-header {
+  .mac-list-header {
     display: none;
   }
 
-  .room-item {
+  .mac-row {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.5rem;
-    padding: 1rem;
+    gap: 6px;
+    padding: 12px 16px;
   }
 
-  .cell-name,
-  .cell-participants,
-  .cell-status,
-  .cell-date,
-  .cell-actions {
+  .mac-cell-actions {
     width: 100%;
-    justify-content: flex-start;
+    justify-content: flex-end;
+    margin-top: 4px;
   }
 
-  .cell-actions {
-    margin-top: 0.5rem;
-    justify-content: flex-end;
+  .mac-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mac-toolbar .mac-select {
+    min-width: unset;
+    width: 100%;
   }
 }

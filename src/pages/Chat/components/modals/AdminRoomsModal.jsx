@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaDoorOpen, FaEdit, FaSearch, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaDoorOpen, FaEdit, FaSearch, FaChevronLeft, FaChevronRight, FaUsers, FaPause, FaPlay, FaTrash, FaTimes, FaSave } from 'react-icons/fa';
 import BaseModal from './BaseModal';
 import apiService from "../../../../apiService";
+import { showSuccessAlert, showErrorAlert } from "../../../../sweetalert2";
+import './ManageAssignedConversationsModal.css';
 import './Modal.css';
 
-const AdminRoomsModal = ({ isOpen, onClose, onDeleteRoom, onDeactivateRoom, onActivateRoom, onViewRoomUsers, onEditRoom, currentUser }) => {
-  // Estados para búsqueda y paginación
+const AdminRoomsModal = ({ isOpen, onClose, onDeleteRoom, onDeactivateRoom, onActivateRoom, onViewRoomUsers, currentUser }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [rooms, setRooms] = useState([]);
@@ -15,11 +16,14 @@ const AdminRoomsModal = ({ isOpen, onClose, onDeleteRoom, onDeactivateRoom, onAc
   const itemsPerPage = 10;
   const searchTimeoutRef = useRef(null);
 
-  // Verificar si el usuario puede eliminar (solo ADMIN, SUPERADMIN y PROGRAMADOR)
+  // Inline edit state
+  const [editingRoomId, setEditingRoomId] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editCapacity, setEditCapacity] = useState(50);
+
   const canDelete = ['ADMIN', 'SUPERADMIN', 'PROGRAMADOR'].includes(currentUser?.role);
   const canEdit = ['ADMIN', 'SUPERADMIN', 'PROGRAMADOR'].includes(currentUser?.role);
 
-  // Cargar salas desde el backend
   const loadRooms = async (page = 1, search = '') => {
     setLoading(true);
     try {
@@ -38,14 +42,12 @@ const AdminRoomsModal = ({ isOpen, onClose, onDeleteRoom, onDeactivateRoom, onAc
     }
   };
 
-  // Cargar salas cuando se abre el modal
   useEffect(() => {
     if (isOpen) {
       loadRooms(1, '');
       setSearchTerm('');
+      setEditingRoomId(null);
     }
-
-    // Limpiar timeout al cerrar el modal
     return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
@@ -53,26 +55,43 @@ const AdminRoomsModal = ({ isOpen, onClose, onDeleteRoom, onDeactivateRoom, onAc
     };
   }, [isOpen]);
 
-  // Resetear a página 1 cuando cambia la búsqueda (con debounce)
   const handleSearchChange = (e) => {
     const newSearch = e.target.value;
     setSearchTerm(newSearch);
-
-    // Limpiar timeout anterior
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    // Esperar 500ms después de que el usuario deje de escribir
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     searchTimeoutRef.current = setTimeout(() => {
       loadRooms(1, newSearch);
     }, 500);
   };
 
-  // Navegación de páginas
   const goToPage = (page) => {
     if (page >= 1 && page <= totalPages) {
       loadRooms(page, searchTerm);
+    }
+  };
+
+  // Inline edit handlers
+  const handleStartEdit = (room) => {
+    setEditingRoomId(room.id);
+    setEditName(room.name || '');
+    setEditCapacity(room.maxCapacity || 50);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingRoomId(null);
+    setEditName('');
+    setEditCapacity(50);
+  };
+
+  const handleSaveEdit = async (roomId) => {
+    try {
+      await apiService.updateRoom(roomId, { name: editName, maxCapacity: editCapacity });
+      await showSuccessAlert('Éxito', 'Sala actualizada correctamente');
+      setEditingRoomId(null);
+      loadRooms(currentPage, searchTerm);
+    } catch (error) {
+      console.error('Error al actualizar sala:', error);
+      await showErrorAlert('Error', 'Error al actualizar: ' + error.message);
     }
   };
 
@@ -83,287 +102,207 @@ const AdminRoomsModal = ({ isOpen, onClose, onDeleteRoom, onDeactivateRoom, onAc
       title="Mis Salas Creadas"
       icon={<FaDoorOpen />}
       headerBgColor="#A50104"
-      bodyBgColor="#FFFFFF"
+      bodyBgColor="#111b21"
       titleColor="#FFFFFF"
-      maxWidth="900px"
+      maxWidth="960px"
     >
-      {/* Buscador */}
-      <div style={{
-        marginBottom: '20px',
-        padding: '0 20px',
-        paddingTop: '20px'
-      }}>
-        <div style={{
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center'
-        }}>
-          <FaSearch style={{
-            position: 'absolute',
-            left: '12px',
-            color: '#666666',
-            fontSize: '14px'
-          }} />
+      {/* ── Toolbar ── */}
+      <div className="mac-toolbar">
+        <div className="mac-search-wrap">
+          <FaSearch className="mac-search-icon" />
           <input
             type="text"
+            className="mac-search-input"
             placeholder="Buscar por nombre o código de sala..."
             value={searchTerm}
             onChange={handleSearchChange}
             disabled={loading}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
-            style={{
-              width: '100%',
-              padding: '10px 10px 10px 40px',
-              border: '1px solid #d1d7db',
-              borderRadius: '8px',
-              fontSize: '14px',
-              backgroundColor: loading ? '#f5f5f5' : '#FFFFFF',
-              color: '#000000',
-              outline: 'none',
-              transition: 'border-color 0.2s',
-              cursor: loading ? 'not-allowed' : 'text'
-            }}
-            onFocus={(e) => !loading && (e.target.style.borderColor = '#A50104')}
-            onBlur={(e) => e.target.style.borderColor = '#d1d7db'}
           />
         </div>
-        {searchTerm && !loading && (
-          <div style={{
-            marginTop: '8px',
-            fontSize: '13px',
-            color: '#666666'
-          }}>
-            {totalRooms} {totalRooms === 1 ? 'sala encontrada' : 'salas encontradas'}
-          </div>
+
+        {searchTerm && (
+          <button className="mac-clear-btn" onClick={() => { setSearchTerm(''); loadRooms(1, ''); }} title="Limpiar búsqueda">
+            <FaTimes size={10} />
+            Limpiar
+          </button>
+        )}
+
+        {!loading && (
+          <span className="mac-results-count">
+            {totalRooms} {totalRooms === 1 ? 'sala' : 'salas'}
+          </span>
         )}
       </div>
 
-      {/* Loading state */}
-      {loading ? (
-        <div style={{
-          padding: '60px 20px',
-          textAlign: 'center',
-          color: '#666666'
-        }}>
-          <div className="spinner" style={{
-            margin: '0 auto 15px',
-            width: '40px',
-            height: '40px',
-            border: '4px solid #f3f3f3',
-            borderTop: '4px solid #A50104',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite'
-          }}></div>
-          <p>Cargando salas...</p>
-        </div>
-      ) : rooms.length === 0 ? (
-        <div className="no-rooms" style={{ padding: '40px 20px' }}>
-          <div className="no-rooms-icon">{searchTerm ? '🔍' : '🏠'}</div>
-          <div className="no-rooms-text" style={{ color: '#666666' }}>
-            {searchTerm
-              ? `No se encontraron salas con "${searchTerm}"`
-              : 'No has creado ninguna sala aún'
-            }
+      {/* ── Table Header ── */}
+      <div className="mac-list-header">
+        <div className="mac-header-cell">Nombre</div>
+        <div className="mac-header-cell">Código</div>
+        <div className="mac-header-cell">Capacidad</div>
+        <div className="mac-header-cell">Estado</div>
+        <div className="mac-header-cell" style={{ justifyContent: 'flex-end' }}>Acciones</div>
+      </div>
+
+      {/* ── List ── */}
+      <div className="mac-conversations-list">
+        {loading ? (
+          <div className="mac-loading-state">
+            <div className="mac-spinner" />
+            <p>Cargando salas...</p>
           </div>
-        </div>
-      ) : (
-        <>
-          {/* Lista de salas */}
-          <div className="rooms-list">
-            {rooms.map((room) => (
-              <div key={room.id} className="room-item" style={{ backgroundColor: '#f5f5f5', border: '1px solid #e0e0e0' }}>
-                <div className="room-info" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                  <div className="room-name" style={{ color: '#000000', fontWeight: 600 }}>{room.name}</div>
-                  <span className="room-code" style={{ backgroundColor: '#e0e0e0', color: '#000000', padding: '2px 8px', borderRadius: '4px', fontSize: '12px' }}>Código: {room.roomCode}</span>
-                  <span className="room-capacity" style={{ color: '#666666', fontSize: '12px' }}>Capacidad: {room.currentMembers}/{room.maxCapacity}</span>
-                  <span className={`room-status ${room.isActive ? 'active' : 'inactive'}`}>
-                    {room.isActive ? 'ACTIVA' : 'INACTIVA'}
-                  </span>
-                </div>
-                <div className="room-actions">
-                  <button
-                    className="btn btn-info"
-                    onClick={() => onViewRoomUsers(room.roomCode, room.name)}
-                    title="Ver usuarios conectados"
-                  >
-                    👥
-                  </button>
-                  {canEdit && room.isActive && (
-                    <button
-                      className="btn btn-edit"
-                      onClick={() => onEditRoom(room)}
-                      title="Editar capacidad de la sala"
-                    >
-                      <FaEdit />
-                    </button>
-                  )}
-                  {canDelete && room.isActive && (
-                    <button
-                      className="btn btn-warning"
-                      onClick={() => onDeactivateRoom(room.id, room.name)}
-                      title="Desactivar sala"
-                    >
-                      ⏸️
-                    </button>
-                  )}
-                  {canDelete && !room.isActive && (
-                    <button
-                      className="btn btn-success"
-                      onClick={() => onActivateRoom(room.id, room.name)}
-                      title="Activar sala"
-                    >
-                      ▶️
-                    </button>
-                  )}
-                  {canDelete && (
-                    <button
-                      className="btn btn-danger"
-                      onClick={() => onDeleteRoom(room.id, room.name)}
-                      title="Eliminar sala permanentemente"
-                    >
-                      🗑️
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+        ) : rooms.length === 0 ? (
+          <div className="mac-empty-state">
+            <FaDoorOpen size={36} />
+            <p>{searchTerm ? `No se encontraron salas con "${searchTerm}"` : 'No has creado ninguna sala aún'}</p>
           </div>
+        ) : (
+          rooms.map((room) => (
+            <div key={room.id} className="mac-row">
+              {editingRoomId === room.id ? (
+                /* ── Inline Edit Mode ── */
+                <div className="mac-edit-row">
+                  <input
+                    type="text"
+                    className="mac-edit-input"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="Nombre de la sala"
+                    autoFocus
+                    style={{ flex: '1 1 180px' }}
+                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                    <span style={{ color: '#8696a0', fontSize: '11px', whiteSpace: 'nowrap' }}>Cap. máx:</span>
+                    <input
+                      type="number"
+                      className="mac-edit-input"
+                      value={editCapacity}
+                      onChange={(e) => setEditCapacity(parseInt(e.target.value) || 1)}
+                      min="1"
+                      max="500"
+                      style={{ width: '70px', textAlign: 'center' }}
+                    />
+                  </div>
+                  <div className="mac-edit-actions">
+                    <button className="mac-edit-btn save" onClick={() => handleSaveEdit(room.id)}>
+                      <FaSave size={12} /> Guardar
+                    </button>
+                    <button className="mac-edit-btn cancel" onClick={handleCancelEdit}>
+                      <FaTimes size={11} /> Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Name */}
+                  <div className="mac-cell-name">
+                    <div className="mac-name-text" title={room.name}>
+                      {room.name}
+                      {!room.isActive && <span className="mac-inactive-tag">(Inactiva)</span>}
+                    </div>
+                    {room.description && (
+                      <div className="mac-desc-text" title={room.description}>{room.description}</div>
+                    )}
+                  </div>
 
-          {/* Paginación Compacta */}
-          {totalPages > 1 && (
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '16px 20px',
-              borderTop: '1px solid #e0e0e0',
-              marginTop: '12px'
-            }}>
-              {/* Primera página */}
-              <button
-                onClick={() => goToPage(1)}
-                disabled={currentPage === 1}
-                title="Primera página"
-                style={{
-                  width: '34px',
-                  height: '34px',
-                  border: '1px solid #d1d7db',
-                  borderRadius: '6px',
-                  backgroundColor: currentPage === 1 ? '#f5f5f5' : '#fff',
-                  color: currentPage === 1 ? '#bbb' : '#555',
-                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  transition: 'all 0.15s'
-                }}
-              >
-                «
-              </button>
+                  {/* Room Code */}
+                  <div className="mac-cell-date" style={{ fontFamily: 'monospace', letterSpacing: '0.5px' }}>
+                    {room.roomCode}
+                  </div>
 
-              {/* Anterior */}
-              <button
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage === 1}
-                title="Página anterior"
-                style={{
-                  width: '34px',
-                  height: '34px',
-                  border: '1px solid #d1d7db',
-                  borderRadius: '6px',
-                  backgroundColor: currentPage === 1 ? '#f5f5f5' : '#fff',
-                  color: currentPage === 1 ? '#bbb' : '#555',
-                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.15s'
-                }}
-              >
-                <FaChevronLeft size={11} />
-              </button>
+                  {/* Capacity */}
+                  <div className="mac-cell-participants" onClick={() => onViewRoomUsers(room.roomCode, room.name)} title="Ver usuarios conectados">
+                    <FaUsers className="mac-p-icon" />
+                    <span className="mac-p-count">{room.currentMembers}/{room.maxCapacity}</span>
+                  </div>
 
-              {/* Indicador de página */}
-              <div style={{
-                padding: '8px 20px',
-                backgroundColor: '#A50104',
-                color: '#fff',
-                borderRadius: '6px',
-                fontSize: '13px',
-                fontWeight: '600',
-                textAlign: 'center',
-                userSelect: 'none',
-                whiteSpace: 'nowrap'
-              }}>
-                Página {currentPage} de {totalPages}
-              </div>
+                  {/* Status */}
+                  <div className="mac-cell-status">
+                    <span className={`mac-badge ${room.isActive ? 'active' : 'inactive'}`}>
+                      {room.isActive ? 'Activa' : 'Inactiva'}
+                    </span>
+                  </div>
 
-              {/* Siguiente */}
-              <button
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                title="Página siguiente"
-                style={{
-                  width: '34px',
-                  height: '34px',
-                  border: '1px solid #d1d7db',
-                  borderRadius: '6px',
-                  backgroundColor: currentPage === totalPages ? '#f5f5f5' : '#fff',
-                  color: currentPage === totalPages ? '#bbb' : '#555',
-                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.15s'
-                }}
-              >
-                <FaChevronRight size={11} />
-              </button>
-
-              {/* Última página */}
-              <button
-                onClick={() => goToPage(totalPages)}
-                disabled={currentPage === totalPages}
-                title="Última página"
-                style={{
-                  width: '34px',
-                  height: '34px',
-                  border: '1px solid #d1d7db',
-                  borderRadius: '6px',
-                  backgroundColor: currentPage === totalPages ? '#f5f5f5' : '#fff',
-                  color: currentPage === totalPages ? '#bbb' : '#555',
-                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  transition: 'all 0.15s'
-                }}
-              >
-                »
-              </button>
+                  {/* Actions */}
+                  <div className="mac-cell-actions">
+                    {canEdit && room.isActive && (
+                      <button className="mac-action-btn edit" onClick={() => handleStartEdit(room)} title="Editar capacidad">
+                        <FaEdit size={13} />
+                      </button>
+                    )}
+                    {canDelete && room.isActive && (
+                      <button className="mac-action-btn pause" onClick={() => onDeactivateRoom(room.id, room.name)} title="Desactivar sala">
+                        <FaPause size={11} />
+                      </button>
+                    )}
+                    {canDelete && !room.isActive && (
+                      <button className="mac-action-btn play" onClick={() => onActivateRoom(room.id, room.name)} title="Activar sala">
+                        <FaPlay size={11} />
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button className="mac-action-btn delete" onClick={() => onDeleteRoom(room.id, room.name)} title="Eliminar sala">
+                        <FaTrash size={11} />
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
-          )}
+          ))
+        )}
+      </div>
 
-          {/* Info de paginación */}
-          <div style={{
-            textAlign: 'center',
-            padding: '10px 20px',
-            fontSize: '13px',
-            color: '#666666',
-            borderTop: totalPages > 1 ? 'none' : '1px solid #e0e0e0'
-          }}>
-            Mostrando {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalRooms)} de {totalRooms} {totalRooms === 1 ? 'sala' : 'salas'}
+      {/* ── Footer ── */}
+      <div className="mac-footer">
+        <span className="mac-page-info">
+          {totalRooms > 0
+            ? `Mostrando ${((currentPage - 1) * itemsPerPage) + 1}-${Math.min(currentPage * itemsPerPage, totalRooms)} de ${totalRooms}`
+            : 'Sin resultados'
+          }
+        </span>
+
+        {totalPages > 1 && (
+          <div className="mac-pagination">
+            <button className="mac-page-btn" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>
+              <FaChevronLeft size={10} />
+            </button>
+
+            {[...Array(totalPages)].map((_, idx) => {
+              const pageNum = idx + 1;
+              if (
+                totalPages <= 7 ||
+                pageNum === 1 ||
+                pageNum === totalPages ||
+                (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+              ) {
+                return (
+                  <button
+                    key={pageNum}
+                    className={`mac-page-btn ${currentPage === pageNum ? 'active' : ''}`}
+                    onClick={() => goToPage(pageNum)}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              } else if (
+                (pageNum === currentPage - 2 && pageNum > 1) ||
+                (pageNum === currentPage + 2 && pageNum < totalPages)
+              ) {
+                return <span key={pageNum} className="mac-page-dots">...</span>;
+              }
+              return null;
+            })}
+
+            <button className="mac-page-btn" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>
+              <FaChevronRight size={10} />
+            </button>
           </div>
-        </>
-      )}
+        )}
+
+        <button className="mac-close-btn" onClick={onClose}>
+          <FaTimes size={11} /> Cerrar
+        </button>
+      </div>
     </BaseModal>
   );
 };
