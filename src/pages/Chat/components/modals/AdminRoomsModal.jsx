@@ -102,7 +102,7 @@ const AdminRoomsModal = ({ isOpen, onClose, onDeleteRoom, onDeactivateRoom, onAc
       title="Mis Salas Creadas"
       icon={<FaDoorOpen />}
       headerBgColor="#A50104"
-      bodyBgColor="#111b21"
+      bodyBgColor={document.documentElement.classList.contains('dark') ? '#111b21' : '#ffffff'}
       titleColor="#FFFFFF"
       maxWidth="960px"
     >

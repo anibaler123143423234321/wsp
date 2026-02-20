@@ -32,6 +32,7 @@
   font-weight: 500;
   color: #e9edef;
   background-color: #233040;
+  color-scheme: dark;
   cursor: pointer;
   outline: none;
   appearance: none;
@@ -537,4 +538,214 @@
     min-width: unset;
     width: 100%;
   }
+}
+
+/* ── Light mode overrides (app uses class "dark" on html) ── */
+
+/* Toolbar */
+html:not(.dark) .mac-toolbar {
+  background-color: #f3f4f6;
+  border-bottom-color: #e5e7eb;
+}
+
+html:not(.dark) .mac-toolbar .mac-select {
+  color: #1f2937;
+  background-color: #fff;
+  border-color: #d1d5db;
+  color-scheme: light;
+}
+
+html:not(.dark) .mac-toolbar .mac-select option {
+  background-color: #fff;
+  color: #1f2937;
+}
+
+html:not(.dark) .mac-toolbar .mac-search-input {
+  color: #1f2937;
+  background-color: #fff;
+  border-color: #d1d5db;
+}
+
+html:not(.dark) .mac-toolbar .mac-search-input::placeholder {
+  color: #9ca3af;
+}
+
+html:not(.dark) .mac-toolbar .mac-search-icon {
+  color: #9ca3af;
+}
+
+html:not(.dark) .mac-toolbar .mac-clear-btn {
+  background-color: #fff;
+  border-color: #d1d5db;
+  color: #6b7280;
+}
+
+html:not(.dark) .mac-toolbar .mac-clear-btn:hover {
+  background-color: #fef2f2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
+html:not(.dark) .mac-toolbar .mac-results-count {
+  color: #6b7280;
+}
+
+/* Table header */
+html:not(.dark) .mac-list-header {
+  background-color: #f9fafb;
+  border-bottom-color: #e5e7eb;
+  color: #6b7280;
+}
+
+/* List */
+html:not(.dark) .mac-conversations-list {
+  background-color: #fff;
+}
+
+/* Rows */
+html:not(.dark) .mac-row {
+  border-bottom-color: #f3f4f6;
+}
+
+html:not(.dark) .mac-row:hover {
+  background-color: #f9fafb;
+}
+
+html:not(.dark) .mac-name-text {
+  color: #111827;
+}
+
+html:not(.dark) .mac-desc-text {
+  color: #6b7280;
+}
+
+/* Participants */
+html:not(.dark) .mac-cell-participants {
+  color: #6b7280;
+}
+
+html:not(.dark) .mac-cell-participants:hover {
+  color: #dc2626;
+  background-color: rgba(220, 38, 38, .06);
+}
+
+/* Date */
+html:not(.dark) .mac-cell-date {
+  color: #6b7280;
+}
+
+/* Badges */
+html:not(.dark) .mac-badge.active {
+  background-color: rgba(22, 163, 74, .1);
+  color: #16a34a;
+}
+
+html:not(.dark) .mac-badge.expiring-soon {
+  background-color: rgba(202, 138, 4, .1);
+  color: #ca8a04;
+}
+
+html:not(.dark) .mac-badge.expired,
+html:not(.dark) .mac-badge.inactive {
+  background-color: rgba(220, 38, 38, .1);
+  color: #dc2626;
+}
+
+/* Action buttons */
+html:not(.dark) .mac-action-btn {
+  color: #9ca3af;
+}
+
+html:not(.dark) .mac-action-btn:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+html:not(.dark) .mac-action-btn.edit:hover {
+  color: #2563eb;
+  background-color: rgba(37, 99, 235, .08);
+}
+
+html:not(.dark) .mac-action-btn.pause:hover {
+  color: #d97706;
+  background-color: rgba(217, 119, 6, .08);
+}
+
+html:not(.dark) .mac-action-btn.play:hover {
+  color: #16a34a;
+  background-color: rgba(22, 163, 74, .08);
+}
+
+html:not(.dark) .mac-action-btn.delete:hover {
+  color: #dc2626;
+  background-color: rgba(220, 38, 38, .08);
+}
+
+/* Edit inline */
+html:not(.dark) .mac-edit-input {
+  background-color: #fff;
+  border-color: #d1d5db;
+  color: #1f2937;
+}
+
+html:not(.dark) .mac-edit-input:disabled {
+  background-color: #f3f4f6;
+}
+
+html:not(.dark) .mac-edit-btn.cancel {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+html:not(.dark) .mac-edit-btn.cancel:hover {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+/* Empty / Loading */
+html:not(.dark) .mac-empty-state,
+html:not(.dark) .mac-loading-state {
+  color: #9ca3af;
+}
+
+html:not(.dark) .mac-spinner {
+  border-color: #e5e7eb;
+  border-top-color: #dc2626;
+}
+
+/* Footer */
+html:not(.dark) .mac-footer {
+  background-color: #f9fafb;
+  border-top-color: #e5e7eb;
+}
+
+html:not(.dark) .mac-page-info {
+  color: #6b7280;
+}
+
+html:not(.dark) .mac-page-btn {
+  background-color: #fff;
+  border-color: #d1d5db;
+  color: #6b7280;
+}
+
+html:not(.dark) .mac-page-btn:hover:not(:disabled):not(.active) {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+html:not(.dark) .mac-page-dots {
+  color: #d1d5db;
+}
+
+/* Close button */
+html:not(.dark) .mac-close-btn {
+  background-color: #fff;
+  border-color: #d1d5db;
+  color: #6b7280;
+}
+
+html:not(.dark) .mac-close-btn:hover {
+  background-color: #f3f4f6;
+  color: #374151;
 }

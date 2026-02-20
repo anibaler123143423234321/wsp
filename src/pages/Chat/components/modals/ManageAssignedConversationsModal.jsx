@@ -29,15 +29,15 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
   const canDelete = ['ADMIN', 'SUPERADMIN', 'PROGRAMADOR'].includes(currentUser?.role);
 
   //  Cargar conversaciones con paginación y búsqueda
-  const loadConversations = useCallback(async (page = 1, search = '', type = 'assigned') => {
+  const loadConversations = useCallback(async (page = 1, search = '', type = 'assigned', status = 'all') => {
     setLoading(true);
     try {
       let result;
       if (type === 'assigned') {
-        result = await apiService.getAllAssignedConversations(page, ITEMS_PER_PAGE, search);
+        result = await apiService.getAllAssignedConversations(page, ITEMS_PER_PAGE, search, status);
         setConversations(result.data || []);
       } else {
-        result = await apiService.getAllRoomsPaginated(page, ITEMS_PER_PAGE, search);
+        result = await apiService.getAllRoomsPaginated(page, ITEMS_PER_PAGE, search, status);
         setConversations(result.data || []);
       }
       setCurrentPage(result.page || 1);
@@ -56,7 +56,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
       setSearchTerm('');
       setCurrentPage(1);
       setFilterType('assigned');
-      loadConversations(1, '', 'assigned');
+      loadConversations(1, '', 'assigned', 'all');
     }
   }, [show, loadConversations]);
 
@@ -65,20 +65,15 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
     setFilterType(newType);
     setStatusFilter('all');
     setCurrentPage(1);
-    loadConversations(1, searchTerm, newType);
+    loadConversations(1, searchTerm, newType, 'all');
   };
 
   const handleStatusFilterChange = (e) => {
-    setStatusFilter(e.target.value);
+    const newStatus = e.target.value;
+    setStatusFilter(newStatus);
+    setCurrentPage(1);
+    loadConversations(1, searchTerm, filterType, newStatus);
   };
-
-  // Client-side status filtering
-  const filteredConversations = conversations.filter(conv => {
-    if (statusFilter === 'all') return true;
-    if (statusFilter === 'active') return conv.isActive !== false;
-    if (statusFilter === 'inactive') return conv.isActive === false;
-    return true;
-  });
 
   //  Búsqueda con debounce
   const handleSearchChange = (e) => {
@@ -93,7 +88,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
     // Crear nuevo timeout para buscar después de 500ms
     const timeout = setTimeout(() => {
       setCurrentPage(1);
-      loadConversations(1, value, filterType);
+      loadConversations(1, value, filterType, statusFilter);
     }, 500);
 
     setSearchTimeout(timeout);
@@ -101,7 +96,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
 
   const goToPage = (page) => {
     if (page >= 1 && page <= totalPages) {
-      loadConversations(page, searchTerm, filterType);
+      loadConversations(page, searchTerm, filterType, statusFilter);
     }
   };
 
@@ -189,7 +184,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
         }
 
         await showSuccessAlert('¡Eliminado!', 'Eliminado correctamente');
-        loadConversations(currentPage, searchTerm, filterType);
+        loadConversations(currentPage, searchTerm, filterType, statusFilter);
         if (onConversationUpdated) {
           onConversationUpdated();
         }
@@ -199,7 +194,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
             'No encontrado',
             'Ya fue eliminado o no existe. Se actualizará la lista.'
           );
-          loadConversations(currentPage, searchTerm, filterType);
+          loadConversations(currentPage, searchTerm, filterType, statusFilter);
         } else {
           await showErrorAlert('Error', 'No se pudo eliminar: ' + error.message);
         }
@@ -221,7 +216,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
           await apiService.deactivateRoom(conv.id);
         }
         await showSuccessAlert('¡Desactivado!', 'Desactivado correctamente');
-        loadConversations(currentPage, searchTerm, filterType);
+        loadConversations(currentPage, searchTerm, filterType, statusFilter);
         if (onConversationUpdated) {
           onConversationUpdated();
         }
@@ -245,7 +240,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
           await apiService.activateRoom(conv.id);
         }
         await showSuccessAlert('¡Activado!', 'Activado correctamente');
-        loadConversations(currentPage, searchTerm, filterType);
+        loadConversations(currentPage, searchTerm, filterType, statusFilter);
         if (onConversationUpdated) {
           onConversationUpdated();
         }
@@ -311,7 +306,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
     setFilterType('assigned');
     setStatusFilter('all');
     setCurrentPage(1);
-    loadConversations(1, '', 'assigned');
+    loadConversations(1, '', 'assigned', 'all');
   };
 
   const hasActiveFilters = searchTerm || filterType !== 'assigned' || statusFilter !== 'all';
@@ -323,7 +318,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
       title="Gestionar Conversaciones y Salas"
       icon={null}
       headerBgColor="#A50104"
-      bodyBgColor="#111b21"
+      bodyBgColor={document.documentElement.classList.contains('dark') ? '#111b21' : '#ffffff'}
       titleColor="#FFFFFF"
       maxWidth="1000px"
       closeOnOverlayClick={false}
@@ -394,13 +389,13 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
             <div className="mac-spinner" />
             <p>Cargando datos...</p>
           </div>
-        ) : filteredConversations.length === 0 ? (
+        ) : conversations.length === 0 ? (
           <div className="mac-empty-state">
             <FaUsers size={36} />
             <p>{searchTerm ? 'No se encontraron coincidencias' : 'No hay datos disponibles'}</p>
           </div>
         ) : (
-          filteredConversations.map((conv) => (
+          conversations.map((conv) => (
             <div key={conv.id} className="mac-row">
               {editingConv === conv.id ? (
                 <div className="mac-edit-row">

@@ -748,7 +748,7 @@ class ApiService {
   }
 
   // 🔥 NUEVO: Obtener TODAS las salas paginadas (para el modal de gestión)
-  async getAllRoomsPaginated(page = 1, limit = 10, search = '') {
+  async getAllRoomsPaginated(page = 1, limit = 10, search = '', status = '') {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -757,6 +757,12 @@ class ApiService {
 
       if (search && search.trim()) {
         params.append('search', search.trim());
+      }
+
+      if (status && status !== 'all') {
+        params.append('status', status);
+      } else if (status === 'all') {
+        params.append('status', 'all');
       }
 
       const response = await this.fetchChatApi(
@@ -1618,7 +1624,7 @@ class ApiService {
     }
   }
   // Obtener TODAS las conversaciones asignadas (solo para admin) con paginación y búsqueda
-  async getAllAssignedConversations(page = 1, limit = 20, search = '') {
+  async getAllAssignedConversations(page = 1, limit = 20, search = '', status = '') {
     try {
       // Obtener el usuario actual para calcular unreadCount correctamente
       const user = this.getCurrentUser();
@@ -1637,6 +1643,7 @@ class ApiService {
       if (search) params.push(`search=${encodeURIComponent(search)}`);
       params.push(`page=${page}`);
       params.push(`limit=${limit}`);
+      if (status) params.push(`status=${encodeURIComponent(status)}`);
       if (params.length > 0) url += `?${params.join('&')}`;
 
       const response = await this.fetchChatApi(url, {
