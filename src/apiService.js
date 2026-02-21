@@ -1750,7 +1750,7 @@ class ApiService {
   }
 
   // 🔥 NUEVO: Obtener conversaciones de monitoreo (de otros usuarios) con paginación
-  async getMonitoringConversations(page = 1, limit = 10) {
+  async getMonitoringConversations(page = 1, limit = 20) {
     try {
       // Obtener el usuario actual
       const user = this.getCurrentUser();

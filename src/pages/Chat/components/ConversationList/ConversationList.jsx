@@ -4,6 +4,7 @@ import { MessageSquare, Home, Users } from 'lucide-react';
 import clsx from 'clsx';
 import apiService from '../../../../apiService';
 import SearchModal from '../modals/SearchModal';
+import MonitoringList from './MonitoringList';
 import './ConversationList.css';
 
 // 🎨 Colores para avatares sin imagen
@@ -2250,153 +2251,30 @@ const ConversationList = ({
          ========================================================================= */}
       {activeModule === 'monitoring' && canViewMonitoring &&
         !(whatsappSearchResults.length > 0 || isWhatsappSearching) && (
-          <div className="flex-1 overflow-y-auto bg-white px-4 w-full min-w-0">
-            {isSearching && <div className="flex items-center justify-center py-8"><div className="text-sm text-gray-500">Buscando mensajes...</div></div>}
-            {(() => {
-              const filteredMonitoring = monitoringConversations
-                // 🔥 FIX: Excluir conversaciones que ya están en favoritos
-                .filter(conv => !favoriteConversationIds.includes(conv.id))
-                .filter(conv => {
-                  if (!assignedSearchTerm.trim()) return true;
-                  const searchLower = assignedSearchTerm.toLowerCase();
-                  const participants = conv.participants || [];
-                  const lastMsg = typeof conv.lastMessage === 'string' ? conv.lastMessage : (conv.lastMessage?.message || conv.lastMessage?.text || '');
-                  return (conv.name?.toLowerCase().includes(searchLower) || participants.some(p => p?.toLowerCase().includes(searchLower)) || lastMsg.toLowerCase().includes(searchLower));
-                });
-              return filteredMonitoring.length > 0 ? (
-                <>
-                  {filteredMonitoring.sort((a, b) => {
-                    const aIsFavorite = favoriteConversationIds.includes(a.id);
-                    const bIsFavorite = favoriteConversationIds.includes(b.id);
-                    if (aIsFavorite && !bIsFavorite) return -1;
-                    if (!aIsFavorite && bIsFavorite) return 1;
-                    if (sortBy === 'newest') return new Date(b.lastMessage?.sentAt || b.createdAt) - new Date(a.lastMessage?.sentAt || a.createdAt);
-                    else if (sortBy === 'oldest') return new Date(a.lastMessage?.sentAt || a.createdAt) - new Date(b.lastMessage?.sentAt || b.createdAt);
-                    else if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '');
-                    return 0;
-                  }).map((conv) => {
-                    const participants = conv.participants || [];
-                    const participant1Name = participants[0] || 'Usuario 1';
-                    const participant2Name = participants[1] || 'Usuario 2';
-                    const currentUserFullName = user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.username;
-                    const currentUserNormalized = currentUserFullName?.toLowerCase().trim();
-                    const participant1Normalized = participant1Name?.toLowerCase().trim();
-                    const participant2Normalized = participant2Name?.toLowerCase().trim();
-
-                    let displayName = conv.name;
-                    let otherParticipantName = null;
-
-                    if (currentUserNormalized === participant1Normalized) { displayName = participant2Name; otherParticipantName = participant2Name; }
-                    else if (currentUserNormalized === participant2Normalized) { displayName = participant1Name; otherParticipantName = participant1Name; }
-                    else if (!conv.name) { displayName = `${participant1Name} ↔️ ${participant2Name}`; }
-
-                    // Usar picture para el avatar si está disponible
-                    let otherParticipantPicture = conv.picture || null;
-                    let isOtherParticipantOnline = false;
-
-                    if (otherParticipantName) {
-                      const otherParticipantNormalized = otherParticipantName?.toLowerCase().trim();
-                      const otherUser = userList.find(u => {
-                        const fullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : u.username;
-                        return fullName?.toLowerCase().trim() === otherParticipantNormalized;
-                      });
-                      if (otherUser) {
-                        if (otherUser.picture) otherParticipantPicture = otherUser.picture;
-                        isOtherParticipantOnline = otherUser.isOnline === true;
-                      } else {
-                        const cachedUser = userCache[otherParticipantNormalized];
-                        if (cachedUser) {
-                          if (cachedUser.picture) otherParticipantPicture = cachedUser.picture;
-                          isOtherParticipantOnline = cachedUser.isOnline === true;
-                        }
-                      }
-                    }
-
-                    const getInitials = (name) => { const parts = name.split(' '); if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase(); return name[0]?.toUpperCase() || 'U'; };
-                    const isFavorite = favoriteConversationIds.includes(conv.id);
-
-                    const itemUnreadCount = unreadMessages?.[conv.id] !== undefined ? unreadMessages[conv.id] : (conv.unreadCount || 0);
-
-                    const chatId = `conv-${conv.id}`;
-                    const isHighlighted = highlightedChatId === chatId;
-                    // 🔥 NUEVO: Verificar si hay menciones pendientes
-                    const hasMentions = hasPendingMentions(conv.id, conv.lastMessage, conv);
-
-                    const isSelected = (!isGroup && to && participants.some(p => p?.toLowerCase().trim() === to?.toLowerCase().trim())) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
-
-                    return (
-                      <div
-                        key={conv.id}
-                        id={chatId}
-                        className={`flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group overflow-visible relative ${isSelected ? 'selected-conversation' : ''} ${isHighlighted ? 'highlighted-chat' : ''}`}
-                        style={{ padding: '4px 12px', gap: '6px', minHeight: '40px', display: 'flex', alignItems: 'center', width: '100%', minWidth: 0, position: 'relative' }}
-                        onClick={() => { if (onUserSelect) onUserSelect(displayName, null, conv); }}
-                      >
-                        <div className="relative flex-shrink-0" style={{ width: '32px', height: '32px' }}>
-                          <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold" style={{ width: '32px', height: '32px', fontSize: '14px', backgroundColor: '#A50104' }}>
-                            {otherParticipantPicture ? <img src={otherParticipantPicture} alt={displayName} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = getInitials(displayName); }} /> : getInitials(displayName)}
-                          </div>
-                          <div className="absolute bottom-0 right-0 rounded-full border-2 border-white" style={{ width: '12px', height: '12px', backgroundColor: isOtherParticipantOnline ? '#10b981' : '#9ca3af' }} title={isOtherParticipantOnline ? 'En línea' : 'Desconectado'} />
-                          {/* 🔥 Badge de no leídos para modo compacto */}
-                          {isCompact && itemUnreadCount > 0 && (
-                            <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '16px', height: '16px', fontSize: '9px', fontWeight: 'bold', padding: '0 3px' }}>
-                              {itemUnreadCount > 99 ? '99+' : itemUnreadCount}
-                            </div>
-                          )}
-                          {/* 🔥 NUEVO: Punto rojo para menciones */}
-                          {hasMentions && (
-                            <div
-                              className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white"
-                              style={{ width: '10px', height: '10px' }}
-                              title="Tienes menciones pendientes"
-                            />
-                          )}
-                          {/* 🔥 NUEVO: Punto verde para mensajes nuevos (sin menciones) */}
-                          {!hasMentions && (itemUnreadCount > 0 || pendingThreads[conv.id]) && (
-                            <div
-                              className="absolute top-0 right-0 rounded-full border-2 border-white"
-                              style={{ width: '10px', height: '10px', backgroundColor: '#10b981' }}
-                              title="Mensajes nuevos"
-                            />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0 flex flex-col justify-center" style={{ gap: '2px', display: isCompact ? 'none' : 'flex' }}>
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                              {/* Etiqueta de Favorito (arriba del todo si existe) */}
-                              {isFavorite && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-red-500" /> Favorito</span>}
-
-                              {/* 1. NOMBRE DEL USUARIO (Arriba) */}
-                              <div className="flex items-center gap-2 w-full min-w-0">
-                                <h3 className="font-semibold text-[#111] truncate flex-1" style={{ fontSize: '11.5px', lineHeight: '14px', fontWeight: 600 }}>
-                                  {displayName}
-                                </h3>
-                                {/* Badge de no leídos al lado del nombre */}
-                                {itemUnreadCount > 0 && (
-                                  <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center ml-2" style={{ minWidth: '18px', height: '18px', fontSize: '10px', fontWeight: 'bold' }}>
-                                    {itemUnreadCount > 99 ? '99+' : itemUnreadCount}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            {/* Botón de Estrella */}
-                            <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-1 rounded-full hover:bg-gray-200 transition-all duration-200" style={{ color: isFavorite ? '#ff453a' : '#9ca3af' }}>{isFavorite ? <FaStar size={14} /> : <FaRegStar size={14} />}</button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {monitoringTotalPages > 1 && (
-                    <div className="flex items-center justify-between gap-3 py-4 px-4 border-t border-gray-200" style={{}}>
-                      <button onClick={() => onLoadMonitoringConversations(monitoringPage - 1)} disabled={monitoringPage === 1 || monitoringLoading} className="flex-1 px-4 py-2 text-xs font-semibold rounded-lg bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200" style={{ color: monitoringPage === 1 || monitoringLoading ? '#9ca3af' : '#111', fontWeight: 600 }}>← Anterior</button>
-                      <span className="text-xs text-gray-600 font-medium whitespace-nowrap" style={{ fontWeight: 500 }}>{monitoringPage} / {monitoringTotalPages}</span>
-                      <button onClick={() => onLoadMonitoringConversations(monitoringPage + 1)} disabled={monitoringPage === monitoringTotalPages || monitoringLoading} className="flex-1 px-4 py-2 text-xs font-semibold rounded-lg bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200" style={{ color: monitoringPage === monitoringTotalPages || monitoringLoading ? '#9ca3af' : '#111', fontWeight: 600 }}>Siguiente →</button>
-                    </div>
-                  )}
-                </>
-              ) : (<div className="flex flex-col items-center justify-center py-[60px] px-5 text-center"><div className="text-5xl mb-4 opacity-50">👁️</div><div className="text-sm text-gray-600 font-medium">{assignedSearchTerm ? `No se encontraron resultados para "${assignedSearchTerm}"` : 'No hay chats asignados para monitorear'}</div></div>);
-            })()}
-          </div >
+          <MonitoringList
+            isSearching={isSearching}
+            monitoringConversations={monitoringConversations}
+            favoriteConversationIds={favoriteConversationIds}
+            assignedSearchTerm={assignedSearchTerm}
+            sortBy={sortBy}
+            user={user}
+            userList={userList}
+            userCache={userCache}
+            highlightedChatId={highlightedChatId}
+            onUserSelect={onUserSelect}
+            onLoadMonitoringConversations={onLoadMonitoringConversations}
+            monitoringPage={monitoringPage}
+            monitoringTotalPages={monitoringTotalPages}
+            monitoringLoading={monitoringLoading}
+            handleToggleConversationFavorite={handleToggleConversationFavorite}
+            unreadMessages={unreadMessages}
+            hasPendingMentions={hasPendingMentions}
+            pendingThreads={pendingThreads}
+            isCompact={isCompact}
+            to={to}
+            currentRoomCode={currentRoomCode}
+            isGroup={isGroup}
+          />
         )}
 
       {/* Modal de búsqueda */}

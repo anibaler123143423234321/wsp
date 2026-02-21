@@ -92,21 +92,35 @@ export const useConversations = (
 
     // Función para cargar conversaciones de monitoreo
     const loadMonitoringConversations = useCallback(
-        async (page = 1) => {
+        async (page = 1, append = false) => {
             if (!isAuthenticated || !username) {
                 return;
             }
 
             setMonitoringLoading(true);
             try {
-                const result = await apiService.getMonitoringConversations(page, 10);
-                setMonitoringConversations(result.data || []);
+                const result = await apiService.getMonitoringConversations(page, 20);
+
+                if (append) {
+                    setMonitoringConversations((prev) => {
+                        const existingIds = new Set(prev.map((c) => c.id));
+                        const newConversations = (result.data || []).filter(
+                            (c) => !existingIds.has(c.id)
+                        );
+                        return [...prev, ...newConversations];
+                    });
+                } else {
+                    setMonitoringConversations(result.data || []);
+                }
+
                 setMonitoringPage(result.page);
                 setMonitoringTotal(result.total);
                 setMonitoringTotalPages(result.totalPages);
             } catch (error) {
                 console.error('❌ Error al cargar conversaciones de monitoreo:', error);
-                setMonitoringConversations([]);
+                if (!append) {
+                    setMonitoringConversations([]);
+                }
             } finally {
                 setMonitoringLoading(false);
             }
