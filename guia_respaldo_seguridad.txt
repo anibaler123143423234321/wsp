@@ -1,0 +1,28 @@
+PASOS PARA RESPALDO DE SEGURIDAD (ANTES DE MODIFICAR)
+======================================================
+
+Es MUY RECOMENDABLE ejecutar estos comandos en tu servidor para tener una 
+copia de seguridad por si algo sale mal con Docker o Nginx.
+
+1. RESPALDAR LA WEB ACTUAL (Archivos estáticos)
+   Crea una copia de tu carpeta actual del chat:
+   > sudo cp -r /var/www/chat.mass34.com /var/www/chat.mass34.com_BACKUP
+
+2. RESPALDAR LA CONFIGURACIÓN DE NGINX
+   Guarda una copia de tu portero actual:
+   > sudo cp /etc/nginx/sites-available/chat.mass34.com /etc/nginx/sites-available/chat.mass34.com.bak
+
+3. RESPALDAR LA BASE DE DATOS (Opcional pero recomendado)
+   Si quieres estar 100% seguro con los cambios de la tabla 'temporary_conversations':
+   > mysqldump -u usuarioCrm2 -p chat_midas > respaldo_chat_$(date +%F).sql
+
+---
+¿CÓMO VOLVER ATRÁS SI ALGO FALLA? (ROLLBACK)
+---
+Si la versión de Docker no te gusta o falla:
+
+1. Detén el contenedor: 'docker stop frontend-chat'
+2. Restaura la configuración de Nginx:
+   > sudo cp /etc/nginx/sites-available/chat.mass34.com.bak /etc/nginx/sites-available/chat.mass34.com
+3. Reinicia Nginx:
+   > sudo systemctl restart nginx

@@ -58,6 +58,7 @@ export default defineConfig({
   },
   // HMR más robusto - evita que se trabe con cambios frecuentes
   server: {
+    port: 3005,
     hmr: {
       overlay: false, // No mostrar overlay de errores (menos lag)
       timeout: 5000,  // Más tiempo para reconectar

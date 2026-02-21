@@ -1,0 +1,27 @@
+PASOS PARA DESPLIEGUE LOCAL (WINDOWS + DOCKER)
+================================================
+
+Este proceso sirve para probar tu frontend en tu propia máquina usando Docker. 
+Recuerda: NO necesitas tener Nginx instalado en Windows; Docker se encarga de todo.
+
+1. GENERAR EL DIST
+   Abre una terminal en la carpeta de tu frontend y ejecuta:
+   > npm run build
+   (Esto crea la carpeta 'dist')
+
+2. CONSTRUIR LA IMAGEN DE DOCKER
+   En la misma terminal, ejecuta:
+   > docker build -t frontend-chat-local .
+   (Esto crea una "caja" que contiene Nginx + tus archivos del dist)
+
+3. ARRANCAR EL CONTENEDOR
+   Ejecuta:
+   > docker run -d -p 3005:80 --name chat-test-local frontend-chat-local
+   (Esto mapea el puerto 3005 de tu Windows al puerto 80 interno de Docker)
+
+4. VERIFICAR
+   Abre tu navegador y entra a:
+   > http://localhost:3005
+
+---
+NOTA: Para detenerlo, usa 'docker stop chat-test-local' y 'docker rm chat-test-local'.

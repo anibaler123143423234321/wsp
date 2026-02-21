@@ -1,0 +1,28 @@
+PASOS PARA DESPLIEGUE EN PRODUCCIÓN (SERVIDOR LINUX)
+====================================================
+
+Este proceso usa el Nginx de tu servidor como "Portero" y Docker como el "Motor".
+
+1. SUBIR ARCHIVOS AL SERVIDOR
+   Usa FileZilla o MobaXterm para subir estos archivos a /var/www/chat.mass34.com/:
+   - La carpeta 'dist' (completa)
+   - El archivo 'nginx.conf' (el que para Docker interno)
+
+2. ARRANCAR EL MOTOR EN DOCKER (Terminal del Servidor)
+   Ejecuta estos dos comandos:
+   > docker stop frontend-chat 2>/dev/null && docker rm frontend-chat 2>/dev/null
+   > docker run -d --name frontend-chat -p 3005:80 -v /var/www/chat.mass34.com:/usr/share/nginx/html -v /var/www/chat.mass34.com/nginx.conf:/etc/nginx/conf.d/default.conf --restart always nginx:stable-alpine
+
+3. CONFIGURAR EL PORTERO (Nginx Global)
+   Copia el contenido del archivo 'chat.mass34.com.vhost' y pégalo en el servidor:
+   > sudo nano /etc/nginx/sites-available/chat.mass34.com
+   (Borra todo lo viejo y pega lo nuevo que tiene el proxy_pass al 3005)
+
+4. APLICAR Y REINICIAR
+   Ejecuta:
+   > sudo nginx -t
+   > sudo systemctl restart nginx
+
+5. VERIFICAR
+   Entra a:
+   > https://chat.mass34.com
