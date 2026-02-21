@@ -1619,7 +1619,7 @@ const ConversationList = ({
                             const getInitials = (name) => { const parts = name?.split(' ') || []; return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : (name?.[0]?.toUpperCase() || 'U'); };
                             const chatId = `conv-${conv.id}`;
                             const isHighlighted = highlightedChatId === chatId;
-                            const isSelected = (!isGroup && to && otherParticipant?.toLowerCase().trim() === to?.toLowerCase().trim()) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
+                            const isSelected = (!isGroup && to && (to === displayName || otherParticipant?.toLowerCase().trim() === to?.toLowerCase().trim())) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
                             // 🔥 NUEVO: Verificar si hay menciones pendientes
                             const hasMentions = hasPendingMentions(conv.id, conv.lastMessage, conv);
                             const isFavorite = true; // Siempre es favorito en esta sección

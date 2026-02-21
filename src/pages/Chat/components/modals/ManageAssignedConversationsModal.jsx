@@ -525,10 +525,21 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
                 <>
                   {/* Name */}
                   <div className="mac-cell-name">
-                    <div className="mac-name-text" title={conv.name}>
-                      {conv.name}
-                      {!conv.isActive && <span className="mac-inactive-tag">(Inactiva)</span>}
-                    </div>
+                    {(() => {
+                      // Para asignadas, generar nombre desde participantes
+                      let displayName = conv.name;
+                      if (filterType === 'assigned' && conv.participants && conv.participants.length >= 2) {
+                        if (!conv.name || !conv.name.includes('↔')) {
+                          displayName = `${conv.participants[0]} ↔ ${conv.participants[1]}`;
+                        }
+                      }
+                      return (
+                        <div className="mac-name-text" title={displayName}>
+                          {displayName}
+                          {!conv.isActive && <span className="mac-inactive-tag">(Inactiva)</span>}
+                        </div>
+                      );
+                    })()}
                     {conv.description && (
                       <div className="mac-desc-text" title={conv.description}>{conv.description}</div>
                     )}

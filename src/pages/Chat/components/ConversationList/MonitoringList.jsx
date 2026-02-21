@@ -67,9 +67,18 @@ const MonitoringList = ({
                         let displayName = conv.name;
                         let otherParticipantName = null;
 
-                        if (currentUserNormalized === participant1Normalized) { displayName = participant2Name; otherParticipantName = participant2Name; }
-                        else if (currentUserNormalized === participant2Normalized) { displayName = participant1Name; otherParticipantName = participant1Name; }
-                        else if (!conv.name) { displayName = `${participant1Name} ↔️ ${participant2Name}`; }
+                        // Determinar quién es el "otro" participante para avatar/online status
+                        if (currentUserNormalized === participant1Normalized) { otherParticipantName = participant2Name; }
+                        else if (currentUserNormalized === participant2Normalized) { otherParticipantName = participant1Name; }
+
+                        // 🚀 REGLA ESTRICTA para vistas de administrador (Monitoreo/Gestionar):
+                        // Siempre mostrar "Usuario 1 ↔ Usuario 2" ignorando el nombre guardado,
+                        // a menos que el nombre guardado ya contenga "↔" (por si acaso).
+                        if (conv.name && conv.name.includes('↔')) {
+                            displayName = conv.name;
+                        } else {
+                            displayName = `${participant1Name} ↔ ${participant2Name}`;
+                        }
 
                         // Usar picture para el avatar si está disponible
                         let otherParticipantPicture = conv.picture || null;
@@ -103,7 +112,7 @@ const MonitoringList = ({
                         // 🔥 NUEVO: Verificar si hay menciones pendientes
                         const hasMentions = hasPendingMentions(conv.id, conv.lastMessage, conv);
 
-                        const isSelected = (!isGroup && to && participants.some(p => p?.toLowerCase().trim() === to?.toLowerCase().trim())) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
+                        const isSelected = (!isGroup && to && (to === displayName || participants.some(p => p?.toLowerCase().trim() === to?.toLowerCase().trim()))) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
 
                         return (
                             <div
@@ -149,7 +158,7 @@ const MonitoringList = ({
 
                                             {/* 1. NOMBRE DEL USUARIO (Arriba) */}
                                             <div className="flex items-center gap-2 w-full min-w-0">
-                                                <h3 className="font-semibold text-[#111] truncate flex-1" style={{ fontSize: '11.5px', lineHeight: '14px', fontWeight: 600 }}>
+                                                <h3 className="font-semibold text-[#111] flex-1" style={{ fontSize: '11.5px', lineHeight: '14px', fontWeight: 600, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word', whiteSpace: 'normal' }}>
                                                     {displayName}
                                                 </h3>
                                                 {/* Badge de no leídos al lado del nombre */}
