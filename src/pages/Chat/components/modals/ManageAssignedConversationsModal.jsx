@@ -16,9 +16,11 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
   });
   const [filterType, setFilterType] = useState('assigned');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [capacityFilter, setCapacityFilter] = useState('all');
 
   //  Estados de paginación y búsqueda
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchParticipant2, setSearchParticipant2] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -29,15 +31,15 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
   const canDelete = ['ADMIN', 'SUPERADMIN', 'PROGRAMADOR'].includes(currentUser?.role);
 
   //  Cargar conversaciones con paginación y búsqueda
-  const loadConversations = useCallback(async (page = 1, search = '', type = 'assigned', status = 'all') => {
+  const loadConversations = useCallback(async (page = 1, search = '', search2 = '', type = 'assigned', status = 'all', capacity = 'all') => {
     setLoading(true);
     try {
       let result;
       if (type === 'assigned') {
-        result = await apiService.getAllAssignedConversations(page, ITEMS_PER_PAGE, search, status);
+        result = await apiService.getAllAssignedConversations(page, ITEMS_PER_PAGE, search, search2, status);
         setConversations(result.data || []);
       } else {
-        result = await apiService.getAllRoomsPaginated(page, ITEMS_PER_PAGE, search, status);
+        result = await apiService.getAllRoomsPaginated(page, ITEMS_PER_PAGE, search, status, capacity);
         setConversations(result.data || []);
       }
       setCurrentPage(result.page || 1);
@@ -54,9 +56,12 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
   useEffect(() => {
     if (show) {
       setSearchTerm('');
+      setSearchParticipant2('');
       setCurrentPage(1);
       setFilterType('assigned');
-      loadConversations(1, '', 'assigned', 'all');
+      setStatusFilter('all');
+      setCapacityFilter('all');
+      loadConversations(1, '', '', 'assigned', 'all', 'all');
     }
   }, [show, loadConversations]);
 
@@ -64,15 +69,23 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
     const newType = e.target.value;
     setFilterType(newType);
     setStatusFilter('all');
+    setCapacityFilter('all');
     setCurrentPage(1);
-    loadConversations(1, searchTerm, newType, 'all');
+    loadConversations(1, searchTerm, searchParticipant2, newType, 'all', 'all');
   };
 
   const handleStatusFilterChange = (e) => {
     const newStatus = e.target.value;
     setStatusFilter(newStatus);
     setCurrentPage(1);
-    loadConversations(1, searchTerm, filterType, newStatus);
+    loadConversations(1, searchTerm, searchParticipant2, filterType, newStatus, capacityFilter);
+  };
+
+  const handleCapacityFilterChange = (e) => {
+    const newCapacity = e.target.value;
+    setCapacityFilter(newCapacity);
+    setCurrentPage(1);
+    loadConversations(1, searchTerm, searchParticipant2, filterType, statusFilter, newCapacity);
   };
 
   //  Búsqueda con debounce
@@ -80,23 +93,47 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
     const value = e.target.value;
     setSearchTerm(value);
 
-    // Limpiar timeout anterior
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
-    }
+    if (searchTimeout) clearTimeout(searchTimeout);
 
-    // Crear nuevo timeout para buscar después de 500ms
     const timeout = setTimeout(() => {
       setCurrentPage(1);
-      loadConversations(1, value, filterType, statusFilter);
+      loadConversations(1, value, searchParticipant2, filterType, statusFilter, capacityFilter);
     }, 500);
 
     setSearchTimeout(timeout);
   };
 
+  const handleSearchParticipant2Change = (e) => {
+    const value = e.target.value;
+    setSearchParticipant2(value);
+
+    if (searchTimeout) clearTimeout(searchTimeout);
+
+    const timeout = setTimeout(() => {
+      setCurrentPage(1);
+      loadConversations(1, searchTerm, value, filterType, statusFilter, capacityFilter);
+    }, 500);
+
+    setSearchTimeout(timeout);
+  };
+
+  const clearSearch1 = () => {
+    setSearchTerm('');
+    if (searchTimeout) clearTimeout(searchTimeout);
+    setCurrentPage(1);
+    loadConversations(1, '', searchParticipant2, filterType, statusFilter, capacityFilter);
+  };
+
+  const clearSearch2 = () => {
+    setSearchParticipant2('');
+    if (searchTimeout) clearTimeout(searchTimeout);
+    setCurrentPage(1);
+    loadConversations(1, searchTerm, '', filterType, statusFilter, capacityFilter);
+  };
+
   const goToPage = (page) => {
     if (page >= 1 && page <= totalPages) {
-      loadConversations(page, searchTerm, filterType, statusFilter);
+      loadConversations(page, searchTerm, searchParticipant2, filterType, statusFilter, capacityFilter);
     }
   };
 
@@ -184,7 +221,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
         }
 
         await showSuccessAlert('¡Eliminado!', 'Eliminado correctamente');
-        loadConversations(currentPage, searchTerm, filterType, statusFilter);
+        loadConversations(currentPage, searchTerm, filterType, statusFilter, capacityFilter);
         if (onConversationUpdated) {
           onConversationUpdated();
         }
@@ -194,7 +231,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
             'No encontrado',
             'Ya fue eliminado o no existe. Se actualizará la lista.'
           );
-          loadConversations(currentPage, searchTerm, filterType, statusFilter);
+          loadConversations(currentPage, searchTerm, filterType, statusFilter, capacityFilter);
         } else {
           await showErrorAlert('Error', 'No se pudo eliminar: ' + error.message);
         }
@@ -216,7 +253,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
           await apiService.deactivateRoom(conv.id);
         }
         await showSuccessAlert('¡Desactivado!', 'Desactivado correctamente');
-        loadConversations(currentPage, searchTerm, filterType, statusFilter);
+        loadConversations(currentPage, searchTerm, filterType, statusFilter, capacityFilter);
         if (onConversationUpdated) {
           onConversationUpdated();
         }
@@ -240,7 +277,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
           await apiService.activateRoom(conv.id);
         }
         await showSuccessAlert('¡Activado!', 'Activado correctamente');
-        loadConversations(currentPage, searchTerm, filterType, statusFilter);
+        loadConversations(currentPage, searchTerm, filterType, statusFilter, capacityFilter);
         if (onConversationUpdated) {
           onConversationUpdated();
         }
@@ -261,27 +298,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
     });
   };
 
-  const formatExpiration = (dateString) => {
-    if (!dateString) return { text: '-', className: 'active' };
-    const expirationDate = new Date(dateString);
-    if (isNaN(expirationDate.getTime())) return { text: '-', className: 'active' };
 
-    const now = new Date();
-    const diffTime = expirationDate - now;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) {
-      return { text: 'CADUCADA', className: 'expired' };
-    } else if (diffDays === 0) {
-      return { text: 'HOY', className: 'expiring-soon' };
-    } else if (diffDays === 1) {
-      return { text: 'MAÑANA', className: 'expiring-soon' };
-    } else if (diffDays <= 7) {
-      return { text: `${diffDays} DÍAS`, className: 'expiring-soon' };
-    } else {
-      return { text: `${diffDays} DÍAS`, className: 'active' };
-    }
-  };
 
   const handleViewMembers = async (conv) => {
     const title = 'Participantes';
@@ -303,13 +320,15 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
 
   const handleClearFilters = () => {
     setSearchTerm('');
+    setSearchParticipant2('');
     setFilterType('assigned');
     setStatusFilter('all');
+    setCapacityFilter('all');
     setCurrentPage(1);
-    loadConversations(1, '', 'assigned', 'all');
+    loadConversations(1, '', '', 'assigned', 'all', 'all');
   };
 
-  const hasActiveFilters = searchTerm || filterType !== 'assigned' || statusFilter !== 'all';
+  const hasActiveFilters = searchTerm || searchParticipant2 || filterType !== 'assigned' || statusFilter !== 'all' || capacityFilter !== 'all';
 
   return (
     <BaseModal
@@ -347,17 +366,77 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
           <option value="inactive">Inactivos</option>
         </select>
 
-        <div className="mac-search-wrap">
+        {filterType === 'group' && (
+          <select
+            className="mac-select"
+            value={capacityFilter}
+            onChange={handleCapacityFilterChange}
+            disabled={loading}
+            style={{ minWidth: '130px' }}
+          >
+            <option value="all">Capacidad (Todas)</option>
+            <option value="available">Con Espacio</option>
+            <option value="full">Llenas</option>
+          </select>
+        )}
+
+        <div className="mac-search-wrap" style={{ position: 'relative' }}>
           <FaSearch className="mac-search-icon" />
           <input
             type="text"
             className="mac-search-input"
-            placeholder="Buscar por nombre o participante..."
+            style={{ paddingRight: searchTerm ? '30px' : '35px' }}
+            placeholder={filterType === 'assigned' ? "Participante 1..." : "Buscar por nombre..."}
             value={searchTerm}
             onChange={handleSearchChange}
             disabled={loading}
           />
+          {searchTerm && (
+            <FaTimes
+              className="mac-search-clear-icon"
+              style={{
+                position: 'absolute',
+                right: '10px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                cursor: 'pointer',
+                color: '#9ca3af',
+                fontSize: '12px'
+              }}
+              onClick={clearSearch1}
+            />
+          )}
         </div>
+
+        {filterType === 'assigned' && (
+          <div className="mac-search-wrap" style={{ marginLeft: '10px', position: 'relative' }}>
+            <FaSearch className="mac-search-icon" />
+            <input
+              type="text"
+              className="mac-search-input"
+              style={{ paddingRight: searchParticipant2 ? '30px' : '35px' }}
+              placeholder="Participante 2..."
+              value={searchParticipant2}
+              onChange={handleSearchParticipant2Change}
+              disabled={loading}
+            />
+            {searchParticipant2 && (
+              <FaTimes
+                className="mac-search-clear-icon"
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  cursor: 'pointer',
+                  color: '#9ca3af',
+                  fontSize: '12px'
+                }}
+                onClick={clearSearch2}
+              />
+            )}
+          </div>
+        )}
 
         {hasActiveFilters && (
           <button className="mac-clear-btn" onClick={handleClearFilters} title="Limpiar filtros">
@@ -374,8 +453,9 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
       </div>
 
       {/* ── Table Header ── */}
-      <div className="mac-list-header">
+      <div className={`mac-list-header ${filterType === 'group' ? 'mac-grid-group' : 'mac-grid-assigned'}`}>
         <div className="mac-header-cell">Nombre</div>
+        {filterType === 'group' && <div className="mac-header-cell">Código</div>}
         <div className="mac-header-cell">Miembros</div>
         <div className="mac-header-cell">Estado</div>
         <div className="mac-header-cell">Creado</div>
@@ -396,9 +476,9 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
           </div>
         ) : (
           conversations.map((conv) => (
-            <div key={conv.id} className="mac-row">
+            <div key={conv.id} className={`mac-row ${filterType === 'group' ? 'mac-grid-group' : 'mac-grid-assigned'}`}>
               {editingConv === conv.id ? (
-                <div className="mac-edit-row">
+                <div className="mac-edit-row" style={{ gridColumn: filterType === 'group' ? '1 / 7' : '1 / 6' }}>
                   <input
                     type="text"
                     className="mac-edit-input"
@@ -454,6 +534,17 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
                     )}
                   </div>
 
+                  {/* Room Code Column (only for group chats) */}
+                  {filterType === 'group' && (
+                    <div className="mac-cell-code" title={conv.roomCode ? "Código de la sala" : ""}>
+                      {conv.roomCode ? (
+                        <span className="mac-code-badge">{conv.roomCode}</span>
+                      ) : (
+                        <span style={{ color: '#8696a0', fontSize: '12px' }}>-</span>
+                      )}
+                    </div>
+                  )}
+
                   {/* Participants */}
                   <div className="mac-cell-participants" onClick={() => handleViewMembers(conv)} title="Ver participantes">
                     <FaUsers className="mac-p-icon" />
@@ -464,15 +555,9 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
 
                   {/* Status */}
                   <div className="mac-cell-status">
-                    {filterType === 'assigned' ? (
-                      <span className={`mac-badge ${formatExpiration(conv.expiresAt).className}`}>
-                        {formatExpiration(conv.expiresAt).text}
-                      </span>
-                    ) : (
-                      <span className={`mac-badge ${conv.isActive ? 'active' : 'inactive'}`}>
-                        {conv.isActive ? 'Activa' : 'Cerrada'}
-                      </span>
-                    )}
+                    <span className={`mac-badge ${conv.isActive ? 'active' : 'inactive'}`}>
+                      {conv.isActive ? 'Activa' : 'Cerrada'}
+                    </span>
                   </div>
 
                   {/* Date */}
