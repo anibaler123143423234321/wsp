@@ -2278,46 +2278,109 @@ const ConversationList = ({
                     const participants = conv.participants || [];
                     const participant1Name = participants[0] || 'Usuario 1';
                     const participant2Name = participants[1] || 'Usuario 2';
+                    const currentUserFullName = user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.username;
+                    const currentUserNormalized = currentUserFullName?.toLowerCase().trim();
+                    const participant1Normalized = participant1Name?.toLowerCase().trim();
+                    const participant2Normalized = participant2Name?.toLowerCase().trim();
+
+                    let displayName = conv.name;
+                    let otherParticipantName = null;
+
+                    if (currentUserNormalized === participant1Normalized) { displayName = participant2Name; otherParticipantName = participant2Name; }
+                    else if (currentUserNormalized === participant2Normalized) { displayName = participant1Name; otherParticipantName = participant1Name; }
+                    else if (!conv.name) { displayName = `${participant1Name} ↔️ ${participant2Name}`; }
+
+                    // Usar picture para el avatar si está disponible
+                    let otherParticipantPicture = conv.picture || null;
+                    let isOtherParticipantOnline = false;
+
+                    if (otherParticipantName) {
+                      const otherParticipantNormalized = otherParticipantName?.toLowerCase().trim();
+                      const otherUser = userList.find(u => {
+                        const fullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : u.username;
+                        return fullName?.toLowerCase().trim() === otherParticipantNormalized;
+                      });
+                      if (otherUser) {
+                        if (otherUser.picture) otherParticipantPicture = otherUser.picture;
+                        isOtherParticipantOnline = otherUser.isOnline === true;
+                      } else {
+                        const cachedUser = userCache[otherParticipantNormalized];
+                        if (cachedUser) {
+                          if (cachedUser.picture) otherParticipantPicture = cachedUser.picture;
+                          isOtherParticipantOnline = cachedUser.isOnline === true;
+                        }
+                      }
+                    }
+
                     const getInitials = (name) => { const parts = name.split(' '); if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase(); return name[0]?.toUpperCase() || 'U'; };
                     const isFavorite = favoriteConversationIds.includes(conv.id);
+
+                    const itemUnreadCount = unreadMessages?.[conv.id] !== undefined ? unreadMessages[conv.id] : (conv.unreadCount || 0);
+
                     const chatId = `conv-${conv.id}`;
                     const isHighlighted = highlightedChatId === chatId;
+                    // 🔥 NUEVO: Verificar si hay menciones pendientes
+                    const hasMentions = hasPendingMentions(conv.id, conv.lastMessage, conv);
+
+                    const isSelected = (!isGroup && to && participants.some(p => p?.toLowerCase().trim() === to?.toLowerCase().trim())) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
+
                     return (
                       <div
                         key={conv.id}
                         id={chatId}
-                        className={`flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group relative ${isHighlighted ? 'highlighted-chat' : ''}`}
-                        style={{ padding: '4px 12px', gap: '6px', minHeight: '40px', display: 'flex', alignItems: 'flex-start', width: '100%', minWidth: 0, position: 'relative' }}
-                        onClick={() => { if (onUserSelect) { const adminFullName = user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.username; const otherParticipant = participants.find(p => p.toLowerCase().trim() !== adminFullName?.toLowerCase().trim()) || participant2Name; onUserSelect(otherParticipant, null, conv); } }}
+                        className={`flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group overflow-visible relative ${isSelected ? 'selected-conversation' : ''} ${isHighlighted ? 'highlighted-chat' : ''}`}
+                        style={{ padding: '4px 12px', gap: '6px', minHeight: '40px', display: 'flex', alignItems: 'center', width: '100%', minWidth: 0, position: 'relative' }}
+                        onClick={() => { if (onUserSelect) onUserSelect(displayName, null, conv); }}
                       >
-                        <div className="relative flex-shrink-0 cursor-pointer group" style={{ width: '32px', height: '32px' }} title={`${participant1Name} ↔️ ${participant2Name}`}>
-                          <div className="relative" style={{ width: '32px', height: '32px' }}>
-                            <div className="absolute rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-white font-bold hover:ring-2 hover:ring-purple-400 transition-all" style={{ width: '20px', height: '20px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '9px', top: '0', left: '0', zIndex: 2, cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); if (onUserSelect) onUserSelect(participant1Name, null, { ...conv, selectedParticipant: participant1Name }); }}>{getInitials(participant1Name)}</div>
-                            <div className="absolute rounded-full overflow-hidden bg-gradient-to-br from-pink-500 to-pink-700 flex items-center justify-center text-white font-bold hover:ring-2 hover:ring-pink-400 transition-all" style={{ width: '20px', height: '20px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '9px', bottom: '0', right: '0', zIndex: 1, cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); if (onUserSelect) onUserSelect(participant2Name, null, { ...conv, selectedParticipant: participant2Name }); }}>{getInitials(participant2Name)}</div>
+                        <div className="relative flex-shrink-0" style={{ width: '32px', height: '32px' }}>
+                          <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold" style={{ width: '32px', height: '32px', fontSize: '14px', backgroundColor: '#A50104' }}>
+                            {otherParticipantPicture ? <img src={otherParticipantPicture} alt={displayName} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = getInitials(displayName); }} /> : getInitials(displayName)}
                           </div>
+                          <div className="absolute bottom-0 right-0 rounded-full border-2 border-white" style={{ width: '12px', height: '12px', backgroundColor: isOtherParticipantOnline ? '#10b981' : '#9ca3af' }} title={isOtherParticipantOnline ? 'En línea' : 'Desconectado'} />
+                          {/* 🔥 Badge de no leídos para modo compacto */}
+                          {isCompact && itemUnreadCount > 0 && (
+                            <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '16px', height: '16px', fontSize: '9px', fontWeight: 'bold', padding: '0 3px' }}>
+                              {itemUnreadCount > 99 ? '99+' : itemUnreadCount}
+                            </div>
+                          )}
+                          {/* 🔥 NUEVO: Punto rojo para menciones */}
+                          {hasMentions && (
+                            <div
+                              className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white"
+                              style={{ width: '10px', height: '10px' }}
+                              title="Tienes menciones pendientes"
+                            />
+                          )}
+                          {/* 🔥 NUEVO: Punto verde para mensajes nuevos (sin menciones) */}
+                          {!hasMentions && (itemUnreadCount > 0 || pendingThreads[conv.id]) && (
+                            <div
+                              className="absolute top-0 right-0 rounded-full border-2 border-white"
+                              style={{ width: '10px', height: '10px', backgroundColor: '#10b981' }}
+                              title="Mensajes nuevos"
+                            />
+                          )}
                         </div>
-                        <div className="flex-1 min-w-0 flex flex-col relative" style={{ gap: '2px', position: 'relative' }}>
-                          <div className="flex items-start justify-between gap-2 w-full min-w-0 relative" style={{ position: 'relative' }}>
+                        <div className="flex-1 min-w-0 flex flex-col justify-center" style={{ gap: '2px', display: isCompact ? 'none' : 'flex' }}>
+                          <div className="flex items-center justify-between gap-2">
                             <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                              {/* Etiqueta de Favorito (arriba del todo si existe) */}
                               {isFavorite && <span className="flex-shrink-0 text-red-500 font-semibold flex items-center gap-1" style={{ fontSize: '9px', lineHeight: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}><PinIcon size={10} className="text-red-500" /> Favorito</span>}
-                              <div className="flex items-center gap-1 w-full min-w-0">
-                                <div className="flex-1 min-w-0"><p className="font-semibold text-[#111]" style={{ fontSize: '11.5px', lineHeight: '14px', fontWeight: 600, width: '100%', minWidth: 0, maxWidth: '100%', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }} title={`${participant1Name} • ${participant2Name}`}>{participant1Name} • {participant2Name}</p></div>
-                                <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-0.5 rounded-full hover:bg-gray-200 transition-all duration-200 opacity-0 group-hover:opacity-100" style={{ opacity: isFavorite ? 1 : undefined, width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}>{isFavorite ? <FaStar className="text-red-500" size={10} /> : <FaRegStar className="text-gray-400" size={10} />}</button>
+
+                              {/* 1. NOMBRE DEL USUARIO (Arriba) */}
+                              <div className="flex items-center gap-2 w-full min-w-0">
+                                <h3 className="font-semibold text-[#111] truncate flex-1" style={{ fontSize: '11.5px', lineHeight: '14px', fontWeight: 600 }}>
+                                  {displayName}
+                                </h3>
+                                {/* Badge de no leídos al lado del nombre */}
+                                {itemUnreadCount > 0 && (
+                                  <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center ml-2" style={{ minWidth: '18px', height: '18px', fontSize: '10px', fontWeight: 'bold' }}>
+                                    {itemUnreadCount > 99 ? '99+' : itemUnreadCount}
+                                  </div>
+                                )}
                               </div>
                             </div>
-                            {conv.lastMessageTimestamp && <span className="conversation-timestamp" style={{ fontSize: '10px' }}>{conv.lastMessageTimestamp}</span>}
-                          </div>
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              {conv.lastMessage ? (
-                                <>
-                                  {conv.lastMessageFrom && <span className="text-gray-500 font-medium" style={{ fontSize: '11px', lineHeight: '14px', fontWeight: 500 }}>{conv.lastMessageFrom.split(' ')[0]}:{' '}</span>}
-                                  <p className="text-gray-600" style={{ fontSize: '11px', lineHeight: '14px', fontWeight: 400, display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }}>{conv.lastMessageMediaType ? <span className="flex items-center gap-1">{conv.lastMessageMediaType === 'image' && '📷 Imagen'}{conv.lastMessageMediaType === 'video' && '🎥 Video'}{conv.lastMessageMediaType === 'audio' && '🎵 Audio'}{conv.lastMessageMediaType === 'document' && '📄 Documento'}{!['image', 'video', 'audio', 'document'].includes(conv.lastMessageMediaType) && '📎 Archivo'}</span> : conv.lastMessageThreadCount > 0 ? <span className="flex items-center gap-1"><span className="text-gray-500">🧵</span><span className="font-semibold text-[ff453a]">{conv.lastMessageThreadCount} {conv.lastMessageThreadCount === 1 ? 'respuesta' : 'respuestas'}</span>{conv.lastMessageLastReplyFrom && <span className="text-gray-500"> • {conv.lastMessageLastReplyFrom}</span>}</span> : conv.lastMessage}</p>
-                                </>
-                              ) : <p className="text-gray-400 italic truncate" style={{ fontSize: '11px', lineHeight: '14px', fontWeight: 400 }}>Sin mensajes aún</p>}
-                            </div>
-                            {hasMentionToUser(conv.lastMessage) && <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', flexShrink: 0, marginRight: '4px' }}><svg viewBox="0 0 24 24" height="16" preserveAspectRatio="xMidYMid meet" fill="none"><path d="M12 21C10.75 21 9.6 20.75 8.5 20.3C7.4 19.8 6.5 19.2 5.6 18.4C4.8 17.5 4.2 16.6 3.7 15.5C3.2 14.4 3 13.2 3 12C3 10.7 3.2 9.6 3.7 8.5C4.2 7.4 4.8 6.5 5.6 5.6C6.5 4.8 7.4 4.2 8.5 3.7C9.6 3.2 10.8 3 12 3C13.2 3 14.4 3.2 15.5 3.7C16.6 4.2 17.5 4.8 18.4 5.6C19.2 6.5 19.8 7.4 20.3 8.5C20.8 9.6 21 10.7 21 12V13.3C21 14.2 20.7 14.9 20 15.5C19.4 16.2 18.6 16.5 17.7 16.5C17.2 16.5 16.7 16.3 16.3 16.1C15.8 15.8 15.4 15.5 15.1 15C14.8 15.5 14.3 15.8 13.7 16.1C13.2 16.3 12.6 16.5 12 16.5C10.8 16.5 9.7 16 8.8 15.2C7.9 14.3 7.5 13.2 7.5 12C7.5 10.7 7.9 9.7 8.8 8.8C9.7 7.9 10.8 7.5 12 7.5C13.2 7.5 14.3 7.9 15.2 8.8C16 9.7 16.5 10.8 16.5 12V13.2C16.5 13.6 16.6 13.9 16.8 14.1C17.1 14.4 17.4 14.5 17.7 14.5C18.1 14.5 18.4 14.4 18.6 14.1C18.9 13.9 19 13.6 19 13.2V12C19 10 18.3 8.4 16.9 7C15.6 5.7 13.9 5 12 5C10 5 8.4 5.7 7 7C5.7 8.4 5 10 5 12C5 13.9 5.7 15.6 7 16.9C8.4 18.3 10 19 12 19H15.3C15.6 19 15.8 19.1 16 19.3C16.2 19.5 16.3 19.7 16.3 20C16.3 20.3 16.2 20.5 16 20.7C15.8 20.9 15.6 21 15.3 21H12ZM12 14.5C12.7 14.5 13.3 14.2 13.8 13.8C14.2 13.3 14.5 12.7 14.5 12C14.5 11.3 14.2 10.7 13.8 10.2C13.3 9.8 12.7 9.5 12 9.5C11.3 9.5 10.7 9.8 10.2 10.2C9.8 10.7 9.5 11.3 9.5 12C9.5 12.7 9.8 13.3 10.2 13.8C10.7 14.2 11.3 14.5 12 14.5Z" fill="currentColor" style={{ color: 'ff453a' }}></path></svg></span>}
-                            {conv.unreadCount > 0 && <div className="flex-shrink-0 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '18px', height: '18px', padding: '0 5px', fontSize: '10px', fontWeight: 600 }}>{conv.unreadCount > 99 ? '99+' : conv.unreadCount}</div>}
+                            {/* Botón de Estrella */}
+                            <button onClick={(e) => handleToggleConversationFavorite(conv, e)} className="flex-shrink-0 p-1 rounded-full hover:bg-gray-200 transition-all duration-200" style={{ color: isFavorite ? '#ff453a' : '#9ca3af' }}>{isFavorite ? <FaStar size={14} /> : <FaRegStar size={14} />}</button>
                           </div>
                         </div>
                       </div>
@@ -2331,7 +2394,7 @@ const ConversationList = ({
                     </div>
                   )}
                 </>
-              ) : (<div className="flex flex-col items-center justify-center py-[60px] px-5 text-center"><div className="text-5xl mb-4 opacity-50">👁️</div><div className="text-sm text-gray-600 font-medium">{assignedSearchTerm ? `No se encontraron resultados para "${assignedSearchTerm}"` : 'No hay chats para monitorear'}</div></div>);
+              ) : (<div className="flex flex-col items-center justify-center py-[60px] px-5 text-center"><div className="text-5xl mb-4 opacity-50">👁️</div><div className="text-sm text-gray-600 font-medium">{assignedSearchTerm ? `No se encontraron resultados para "${assignedSearchTerm}"` : 'No hay chats asignados para monitorear'}</div></div>);
             })()}
           </div >
         )}
