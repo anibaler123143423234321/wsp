@@ -135,12 +135,12 @@ const AdminRoomsModal = ({ isOpen, onClose, onDeleteRoom, onDeactivateRoom, onAc
       </div>
 
       {/* ── Table Header ── */}
-      <div className="mac-list-header">
-        <div className="mac-header-cell">Nombre</div>
-        <div className="mac-header-cell">Código</div>
-        <div className="mac-header-cell">Capacidad</div>
-        <div className="mac-header-cell">Estado</div>
-        <div className="mac-header-cell" style={{ justifyContent: 'flex-end' }}>Acciones</div>
+      <div className="mac-list-header mac-grid-assigned">
+        <div className="mac-header-cell">NOMBRE</div>
+        <div className="mac-header-cell">CÓDIGO</div>
+        <div className="mac-header-cell">MIEMBROS</div>
+        <div className="mac-header-cell">ESTADO</div>
+        <div className="mac-header-cell" style={{ justifyContent: 'flex-end', paddingRight: '15px' }}>ACCIONES</div>
       </div>
 
       {/* ── List ── */}
@@ -157,7 +157,7 @@ const AdminRoomsModal = ({ isOpen, onClose, onDeleteRoom, onDeactivateRoom, onAc
           </div>
         ) : (
           rooms.map((room) => (
-            <div key={room.id} className="mac-row">
+            <div key={room.id} className="mac-row mac-grid-assigned">
               {editingRoomId === room.id ? (
                 /* ── Inline Edit Mode ── */
                 <div className="mac-edit-row">
@@ -193,11 +193,10 @@ const AdminRoomsModal = ({ isOpen, onClose, onDeleteRoom, onDeactivateRoom, onAc
                 </div>
               ) : (
                 <>
-                  {/* Name */}
+                  {/* Name and Description */}
                   <div className="mac-cell-name">
                     <div className="mac-name-text" title={room.name}>
                       {room.name}
-                      {!room.isActive && <span className="mac-inactive-tag">(Inactiva)</span>}
                     </div>
                     {room.description && (
                       <div className="mac-desc-text" title={room.description}>{room.description}</div>
@@ -205,12 +204,12 @@ const AdminRoomsModal = ({ isOpen, onClose, onDeleteRoom, onDeactivateRoom, onAc
                   </div>
 
                   {/* Room Code */}
-                  <div className="mac-cell-date" style={{ fontFamily: 'monospace', letterSpacing: '0.5px' }}>
+                  <div className="mac-cell-date" style={{ fontFamily: 'monospace', fontSize: '12px', color: '#8696a0', letterSpacing: '0.5px' }}>
                     {room.roomCode}
                   </div>
 
-                  {/* Capacity */}
-                  <div className="mac-cell-participants" onClick={() => onViewRoomUsers(room.roomCode, room.name)} title="Ver usuarios conectados">
+                  {/* Participants */}
+                  <div className="mac-cell-participants" onClick={() => onViewRoomUsers(room.roomCode, room.name)}>
                     <FaUsers className="mac-p-icon" />
                     <span className="mac-p-count">{room.currentMembers}/{room.maxCapacity}</span>
                   </div>
@@ -218,7 +217,7 @@ const AdminRoomsModal = ({ isOpen, onClose, onDeleteRoom, onDeactivateRoom, onAc
                   {/* Status */}
                   <div className="mac-cell-status">
                     <span className={`mac-badge ${room.isActive ? 'active' : 'inactive'}`}>
-                      {room.isActive ? 'Activa' : 'Inactiva'}
+                      {room.isActive ? 'ACTIVA' : 'INACTIVA'}
                     </span>
                   </div>
 

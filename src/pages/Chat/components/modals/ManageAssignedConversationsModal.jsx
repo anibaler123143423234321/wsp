@@ -549,7 +549,10 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
                   <div className="mac-cell-participants" onClick={() => handleViewMembers(conv)} title="Ver participantes">
                     <FaUsers className="mac-p-icon" />
                     <span className="mac-p-count">
-                      {conv.currentMembers !== undefined ? conv.currentMembers : (conv.participants || conv.users || []).length}
+                      {filterType === 'group'
+                        ? `${conv.currentMembers !== undefined ? conv.currentMembers : (conv.participants || conv.users || []).length}/${conv.maxCapacity || 50}`
+                        : (conv.currentMembers !== undefined ? conv.currentMembers : (conv.participants || conv.users || []).length)
+                      }
                     </span>
                   </div>
 
