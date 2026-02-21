@@ -103,6 +103,7 @@ const ChatPage = () => {
     updateMessage,
     clearMessages,
     setInitialMessages,
+    setMessages, //  NUEVO: Exponer para prepend
     isLoading: isLoadingMessages,
     // 🔥 NUEVO: Para búsqueda WhatsApp
     loadMessagesAroundId,
@@ -139,6 +140,7 @@ const ChatPage = () => {
     {
       ...chatState,
       setInitialMessages,
+      setMessages, // 🔥 NUEVO: Necesario para prepend en loadMoreAdminViewMessages
     }
   );
 
@@ -2297,10 +2299,12 @@ const ChatPage = () => {
         onCancelMediaUpload={cancelMediaUpload}
         onRemoveMediaFile={handleRemoveMediaFile}
         onLeaveRoom={roomManagement.handleLeaveRoom}
-        hasMoreMessages={hasMoreMessages}
-        isLoadingMore={isLoadingMore}
+        hasMoreMessages={chatState.adminViewConversation ? chatState.adminViewHasMore : hasMoreMessages}
+        isLoadingMore={chatState.adminViewConversation ? chatState.isAdminViewLoadingMore : isLoadingMore}
         isLoadingMessages={effectiveIsLoadingMessages}
-        onLoadMoreMessages={loadMoreMessages}
+        onLoadMoreMessages={chatState.adminViewConversation
+          ? () => conversations.loadMoreAdminViewMessages(chatState.adminViewConversation, chatState.adminViewOffset, currentUserFullName)
+          : loadMoreMessages}
         hasMoreAfter={hasMoreAfter} // NUEVO
         onLoadMoreMessagesAfter={loadMoreMessagesAfter} // NUEVO
         onToggleMenu={handleToggleMenu}

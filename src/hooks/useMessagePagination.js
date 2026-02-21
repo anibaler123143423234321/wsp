@@ -779,8 +779,9 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     updateMessage,
     clearMessages,
     setInitialMessages,
+    setMessages, //  NUEVO: Exponer para manipulación directa
     error, //  Retornar estado de error
-    // 🔥 NUEVO: Para búsqueda WhatsApp
+    //  NUEVO: Para búsqueda WhatsApp
     loadMessagesAroundId,
     hasMoreBefore,
     hasMoreAfter,

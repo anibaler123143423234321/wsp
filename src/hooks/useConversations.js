@@ -26,7 +26,10 @@ export const useConversations = (
         setUnreadMessages,
         setUnreadCountsLoaded,
         setIsAdminViewLoading,
+        setIsAdminViewLoadingMore, //  NUEVO
         setInitialMessages,
+        setAdminViewHasMore, //  NUEVO
+        setAdminViewOffset, //  NUEVO
     } = chatState;
 
     // Función para cargar conversaciones asignadas con paginación
@@ -282,6 +285,10 @@ export const useConversations = (
 
                 setInitialMessages(formattedMessages);
 
+                //  NUEVO: Inicializar paginación
+                setAdminViewOffset(formattedMessages.length);
+                setAdminViewHasMore(historicalMessages.length === 10); // Si vinieron 10, asumimos hay más
+
                 // Cargar threads si es necesario
                 const messagesWithThreads = formattedMessages.filter(
                     (msg) => msg.threadCount > 0
@@ -319,7 +326,95 @@ export const useConversations = (
             setIsAdminViewLoading,
             setInitialMessages,
             setAssignedConversations,
+            setAdminViewOffset, //  NUEVO
+            setAdminViewHasMore, //  NUEVO
         ]
+    );
+
+    //  NUEVO: Función para cargar MÁS mensajes en vista de admin (Paginación)
+    const loadMoreAdminViewMessages = useCallback(
+        async (adminViewConversation, offset, currentUserFullName) => {
+            if (
+                !adminViewConversation ||
+                !adminViewConversation.participants ||
+                adminViewConversation.participants.length < 2
+            ) {
+                return;
+            }
+
+            setIsAdminViewLoadingMore(true); //  NUEVO
+
+            try {
+                const [participant1, participant2] = adminViewConversation.participants;
+
+                // Cargar mensajes con offset
+                const historicalMessages = await apiService.getUserMessagesOrderedById(
+                    participant1,
+                    participant2,
+                    20, // Cargar de a 20 para paginación
+                    offset
+                );
+
+                if (historicalMessages.length === 0) {
+                    setAdminViewHasMore(false);
+                    return;
+                }
+
+                // Convertir mensajes al formato del frontend
+                const formattedMessages = historicalMessages.map((msg) => {
+                    const isOwnMessage = msg.from === currentUserFullName;
+                    return {
+                        sender: msg.from,
+                        realSender: msg.from,
+                        receiver: msg.to,
+                        text: msg.message || '',
+                        isGroup: false,
+                        time: msg.time || new Date(msg.sentAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false }),
+                        isSent: true,
+                        isSelf: isOwnMessage,
+                        mediaType: msg.mediaType,
+                        mediaData: msg.mediaData,
+                        fileName: msg.fileName,
+                        fileSize: msg.fileSize,
+                        id: msg.id,
+                        sentAt: msg.sentAt,
+                        isRead: msg.isRead,
+                        readAt: msg.readAt,
+                        readBy: msg.readBy,
+                        replyToMessageId: msg.replyToMessageId,
+                        replyToSender: msg.replyToSender,
+                        replyToText: msg.replyToText,
+                        threadCount: msg.threadCount || 0,
+                        lastReplyFrom: msg.lastReplyFrom || null,
+                        isEdited: msg.isEdited || false,
+                        editedAt: msg.editedAt,
+                        isDeleted: msg.isDeleted || false,
+                        deletedBy: msg.deletedBy || null,
+                        deletedAt: msg.deletedAt || null,
+                        reactions: msg.reactions || [],
+                        attachments: msg.attachments || [],
+                    };
+                });
+
+                // Prepend mensajes usando setInitialMessages de forma funcional si es posible,
+                // o pasando setMessages en el chatState
+                if (chatState.setMessages) {
+                    chatState.setMessages(prev => [...formattedMessages, ...prev]);
+                } else if (setInitialMessages) {
+                    // Si solo tenemos setInitialMessages, esperamos que el que lo pasó soporte actualización
+                    setInitialMessages(prev => [...formattedMessages, ...prev]);
+                }
+
+                setAdminViewOffset(prev => prev + formattedMessages.length);
+                setAdminViewHasMore(historicalMessages.length === 20);
+
+            } catch (error) {
+                console.error('Error al cargar más mensajes de admin:', error);
+            } finally {
+                setIsAdminViewLoadingMore(false); //  NUEVO
+            }
+        },
+        [setAdminViewOffset, setAdminViewHasMore, setIsAdminViewLoadingMore, chatState, setInitialMessages]
     );
 
     // Crear nueva conversación asignada
@@ -390,6 +485,7 @@ export const useConversations = (
         loadMonitoringConversations,
         loadUnreadCounts,
         loadAdminViewMessages,
+        loadMoreAdminViewMessages, //  NUEVO
         handleCreateConversation,
         handleLoadAssignedConversations,
     };

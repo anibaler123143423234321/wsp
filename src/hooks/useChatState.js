@@ -92,6 +92,9 @@ export const useChatState = () => {
     const [roomTypingUsers, setRoomTypingUsers] = useState({});
     const [adminViewConversation, setAdminViewConversation] = useState(null);
     const [isAdminViewLoading, setIsAdminViewLoading] = useState(false);
+    const [isAdminViewLoadingMore, setIsAdminViewLoadingMore] = useState(false); // 🔥 NUEVO
+    const [adminViewHasMore, setAdminViewHasMore] = useState(true); // 🔥 NUEVO
+    const [adminViewOffset, setAdminViewOffset] = useState(0); // 🔥 NUEVO
     const [replyingTo, setReplyingTo] = useState(null);
     const [isUploadingFile, setIsUploadingFile] = useState(false);
     const [pinnedMessageId, setPinnedMessageId] = useState(null);
@@ -255,6 +258,12 @@ export const useChatState = () => {
         setAdminViewConversation,
         isAdminViewLoading,
         setIsAdminViewLoading,
+        isAdminViewLoadingMore, //  NUEVO
+        setIsAdminViewLoadingMore, //  NUEVO
+        adminViewHasMore, //  NUEVO
+        setAdminViewHasMore, //  NUEVO
+        adminViewOffset, //  NUEVO
+        setAdminViewOffset, //  NUEVO
         replyingTo,
         setReplyingTo,
         isUploadingFile,
