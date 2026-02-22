@@ -96,6 +96,7 @@ export const useSocketListeners = (
     const favoriteRoomCodesRef = useRef(favoriteRoomCodes); //  Ref para favoritos
     const lastThreadUpdateRef = useRef({}); // Para deduplicación de eventos de hilo
     const processedMessagesRef = useRef(new Set()); // 🔥 NUEVO: Para deduplicación de mensajes
+    const lastAssignedUpdateRef = useRef({}); // 🔥 FIX: Deduplicación de assignedConversationUpdated
 
     // Actualizar ref cuando cambie soundsEnabled
     useEffect(() => {
@@ -1023,8 +1024,12 @@ export const useSocketListeners = (
 
                         // Esperar 300ms para ver si llega assignedConversationUpdated
                         setTimeout(() => {
-                            if (!processedMessagesRef.current.has(messageKey)) {
+                            // 🔥 FIX: Verificar AMBAS condiciones:
+                            // 1. La marca del messageKey fue borrada (assignedConversationUpdated llegó ANTES que message)
+                            // 2. Existe marca assigned-done (assignedConversationUpdated ya procesó este convId)
+                            if (!processedMessagesRef.current.has(messageKey) || processedMessagesRef.current.has(`assigned-done-${convId}`)) {
                                 console.log(`⏭️ [FALLBACK] assignedConversationUpdated SÍ llegó, ignorando fallback`);
+                                processedMessagesRef.current.delete(messageKey);
                                 return;
                             }
 
@@ -1386,15 +1391,34 @@ export const useSocketListeners = (
         s.on("assignedConversationUpdated", (data) => {
             console.log("💬 assignedConversationUpdated recibido:", data);
 
-            // 🔥 NUEVO: Limpiar marca de procesamiento para evitar que el fallback se ejecute
-            const messageKey = `${data.conversationId}-*`;
-            // Limpiar todas las marcas de este conversationId
+            // 🔥 FIX: Deduplicar - el backend puede emitir este evento más de una vez para el mismo mensaje
+            const dedupeKey = `${data.conversationId}-${data.lastMessage}-${data.lastMessageTime}`;
+            if (lastAssignedUpdateRef.current[data.conversationId] === dedupeKey) {
+                console.log("⏭️ assignedConversationUpdated DUPLICADO, ignorando:", data.conversationId);
+                return;
+            }
+            lastAssignedUpdateRef.current[data.conversationId] = dedupeKey;
+            // Limpiar la marca después de 2s para permitir mensajes futuros idénticos
+            setTimeout(() => {
+                if (lastAssignedUpdateRef.current[data.conversationId] === dedupeKey) {
+                    delete lastAssignedUpdateRef.current[data.conversationId];
+                }
+            }, 2000);
+
+            // 🔥 FIX: Limpiar marcas existentes Y marcar que este convId ya fue procesado
+            // Esto cubre tanto el caso donde 'message' llegó antes, como donde llega después
             for (const key of processedMessagesRef.current) {
                 if (key.startsWith(`${data.conversationId}-`)) {
                     processedMessagesRef.current.delete(key);
                     console.log(`🧹 Limpiando marca de fallback: ${key}`);
                 }
             }
+            // Marcar que assignedConversationUpdated YA procesó este conversationId
+            // El fallback del listener 'message' revisará esta marca
+            processedMessagesRef.current.add(`assigned-done-${data.conversationId}`);
+            setTimeout(() => {
+                processedMessagesRef.current.delete(`assigned-done-${data.conversationId}`);
+            }, 1000);
 
             // Verificar si es mensaje propio
             const currentFullName = currentUserFullNameRef.current;
@@ -1535,7 +1559,34 @@ export const useSocketListeners = (
 
             // 🔥 FIX: Manejar reset de conversaciones asignadas (por conversationId)
             if (data.conversationId) {
-                console.log(`📬 unreadCountReset para conversación asignada: ${data.conversationId}`);
+                // 🔥 FIX: Solo resetear si el chat asignado está realmente abierto
+                const adminConv = adminViewConversationRef?.current;
+                const currentTo = toRef.current?.toLowerCase().trim();
+                const currentIsGroup = isGroupRef.current;
+
+                let isChatOpen = false;
+                if (!currentIsGroup) {
+                    if (String(currentRoomCodeRef.current) === String(data.conversationId)) {
+                        isChatOpen = true;
+                    } else if (adminConv?.id === data.conversationId) {
+                        isChatOpen = true;
+                    } else if (currentTo) {
+                        // Buscar la conversación para verificar por participantes
+                        const convRef = chatState.assignedConversations?.find(c => c.id === data.conversationId);
+                        if (convRef) {
+                            const participants = (convRef.participants || []).map(p => p?.toLowerCase().trim());
+                            isChatOpen = participants.includes(currentTo);
+                        }
+                    }
+                }
+
+                console.log(`📬 unreadCountReset para conversación asignada: ${data.conversationId}, isChatOpen: ${isChatOpen}`);
+
+                if (!isChatOpen) {
+                    console.log(`⏭️ Ignorando unreadCountReset para conv ${data.conversationId} - chat no está abierto`);
+                    return;
+                }
+
                 setUnreadMessages((prev) => ({ ...prev, [data.conversationId]: 0 }));
 
                 // 1. Resetear en Asignados
