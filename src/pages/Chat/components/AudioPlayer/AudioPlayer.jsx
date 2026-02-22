@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FaPlay, FaPause, FaMicrophone } from 'react-icons/fa';
+import { useQuery } from '@tanstack/react-query';
 
 const AudioPlayer = ({
   src,
@@ -14,7 +15,7 @@ const AudioPlayer = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   // Estado inicial: barras grises planas mientras carga
-  const [waveformBars, setWaveformBars] = useState(Array(40).fill(5));
+  const [waveformBars, setWaveformBars] = useState(() => Array(40).fill(5));
   const audioRef = useRef(null);
 
   // Formatear tiempo
@@ -36,58 +37,49 @@ const AudioPlayer = ({
     }
   };
 
-  //  LÓGICA DE ANÁLISIS DE AUDIO REAL
-  useEffect(() => {
-    if (!src) return;
-
-    const analyzeAudio = async () => {
+  //  LÓGICA DE ANÁLISIS DE AUDIO REAL - Usando React Query
+  const { data: analysisResult } = useQuery({
+    queryKey: ['audioAnalysis', src],
+    queryFn: async () => {
+      if (!src) return Array(40).fill(5);
       try {
-        // 1. Obtenemos el archivo de audio como datos crudos
         const response = await fetch(src);
         const arrayBuffer = await response.arrayBuffer();
-
-        // 2. Creamos un contexto de audio para decodificarlo
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-        // 3. Obtenemos los datos del canal (PCM)
         const rawData = audioBuffer.getChannelData(0);
-        const samples = 40; // Queremos 40 barras exactamente
-        const blockSize = Math.floor(rawData.length / samples); // Tamaño de cada bloque
+        const samples = 40;
+        const blockSize = Math.floor(rawData.length / samples);
         const calculatedBars = [];
 
-        // 4. Calculamos el volumen promedio de cada bloque
         for (let i = 0; i < samples; i++) {
           let sum = 0;
           const start = i * blockSize;
           for (let j = 0; j < blockSize; j++) {
-            // Usamos valor absoluto porque la onda va de -1 a 1
             sum += Math.abs(rawData[start + j]);
           }
-          // Promedio del bloque
           const average = sum / blockSize;
-
-          // 5. Normalizamos para que se vea bien (amplificamos un poco)
-          // Multiplicamos por un factor (ej: 500) y limitamos entre 10% y 100%
           let barHeight = average * 1000;
-
-          if (barHeight > 100) barHeight = 100; // Tope máximo
-          if (barHeight < 15) barHeight = 15;   // Tope mínimo para que no desaparezca
-
+          if (barHeight > 100) barHeight = 100;
+          if (barHeight < 15) barHeight = 15;
           calculatedBars.push(barHeight);
         }
-
-        setWaveformBars(calculatedBars);
-
+        return calculatedBars;
       } catch (error) {
         console.error("Error analizando audio:", error);
-        // Si falla (ej: CORS), dejamos barras aleatorias suaves como fallback
-        setWaveformBars(Array.from({ length: 40 }, () => Math.floor(Math.random() * (60 - 20 + 1)) + 20));
+        return Array.from({ length: 40 }, () => Math.floor(Math.random() * (60 - 20 + 1)) + 20);
       }
-    };
+    },
+    enabled: !!src,
+    staleTime: Infinity,
+  });
 
-    analyzeAudio();
-  }, [src]);
+  useEffect(() => {
+    if (analysisResult) {
+      setWaveformBars(analysisResult);
+    }
+  }, [analysisResult]);
+
 
   // Lógica de reproducción normal
   useEffect(() => {

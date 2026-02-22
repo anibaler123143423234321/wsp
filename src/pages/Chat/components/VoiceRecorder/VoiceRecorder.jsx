@@ -26,7 +26,7 @@ const VoiceRecorder = ({ onSendAudio, canSendMessages, onRecordingStart, onRecor
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [audioLevel, setAudioLevel] = useState(Array(20).fill(10));
+  const [audioLevel, setAudioLevel] = useState(() => Array(20).fill(10));
   const [isSendingLocal, setIsSendingLocal] = useState(false);
 
   // Estados para Preview

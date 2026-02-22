@@ -111,23 +111,28 @@ const SectionHeader = ({ title, icon: Icon, isOpen, onToggle, count, isLoading }
   );
 };
 
+import HighlightedText from '../../../../components/HighlightedText';
+
+const EMPTY_ARRAY = [];
+const EMPTY_OBJECT = {};
+
 const ConversationList = ({
   user,
   userList,
-  assignedConversations = [],
-  monitoringConversations = [],
+  assignedConversations = EMPTY_ARRAY,
+  monitoringConversations = EMPTY_ARRAY,
   monitoringPage = 1,
   monitoringTotal = 0,
   monitoringTotalPages = 0,
   monitoringLoading = false,
   onLoadMonitoringConversations,
-  myActiveRooms = [],
+  myActiveRooms = EMPTY_ARRAY,
   currentRoomCode,
   isGroup,
   onUserSelect,
   onRoomSelect,
-  unreadMessages = {},
-  favoriteRoomCodes: externalFavoriteRoomCodes = [],
+  unreadMessages = EMPTY_OBJECT,
+  favoriteRoomCodes: externalFavoriteRoomCodes = EMPTY_ARRAY,
   setFavoriteRoomCodes: setExternalFavoriteRoomCodes,
   lastFavoriteUpdate,
   onToggleSidebar,
@@ -135,7 +140,7 @@ const ConversationList = ({
   userListHasMore,
   userListLoading,
   onLoadMoreUsers,
-  roomTypingUsers = {},
+  roomTypingUsers = EMPTY_OBJECT,
   assignedPage = 1,
   assignedTotal = 0,
   assignedTotalPages = 0,
@@ -1237,15 +1242,10 @@ const ConversationList = ({
                         </svg>
                       </div>
                       <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px' }}>
-                        <span
+                        <HighlightedText
+                          text={room.name}
+                          highlight={term}
                           className="font-semibold text-[#111] truncate"
-                          style={{ fontSize: '13px', fontWeight: 600 }}
-                          dangerouslySetInnerHTML={{
-                            __html: room.name?.replace(
-                              new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'),
-                              '<mark style="background-color: #fef08a; color: #111b21; padding: 0 2px; border-radius: 2px;">$1</mark>'
-                            )
-                          }}
                         />
                         <span className="text-[#667781] truncate" style={{ fontSize: '11px' }}>
                           Grupo · {room.memberCount || room.currentMembers || 0} miembros
@@ -1275,15 +1275,10 @@ const ConversationList = ({
                           {getInitials(otherParticipant)}
                         </div>
                         <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px' }}>
-                          <span
+                          <HighlightedText
+                            text={otherParticipant}
+                            highlight={term}
                             className="font-semibold text-[#111] truncate"
-                            style={{ fontSize: '13px', fontWeight: 600 }}
-                            dangerouslySetInnerHTML={{
-                              __html: otherParticipant?.replace(
-                                new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'),
-                                '<mark style="background-color: #fef08a; color: #111b21; padding: 0 2px; border-radius: 2px;">$1</mark>'
-                              )
-                            }}
                           />
                           <span className="text-[#667781]" style={{ fontSize: '11px' }}>
                             Chat directo
@@ -1379,7 +1374,8 @@ const ConversationList = ({
                     )}
 
                     {/* Preview del mensaje con contexto y resaltado */}
-                    <p className="text-[#667781]"
+                    <HighlightedText
+                      className="text-[#667781]"
                       style={{
                         fontSize: '12px',
                         lineHeight: '1.3',
@@ -1389,28 +1385,12 @@ const ConversationList = ({
                         overflow: 'hidden',
                         wordBreak: 'break-word'
                       }}
-                      dangerouslySetInnerHTML={{
-                        __html: (() => {
-                          // Usar highlightText si existe, sino message
-                          const textToShow = result.highlightText || result.message || '';
-                          const searchTermToHighlight = (assignedSearchTerm || searchTerm || '').trim();
-
-                          if (!textToShow) {
-                            return result.fileName ? `📎 ${result.fileName}` : '';
-                          }
-
-                          if (!searchTermToHighlight) return textToShow;
-
-                          // Escapar caracteres especiales de regex
-                          const escapedTerm = searchTermToHighlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-                          // Resaltar todas las ocurrencias del término buscado
-                          return textToShow.replace(
-                            new RegExp(`(${escapedTerm})`, 'gi'),
-                            '<mark style="background-color: #fef08a; color: #111b21; padding: 0 2px; border-radius: 2px; font-weight: 500;">$1</mark>'
-                          );
-                        })()
-                      }}
+                      text={(() => {
+                        const textToShow = result.highlightText || result.message || '';
+                        if (!textToShow) return result.fileName ? `📎 ${result.fileName}` : '';
+                        return textToShow;
+                      })()}
+                      highlight={(assignedSearchTerm || searchTerm || '').trim()}
                     />
                   </div>
                 </div>
