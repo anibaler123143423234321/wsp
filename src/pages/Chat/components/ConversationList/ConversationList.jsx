@@ -1598,12 +1598,6 @@ const ConversationList = ({
 
                             const getInitials = (name) => { const parts = name?.split(' ') || []; return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : (name?.[0]?.toUpperCase() || 'U'); };
                             const chatId = `conv-${conv.id}`;
-                            const isHighlighted = highlightedChatId === chatId;
-                            const isSelected = (!isGroup && to && (to === displayName || otherParticipant?.toLowerCase().trim() === to?.toLowerCase().trim())) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
-                            // 🔥 NUEVO: Verificar si hay menciones pendientes
-                            const hasMentions = hasPendingMentions(conv.id, conv.lastMessage, conv);
-                            const isFavorite = true; // Siempre es favorito en esta sección
-
                             // Calcular displayName (igual que en Asignados)
                             const participant1Name = participants[0] || 'Usuario 1';
                             const participant2Name = participants[1] || 'Usuario 2';
@@ -1614,6 +1608,12 @@ const ConversationList = ({
                             if (currentUserNormalized === p1Normalized) { displayName = participant2Name; }
                             else if (currentUserNormalized === p2Normalized) { displayName = participant1Name; }
                             else if (!conv.name) { displayName = `${participant1Name} ↔️ ${participant2Name}`; }
+
+                            const isHighlighted = highlightedChatId === chatId;
+                            const isSelected = (!isGroup && to && (to === (displayName || '') || otherParticipant?.toLowerCase().trim() === to?.toLowerCase().trim())) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
+                            // 🔥 NUEVO: Verificar si hay menciones pendientes
+                            const hasMentions = hasPendingMentions(conv.id, conv.lastMessage, conv);
+                            const isFavorite = true; // Siempre es favorito en esta sección
 
                             // 🔥 LÓGICA AGREGADA: Estado en línea e imagen de perfil (igual que en Asignados)
                             let isOtherParticipantOnline = false;
