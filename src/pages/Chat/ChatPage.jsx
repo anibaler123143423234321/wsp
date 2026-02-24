@@ -1162,8 +1162,13 @@ const ChatPage = () => {
           replyToTextClean = "Mensaje original";
         }
 
+        let replyToId = chatState.replyingTo.id;
+        if (typeof replyToId === 'string' && replyToId.startsWith('gallery-')) {
+          replyToId = replyToId.replace('gallery-', '');
+        }
+
         replyData = {
-          replyToMessageId: chatState.replyingTo.id,
+          replyToMessageId: replyToId,
           replyToSender: chatState.replyingTo.sender,
           replyToText: replyToTextClean,
           replyToSenderNumeroAgente: chatState.replyingTo.senderNumeroAgente,

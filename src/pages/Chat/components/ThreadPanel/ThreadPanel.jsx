@@ -888,33 +888,39 @@ const ThreadPanel = ({
       };
 
       // Construir datos de respuesta si existen
-      const replyData = currentReplyingTo ? {
-        replyToMessageId: currentReplyingTo.id,
-        replyToSender: currentReplyingTo.from || currentReplyingTo.sender,
-        replyToText: (() => {
-          const specificAttachment = currentReplyingTo.attachment;
-          if (specificAttachment) {
-            return specificAttachment.fileName || (specificAttachment.mediaType === 'image' ? '📷 Foto' : '📎 Archivo');
-          }
-          // Priorizar: texto del mensaje > nombre de archivo > emoji según tipo de medio
-          if (currentReplyingTo.message || currentReplyingTo.text) {
-            return currentReplyingTo.message || currentReplyingTo.text;
-          } else if (currentReplyingTo.fileName) {
-            return currentReplyingTo.fileName;
-          } else if (currentReplyingTo.mediaType) {
-            const mediaTypeMap = {
-              'image': '📷 Foto',
-              'video': '🎥 Video',
-              'audio': '🎵 Audio',
-              'file': '📎 Archivo',
-              'pdf': '📄 PDF'
-            };
-            return mediaTypeMap[currentReplyingTo.mediaType] || "📎 Archivo adjunto";
-          }
-          return "Archivo adjunto";
-        })(),
-        replyToAttachmentId: currentReplyingTo.attachment?.id || (selectedAttachment?.id || null) // 🔥 NUEVO
-      } : (selectedAttachment ? {
+      const replyData = currentReplyingTo ? (() => {
+        let replyToId = currentReplyingTo.id;
+        if (typeof replyToId === 'string' && replyToId.startsWith('gallery-')) {
+          replyToId = replyToId.replace('gallery-', '');
+        }
+        return {
+          replyToMessageId: replyToId,
+          replyToSender: currentReplyingTo.from || currentReplyingTo.sender,
+          replyToText: (() => {
+            const specificAttachment = currentReplyingTo.attachment;
+            if (specificAttachment) {
+              return specificAttachment.fileName || (specificAttachment.mediaType === 'image' ? '📷 Foto' : '📎 Archivo');
+            }
+            // Priorizar: texto del mensaje > nombre de archivo > emoji según tipo de medio
+            if (currentReplyingTo.message || currentReplyingTo.text) {
+              return currentReplyingTo.message || currentReplyingTo.text;
+            } else if (currentReplyingTo.fileName) {
+              return currentReplyingTo.fileName;
+            } else if (currentReplyingTo.mediaType) {
+              const mediaTypeMap = {
+                'image': '📷 Foto',
+                'video': '🎥 Video',
+                'audio': '🎵 Audio',
+                'file': '📎 Archivo',
+                'pdf': '📄 PDF'
+              };
+              return mediaTypeMap[currentReplyingTo.mediaType] || "📎 Archivo adjunto";
+            }
+            return "Archivo adjunto";
+          })(),
+          replyToAttachmentId: currentReplyingTo.attachment?.id || (selectedAttachment?.id || null) // 🔥 NUEVO
+        };
+      })() : (selectedAttachment ? {
         // Si no hay replyingTo explícito pero estamos en un hilo de adjunto,
         // al enviar un mensaje sin citar a nadie, ¿debería asociarse al adjunto?
         // El backend usualmente espera replyToMessageId para hilos.
