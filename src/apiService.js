@@ -1729,17 +1729,14 @@ class ApiService {
   async getUserRoomsPaginated(page = 1, limit = 10, search = '') {
     try {
       const user = this.getCurrentUser();
-      // 🔥 IMPORTANTE: Usar el displayName (nombre completo) porque el backend busca por displayName en los members
-      const displayName = user?.nombre && user?.apellido
-        ? `${user.nombre} ${user.apellido}`
-        : (user?.username || user?.email);
+      const identifier = user?.username || user?.email || (user?.nombre ? `${user.nombre} ${user.apellido || ''}`.trim() : '');
 
-      if (!displayName) {
+      if (!identifier) {
         throw new Error('Usuario no encontrado');
       }
 
       // Construir URL con parámetros
-      let url = `${this.baseChatUrl}api/temporary-rooms/user/list?username=${encodeURIComponent(displayName)}&page=${page}&limit=${limit}`;
+      let url = `${this.baseChatUrl}api/temporary-rooms/user/list?username=${encodeURIComponent(identifier)}&page=${page}&limit=${limit}`;
 
       // 🔥 NUEVO: Agregar parámetro de búsqueda si existe
       if (search && search.trim()) {
