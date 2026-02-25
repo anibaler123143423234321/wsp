@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { FaBars } from 'react-icons/fa';
 import Sidebar from '../pages/Chat/components/Sidebar/Sidebar';
 import LeftSidebar from '../pages/Chat/components/LeftSidebar/LeftSidebar';
@@ -26,14 +26,14 @@ const ChatLayout = ({
   onShowManageUsers, onShowSystemConfig, myActiveRooms, onRoomSelect, onKickUser,
   userListHasMore, userListLoading, onLoadMoreUsers, roomTypingUsers,
   favoriteRoomCodes, setFavoriteRoomCodes, lastFavoriteUpdate,
-  //  NUEVOS PROPS para paginación real
+  //  NUEVOS PROPS para paginaciÃ³n real
   assignedPage, assignedTotal, assignedTotalPages, assignedLoading, onLoadAssignedConversations,
   roomsPage, roomsTotal, roomsTotalPages, roomsLoading, onLoadUserRooms, roomsLimit, onRoomsLimitChange, onGoToRoomsPage,
-  favoriteRooms, // 🔥 NUEVO
-  setFavoriteRooms, // 🔥 NUEVO
-  pendingMentions, // 🔥 NUEVO: Para detectar menciones pendientes
-  pendingThreads, // 🔥 NUEVO: Para detectar hilos pendientes
-  setPendingThreads, // 🔥 NUEVO: Para limpiar hilos pendientes
+  favoriteRooms, // ðŸ”¥ NUEVO
+  setFavoriteRooms, // ðŸ”¥ NUEVO
+  pendingMentions, // ðŸ”¥ NUEVO: Para detectar menciones pendientes
+  pendingThreads, // ðŸ”¥ NUEVO: Para detectar hilos pendientes
+  setPendingThreads, // ðŸ”¥ NUEVO: Para limpiar hilos pendientes
 
   // Props del chat
   to, isGroup, currentRoomCode, roomUsers, messages, input, setInput,
@@ -57,7 +57,7 @@ const ChatLayout = ({
   soundsEnabled, onEnableSounds, socket, isTyping, typingUser, stopRingtone,
   currentUsername, onClearUnreadOnTyping,
 
-  // Props de búsqueda
+  // Props de bÃºsqueda
   highlightMessageId, onMessageHighlighted,
 
   // Props de respuesta a mensajes
@@ -84,12 +84,12 @@ const ChatLayout = ({
   onClickPinnedMessage,
   pinnedMessageId,
   onPollVote,
-  //  Props de actualización de sala
+  //  Props de actualizaciÃ³n de sala
   onRoomUpdated,
   selectedRoomData, //  NUEVO: Datos de sala seleccionada (fallback)
   onGoToMessage, //  NUEVO: Callback para ir a mensaje
   onGoToLatest, //  NUEVO: Ir al final
-  updateMessage, // 🔥 NUEVO: Para actualizar contador de hilos desde ThreadPanel
+  updateMessage, // ðŸ”¥ NUEVO: Para actualizar contador de hilos desde ThreadPanel
 }) => {
   // State para el panel de miembros (lifted from ChatHeader)
   const [showMembersPanel, setShowMembersPanel] = React.useState(false);
@@ -97,9 +97,9 @@ const ChatLayout = ({
   // State para el panel de hilos
   const [showThreadPanel, setShowThreadPanel] = React.useState(false);
   const [threadMessage, setThreadMessage] = React.useState(null);
-  const [selectedAttachment, setSelectedAttachment] = React.useState(null); // 🔥 NUEVO
+  const [selectedAttachment, setSelectedAttachment] = React.useState(null); // ðŸ”¥ NUEVO
 
-  // State para el panel de información
+  // State para el panel de informaciÃ³n
   const [showCreatePollModal, setShowCreatePollModal] = React.useState(false);
   const [showInfoPanel, setShowInfoPanel] = React.useState(false);
 
@@ -141,14 +141,14 @@ const ChatLayout = ({
 
   // Handler para abrir panel de hilos
   const handleOpenThread = async (message, attachment = null) => {
-    // 🔥 FIX: Si el mensaje viene de una galería de imágenes, su ID es "gallery-XXXXX"
-    // Necesitamos extraer el ID numérico real para que ThreadPanel funcione
+    // ðŸ”¥ FIX: Si el mensaje viene de una galerÃ­a de imÃ¡genes, su ID es "gallery-XXXXX"
+    // Necesitamos extraer el ID numÃ©rico real para que ThreadPanel funcione
     let resolvedMessage = message;
     let resolvedAttachment = attachment;
     if (message && typeof message.id === 'string' && message.id.startsWith('gallery-')) {
       const realId = Number(message.id.replace('gallery-', ''));
 
-      // Construir attachments a partir de los mensajes de la galería
+      // Construir attachments a partir de los mensajes de la galerÃ­a
       const galleryMessages = message.messages || [];
       const builtAttachments = galleryMessages.map(msg => ({
         id: msg.id,
@@ -176,39 +176,39 @@ const ChatLayout = ({
         resolvedAttachment = builtAttachments.find(att => String(att.id) === String(attachment.id)) || builtAttachments[0];
       }
 
-      console.log('🖼️ handleOpenThread: ID de galería resuelto:', message.id, '→', realId, 'attachments:', builtAttachments.length);
+      console.log('ðŸ–¼ï¸ handleOpenThread: ID de galerÃ­a resuelto:', message.id, 'â†’', realId, 'attachments:', builtAttachments.length);
     }
 
-    console.log('🧵 handleOpenThread:', resolvedMessage.id, 'unread:', resolvedMessage.unreadThreadCount, 'attachmentId:', resolvedAttachment?.id);
+    console.log('ðŸ§µ handleOpenThread:', resolvedMessage.id, 'unread:', resolvedMessage.unreadThreadCount, 'attachmentId:', resolvedAttachment?.id);
     setThreadMessage(resolvedMessage);
-    setSelectedAttachment(resolvedAttachment); // 🔥 NUEVO: Guardar adjunto específico si existe
+    setSelectedAttachment(resolvedAttachment); // ðŸ”¥ NUEVO: Guardar adjunto especÃ­fico si existe
     setShowThreadPanel(true);
-    setShowThreadsListPanel(false); // Cerrar lista de hilos al abrir un hilo específico
+    setShowThreadsListPanel(false); // Cerrar lista de hilos al abrir un hilo especÃ­fico
 
-    // 🔥 NUEVO: Actualizar mensaje en la lista para poner SVG gris inmediatamente
+    // ðŸ”¥ NUEVO: Actualizar mensaje en la lista para poner SVG gris inmediatamente
     if (updateMessage && resolvedMessage.unreadThreadCount > 0) {
-      console.log('🔧 Llamando updateMessage para id:', resolvedMessage.id);
+      console.log('ðŸ”§ Llamando updateMessage para id:', resolvedMessage.id);
       updateMessage(resolvedMessage.id, {
         unreadThreadCount: 0,
-        hasUnreadThreadMentions: false // 🔥 Limpiar marca de menciones
+        hasUnreadThreadMentions: false // ðŸ”¥ Limpiar marca de menciones
       });
 
-      // 🔥 CRÍTICO: Marcar hilo como leído en el backend
+      // ðŸ”¥ CRÃTICO: Marcar hilo como leÃ­do en el backend
       try {
-        const readerUsername = user?.username; // 🔥 USAR DNI
+        const readerUsername = user?.username; // ðŸ”¥ USAR DNI
 
         if (readerUsername) {
-          console.log('📡 Marcando hilo como leído en backend:', resolvedMessage.id, 'por:', readerUsername);
+          console.log('ðŸ“¡ Marcando hilo como leÃ­do en backend:', resolvedMessage.id, 'por:', readerUsername);
           await apiService.markThreadAsRead(resolvedMessage.id, readerUsername);
         }
       } catch (error) {
-        console.error('Error al marcar hilo como leído:', error);
+        console.error('Error al marcar hilo como leÃ­do:', error);
       }
     }
 
-    // 🔥 NUEVO: Limpiar pendingThreads para esta sala
+    // ðŸ”¥ NUEVO: Limpiar pendingThreads para esta sala
     if (currentRoomCode && setPendingThreads) {
-      console.log('🟢 Limpiando pendingThreads para sala:', currentRoomCode);
+      console.log('ðŸŸ¢ Limpiando pendingThreads para sala:', currentRoomCode);
       setPendingThreads(prev => {
         const updated = { ...prev };
         delete updated[currentRoomCode];
@@ -221,11 +221,11 @@ const ChatLayout = ({
   const handleBackToThreadsList = () => {
     setShowThreadPanel(false);
     setThreadMessage(null);
-    setSelectedAttachment(null); // 🔥 Limpiar
+    setSelectedAttachment(null); // ðŸ”¥ Limpiar
     setShowThreadsListPanel(true); // Abrir la lista de hilos nuevamente
   };
 
-  // 🔥 NUEVO: Sincronizador de ID de mensaje de hilo
+  // ðŸ”¥ NUEVO: Sincronizador de ID de mensaje de hilo
   // Si el mensaje del hilo tiene un ID temporal, vigilamos la lista de mensajes
   // por si llega el ID real confirmado por el servidor.
   React.useEffect(() => {
@@ -250,19 +250,19 @@ const ChatLayout = ({
     });
 
     if (realMessage) {
-      console.log('🔄 Sincronizando ID real para el panel de hilos:', realMessage.id);
+      console.log('ðŸ”„ Sincronizando ID real para el panel de hilos:', realMessage.id);
       setThreadMessage(realMessage);
     }
   }, [messages, showThreadPanel, threadMessage]);
 
-  // 🔥 Timeout fallback: si después de 5s el ID sigue siendo temporal, desbloquear
+  // ðŸ”¥ Timeout fallback: si despuÃ©s de 5s el ID sigue siendo temporal, desbloquear
   React.useEffect(() => {
     if (!showThreadPanel || !threadMessage || !String(threadMessage.id).startsWith('temp_')) return;
 
     const timeout = setTimeout(() => {
       if (String(threadMessage?.id).startsWith('temp_')) {
-        console.warn('⏰ Timeout: ID temporal no resuelto, forzando desbloqueo del hilo');
-        // Buscar el mensaje más reciente del mismo remitente como fallback
+        console.warn('â° Timeout: ID temporal no resuelto, forzando desbloqueo del hilo');
+        // Buscar el mensaje mÃ¡s reciente del mismo remitente como fallback
         const fallback = [...messages].reverse().find(m =>
           !String(m.id).startsWith('temp_') &&
           (m.from === threadMessage.from || m.realSender === threadMessage.realSender)
@@ -270,7 +270,7 @@ const ChatLayout = ({
         if (fallback) {
           setThreadMessage(fallback);
         } else {
-          // Último recurso: quitar el prefijo temp_ para desbloquear
+          // Ãšltimo recurso: quitar el prefijo temp_ para desbloquear
           setThreadMessage(prev => ({ ...prev, id: Date.now() }));
         }
       }
@@ -288,11 +288,11 @@ const ChatLayout = ({
     setShowThreadsListPanel(false);
   }, [to]);
 
-  // Función para obtener el usuario completo con el que se está chateando
+  // FunciÃ³n para obtener el usuario completo con el que se estÃ¡ chateando
   const getTargetUser = () => {
     if (!to || isGroup) return null;
 
-    // Si es una conversación asignada (adminViewConversation), buscar en los participantes
+    // Si es una conversaciÃ³n asignada (adminViewConversation), buscar en los participantes
     if (adminViewConversation && adminViewConversation.participants) {
       // Obtener el nombre completo del usuario actual
       const currentUserFullName = user?.nombre && user?.apellido
@@ -323,7 +323,7 @@ const ChatLayout = ({
       }
     }
 
-    // Buscar el usuario en userList (conversación normal)
+    // Buscar el usuario en userList (conversaciÃ³n normal)
     const targetUser = userList?.find(u => {
       const uName = typeof u === 'string' ? u : u.username;
       const uFullName = typeof u === 'object' && u.nombre && u.apellido
@@ -335,15 +335,15 @@ const ChatLayout = ({
     return typeof targetUser === 'object' ? targetUser : null;
   };
 
-  // Función para obtener el picture del usuario con el que se está chateando
+  // FunciÃ³n para obtener el picture del usuario con el que se estÃ¡ chateando
   const getUserPicture = () => {
     if (isGroup) {
       const room = myActiveRooms?.find(r => r.roomCode === currentRoomCode);
-      //  Fallback: Si no hay picture, revisar description por si guardamos la URL ahí
+      //  Fallback: Si no hay picture, revisar description por si guardamos la URL ahÃ­
       if (room?.picture) return room.picture;
       if (room?.description && room.description.trim().length > 0) return room.description;
 
-      //  Fallback 2: Revisar selectedRoomData (para Favoritos que no están en myActiveRooms)
+      //  Fallback 2: Revisar selectedRoomData (para Favoritos que no estÃ¡n en myActiveRooms)
       // Relaxed check: trust selectedRoomData if present
       if (selectedRoomData) {
         if (selectedRoomData.picture) return selectedRoomData.picture;
@@ -357,7 +357,7 @@ const ChatLayout = ({
     const targetUser = getTargetUser();
     if (targetUser?.picture) return targetUser.picture;
 
-    // 2. 🔥 Intentar obtener de assignedConversations (si el usuario no está en userList)
+    // 2. ðŸ”¥ Intentar obtener de assignedConversations (si el usuario no estÃ¡ en userList)
     if (to && assignedConversations) {
       const conv = assignedConversations.find(c =>
         c.participants?.some(p => p === to || p?.toLowerCase() === to?.toLowerCase())
@@ -365,7 +365,7 @@ const ChatLayout = ({
       if (conv?.picture) return conv.picture;
     }
 
-    // 3. 🔥 FIX: Intentar obtener de selectedRoomData (para favoritos privados)
+    // 3. ðŸ”¥ FIX: Intentar obtener de selectedRoomData (para favoritos privados)
     if (selectedRoomData?.picture) return selectedRoomData.picture;
 
     return null;
@@ -374,16 +374,16 @@ const ChatLayout = ({
   return (
     <div className="flex gap-0 w-full max-w-full m-0 h-screen rounded-none overflow-hidden shadow-none bg-white">
 
-      {/* Botón hamburguesa flotante ELIMINADO - ahora usamos el botón de atrás en el header */}
+      {/* BotÃ³n hamburguesa flotante ELIMINADO - ahora usamos el botÃ³n de atrÃ¡s en el header */}
 
-      {/* Overlay para mobile - cuando el sidebar está abierto */}
+      {/* Overlay para mobile - cuando el sidebar estÃ¡ abierto */}
       {showSidebar && (
         <div
           className="hidden max-[768px]:block fixed top-0 left-0 w-screen h-screen bg-black/50 z-[99] animate-[fadeIn_0.3s_ease]"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            // console.log('🔴 Overlay clickeado - cerrando sidebar');
+            // console.log('ðŸ”´ Overlay clickeado - cerrando sidebar');
             onToggleMenu();
           }}
           style={{ touchAction: 'manipulation' }}
@@ -452,8 +452,8 @@ const ChatLayout = ({
         roomsLimit={roomsLimit}
         onRoomsLimitChange={onRoomsLimitChange}
         onGoToRoomsPage={onGoToRoomsPage}
-        pendingMentions={pendingMentions} // 🔥 NUEVO: Pasar menciones pendientes
-        pendingThreads={pendingThreads} // 🔥 NUEVO: Pasar hilos pendientes
+        pendingMentions={pendingMentions} // ðŸ”¥ NUEVO: Pasar menciones pendientes
+        pendingThreads={pendingThreads} // ðŸ”¥ NUEVO: Pasar hilos pendientes
       />
 
 
@@ -501,7 +501,7 @@ const ChatLayout = ({
               to={to}
               socket={socket}
               user={user}
-              stopRingtone={stopRingtone} //  Pasar función
+              stopRingtone={stopRingtone} //  Pasar funciÃ³n
             />
           )}
 
@@ -542,7 +542,7 @@ const ChatLayout = ({
             hasMoreAfter={hasMoreAfter} // NUEVO
             onLoadMoreMessagesAfter={onLoadMoreMessagesAfter} // NUEVO
             messagesError={messagesError} //  Error de carga
-            onRetryMessages={onRetryMessages} //  Función para reintentar
+            onRetryMessages={onRetryMessages} //  FunciÃ³n para reintentar
             socket={socket}
             highlightMessageId={highlightMessageId}
             onMessageHighlighted={onMessageHighlighted}
@@ -557,24 +557,25 @@ const ChatLayout = ({
             roomTypingUsers={roomTypingUsers}
             onClearUnreadOnTyping={onClearUnreadOnTyping}
             isUploadingFile={isUploadingFile} //  Pasar prop de loading
-            isSending={isSending} //  NUEVO: Estado de envío
+            isSending={isSending} //  NUEVO: Estado de envÃ­o
             onStartVideoCall={onStartVideoCall} //  NUEVO: Handler de videollamada
             onPinMessage={onPinMessage} //  NUEVO: Fijar mensajes
             onUnpinMessage={onUnpinMessage} //  NUEVO: Desfijar mensajes
             onClickPinnedMessage={onClickPinnedMessage} //  NUEVO: Click en mensaje fijado
             pinnedMessageId={pinnedMessageId} //  Usa la prop directa, NO pinnedMessage?.id
-            pinnedMessage={pinnedMessage}     // ❌ TE FALTA ESTO (El objeto con los datos)
+            pinnedMessage={pinnedMessage}     // âŒ TE FALTA ESTO (El objeto con los datos)
             userRole={user?.role} //  NUEVO: Rol del usuario
-            chatInfo={{ //  NUEVO: Información del chat
+            chatInfo={{ //  NUEVO: InformaciÃ³n del chat
               name: to,
               picture: getUserPicture(),
               isOnline: isGroup ? false : getTargetUser()?.isOnline
             }}
-            user={user} //  NUEVO: Usuario para modal de reenvío
-            myActiveRooms={myActiveRooms} //  NUEVO: Grupos para modal de reenvío
-            assignedConversations={assignedConversations} //  NUEVO: Chats asignados para modal de reenvío
+            user={user} //  NUEVO: Usuario para modal de reenvÃ­o
+            userList={userList} // ðŸ”¥ NUEVO: Lista de usuarios para resoluciÃ³n de nombres
+            myActiveRooms={myActiveRooms} //  NUEVO: Grupos para modal de reenvÃ­o
+            assignedConversations={assignedConversations} //  NUEVO: Chats asignados para modal de reenvÃ­o
             onOpenPollModal={handleCreatePoll} //  NUEVO: Abrir modal de encuesta
-            onPollVote={onPollVote} //  FIX: Pasar prop de votación
+            onPollVote={onPollVote} //  FIX: Pasar prop de votaciÃ³n
             onGoToLatest={onGoToLatest} //  NUEVO: Ir al final
           />
         </div>
@@ -584,23 +585,24 @@ const ChatLayout = ({
       <ThreadPanel
         isOpen={showThreadPanel}
         message={threadMessage}
-        selectedAttachment={selectedAttachment} // 🔥 NUEVO
-        onSelectAttachment={setSelectedAttachment} // 🔥 NUEVO: Cambiar a hilo de adjunto
+        selectedAttachment={selectedAttachment} // ðŸ”¥ NUEVO
+        onSelectAttachment={setSelectedAttachment} // ðŸ”¥ NUEVO: Cambiar a hilo de adjunto
         onClose={() => {
           setShowThreadPanel(false);
           setThreadMessage(null); // Limpiar mensaje al cerrar
-          setSelectedAttachment(null); // 🔥 Limpiar
+          setSelectedAttachment(null); // ðŸ”¥ Limpiar
         }}
         currentUsername={currentUsername}
         socket={socket}
         onSendMessage={onSendThreadMessage}
         currentRoomCode={currentRoomCode}
         roomUsers={roomUsers}
-        myActiveRooms={myActiveRooms} //  NUEVO: Para modal de reenvío
-        assignedConversations={assignedConversations} //  NUEVO: Para modal de reenvío
-        user={user} //  NUEVO: Para modal de reenvío
+        userList={userList}
+        myActiveRooms={myActiveRooms} //  NUEVO: Para modal de reenvÃ­o
+        assignedConversations={assignedConversations} //  NUEVO: Para modal de reenvÃ­o
+        user={user} //  NUEVO: Para modal de reenvÃ­o
         onBackToThreadsList={handleBackToThreadsList} //  NUEVO: Volver a lista de hilos
-        onUpdateParentMessage={updateMessage} // 🔥 NUEVO: Para actualizar contador de hilos
+        onUpdateParentMessage={updateMessage} // ðŸ”¥ NUEVO: Para actualizar contador de hilos
       />
 
       {/* Members Panel (Displacement Layout) */}

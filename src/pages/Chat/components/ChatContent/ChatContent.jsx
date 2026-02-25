@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useLayoutEffect, useCallback } from "react";
+﻿import { useEffect, useRef, useState, useLayoutEffect, useCallback, useMemo } from "react";
 import {
   FaPaperPlane,
   FaEdit,
@@ -13,11 +13,11 @@ import {
   FaThumbtack,
   FaDownload,
   FaChevronRight,
-  FaShare, //  NUEVO: Ícono para reenviar
-  FaChevronUp, // NUEVO: Para botón Load Newer Messages
+  FaShare, //  NUEVO: Ãcono para reenviar
+  FaChevronUp, // NUEVO: Para botÃ³n Load Newer Messages
   FaPoll,
   FaArrowDown,
-  FaArrowLeft, // NUEVO: Para botón de volver en info de mensaje
+  FaArrowLeft, // NUEVO: Para botÃ³n de volver en info de mensaje
   FaFileExcel,
   FaFileWord,
   FaFilePdf,
@@ -35,7 +35,7 @@ import VoiceRecorder from "../VoiceRecorder/VoiceRecorder";
 import PollMessage from "../PollMessage/PollMessage";
 import CopyOptions from "./CopyOptions/CopyOptions";
 import MessageSelectionManager from "./MessageSelectionManager/MessageSelectionManager";
-import ForwardMessageModal from "./ForwardMessageModal"; //  NUEVO: Modal de reenvío
+import ForwardMessageModal from "./ForwardMessageModal"; //  NUEVO: Modal de reenvÃ­o
 import PDFViewer from '../../../../components/PDFViewer/PDFViewer'; // Importar el visor de PDF
 import apiService from '../../../../apiService';
 import { useUserNameColor } from "../../../../components/userColors";
@@ -44,17 +44,17 @@ import MediaPreviewList from '../MediaPreviewList/MediaPreviewList'; // Utilidad
 import { handleSmartPaste } from '../utils/pasteHandler'; // Utilidad reutilizable
 import ReactionPicker from '../../../../components/ReactionPicker'; // Componente reutilizable
 import ChatInput from '../../../../components/ChatInput/ChatInput'; //  NUEVO: Componente reutilizable de input
-import AddReactionButton from '../../../../components/AddReactionButton/AddReactionButton'; // Componente reutilizable botón +
+import AddReactionButton from '../../../../components/AddReactionButton/AddReactionButton'; // Componente reutilizable botÃ³n +
 import { useMessageSelection } from '../../../../hooks/useMessageSelection'; // Hook personalizado
 import { groupMessagesForGallery } from "../../utils/messageGrouper";
 import ImageGalleryGrid from "../../../../components/ImageGalleryGrid/ImageGalleryGrid";
 import "./ChatContent.css";
 
-// Función para formatear tiempo
+// FunciÃ³n para formatear tiempo
 const formatTime = (time) => {
   if (!time) return "";
 
-  // Si ya es una cadena de tiempo formateada (HH:MM o HH:MM AM/PM), devolverla tal como está
+  // Si ya es una cadena de tiempo formateada (HH:MM o HH:MM AM/PM), devolverla tal como estÃ¡
   if (typeof time === "string" && /^(\d{1,2}:\d{2})(\s?[AaPp][Mm])?$/.test(time)) {
     return time;
   }
@@ -124,7 +124,7 @@ const EmojiIcon = ({ className, style }) => (
   </svg>
 );
 
-// 🖼️ Componente LazyImage con Intersection Observer
+// ðŸ–¼ï¸ Componente LazyImage con Intersection Observer
 const LazyImage = ({ src, alt, style, onClick }) => {
   const imgRef = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -186,21 +186,16 @@ const LazyImage = ({ src, alt, style, onClick }) => {
           color: '#aaa',
           fontSize: '12px'
         }}>
-          📷
+          ðŸ“·
         </div>
       )}
     </div>
   );
 };
 
-// Función para determinar el sufijo (Número de Agente o Rol)
-// Se asume que el objeto 'message' tiene las propiedades 'senderNumeroAgente' y 'senderRole'.
 const getSenderSuffix = (message) => {
-  // Buscar el número de agente en diferentes propiedades posibles
-  const agentNumber = message.senderNumeroAgente || message.agentNumber;
-  const role = message.senderRole;
-
-  // Construir el sufijo con role y número de agente
+  const agentNumber = message?.senderNumeroAgente || message?.agentNumber;
+  const role = message?.senderRole;
   const parts = [];
 
   if (role && String(role).trim()) {
@@ -208,17 +203,12 @@ const getSenderSuffix = (message) => {
   }
 
   if (agentNumber && String(agentNumber).trim()) {
-    parts.push(`N.º ${String(agentNumber).trim()}`);
+    parts.push(`Nro ${String(agentNumber).trim()}`);
   }
 
-  // Si hay partes, unirlas con " • "
-  if (parts.length > 0) {
-    return ` • ${parts.join(" • ")}`;
-  }
-
-  // Predeterminado: Ninguno
-  return "";
+  return parts.length > 0 ? ` | ${parts.join(" | ")}` : "";
 };
+
 const ChatContent = ({
   // Props de mensajes
   messages,
@@ -233,7 +223,7 @@ const ChatContent = ({
   pinnedMessageId,
   pinnedMessage,
 
-  // Props de input/envío
+  // Props de input/envÃ­o
   input,
   setInput,
   onSendMessage,
@@ -244,7 +234,7 @@ const ChatContent = ({
   onCancelMediaUpload,
   onRemoveMediaFile,
 
-  // Props de estado de carga/envío
+  // Props de estado de carga/envÃ­o
   isRecording,
   isLoadingMessages,
   isLoadingMore,
@@ -272,28 +262,75 @@ const ChatContent = ({
   roomTypingUsers,
   onClearUnreadOnTyping,
 
-  //  NUEVO: Props para modal de reenvío
+  //  NUEVO: Props para modal de reenvÃ­o
   myActiveRooms = [],
   assignedConversations = [],
 
   //  NUEVO: Props para crear encuesta
   onOpenPollModal,
-  onPollVote, //  FIX: Pasar prop de votación
+  onPollVote, //  FIX: Pasar prop de votaciÃ³n
   onGoToLatest, //  NUEVO: Ir al final
   chatInfo, // 🔥 FIX: Info del chat (picture, name, isOnline)
+  userList, // 🔥 NUEVO: Lista total de usuarios
 }) => {
   const { getUserColor } = useUserNameColor();
+
+  // ðŸ”¥ NUEVO: Calcular todos los alias del usuario actual para detecciÃ³n de menciones propias
+  const myAliasesNormalized = useMemo(() => {
+    const aliases = new Set();
+    const normalize = (str) => {
+      if (!str) return "";
+      return str.normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[\u200B-\u200D\uFEFF]/g, "") // Filtrar caracteres invisibles (ZWSP, etc)
+        .toUpperCase()
+        .replace(/\s+/g, " ") // Colapsar mÃºltiples espacios en uno solo
+        .trim();
+    };
+
+    if (currentUsername) aliases.add(normalize(currentUsername));
+
+    // ðŸ”¥ FALLBACK: Si user es limitado pero tenemos nombres en el objeto prop 'user'
+    const nombre = (user?.nombre || user?.firstName || "").trim();
+    const apellido = (user?.apellido || user?.lastName || "").trim();
+
+    if (nombre) aliases.add(normalize(nombre));
+    if (apellido) aliases.add(normalize(apellido));
+
+    if (nombre && apellido) {
+      aliases.add(normalize(`${nombre} ${apellido}`));
+
+      const nameParts = nombre.split(/\s+/);
+      const lastNameParts = apellido.split(/\s+/);
+      if (nameParts[0] && lastNameParts[0]) {
+        aliases.add(normalize(`${nameParts[0]} ${lastNameParts[0]}`));
+      }
+    }
+
+    if (user?.email) aliases.add(normalize(user.email));
+    if (user?.username) aliases.add(normalize(user.username));
+
+    return Array.from(aliases).filter(a => a.length > 0);
+  }, [currentUsername, user]);
+
+  // ðŸ”¥ NUEVO: Estado persistente para evitar el parpadeo ("se despinto") cuando el user parpadea
+  const [persistentAliases, setPersistentAliases] = useState([]);
+  useEffect(() => {
+    if (myAliasesNormalized.length > 0) {
+      setPersistentAliases(myAliasesNormalized);
+    }
+  }, [myAliasesNormalized]);
   // ============================================================
   // REFS
   // ============================================================
   const chatHistoryRef = useRef(null);
   const isUserScrollingRef = useRef(false);
   const lastMessageCountRef = useRef(0);
-  const lastMessageIdRef = useRef(null); // 🔥 NUEVO: Para rastrear el último mensaje
+  const lastMessageIdRef = useRef(null); // ðŸ”¥ NUEVO: Para rastrear el Ãºltimo mensaje
   const previousScrollHeightRef = useRef(0);
-  const previousScrollTopRef = useRef(0); // 🔥 Guardar scrollTop para preservar posición
-  const isLoadingMoreRef = useRef(false); // 🔥 Bandera de carga en progreso
-  const hasScrolledToUnreadRef = useRef(false); // Rastrear si ya hicimos scroll al primer mensaje no leído
+  const previousScrollTopRef = useRef(0); // ðŸ”¥ Guardar scrollTop para preservar posiciÃ³n
+  const isLoadingMoreRef = useRef(false); // ðŸ”¥ Bandera de carga en progreso
+  const hasScrolledToUnreadRef = useRef(false); // Rastrear si ya hicimos scroll al primer mensaje no leÃ­do
   const typingTimeoutRef = useRef(null);
   const emojiPickerRef = useRef(null);
   const reactionPickerRef = useRef(null);
@@ -302,31 +339,34 @@ const ChatContent = ({
   const reactionUsersTimeoutRef = useRef(null); // Para delay del popover de reacciones
 
   // ============================================================
-  // FUNCIÓN AUXILIAR - Detectar menciones al usuario en texto
+  // FUNCIÃ“N AUXILIAR - Detectar menciones al usuario en texto
   // ============================================================
   const hasMentionToUser = useCallback((text) => {
-    if (!text || !currentUsername) return false;
+    if (!text || persistentAliases.length === 0) return false;
 
     const normalizeText = (str) => {
-      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+      return str.normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[\u200B-\u200D\uFEFF]/g, "")
+        .toUpperCase()
+        .replace(/\s+/g, " ")
+        .trim();
     };
 
-    const mentionRegex = /@([a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+(?:\s+[a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
+    const mentionRegex = /@([a-zA-ZÃÃ‰ÃÃ“ÃšÃ‘Ã¡Ã©Ã­Ã³ÃºÃ±0-9]+(?:\s+[a-zA-ZÃÃ‰ÃÃ“ÃšÃ‘Ã¡Ã©Ã­Ã³ÃºÃ±0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
     const mentions = [];
     let match;
 
     while ((match = mentionRegex.exec(text)) !== null) {
-      mentions.push(match[1].trim().toUpperCase());
+      mentions.push(normalizeText(match[1]));
     }
 
-    const userNameUpper = normalizeText(currentUsername);
-    return mentions.some(mention =>
-      userNameUpper.includes(mention) || mention.includes(userNameUpper)
-    );
-  }, [currentUsername]);
+    // Solo considerar mención propia cuando coincide exactamente con alguno de mis aliases
+    return mentions.some((mention) => persistentAliases.includes(mention));
+  }, [persistentAliases]);
 
   // ============================================================
-  // FUNCIÓN AUXILIAR - Detectar menciones en hilos
+  // FUNCIÃ“N AUXILIAR - Detectar menciones en hilos
   // ============================================================
   const hasThreadMention = useCallback((message) => {
     // Si no hay respuestas en el hilo, no hay menciones
@@ -334,17 +374,17 @@ const ChatContent = ({
       return false;
     }
 
-    // 🔥 NUEVO: Si el mensaje tiene la marca de menciones pendientes, mostrar punto rojo
+    // ðŸ”¥ NUEVO: Si el mensaje tiene la marca de menciones pendientes, mostrar punto rojo
     if (message.hasUnreadThreadMentions) {
       return true;
     }
 
-    // 🔥 CRÍTICO: Solo mostrar punto rojo si hay mensajes NO LEÍDOS en el hilo
+    // ðŸ”¥ CRÃTICO: Solo mostrar punto rojo si hay mensajes NO LEÃDOS en el hilo
     if (!message.unreadThreadCount || message.unreadThreadCount === 0) {
       return false; // No hay mensajes sin leer en el hilo, no mostrar punto rojo
     }
 
-    // Verificar si el último mensaje del hilo contiene una mención
+    // Verificar si el Ãºltimo mensaje del hilo contiene una menciÃ³n
     if (message.lastReplyText) {
       return hasMentionToUser(message.lastReplyText);
     }
@@ -353,7 +393,7 @@ const ChatContent = ({
   }, [hasMentionToUser]);
 
   // ============================================================
-  // ESTADOS - Edición de mensajes
+  // ESTADOS - EdiciÃ³n de mensajes
   // ============================================================
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editText, setEditText] = useState("");
@@ -361,7 +401,7 @@ const ChatContent = ({
   const [isEditingLoading, setIsEditingLoading] = useState(false);
 
   // ============================================================
-  // ESTADOS - UI/Interacción
+  // ESTADOS - UI/InteracciÃ³n
   // ============================================================
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const [expandedMessages, setExpandedMessages] = useState(new Set());
@@ -370,18 +410,18 @@ const ChatContent = ({
   const [hideUnreadSeparator, setHideUnreadSeparator] = useState(false);
 
   // ============================================================
-  // ESTADOS - Pickers y menús
+  // ESTADOS - Pickers y menÃºs
   // ============================================================
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(null);
-  const [showReactionUsers, setShowReactionUsers] = useState(null); // Para mostrar quién reaccionó
+  const [showReactionUsers, setShowReactionUsers] = useState(null); // Para mostrar quiÃ©n reaccionÃ³
   const [showMessageMenu, setShowMessageMenu] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [showMessageInfo, setShowMessageInfo] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [openReadReceiptsId, setOpenReadReceiptsId] = useState(null);
   const [loadedReadBy, setLoadedReadBy] = useState({}); // Cache de readBy cargados por messageId
-  const [loadingReadBy, setLoadingReadBy] = useState(null); // ID del mensaje que está cargando readBy
+  const [loadingReadBy, setLoadingReadBy] = useState(null); // ID del mensaje que estÃ¡ cargando readBy
 
   // ============================================================
   // ESTADOS - Menciones (@)
@@ -389,9 +429,318 @@ const ChatContent = ({
   const [showMentionSuggestions, setShowMentionSuggestions] = useState(false);
   const [mentionSearch, setMentionSearch] = useState("");
   const [mentionCursorPosition, setMentionCursorPosition] = useState(0);
+  const [mentionLookupCache, setMentionLookupCache] = useState({});
+
+  const normalizeMentionValue = useCallback((str) => {
+    if (!str) return "";
+    return String(str)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase();
+  }, []);
+
+  const isLikelyIdentifier = useCallback((value) => {
+    if (!value) return false;
+    const v = String(value).trim();
+    return /^\d{6,}$/.test(v) || v.includes("@");
+  }, []);
+
+  const resolveFromListByAnyKey = useCallback((list, raw) => {
+    if (!Array.isArray(list) || list.length === 0 || !raw) return null;
+    const rawNorm = normalizeMentionValue(raw);
+    return list.find((ul) => {
+      if (!ul || typeof ul !== "object") return false;
+      const fullName = ul.nombre && ul.apellido ? `${ul.nombre} ${ul.apellido}` : "";
+      const emailLocal = ul.email ? String(ul.email).split("@")[0] : "";
+      const candidates = [
+        ul.username,
+        ul.userName,
+        ul.name,
+        ul.notify,
+        ul.vname,
+        ul.numeroAgente,
+        ul.correo,
+        ul.email,
+        emailLocal,
+        ul.id,
+        ul?.id?.user,
+        fullName,
+      ]
+        .filter(Boolean)
+        .map((v) => normalizeMentionValue(v));
+      return candidates.includes(rawNorm);
+    }) || null;
+  }, [normalizeMentionValue]);
+
+  useEffect(() => {
+    if (!isGroup || !Array.isArray(roomUsers) || roomUsers.length === 0) return;
+
+    const mergedUsers = [
+      ...(Array.isArray(userList) ? userList : []),
+      ...Object.values(mentionLookupCache || {}),
+    ];
+
+    const identifiers = roomUsers
+      .map((u) => {
+        if (typeof u === "string") return u;
+        if (!u || typeof u !== "object") return "";
+        return (
+          u.username ||
+          u.userName ||
+          u?.id?.user ||
+          u.numeroAgente ||
+          u.email ||
+          u.correo ||
+          u.displayName ||
+          u.name ||
+          ""
+        );
+      })
+      .filter(Boolean)
+      .map((v) => String(v).trim());
+
+    const toResolve = Array.from(new Set(identifiers))
+      .filter((id) => isLikelyIdentifier(id))
+      .filter((id) => !mentionLookupCache[normalizeMentionValue(id)])
+      .filter((id) => !resolveFromListByAnyKey(mergedUsers, id))
+      .slice(0, 20);
+
+    if (toResolve.length === 0) return;
+
+    let cancelled = false;
+    (async () => {
+      const results = await Promise.all(
+        toResolve.map(async (id) => {
+          try {
+            const users = await apiService.searchUsersFromBackend(id, 0, 10);
+            if (!Array.isArray(users) || users.length === 0) return null;
+
+            const exact = resolveFromListByAnyKey(users, id) || users[0];
+            if (!exact || !exact.username) return null;
+            return [normalizeMentionValue(id), exact];
+          } catch {
+            return null;
+          }
+        })
+      );
+
+      if (cancelled) return;
+      const patch = {};
+      results.forEach((entry) => {
+        if (entry && entry[0] && entry[1]) {
+          patch[entry[0]] = entry[1];
+        }
+      });
+      if (Object.keys(patch).length > 0) {
+        setMentionLookupCache((prev) => ({ ...prev, ...patch }));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isGroup,
+    roomUsers,
+    userList,
+    mentionLookupCache,
+    normalizeMentionValue,
+    isLikelyIdentifier,
+    resolveFromListByAnyKey,
+  ]);
+
+  const buildMentionOption = useCallback((rawUser) => {
+    const getBestDisplayName = (candidate, rawFallback) => {
+      if (candidate && candidate.nombre && candidate.apellido) {
+        return `${candidate.nombre} ${candidate.apellido}`.trim();
+      }
+
+      const rawName = typeof rawFallback === "object"
+        ? (
+          rawFallback.displayName ||
+          rawFallback.name ||
+          rawFallback.notify ||
+          rawFallback.vname ||
+          rawFallback.username ||
+          rawFallback?.id?.user ||
+          ""
+        )
+        : String(rawFallback || "");
+
+      if (rawName && !isLikelyIdentifier(rawName)) return rawName;
+
+      if (candidate) {
+        return (
+          candidate.displayName ||
+          candidate.name ||
+          candidate.notify ||
+          candidate.vname ||
+          candidate.username ||
+          candidate?.id?.user ||
+          rawName ||
+          ""
+        );
+      }
+
+      return rawName;
+    };
+
+    const resolveFromUserList = (raw) => {
+      const mergedUsers = [
+        ...(Array.isArray(userList) ? userList : []),
+        ...Object.values(mentionLookupCache || {}),
+      ];
+      return resolveFromListByAnyKey(mergedUsers, raw);
+    };
+
+    if (typeof rawUser === "string") {
+      const resolved = resolveFromUserList(rawUser);
+      const displayName = getBestDisplayName(resolved, rawUser);
+      return {
+        ...(resolved || {}),
+        username: resolved?.username || rawUser,
+        displayName,
+        mentionText: displayName || rawUser,
+      };
+    }
+
+    if (rawUser && typeof rawUser === "object") {
+      const resolved = resolveFromUserList(
+        rawUser.username ||
+        rawUser?.id?.user ||
+        rawUser.email ||
+        rawUser.correo ||
+        rawUser.displayName ||
+        rawUser.name ||
+        rawUser.notify ||
+        rawUser.vname ||
+        rawUser.numeroAgente
+      );
+      const displayName = getBestDisplayName(resolved || rawUser, rawUser);
+
+      return {
+        ...(resolved || {}),
+        ...rawUser,
+        username: rawUser.username ?? resolved?.username,
+        userName: rawUser.userName ?? resolved?.userName,
+        id: rawUser.id ?? resolved?.id,
+        numeroAgente: rawUser.numeroAgente ?? resolved?.numeroAgente,
+        email: rawUser.email ?? resolved?.email,
+        correo: rawUser.correo ?? resolved?.correo,
+        nombre: rawUser.nombre ?? resolved?.nombre,
+        apellido: rawUser.apellido ?? resolved?.apellido,
+        displayName,
+        mentionText:
+          displayName ||
+          rawUser.username ||
+          resolved?.username ||
+          rawUser?.id?.user ||
+          resolved?.id?.user ||
+          rawUser.email ||
+          resolved?.email ||
+          "",
+      };
+    }
+
+    return null;
+  }, [normalizeMentionValue, userList, mentionLookupCache, isLikelyIdentifier, resolveFromListByAnyKey]);
+
+  const mentionSuggestionsFiltered = useMemo(() => {
+    if (!isGroup || !Array.isArray(roomUsers) || roomUsers.length === 0) return [];
+
+    const getIdentityKey = (opt) => {
+      const emailLocal = opt?.email ? String(opt.email).split("@")[0] : "";
+      const rawKey =
+        opt?.username ||
+        opt?.userName ||
+        opt?.id?.user ||
+        opt?.numeroAgente ||
+        emailLocal ||
+        opt?.mentionText ||
+        opt?.displayName ||
+        "";
+      return normalizeMentionValue(rawKey);
+    };
+
+    const isBetterDisplay = (nextOpt, prevOpt) => {
+      const nextName = nextOpt?.displayName || nextOpt?.mentionText || "";
+      const prevName = prevOpt?.displayName || prevOpt?.mentionText || "";
+      const nextHasFullName = !!(nextOpt?.nombre && nextOpt?.apellido);
+      const prevHasFullName = !!(prevOpt?.nombre && prevOpt?.apellido);
+
+      if (nextHasFullName && !prevHasFullName) return true;
+      if (!nextHasFullName && prevHasFullName) return false;
+
+      const nextLooksIdentifier = isLikelyIdentifier(nextName);
+      const prevLooksIdentifier = isLikelyIdentifier(prevName);
+      if (!nextLooksIdentifier && prevLooksIdentifier) return true;
+      if (nextLooksIdentifier && !prevLooksIdentifier) return false;
+
+      return nextName.length > prevName.length;
+    };
+
+    const dedupe = new Map();
+    roomUsers.forEach((u) => {
+      const opt = buildMentionOption(u);
+      if (!opt || !opt.mentionText) return;
+      const key = getIdentityKey(opt);
+      if (!key) return;
+      if (!dedupe.has(key)) {
+        dedupe.set(key, opt);
+        return;
+      }
+      const prev = dedupe.get(key);
+      if (isBetterDisplay(opt, prev)) {
+        dedupe.set(key, opt);
+      }
+    });
+
+    const search = normalizeMentionValue(mentionSearch);
+    const values = Array.from(dedupe.values());
+
+    const withMeta = values
+      .map((opt) => {
+        const display = opt.displayName || opt.mentionText || "";
+        const fullName = opt.nombre && opt.apellido ? `${opt.nombre} ${opt.apellido}` : "";
+        const emailLocal = opt.email ? String(opt.email).split("@")[0] : "";
+        const aliasPool = [
+          display,
+          fullName,
+          opt.mentionText,
+          opt.username,
+          opt.userName,
+          opt?.id?.user,
+          opt.numeroAgente,
+          opt.email,
+          opt.correo,
+          emailLocal,
+          opt.notify,
+          opt.vname,
+        ]
+          .filter(Boolean)
+          .map(normalizeMentionValue);
+
+        const matches = !search || aliasPool.some((v) => v.includes(search));
+        const hasFullName = !!(opt.nombre && opt.apellido);
+        const looksIdentifier = isLikelyIdentifier(display);
+        const startsWith = normalizeMentionValue(display).startsWith(search);
+
+        return { opt, display, matches, hasFullName, looksIdentifier, startsWith };
+      })
+      .filter((x) => x.matches)
+      .sort((a, b) => {
+        if (a.hasFullName !== b.hasFullName) return a.hasFullName ? -1 : 1;
+        if (a.looksIdentifier !== b.looksIdentifier) return a.looksIdentifier ? 1 : -1;
+        if (a.startsWith !== b.startsWith) return a.startsWith ? -1 : 1;
+        return a.display.localeCompare(b.display, "es", { sensitivity: "base" });
+      });
+
+    return withMeta.map((x) => x.opt);
+  }, [isGroup, roomUsers, mentionSearch, buildMentionOption, normalizeMentionValue, currentUsername, user, isLikelyIdentifier]);
 
   // ============================================================
-  // ESTADOS - Selección múltiple (Usando Hook Personalizado)
+  // ESTADOS - SelecciÃ³n mÃºltiple (Usando Hook Personalizado)
   // ============================================================
   const {
     isSelectionMode,
@@ -403,14 +752,14 @@ const ChatContent = ({
     setSelectedMessages
   } = useMessageSelection();
 
-  //  NUEVOS ESTADOS - Modal de reenvío
+  //  NUEVOS ESTADOS - Modal de reenvÃ­o
   const [showForwardModal, setShowForwardModal] = useState(false);
   const [messageToForward, setMessageToForward] = useState(null);
   const [showPdfViewer, setShowPdfViewer] = useState(false);
   const [pdfData, setPdfData] = useState(null); // Cambiar a pdfData (ArrayBuffer)
   const [pdfFileName, setPdfFileName] = useState(""); // NUEVO: Nombre del archivo PDF
 
-  //  PAGINACIÓN - Modal de reenvío
+  //  PAGINACIÃ“N - Modal de reenvÃ­o
   const [forwardRoomsPage, setForwardRoomsPage] = useState(1);
   const [forwardRoomsTotalPages, setForwardRoomsTotalPages] = useState(1);
   const [forwardRoomsLoading, setForwardRoomsLoading] = useState(false);
@@ -421,21 +770,21 @@ const ChatContent = ({
   const [extendedConvs, setExtendedConvs] = useState([]);
 
   // ============================================================
-  // HANDLERS - Selección múltiple de mensajes
+  // HANDLERS - SelecciÃ³n mÃºltiple de mensajes
   // ============================================================
   const handleEnterSelectionMode = () => {
     handleEnterSelectionModeHook();
     setShowMessageMenu(null);
   };
 
-  //  NUEVO: Manejar Ctrl+Click (o Click en modo selección)
+  //  NUEVO: Manejar Ctrl+Click (o Click en modo selecciÃ³n)
   const handleMessageClick = (e, message) => {
-    // Si estamos en modo selección O se presiona Ctrl/Cmd
+    // Si estamos en modo selecciÃ³n O se presiona Ctrl/Cmd
     if (isSelectionMode || e.ctrlKey || e.metaKey) {
       e.preventDefault();
       e.stopPropagation();
       handleToggleMessageSelection(message.id);
-      setShowMessageMenu(null); // Asegurar que se cierre el menú
+      setShowMessageMenu(null); // Asegurar que se cierre el menÃº
     }
   };
 
@@ -448,7 +797,7 @@ const ChatContent = ({
     setSelectedMessages([]);
   };
 
-  //  NUEVO HANDLER - Abrir modal de reenvío
+  //  NUEVO HANDLER - Abrir modal de reenvÃ­o
   const handleOpenForwardModal = async (message) => {
     setMessageToForward(message);
     setShowForwardModal(true);
@@ -485,18 +834,18 @@ const ChatContent = ({
     }
   };
 
-  //  NUEVO HANDLER - Cerrar modal de reenvío
+  //  NUEVO HANDLER - Cerrar modal de reenvÃ­o
   const handleCloseForwardModal = () => {
     setShowForwardModal(false);
     setMessageToForward(null);
-    // Limpiar estados de paginación
+    // Limpiar estados de paginaciÃ³n
     setExtendedRooms([]);
     setExtendedConvs([]);
     setForwardRoomsPage(1);
     setForwardConvsPage(1);
   };
 
-  //  NUEVO - Cargar más grupos para modal de reenvío
+  //  NUEVO - Cargar mÃ¡s grupos para modal de reenvÃ­o
   const handleLoadMoreForwardRooms = async () => {
     if (forwardRoomsLoading || forwardRoomsPage >= forwardRoomsTotalPages) return;
 
@@ -533,13 +882,13 @@ const ChatContent = ({
 
       setForwardRoomsPage(nextPage);
     } catch (error) {
-      console.error('Error al cargar más grupos:', error);
+      console.error('Error al cargar mÃ¡s grupos:', error);
     } finally {
       setForwardRoomsLoading(false);
     }
   };
 
-  //  NUEVO - Cargar más conversaciones asignadas para modal de reenvío  
+  //  NUEVO - Cargar mÃ¡s conversaciones asignadas para modal de reenvÃ­o  
   const handleLoadMoreForwardConvs = async () => {
     if (forwardConvsLoading || forwardConvsPage >= forwardConvsTotalPages) return;
 
@@ -557,7 +906,7 @@ const ChatContent = ({
       setForwardConvsTotalPages(result.totalPages || 1);
       setForwardConvsPage(nextPage);
     } catch (error) {
-      console.error('Error al cargar más conversaciones:', error);
+      console.error('Error al cargar mÃ¡s conversaciones:', error);
     } finally {
       setForwardConvsLoading(false);
     }
@@ -573,7 +922,7 @@ const ChatContent = ({
     setShowReactionUsers(null); // Limpiar popover de reacciones al cambiar de chat
     hasScrolledToUnreadRef.current = false;
     lastMessageCountRef.current = 0;
-    lastMessageIdRef.current = null; // 🔥 NUEVO: Resetear ID del último mensaje
+    lastMessageIdRef.current = null; // ðŸ”¥ NUEVO: Resetear ID del Ãºltimo mensaje
     isLoadingMoreRef.current = false;
     firstMessageIdRef.current = null;
     initialScrollDoneRef.current = false;
@@ -591,7 +940,7 @@ const ChatContent = ({
 
     const chatHistory = chatHistoryRef.current;
 
-    // Pequeño delay para asegurar que el DOM esté completamente renderizado
+    // PequeÃ±o delay para asegurar que el DOM estÃ© completamente renderizado
     const timeoutId = setTimeout(() => {
       if (!chatHistoryRef.current) return;
       if (hasScrolledToUnreadRef.current) return; // Verificar de nuevo
@@ -628,7 +977,7 @@ const ChatContent = ({
 
     if (!sentAt) return "Hoy";
 
-    // El backend envía sentAt, extraer solo la fecha
+    // El backend envÃ­a sentAt, extraer solo la fecha
     const messageDate = sentAt.split("T")[0]; // "2025-11-20"
 
     // Usar EXACTAMENTE la misma zona horaria que el backend: America/Lima
@@ -650,17 +999,17 @@ const ChatContent = ({
       const day = date.toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "numeric" });
       const month = date.toLocaleDateString("es-PE", { timeZone: "America/Lima", month: "short" });
       const year = date.toLocaleDateString("es-PE", { timeZone: "America/Lima", year: "numeric" });
-      // Capitalizar primera letra del día
+      // Capitalizar primera letra del dÃ­a
       const weekdayCapitalized = weekday.charAt(0).toUpperCase() + weekday.slice(1).replace('.', '');
       const monthCapitalized = month.charAt(0).toUpperCase() + month.slice(1).replace('.', '');
       return `${weekdayCapitalized}, ${day} ${monthCapitalized} ${year}`;
     }
   };
 
-  // Función simple para agrupar mensajes usando solo datos del backend
-  //  NUEVO: También inserta separador de "X mensajes no leídos"
+  // FunciÃ³n simple para agrupar mensajes usando solo datos del backend
+  //  NUEVO: TambiÃ©n inserta separador de "X mensajes no leÃ­dos"
   const groupMessagesByDate = (messages, currentUser) => {
-    // 🔥 NUEVO: Agrupar imágenes antes de procesar fechas
+    // ðŸ”¥ NUEVO: Agrupar imÃ¡genes antes de procesar fechas
     const galleryGroupedMessages = groupMessagesForGallery(messages);
 
     const groups = [];
@@ -672,7 +1021,7 @@ const ChatContent = ({
     const seenIds = new Set();
 
     galleryGroupedMessages.forEach(msg => {
-      // Si el mensaje es una galería, lo tratamos como un bloque único
+      // Si el mensaje es una galerÃ­a, lo tratamos como un bloque Ãºnico
       if (msg.type === 'image-gallery') {
         uniqueMessages.push(msg);
         return;
@@ -687,12 +1036,12 @@ const ChatContent = ({
       uniqueMessages.push(msg);
     });
 
-    //  Contar mensajes no leídos (que no sean del usuario actual)
-    // 🔥 FIX: Para grupos, verificar si el usuario está en readBy array, no solo isRead
+    //  Contar mensajes no leÃ­dos (que no sean del usuario actual)
+    // ðŸ”¥ FIX: Para grupos, verificar si el usuario estÃ¡ en readBy array, no solo isRead
     const isMessageReadByUser = (msg, username) => {
-      // 🔥 FIX: Manejar tanto boolean true como string "true"
+      // ðŸ”¥ FIX: Manejar tanto boolean true como string "true"
       if (msg.isRead === true || msg.isRead === 'true') return true;
-      // 🔥 FIX: Si readByCount > 0, significa que alguien lo leyó (el mensaje fue marcado como leído)
+      // ðŸ”¥ FIX: Si readByCount > 0, significa que alguien lo leyÃ³ (el mensaje fue marcado como leÃ­do)
       if (msg.readByCount && msg.readByCount > 0) return true;
 
       if (msg.readBy && Array.isArray(msg.readBy)) {
@@ -727,7 +1076,7 @@ const ChatContent = ({
         });
       }
 
-      //  NUEVO: Insertar separador de no leídos ANTES del primer mensaje no leído
+      //  NUEVO: Insertar separador de no leÃ­dos ANTES del primer mensaje no leÃ­do
       if (
         !unreadSeparatorInserted &&
         unreadCount > 0 &&
@@ -743,13 +1092,13 @@ const ChatContent = ({
         unreadSeparatorInserted = true;
       }
 
-      // 🔥 FIX: Calcular isGroupStart AQUÍ usando el array filtrado correcto (uniqueMessages)
+      // ðŸ”¥ FIX: Calcular isGroupStart AQUÃ usando el array filtrado correcto (uniqueMessages)
       // Esto soluciona el bug visual donde un mensaje se agrupaba incorrectamente con el anterior
-      // debido a mismatch de índices con el array original 'messages'
+      // debido a mismatch de Ã­ndices con el array original 'messages'
       const prevMsg = index > 0 ? uniqueMessages[index - 1] : null;
 
-      // 🔥 FIX: También verificar si el elemento anterior en groups es un separador de fecha
-      // Si es así, el mensaje actual debe ser inicio de grupo
+      // ðŸ”¥ FIX: TambiÃ©n verificar si el elemento anterior en groups es un separador de fecha
+      // Si es asÃ­, el mensaje actual debe ser inicio de grupo
       const prevGroupItem = groups.length > 0 ? groups[groups.length - 1] : null;
       const isPrevItemDateSeparator = prevGroupItem && prevGroupItem.type === 'date-separator';
       const isPrevItemUnreadSeparator = prevGroupItem && prevGroupItem.type === 'unread-separator';
@@ -758,14 +1107,14 @@ const ChatContent = ({
         || prevMsg.sender !== message.sender
         || prevMsg.type === 'info'
         || prevMsg.type === 'error'
-        || isPrevItemDateSeparator  // 🔥 NUEVO: Después de separador de fecha, siempre es inicio
-        || isPrevItemUnreadSeparator; // 🔥 NUEVO: Después de separador de no leídos, siempre es inicio
+        || isPrevItemDateSeparator  // ðŸ”¥ NUEVO: DespuÃ©s de separador de fecha, siempre es inicio
+        || isPrevItemUnreadSeparator; // ðŸ”¥ NUEVO: DespuÃ©s de separador de no leÃ­dos, siempre es inicio
 
       groups.push({
         type: "message",
         data: message,
         index,
-        isGroupStart, // 🔥 Pasamos el booleano calculado correctamente
+        isGroupStart, // ðŸ”¥ Pasamos el booleano calculado correctamente
       });
     });
 
@@ -796,7 +1145,7 @@ const ChatContent = ({
     } catch (error) {
       console.error("Error al descargar blob, intentando método alternativo:", error);
 
-      // 2. Fallback: Método clásico (si fetch falla por CORS, por ejemplo)
+      // 2. Fallback: MÃ©todo clÃ¡sico (si fetch falla por CORS, por ejemplo)
       const link = document.createElement("a");
       link.href = url;
       link.download = fileName || "archivo";
@@ -846,7 +1195,7 @@ const ChatContent = ({
   };
 
   // ============================================================
-  // HANDLER - Paste de archivos/imágenes
+  // HANDLER - Paste de archivos/imÃ¡genes
   // ============================================================
   const handlePaste = (e) => {
     if (!canSendMessages) return;
@@ -855,15 +1204,15 @@ const ChatContent = ({
     // El 2do argumento simula el evento {target: {files}} que espera onFileSelect
     handleSmartPaste(e, (simulatedEvent) => {
       onFileSelect(simulatedEvent);
-    }, null); // No necesitamos setInput aquí porque el navegador maneja el texto por defecto
+    }, null); // No necesitamos setInput aquÃ­ porque el navegador maneja el texto por defecto
   };
 
   // ============================================================
-  // HANDLERS - Edición de mensajes
+  // HANDLERS - EdiciÃ³n de mensajes
   // ============================================================
   const handleStartEdit = (message) => {
     setEditingMessageId(message.id);
-    // Usar message.message como fallback si message.text no existe (común en mensajes de audio/archivos)
+    // Usar message.message como fallback si message.text no existe (comÃºn en mensajes de audio/archivos)
     setEditText(message.text || message.message || "");
     setEditFile(null);
   };
@@ -889,10 +1238,10 @@ const ChatContent = ({
   };
 
   // ============================================================
-  // EFFECT - Limpiar estado de edición al cambiar de chat
+  // EFFECT - Limpiar estado de ediciÃ³n al cambiar de chat
   // ============================================================
   useEffect(() => {
-    // Limpiar estado de edición cuando cambia el chat actual
+    // Limpiar estado de ediciÃ³n cuando cambia el chat actual
     if (editingMessageId) {
       handleCancelEdit();
     }
@@ -907,7 +1256,7 @@ const ChatContent = ({
     const cursorPos = e.target.selectionStart;
     setInput(value);
 
-    // Limpiar contador de mensajes no leídos y ocultar separador cuando el usuario empieza a escribir
+    // Limpiar contador de mensajes no leÃ­dos y ocultar separador cuando el usuario empieza a escribir
     if (value.length === 1) {
       if (onClearUnreadOnTyping) onClearUnreadOnTyping();
       setHideUnreadSeparator(true);
@@ -915,17 +1264,17 @@ const ChatContent = ({
 
     // Detectar menciones con @ solo en grupos
     if (isGroup && roomUsers && roomUsers.length > 0) {
-      // Buscar el último @ antes del cursor
+      // Buscar el Ãºltimo @ antes del cursor
       const textBeforeCursor = value.substring(0, cursorPos);
       const lastAtIndex = textBeforeCursor.lastIndexOf("@");
 
       if (lastAtIndex !== -1) {
-        // Verificar que el @ esté al inicio o precedido por un espacio
+        // Verificar que el @ estÃ© al inicio o precedido por un espacio
         const charBeforeAt =
           lastAtIndex > 0 ? textBeforeCursor[lastAtIndex - 1] : " ";
         if (charBeforeAt === " " || lastAtIndex === 0) {
           const searchText = textBeforeCursor.substring(lastAtIndex + 1);
-          // Verificar que no haya espacios después del @
+          // Verificar que no haya espacios despuÃ©s del @
           if (!searchText.includes(" ")) {
             setMentionSearch(searchText.toLowerCase());
             setMentionCursorPosition(lastAtIndex);
@@ -964,7 +1313,7 @@ const ChatContent = ({
         typingData.roomCode = currentRoomCode;
       }
 
-      // Emitir que está escribiendo
+      // Emitir que estÃ¡ escribiendo
       socket.emit("typing", typingData);
 
       // Limpiar timeout anterior
@@ -972,7 +1321,7 @@ const ChatContent = ({
         clearTimeout(typingTimeoutRef.current);
       }
 
-      // Después de 2 segundos sin escribir, emitir que dejó de escribir
+      // DespuÃ©s de 2 segundos sin escribir, emitir que dejÃ³ de escribir
       typingTimeoutRef.current = setTimeout(() => {
         const stopTypingData = {
           from: currentUsername,
@@ -1001,7 +1350,19 @@ const ChatContent = ({
   };
 
   const handleMentionSelect = (user) => {
-    const username = typeof user === "string" ? user : (user.displayName || user.username || user.nombre || '');
+    const username = typeof user === "string"
+      ? user
+      : (
+        user.mentionText ||
+        user.displayName ||
+        ((user.nombre && user.apellido) ? `${user.nombre} ${user.apellido}` : "") ||
+        user.name ||
+        user.notify ||
+        user.vname ||
+        user.username ||
+        user?.id?.user ||
+        ''
+      );
     const beforeMention = input.substring(0, mentionCursorPosition);
     const afterMention = input.substring(mentionCursorPosition + mentionSearch.length + 1);
     const newInput = `${beforeMention}@${username} ${afterMention}`;
@@ -1033,7 +1394,7 @@ const ChatContent = ({
         setShowEmojiPicker(false);
       }
       // Nota: ReactionPicker maneja su propio cierre con delay interno de 100ms
-      // No interferir aquí ya que el ref nunca se pasa al componente hijo
+      // No interferir aquÃ­ ya que el ref nunca se pasa al componente hijo
     };
 
     if (showEmojiPicker) {
@@ -1051,11 +1412,11 @@ const ChatContent = ({
   const handleReaction = (message, emoji) => {
     if (!socket || !socket.connected || !currentUsername) return;
 
-    //  Usar realSender para obtener el nombre real del usuario (no "Tú")
+    //  Usar realSender para obtener el nombre real del usuario (no "TÃº")
     const actualSender = message.realSender || message.sender;
     const actualReceiver = message.receiver;
 
-    // // console.log(`👍 handleReaction - MessageID: ${message.id}, Emoji: ${emoji}, Sender: ${actualSender}, Receiver: ${actualReceiver}, IsGroup: ${isGroup}`);
+    // // console.log(`ðŸ‘ handleReaction - MessageID: ${message.id}, Emoji: ${emoji}, Sender: ${actualSender}, Receiver: ${actualReceiver}, IsGroup: ${isGroup}`);
 
     socket.emit("toggleReaction", {
       messageId: message.id,
@@ -1073,13 +1434,13 @@ const ChatContent = ({
   };
 
   // ============================================================
-  // EFFECTS - Scroll y navegación
+  // EFFECTS - Scroll y navegaciÃ³n
   // ============================================================
 
-  // Scroll al mensaje resaltado cuando se selecciona desde la búsqueda
+  // Scroll al mensaje resaltado cuando se selecciona desde la bÃºsqueda
   useEffect(() => {
     if (highlightMessageId && messages.length > 0) {
-      // Pequeño delay para asegurar que el DOM esté renderizado
+      // PequeÃ±o delay para asegurar que el DOM estÃ© renderizado
       const timeoutId = setTimeout(() => {
         const messageElement = document.getElementById(`message-${highlightMessageId}`);
         const chatContainer = chatHistoryRef.current;
@@ -1087,25 +1448,25 @@ const ChatContent = ({
         if (messageElement && chatContainer) {
           console.log('🔍 Scroll al mensaje:', highlightMessageId);
 
-          // 🔥 MEJORADO: Calcular scroll manual para manejar mensajes al final
-          // Posición actual del mensaje relativa al contenedor
+          // ðŸ”¥ MEJORADO: Calcular scroll manual para manejar mensajes al final
+          // PosiciÃ³n actual del mensaje relativa al contenedor
           const messageOffsetTop = messageElement.offsetTop;
           const messageHeight = messageElement.offsetHeight;
           const containerHeight = chatContainer.clientHeight;
           const scrollHeight = chatContainer.scrollHeight;
 
-          // Calcular posición ideal (centrado)
+          // Calcular posiciÃ³n ideal (centrado)
           const idealScrollTop = messageOffsetTop - (containerHeight / 2) + (messageHeight / 2);
 
-          // Límites de scroll
+          // LÃ­mites de scroll
           const maxScrollTop = scrollHeight - containerHeight;
           const minScrollTop = 0;
 
-          // 🔥 Si el mensaje está cerca del final, el scroll ideal podría exceder el máximo
-          // En ese caso, hacemos scroll al máximo para asegurar visibilidad
+          // ðŸ”¥ Si el mensaje estÃ¡ cerca del final, el scroll ideal podrÃ­a exceder el mÃ¡ximo
+          // En ese caso, hacemos scroll al mÃ¡ximo para asegurar visibilidad
           let targetScrollTop = Math.max(minScrollTop, Math.min(idealScrollTop, maxScrollTop));
 
-          // 🔥 Verificar si el mensaje quedará visible después del scroll
+          // ðŸ”¥ Verificar si el mensaje quedarÃ¡ visible despuÃ©s del scroll
           const messageTopAfterScroll = messageOffsetTop - targetScrollTop;
           const messageBottomAfterScroll = messageTopAfterScroll + messageHeight;
 
@@ -1118,10 +1479,10 @@ const ChatContent = ({
             targetScrollTop = messageOffsetTop - 50; // 50px de margen superior
           }
 
-          // Asegurar que no exceda los límites
+          // Asegurar que no exceda los lÃ­mites
           targetScrollTop = Math.max(minScrollTop, Math.min(targetScrollTop, maxScrollTop));
 
-          console.log('🔍 Scroll calculado:', {
+          console.log('ðŸ” Scroll calculado:', {
             messageOffsetTop,
             idealScrollTop,
             targetScrollTop,
@@ -1138,19 +1499,19 @@ const ChatContent = ({
 
           setHighlightedMessageId(highlightMessageId);
 
-          // Quitar el highlight después de 5 segundos
+          // Quitar el highlight despuÃ©s de 5 segundos
           setTimeout(() => {
             setHighlightedMessageId(null);
             onMessageHighlighted?.();
           }, 5000);
         }
-      }, 150); // 🔥 Aumentar delay ligeramente para asegurar renderizado completo
+      }, 150); // ðŸ”¥ Aumentar delay ligeramente para asegurar renderizado completo
 
       return () => clearTimeout(timeoutId);
     }
   }, [highlightMessageId, messages, onMessageHighlighted]);
 
-  // Cerrar el popover de leídos al hacer click fuera
+  // Cerrar el popover de leÃ­dos al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (!event.target.closest('.mx_ReadReceiptGroup_container')) {
@@ -1161,17 +1522,17 @@ const ChatContent = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Función para cargar readBy bajo demanda (lazy loading)
+  // FunciÃ³n para cargar readBy bajo demanda (lazy loading)
   const loadReadByForMessage = async (messageId) => {
-    // 🔥 FIX: Manejar IDs de galería sintéticos (ej. "gallery-123")
-    // El backend espera un ID numérico, así que extraemos el ID real del mensaje original
+    // ðŸ”¥ FIX: Manejar IDs de galerÃ­a sintÃ©ticos (ej. "gallery-123")
+    // El backend espera un ID numÃ©rico, asÃ­ que extraemos el ID real del mensaje original
     let realMessageId = messageId;
     if (typeof messageId === 'string' && messageId.startsWith('gallery-')) {
       realMessageId = messageId.replace('gallery-', '');
     }
 
-    if (loadedReadBy[messageId]) return; // Ya está cargado (usamos la key original para cache)
-    if (loadingReadBy === messageId) return; // Ya está cargando
+    if (loadedReadBy[messageId]) return; // Ya estÃ¡ cargado (usamos la key original para cache)
+    if (loadingReadBy === messageId) return; // Ya estÃ¡ cargando
 
     setLoadingReadBy(messageId);
     try {
@@ -1187,14 +1548,14 @@ const ChatContent = ({
     }
   };
 
-  // Scroll automático al final para mensajes nuevos
+  // Scroll automÃ¡tico al final para mensajes nuevos
   useEffect(() => {
     if (!chatHistoryRef.current) return;
 
-    //  NUEVO: No hacer scroll automático hasta que hayamos completado el scroll inicial a no leídos
+    //  NUEVO: No hacer scroll automÃ¡tico hasta que hayamos completado el scroll inicial a no leÃ­dos
     if (!hasScrolledToUnreadRef.current) return;
 
-    // 🔥 FIX: No hacer scroll automático si estamos cargando mensajes antiguos
+    // ðŸ”¥ FIX: No hacer scroll automÃ¡tico si estamos cargando mensajes antiguos
     if (isLoadingMore) {
       console.log('🚫 Scroll automático bloqueado: isLoadingMore = true');
       return;
@@ -1205,19 +1566,19 @@ const ChatContent = ({
     //  Solo verificar si estamos cerca del final (100px de margen)
     const isAtBottom = chatHistory.scrollHeight - chatHistory.scrollTop <= chatHistory.clientHeight + 100;
 
-    //  CORREGIDO: Solo hacer scroll automático si:
+    //  CORREGIDO: Solo hacer scroll automÃ¡tico si:
     // 1. Hay mensajes nuevos (no solo re-renders)
-    // 2. El usuario está en la parte inferior del chat
-    // 3. O si el ÚLTIMO MENSAJE (el más reciente) es NUEVO y es propio
+    // 2. El usuario estÃ¡ en la parte inferior del chat
+    // 3. O si el ÃšLTIMO MENSAJE (el mÃ¡s reciente) es NUEVO y es propio
     const lastMessage = messages[messages.length - 1];
     const isLastMessageNew = lastMessage && lastMessage.id !== lastMessageIdRef.current;
-    const isLastMessageSelf = lastMessage && (lastMessage.isSelf || lastMessage.sender === 'Tú' || lastMessage.sender === currentUsername);
+    const isLastMessageSelf = lastMessage && (lastMessage.isSelf || lastMessage.sender === 'TÃº' || lastMessage.sender === currentUsername);
 
-    // 🔥 CRÍTICO: Solo hacer scroll si es un mensaje NUEVO y propio, no si ya existía
+    // ðŸ”¥ CRÃTICO: Solo hacer scroll si es un mensaje NUEVO y propio, no si ya existÃ­a
     const shouldScroll = messages.length > lastMessageCountRef.current && (isAtBottom || (isLastMessageNew && isLastMessageSelf));
 
     if (shouldScroll) {
-      console.log('📜 Haciendo scroll automático:', {
+      console.log('ðŸ“œ Haciendo scroll automÃ¡tico:', {
         prevCount: lastMessageCountRef.current,
         newCount: messages.length,
         isAtBottom,
@@ -1236,7 +1597,7 @@ const ChatContent = ({
     }
   }, [messages, isLoadingMore, currentUsername]);
 
-  // Scroll automático cuando aparece el indicador de "está escribiendo"
+  // Scroll automÃ¡tico cuando aparece el indicador de "estÃ¡ escribiendo"
   useEffect(() => {
     if (!chatHistoryRef.current) return;
 
@@ -1247,27 +1608,27 @@ const ChatContent = ({
       (!isGroup && isOtherUserTyping && typingUser) ||
       (isGroup && currentRoomCode && roomTypingUsers?.[currentRoomCode]?.length > 0);
 
-    //  CORREGIDO: Solo hacer scroll si el usuario está cerca del final
-    // Esto preserva la posición cuando lee mensajes antiguos
+    //  CORREGIDO: Solo hacer scroll si el usuario estÃ¡ cerca del final
+    // Esto preserva la posiciÃ³n cuando lee mensajes antiguos
     if (someoneIsTyping && isAtBottom) {
       chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: "auto" });
     }
   }, [isOtherUserTyping, typingUser, roomTypingUsers, currentRoomCode, isGroup]);
 
   // ============================================================
-  // EFFECTS - Marcar mensajes como leídos
+  // EFFECTS - Marcar mensajes como leÃ­dos
   // ============================================================
 
-  //  NOTA: La lógica de marcar mensajes como leídos se maneja en ChatPage.jsx
-  // usando markRoomMessagesAsRead (bulk) para evitar múltiples emisiones de socket.
-  // NO usar un forEach aquí porque causa bucles cuando hay múltiples clusters.
+  //  NOTA: La lÃ³gica de marcar mensajes como leÃ­dos se maneja en ChatPage.jsx
+  // usando markRoomMessagesAsRead (bulk) para evitar mÃºltiples emisiones de socket.
+  // NO usar un forEach aquÃ­ porque causa bucles cuando hay mÃºltiples clusters.
 
-  // 🔥 REMOVIDO: El marcado automático de chats individuales
-  // Los chats 1 a 1 NO deben marcarse como leídos automáticamente al abrir
+  // ðŸ”¥ REMOVIDO: El marcado automÃ¡tico de chats individuales
+  // Los chats 1 a 1 NO deben marcarse como leÃ­dos automÃ¡ticamente al abrir
   // Solo se marcan cuando el usuario escribe (onClearUnreadOnTyping)
   // Esto es consistente con el comportamiento de WhatsApp y otros chats
 
-  // Cerrar menú desplegable al hacer clic fuera
+  // Cerrar menÃº desplegable al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (messageMenuRef.current && !messageMenuRef.current.contains(event.target)) {
@@ -1309,7 +1670,7 @@ const ChatContent = ({
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
-        // Solo cargar si ya se hizo el scroll inicial (evita carga automática al entrar)
+        // Solo cargar si ya se hizo el scroll inicial (evita carga automÃ¡tica al entrar)
         if (entry.isIntersecting && initialScrollDoneRef.current && hasMoreMessages && !isLoadingMore && !isLoadingMoreRef.current && onLoadMoreMessages && messages.length > 0) {
           firstMessageIdRef.current = messages[0].id;
           isLoadingMoreRef.current = true;
@@ -1324,7 +1685,7 @@ const ChatContent = ({
     return () => observer.disconnect();
   }, [hasMoreMessages, isLoadingMore, onLoadMoreMessages, messages, isLoadingMessages]);
 
-  // Preservar posición: Usar el mensaje ancla para restaurar posición
+  // Preservar posiciÃ³n: Usar el mensaje ancla para restaurar posiciÃ³n
   useLayoutEffect(() => {
     if (!isLoadingMoreRef.current) return;
     if (isLoadingMore) return;
@@ -1342,7 +1703,7 @@ const ChatContent = ({
   }, [messages, isLoadingMore]);
 
   // ============================================================
-  // FUNCIONES AUXILIARES - Íconos de archivos
+  // FUNCIONES AUXILIARES - Ãconos de archivos
   // ============================================================
   const getFileIcon = (fileName) => {
     if (!fileName) return { icon: "default", color: "#4A90E2", bgColor: "#E3F2FD" };
@@ -1363,7 +1724,7 @@ const ChatContent = ({
       ppt: { icon: "powerpoint", color: "#D24726", bgColor: "#FCE8E3", name: "PowerPoint" },
       // PDF
       pdf: { icon: "pdf", color: "#F40F02", bgColor: "#FFE7E5", name: "PDF" },
-      // Imágenes
+      // ImÃ¡genes
       jpg: { icon: "image", color: "#FF6B6B", bgColor: "#FFE8E8", name: "Imagen" },
       jpeg: { icon: "image", color: "#FF6B6B", bgColor: "#FFE8E8", name: "Imagen" },
       png: { icon: "image", color: "#FF6B6B", bgColor: "#FFE8E8", name: "Imagen" },
@@ -1375,7 +1736,7 @@ const ChatContent = ({
       "7z": { icon: "zip", color: "#FFA500", bgColor: "#FFF3E0", name: "7Z" },
       // Texto
       txt: { icon: "text", color: "#607D8B", bgColor: "#ECEFF1", name: "Texto" },
-      // Código
+      // CÃ³digo
       js: { icon: "code", color: "#F7DF1E", bgColor: "#FFFDE7", name: "JavaScript" },
       jsx: { icon: "code", color: "#61DAFB", bgColor: "#E1F5FE", name: "React" },
       ts: { icon: "code", color: "#3178C6", bgColor: "#E3F2FD", name: "TypeScript" },
@@ -1398,7 +1759,7 @@ const ChatContent = ({
     return fileTypes[extension] || { icon: "default", color: "#4A90E2", bgColor: "#E3F2FD", name: "Archivo" };
   };
 
-  //  NUEVO: Función para renderizar el ícono SVG según el tipo de archivo
+  //  NUEVO: FunciÃ³n para renderizar el Ã­cono SVG segÃºn el tipo de archivo
   const renderFileIcon = (fileName) => {
     const fileInfo = getFileIcon(fileName);
 
@@ -1706,21 +2067,27 @@ const ChatContent = ({
   };
 
   // ============================================================
-  // FUNCIÓN AUXILIAR - Renderizar texto con menciones resaltadas
+  // FUNCIÃ“N AUXILIAR - Renderizar texto con menciones resaltadas
   // ============================================================
   const renderTextWithMentions = (text) => {
     if (!text) return text;
 
-    // 🔥 FIX: Trim whitespace to prevent extra newlines/spacing
-    text = String(text).trim();
-
-    // Obtener lista de usuarios válidos normalizada (sin acentos, mayúsculas, sin espacios extra)
+    // ðŸ”¥ FIX: Colapsar espacios internos para comparaciones robustas
     const normalizeText = (str) => {
       if (!str) return "";
-      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+      return str.normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[\u200B-\u200D\uFEFF]/g, "")
+        .toUpperCase()
+        .replace(/\s+/g, " ") // Colapsar espacios
+        .trim();
     };
 
     const validUsersSet = new Set();
+
+    // ðŸ”¥ FIX: Asegurar que mis propios alias SIEMPRE estÃ©n permitidos para resaltar
+    // incluso si roomUsers o assignedConversations no han cargado.
+    persistentAliases.forEach(alias => validUsersSet.add(alias));
 
     // 1. OBTENER DE roomUsers (Prop disponible)
     if (roomUsers && Array.isArray(roomUsers)) {
@@ -1756,8 +2123,8 @@ const ChatContent = ({
       });
     });
 
-    // DEBUG: Ver qué usuarios tenemos ahora
-    // console.log('🕵️‍♂️ DEBUG DATA SOURCE FINAL:', {
+    // DEBUG: Ver quÃ© usuarios tenemos ahora
+    // console.log('ðŸ•µï¸â€â™‚ï¸ DEBUG DATA SOURCE FINAL:', {
     //   roomUsersCount: roomUsers?.length,
     //   derivedParticipantsCount: participantsSource.length,
     //   validUsersSize: validUsersSet.size,
@@ -1765,17 +2132,15 @@ const ChatContent = ({
     //   foundChat: !!currentChatObj
     // });
 
-    const validUsers = Array.from(validUsersSet);
-
-    // Función para procesar menciones en un texto
+    // FunciÃ³n para procesar menciones en un texto
     const processMentions = (inputText, keyPrefix = '') => {
-      // DEBUG CRÍTICO: Ver qué tenemos
-      // DEBUG CRÍTICO: Ver qué tenemos
-      // console.log('🔍 processMentions INPUT:', inputText);
-      // console.log('👥 validUsers:', validUsers);
+      // DEBUG CRÃTICO: Ver quÃ© tenemos
+      // DEBUG CRÃTICO: Ver quÃ© tenemos
+      // console.log('ðŸ” processMentions INPUT:', inputText);
+      // console.log('ðŸ‘¥ validUsers:', validUsers);
 
       // Regex original (hasta 3 palabras)
-      const mentionRegex = /@([a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+(?:\s+[a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
+      const mentionRegex = /@([a-zA-ZÃÃ‰ÃÃ“ÃšÃ‘Ã¡Ã©Ã­Ã³ÃºÃ±0-9]+(?:\s+[a-zA-ZÃÃ‰ÃÃ“ÃšÃ‘Ã¡Ã©Ã­Ã³ÃºÃ±0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
 
       const parts = [];
       let lastIndex = 0;
@@ -1785,8 +2150,6 @@ const ChatContent = ({
 
       while ((match = mentionRegex.exec(inputText)) !== null) {
         const fullMatch = match[0];
-        const candidateText = match[1];
-
         // 1. Texto previo
         if (match.index > lastIndex) {
           parts.push(inputText.substring(lastIndex, match.index));
@@ -1795,67 +2158,32 @@ const ChatContent = ({
         // (ELIMINADO FILTRO EMAIL PARA SIMPLIFICAR)
 
         const mentionedUser = match[1].trim();
-        const normalizedMention = normalizeText(mentionedUser);
 
-        // 3. Validación: Buscamos coincidencia
-        // Buscamos si hay un usuario que coincida exactamente o sea prefijo del texto capturado
-        const validMatch = validUsers
-          .filter(u => normalizedMention.startsWith(u))
-          .sort((a, b) => b.length - a.length)[0];
+        // Highlight every @mention. Row highlight is handled separately for current user.
+        const finalMatchName = mentionedUser;
+        const normalizedFinalMatch = normalizeText(finalMatchName);
+        const isCurrentUser = persistentAliases.includes(normalizedFinalMatch);
 
-        if (validMatch) {
-          // Recortar texto al nombre del usuario real
-          const userWordsCount = validMatch.split(/\s+/).length;
-          const capturedWords = mentionedUser.split(/\s+/);
-
-          // 🔥 FIX: Calcular el índice final exacto en el string original para preservar espacios
-          // y evitar desajustes que causan caracteres repetidos.
-          let endIndex = 0;
-          let searchPos = 0;
-
-          for (let i = 0; i < userWordsCount; i++) {
-            const word = capturedWords[i];
-            // Buscamos la palabra a partir de la última posición
-            const wordIndex = mentionedUser.indexOf(word, searchPos);
-            if (wordIndex !== -1) {
-              searchPos = wordIndex + word.length;
-              endIndex = searchPos;
-            }
-          }
-
-          const finalMatchName = mentionedUser.substring(0, endIndex);
-          const remainingText = mentionedUser.substring(endIndex);
-
-          const isCurrentUser = normalizeText(finalMatchName) === normalizeText(currentUsername || "");
-
-          parts.push(
-            <span
-              key={`${keyPrefix}-${match.index}`}
-              className={`mention-span ${isCurrentUser ? 'mention-me' : 'mention-other'}`}
-              style={{
-                display: "inline",
-                padding: "2px 6px",
-                borderRadius: "12px",
-                fontWeight: "700",
-                fontSize: "0.95em",
-                cursor: "pointer",
-                backgroundColor: isCurrentUser ? "#fef08a" : "rgba(224, 242, 254, 0.5)",
-                color: isCurrentUser ? "#854d0e" : "#0369a1",
-                border: isCurrentUser ? "1px solid #fde047" : "1px solid transparent",
-              }}
-              title={`Mención a ${finalMatchName}`}
-            >
-              @{finalMatchName}
-            </span>
-          );
-
-          if (remainingText) {
-            parts.push(remainingText);
-          }
-
-        } else {
-          parts.push(fullMatch);
-        }
+        parts.push(
+          <span
+            key={`${keyPrefix}-${match.index}`}
+            className={`mention-span ${isCurrentUser ? 'mention-me' : 'mention-other'}`}
+            style={{
+              display: "inline",
+              padding: "2px 6px",
+              borderRadius: "12px",
+              fontWeight: "700",
+              fontSize: "0.95em",
+              cursor: "pointer",
+              backgroundColor: isCurrentUser ? "#fef08a" : "rgba(224, 242, 254, 0.5)",
+              color: isCurrentUser ? "#854d0e" : "#0369a1",
+              border: isCurrentUser ? "1px solid #fde047" : "1px solid transparent",
+            }}
+            title={`MenciÃ³n a ${finalMatchName}`}
+          >
+            @{finalMatchName}
+          </span>
+        );
 
         lastIndex = match.index + fullMatch.length;
       }
@@ -1869,17 +2197,17 @@ const ChatContent = ({
 
 
 
-    // Dividir el texto por líneas para procesar líneas con guion
+    // Dividir el texto por lÃ­neas para procesar lÃ­neas con guion
     const lines = text.split('\n');
     const result = [];
 
     lines.forEach((line, lineIndex) => {
       const trimmedLine = line.trim();
-      const startsWithDash = /^[-–—]/.test(trimmedLine);
+      const startsWithDash = /^[-â€“â€”]/.test(trimmedLine);
 
       if (startsWithDash) {
-        // Línea que empieza con guion: espaciado arriba, sangría, guion en negrita, texto justificado
-        const dashMatch = trimmedLine.match(/^([-–—])\s*(.*)/);
+        // LÃ­nea que empieza con guion: espaciado arriba, sangrÃ­a, guion en negrita, texto justificado
+        const dashMatch = trimmedLine.match(/^([-â€“â€”])\s*(.*)/);
         if (dashMatch) {
           const dash = dashMatch[1];
           const restOfLine = dashMatch[2];
@@ -1898,7 +2226,7 @@ const ChatContent = ({
           );
         }
       } else {
-        // Línea normal - envolver en div para alineación consistente
+        // LÃ­nea normal - envolver en div para alineaciÃ³n consistente
         const trimmedContent = line.trim();
         if (trimmedContent) {
           result.push(
@@ -1907,7 +2235,7 @@ const ChatContent = ({
             </div>
           );
         } else if (lineIndex > 0) {
-          // Línea vacía - agregar salto de línea
+          // LÃ­nea vacÃ­a - agregar salto de lÃ­nea
           result.push(<br key={`br-${lineIndex}`} />);
         }
       }
@@ -1917,14 +2245,14 @@ const ChatContent = ({
   };
 
   // ============================================================
-  // FUNCIÓN DE RENDERIZADO - Vista previa de mensaje (para info)
+  // FUNCIÃ“N DE RENDERIZADO - Vista previa de mensaje (para info)
   // ============================================================
   const renderMessagePreview = (message) => {
     if (!message) return null;
 
     const messageText = message.text || message.message || "";
 
-    // Si tiene attachments (imágenes, videos, archivos)
+    // Si tiene attachments (imÃ¡genes, videos, archivos)
     if (message.attachments && message.attachments.length > 0) {
       const attachment = message.attachments[0];
 
@@ -1997,24 +2325,24 @@ const ChatContent = ({
   };
 
   // ============================================================
-  // FUNCIÓN DE RENDERIZADO - Mensaje individual
+  // FUNCIÃ“N DE RENDERIZADO - Mensaje individual
   // ============================================================
   const renderMessage = (message, index, isGroupStartProp) => {
-    // --- Preparación de datos ---
+    // --- PreparaciÃ³n de datos ---
     const isOwnMessage = message.isSelf !== undefined
       ? message.isSelf
       : message.sender === "Tú" || message.sender === currentUsername;
 
-    // Lógica de agrupación (Slack Style)
-    // 🔥 FIX: Si isGroupStartProp viene definido (desde groupMessagesByDate), USARLO.
-    // Si no, fallback a la lógica antigua (prop messages)
+    // LÃ³gica de agrupaciÃ³n (Slack Style)
+    // ðŸ”¥ FIX: Si isGroupStartProp viene definido (desde groupMessagesByDate), USARLO.
+    // Si no, fallback a la lÃ³gica antigua (prop messages)
     const prevMsg = index > 0 ? messages[index - 1] : null;
 
     // Compara si el mensaje anterior es del mismo autor y si no es un mensaje de sistema
     const isSameGroup = (m1, m2) => {
       if (!m1 || !m2) return false;
       if (m1.type === "info" || m1.type === "error") return false;
-      // Puedes agregar validación de fecha aquí si es necesario
+      // Puedes agregar validaciÃ³n de fecha aquÃ­ si es necesario
       return m1.sender === m2.sender;
     };
 
@@ -2025,12 +2353,12 @@ const ChatContent = ({
     // Color consistente del usuario basado en su nombre
     const userColor = getUserColor(message.sender, isOwnMessage);
 
-    // 🔥 FALLBACK ROBUSTO: Buscar foto en roomUsers si no viene en el mensaje
+    // ðŸ”¥ FALLBACK ROBUSTO: Buscar foto en roomUsers si no viene en el mensaje
     let finalPicture = message.picture || message.senderPicture;
     if (!finalPicture && !isOwnMessage) {
       // 1. Buscar en roomUsers
       if (roomUsers && roomUsers.length > 0) {
-        // Normalizar nombres para buscar sin problemas de mayúsculas/minúsculas
+        // Normalizar nombres para buscar sin problemas de mayÃºsculas/minÃºsculas
         const senderNorm = message.sender?.toLowerCase().trim();
         const foundUser = roomUsers.find(u => {
           const uName = (u.displayName || u.username || '').toLowerCase().trim();
@@ -2041,7 +2369,7 @@ const ChatContent = ({
         }
       }
 
-      // 2. 🔥 Buscar en assignedConversations (si aún no tenemos foto)
+      // 2. ðŸ”¥ Buscar en assignedConversations (si aÃºn no tenemos foto)
       if (!finalPicture && assignedConversations) {
         const senderNorm = message.sender?.toLowerCase().trim();
         const conv = assignedConversations.find(c =>
@@ -2052,20 +2380,20 @@ const ChatContent = ({
         }
       }
 
-      // 3. 🔥 FIX: Fallback a chatInfo.picture (para favoritos privados que no están en assignedConversations)
+      // 3. ðŸ”¥ FIX: Fallback a chatInfo.picture (para favoritos privados que no estÃ¡n en assignedConversations)
       if (!finalPicture && !isGroup && chatInfo?.picture) {
         finalPicture = chatInfo.picture;
       }
     }
-    // Si es propio, usar siempre user.picture si está disponible
+    // Si es propio, usar siempre user.picture si estÃ¡ disponible
     if (isOwnMessage && user?.picture) {
       finalPicture = user.picture;
     }
 
-    // DEBUG: Verificar por qué falla la foto
-    // if (message.picture) console.log('🖼️ Render message picture:', { id: message.id, sender: message.sender, pic: message.picture, isOwn: isOwnMessage });
+    // DEBUG: Verificar por quÃ© falla la foto
+    // if (message.picture) console.log('ðŸ–¼ï¸ Render message picture:', { id: message.id, sender: message.sender, pic: message.picture, isOwn: isOwnMessage });
 
-    // 🔥 FIX: Generar indicador de estado (Vistos) para mensajes propios - REUTILIZABLE
+    // ðŸ”¥ FIX: Generar indicador de estado (Vistos) para mensajes propios - REUTILIZABLE
     const renderStatusCheck = () => {
       if (!isOwnMessage) return null;
 
@@ -2089,7 +2417,7 @@ const ChatContent = ({
     const isMenuOpen = showMessageMenu === message.id;
     const isHighlighted = String(highlightedMessageId) === String(message.id);
 
-    // Si es mensaje de sistema, retornamos diseño simple centrado
+    // Si es mensaje de sistema, retornamos diseÃ±o simple centrado
     if (message.type === "info" || message.type === "error") {
       const color = message.type === "info" ? "ff453a" : "#ff453a";
       const bg = message.type === "info" ? "rgba(0, 168, 132, 0.1)" : "rgba(255, 69, 58, 0.1)";
@@ -2111,7 +2439,7 @@ const ChatContent = ({
         (message.metadata && message.metadata.videoRoomID) ||
         (messageText.includes("roomID=") ? messageText.split("roomID=")[1].split("&")[0] : null);
 
-      // Si no tenemos ID, no mostramos el botón pero sí el mensaje
+      // Si no tenemos ID, no mostramos el botÃ³n pero sÃ­ el mensaje
       return (
         <div
           key={index}
@@ -2184,14 +2512,8 @@ const ChatContent = ({
     // 2. RENDERIZADO (ROW LAYOUT - TIPO SLACK)
     // ============================================================
 
-    // Detectar si el mensaje contiene una mención al usuario actual
-    const normalizeText = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-    const messageContainsMention = currentUsername && messageText &&
-      messageText.includes("@") &&
-      normalizeText(messageText).includes(normalizeText(`@${currentUsername}`));
-
-    // if (isHighlighted) console.log('🎨 Rendering highlight for message:', message.id);
-
+    // Detectar si el mensaje contiene una mención al usuario actual (username, nombre, apellido)
+    const messageContainsMention = hasMentionToUser(messageText);
     return (
       <div
         key={message.id || index}
@@ -2203,14 +2525,14 @@ const ChatContent = ({
           boxShadow: isHighlighted ? '0 0 10px rgba(255, 235, 59, 0.8)' : 'none', // Refuerzo visual
           transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
           position: 'relative',
-          zIndex: isMenuOpen || isHighlighted ? 100 : 1, // Elevar z-index si está resaltado
+          zIndex: isMenuOpen || isHighlighted ? 100 : 1, // Elevar z-index si estÃ¡ resaltado
           // marginBottom: '0px', // REMOVED: Dejar que CSS controle esto
           // paddingBottom: '0px', // REMOVED: Dejar que CSS controle esto
           cursor: (isSelectionMode || 'pointer') // Mostrar puntero si se puede seleccionar (?) - Mejor dejar default
         }}
-        onClick={(e) => handleMessageClick(e, message)} //  NUEVO: Click handler para selección
+        onClick={(e) => handleMessageClick(e, message)} //  NUEVO: Click handler para selecciÃ³n
       >
-        {/* Checkbox de selección */}
+        {/* Checkbox de selecciÃ³n */}
         {isSelectionMode && (
           <div
             className="message-checkbox-wrapper"
@@ -2238,7 +2560,7 @@ const ChatContent = ({
                 <div
                   className="slack-avatar"
                   style={{
-                    //  CORRECCIÓN ROBUSTA: Usar finalPicture calculado
+                    //  CORRECCIÃ“N ROBUSTA: Usar finalPicture calculado
                     background: finalPicture
                       ? `url('${finalPicture}') center/cover`
                       : "linear-gradient(135deg, #dc2626 0%, #dc2626 100%)",
@@ -2246,20 +2568,20 @@ const ChatContent = ({
                     color: 'white', fontWeight: 'bold', fontSize: '14px'
                   }}
                 >
-                  {/* Lógica para mostrar inicial si no hay foto */}
+                  {/* LÃ³gica para mostrar inicial si no hay foto */}
                   {!finalPicture && (
                     (isOwnMessage ? (currentUsername?.charAt(0)?.toUpperCase() || "T") : message.sender?.charAt(0)?.toUpperCase()) || "👤"
                   )}
                 </div>
               ) : (
-                // CONTINUACIÓN: Mostrar Hora (visible en hover por CSS)
+                // CONTINUACIÃ“N: Mostrar Hora (visible en hover por CSS)
                 <span className="message-timestamp-left">
                   {formatTime(message.time)}
                 </span>
               )}
             </div>
           ) : (
-            // CONTINUACIÓN: Mostrar Hora (visible en hover por CSS)
+            // CONTINUACIÃ“N: Mostrar Hora (visible en hover por CSS)
             <span className="message-timestamp-left">
               {formatTime(message.time)}
             </span>
@@ -2273,7 +2595,7 @@ const ChatContent = ({
           {isGroupStart && (
             <div className="message-header">
               <span className="sender-name" style={{ color: userColor }} onClick={() => handleMentionSelect(message.sender)}>
-                {message.sender} {getSenderSuffix(message)}
+                {message.sender}{getSenderSuffix(message)}
               </span>
               <span className="header-timestamp">
                 {formatTime(message.time)}
@@ -2288,7 +2610,7 @@ const ChatContent = ({
             ) : (
               <>
                 {/* DEBUG: Verificar isForwarded */}
-                {/* {console.log('🔍 Message:', message.id, 'isForwarded:', message.isForwarded, 'Type:', typeof message.isForwarded)} */}
+                {/* {console.log('ðŸ” Message:', message.id, 'isForwarded:', message.isForwarded, 'Type:', typeof message.isForwarded)} */}
 
                 {/* INDICADOR DE MENSAJE REENVIADO */}
                 {message.isForwarded && (
@@ -2411,7 +2733,7 @@ const ChatContent = ({
                               }}
                             />
                           ) : originalMsg.mediaType === 'video' && !/\.(mp3|wav|ogg|m4a|aac|opus|flac)$/i.test(originalMsg.fileName || "") ? (
-                            // Miniatura de video con ícono de play
+                            // Miniatura de video con Ã­cono de play
                             <div style={{ position: 'relative', width: '32px', height: '32px' }}>
                               <video
                                 src={originalMsg.mediaData}
@@ -2447,7 +2769,7 @@ const ChatContent = ({
                               </div>
                             </div>
                           ) : (originalMsg.mediaType === 'audio' || (originalMsg.mediaType === 'video' && /\.(mp3|wav|ogg|m4a|aac|opus|flac)$/i.test(originalMsg.fileName || ""))) ? (
-                            // Ícono de audio
+                            // Ãcono de audio
                             <div style={{
                               width: '32px',
                               height: '32px',
@@ -2465,7 +2787,7 @@ const ChatContent = ({
                               </svg>
                             </div>
                           ) : (
-                            // Ícono de archivo genérico
+                            // Ãcono de archivo genÃ©rico
                             <div style={{
                               width: '32px',
                               height: '32px',
@@ -2499,7 +2821,7 @@ const ChatContent = ({
                       </div>
                     )}
 
-                    {/* SEPARAR IMÁGENES DE ARCHIVOS */}
+                    {/* SEPARAR IMÃGENES DE ARCHIVOS */}
                     {(() => {
                       const imageAttachments = message.attachments.filter(att =>
                         att.mediaType === 'image' ||
@@ -2509,7 +2831,7 @@ const ChatContent = ({
 
                       return (
                         <>
-                          {/* 1. Renderizar Imágenes en Grid */}
+                          {/* 1. Renderizar ImÃ¡genes en Grid */}
                           {imageAttachments.length > 0 && (
                             <ImageGalleryGrid
                               items={imageAttachments}
@@ -2541,7 +2863,7 @@ const ChatContent = ({
                                     className="wa-file-card"
                                     onClick={() => {
                                       if (isPdf) {
-                                        // console.log("📥 Visualizando PDF:", fileUrl);
+                                        // console.log("ðŸ“¥ Visualizando PDF:", fileUrl);
                                         // Si es una URL remota, intentar descargarla
                                         if (fileUrl && fileUrl.startsWith('http')) {
                                           apiService.fetchWithAuth(fileUrl)
@@ -2555,7 +2877,7 @@ const ChatContent = ({
                                               setShowPdfViewer(true);
                                             })
                                             .catch(err => {
-                                              // console.error("❌ Error loading PDF:", err);
+                                              // console.error("âŒ Error loading PDF:", err);
                                               handleDownload(fileUrl, file.fileName);
                                             });
                                         } else {
@@ -2659,7 +2981,7 @@ const ChatContent = ({
                   />
                 ) : message.mediaType === 'image' ? (
                   <>
-                    {/*  FIX: Mostrar texto del mensaje ADEMÁS de la imagen */}
+                    {/*  FIX: Mostrar texto del mensaje ADEMÃS de la imagen */}
                     {(message.text || message.message) && (
                       <div style={{ marginBottom: '8px' }}>
                         {renderTextWithMentions(message.text || message.message)}
@@ -2692,7 +3014,7 @@ const ChatContent = ({
                   </>
                 ) : message.mediaType === 'video' && !/\.(mp3|wav|ogg|m4a|aac|opus|flac)$/i.test(message.fileName || "") ? (
                   <>
-                    {/*  FIX: Mostrar texto del mensaje ADEMÁS del video */}
+                    {/*  FIX: Mostrar texto del mensaje ADEMÃS del video */}
                     {(message.text || message.message) && (
                       <div style={{ marginBottom: '8px' }}>
                         {renderTextWithMentions(message.text || message.message)}
@@ -2714,7 +3036,7 @@ const ChatContent = ({
                   </>
                 ) : (message.mediaType === 'audio' || (message.mediaType === 'video' && /\.(mp3|wav|ogg|m4a|aac|opus|flac)$/i.test(message.fileName || ""))) ? (
                   <>
-                    {/*  FIX: Mostrar texto del mensaje ADEMÁS del audio */}
+                    {/*  FIX: Mostrar texto del mensaje ADEMÃS del audio */}
                     {(message.text || message.message) && (
                       <div style={{ marginBottom: '8px' }}>
                         {renderTextWithMentions(message.text || message.message)}
@@ -2742,9 +3064,9 @@ const ChatContent = ({
                     </div>
                   </>
                 ) : message.mediaType && message.mediaData ? (
-                  // ARCHIVOS GENÉRICOS (PDF, Word, Excel, etc.)
+                  // ARCHIVOS GENÃ‰RICOS (PDF, Word, Excel, etc.)
                   <>
-                    {/*  FIX: Mostrar texto del mensaje ADEMÁS del archivo */}
+                    {/*  FIX: Mostrar texto del mensaje ADEMÃS del archivo */}
                     {(message.text || message.message) && (
                       <div style={{ marginBottom: '8px' }}>
                         {renderTextWithMentions(message.text || message.message)}
@@ -2756,19 +3078,19 @@ const ChatContent = ({
                       return (
                         <div className="wa-file-card" onClick={() => {
                           if (isPdf) {
-                            // console.log("📥 Descargando PDF:", message.mediaData);
+                            // console.log("ðŸ“¥ Descargando PDF:", message.mediaData);
                             apiService.fetchWithAuth(message.mediaData)
                               .then(res => {
                                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                                 return res.arrayBuffer();
                               })
                               .then(arrayBuffer => {
-                                // console.log("✅ PDF descargado, tamaño:", arrayBuffer.byteLength);
+                                // console.log("âœ… PDF descargado, tamaÃ±o:", arrayBuffer.byteLength);
                                 setPdfData(arrayBuffer);
                                 setShowPdfViewer(true);
                               })
                               .catch(err => {
-                                // console.error("❌ Error descargando PDF:", err);
+                                // console.error("âŒ Error descargando PDF:", err);
                                 alert("Error al cargar el PDF");
                               });
                           } else {
@@ -2785,7 +3107,7 @@ const ChatContent = ({
                     })()}
                   </>
                 ) : (
-                  // TEXTO PLANO CON Detección de "Jumbomojis"
+                  // TEXTO PLANO CON DetecciÃ³n de "Jumbomojis"
                   (() => {
                     const txt = message.text || message.message || "";
                     // Regex para detectar si SOLO hay emojis y espacios
@@ -2805,7 +3127,7 @@ const ChatContent = ({
                   })()
                 )}
 
-                {/* EDICIÓN (Indicador) */}
+                {/* EDICIÃ“N (Indicador) */}
                 {message.isEdited && <span style={{ fontSize: '10px', color: '#9ca3af', marginLeft: '4px' }}>(editado)</span>}
               </>
             )}
@@ -2832,7 +3154,7 @@ const ChatContent = ({
                     {emoji} <span style={{ fontSize: '10px', fontWeight: 'bold', marginLeft: '4px' }}>{users.length}</span>
                   </div>
                 ))}
-                {/* Botón "+" para agregar más reacciones (Abre directo el picker completo) */}
+                {/* BotÃ³n "+" para agregar mÃ¡s reacciones (Abre directo el picker completo) */}
                 <AddReactionButton
                   onClick={() => {
                     // Abrir directamente el picker global
@@ -2843,25 +3165,25 @@ const ChatContent = ({
               </div>
             )
           }
-          {/*  HILO CON AVATARES (VERSIÓN FINAL A PRUEBA DE FALLOS)  */}
+          {/*  HILO CON AVATARES (VERSIÃ“N FINAL A PRUEBA DE FALLOS)  */}
           {
             message.threadCount > 0 && (
               <div className="thread-row-container">
 
-                {/* --- DEBUG: ESTO TE AYUDARÁ A VER SI LLEGAN DATOS EN LA CONSOLA --- */}
+                {/* --- DEBUG: ESTO TE AYUDARÃ A VER SI LLEGAN DATOS EN LA CONSOLA --- */}
                 {/* console.log(`Mensaje ${message.id} Hilo:`, {
                   count: message.threadCount,
                   quien: message.lastReplyFrom,
                   tieneFoto: roomUsers?.find(u => u.username === message.lastReplyFrom)?.picture
                 }) */}
 
-                {/* 1. EL BOTÓN DEL HILO */}
+                {/* 1. EL BOTÃ“N DEL HILO */}
                 <div
                   className="mx_ThreadSummaryLine"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (onOpenThread) {
-                      // Pasar mensaje ORIGINAL a ChatLayout (él hará la actualización de unreadThreadCount Y llamará markThreadAsRead)
+                      // Pasar mensaje ORIGINAL a ChatLayout (Ã©l harÃ¡ la actualizaciÃ³n de unreadThreadCount Y llamarÃ¡ markThreadAsRead)
                       onOpenThread(message);
                     }
                   }}
@@ -2876,12 +3198,12 @@ const ChatContent = ({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      position: 'relative' // 🔥 NUEVO: Para posicionar el punto rojo
+                      position: 'relative' // ðŸ”¥ NUEVO: Para posicionar el punto rojo
                     }}>
                       <div className="_indicator-icon_133tf_26" style={{ width: '100%', height: '100%' }} data-indicator={message.unreadThreadCount > 0 ? "success" : "default"}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" viewBox="0 0 24 24"><path d="M4 3h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6l-2.293 2.293c-.63.63-1.707.184-1.707-.707V5a2 2 0 0 1 2-2Zm3 7h10a.97.97 0 0 0 .712-.287A.967.967 0 0 0 18 9a.967.967 0 0 0-.288-.713A.968.968 0 0 0 17 8H7a.968.968 0 0 0-.713.287A.968.968 0 0 0 6 9c0 .283.096.52.287.713.192.191.43.287.713.287Zm0 4h6c.283 0 .52-.096.713-.287A.968.968 0 0 0 14 13a.968.968 0 0 0-.287-.713A.968.968 0 0 0 13 12H7a.967.967 0 0 0-.713.287A.968.968 0 0 0 6 13c0 .283.096.52.287.713.192.191.43.287.713.287Z"></path></svg>
                       </div>
-                      {/* 🔥 PUNTO ROJO: Solo para menciones */}
+                      {/* ðŸ”¥ PUNTO ROJO: Solo para menciones */}
                       {hasThreadMention(message) && (
                         <div
                           className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white"
@@ -2893,7 +3215,7 @@ const ChatContent = ({
                           title="Tienes menciones en este hilo"
                         />
                       )}
-                      {/* 🔥 NUEVO: PUNTO VERDE para mensajes nuevos (sin menciones) */}
+                      {/* ðŸ”¥ NUEVO: PUNTO VERDE para mensajes nuevos (sin menciones) */}
                       {!hasThreadMention(message) && message.unreadThreadCount > 0 && (
                         <div
                           className="absolute top-0 right-0 rounded-full border-2 border-white"
@@ -2950,7 +3272,7 @@ const ChatContent = ({
                           <div
                             className="thread-mini-avatar"
                             style={{ backgroundImage: `url(${avatarUrl})` }}
-                            title={`Última respuesta de: ${displayName}`}
+                            title={`Ãšltima respuesta de: ${displayName}`}
                           />
                         );
                       }
@@ -2976,7 +3298,7 @@ const ChatContent = ({
                   <span className="mx_ThreadLastReply" style={{ color: getUserColor(message.lastReplyFrom, message.lastReplyFrom === currentUsername) }}>
                     {message.lastReplyFrom ? message.lastReplyFrom : "Ver"}
                   </span>
-                  {/*  NUEVO: Vista previa del último mensaje del hilo - RESPONSIVO */}
+                  {/*  NUEVO: Vista previa del Ãºltimo mensaje del hilo - RESPONSIVO */}
                   {message.lastReplyText && (
                     <span
                       className="mx_ThreadLastReplyText"
@@ -3007,13 +3329,13 @@ const ChatContent = ({
         {
           !message.isDeleted && (
             <div className={`action-toolbar ${isMenuOpen || showReactionPicker === message.id ? 'active' : ''}`}>
-              {/* 1. BOTÓN REACCIONAR (Smile) */}
+              {/* 1. BOTÃ“N REACCIONAR (Smile) */}
               <div style={{ position: 'relative' }}> {/* Envolvemos en relative para posicionar el popup */}
                 <button className="toolbar-btn" title="Reaccionar" onClick={() => setShowReactionPicker(message.id)}>
                   <FaSmile size={15} />
                 </button>
 
-                {/* Picker de reacciones rápidas (Componente Reutilizable) */}
+                {/* Picker de reacciones rÃ¡pidas (Componente Reutilizable) */}
                 <ReactionPicker
                   isOpen={showReactionPicker === message.id}
                   onClose={() => setShowReactionPicker(null)}
@@ -3039,14 +3361,14 @@ const ChatContent = ({
                 </button>
               )}
 
-              {/* 4. MENÚ DESPLEGABLE (3 Puntos) */}
+              {/* 4. MENÃš DESPLEGABLE (3 Puntos) */}
               <div style={{ position: 'relative' }}>
                 <button
                   className="toolbar-btn"
                   title="Más opciones"
                   onClick={(e) => {
                     e.stopPropagation();
-                    // Cálculo para saber si abrir arriba o abajo
+                    // CÃ¡lculo para saber si abrir arriba o abajo
                     const rect = e.currentTarget.getBoundingClientRect();
                     const spaceBelow = window.innerHeight - rect.bottom;
                     setMenuPosition({ openUp: spaceBelow < 300 });
@@ -3107,7 +3429,7 @@ const ChatContent = ({
                       <FaInfoCircle className="menu-icon" /> Info. Mensaje
                     </button>}
 
-                    {/*  NUEVO: Botón de Reenviar */}
+                    {/*  NUEVO: BotÃ³n de Reenviar */}
                     <button className="menu-item" onClick={() => handleOpenForwardModal(message)}>
                       <FaShare className="menu-icon" /> Reenviar
                     </button>
@@ -3144,7 +3466,7 @@ const ChatContent = ({
           )
         }
 
-        {/* === 🛡️ AVATARES DE LECTURA (SIDE STYLE - SIEMPRE VISIBLE SI HAY LECTURA O ES MÍO) 🛡️ === */}
+        {/* === ðŸ›¡ï¸ AVATARES DE LECTURA (SIDE STYLE - SIEMPRE VISIBLE SI HAY LECTURA O ES MÃO) ðŸ›¡ï¸ === */}
         {
           (message.readByCount > 0 || (isOwnMessage && (message.isRead || (message.readBy && message.readBy.length > 0)))) && (
             <div className="read-by-avatars-container">
@@ -3179,10 +3501,10 @@ const ChatContent = ({
                   <svg viewBox="0 0 16 11" height="11" width="16" preserveAspectRatio="xMidYMid meet">
                     <path fill="currentColor" d="M11.071.653a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178l-6.19 7.636-2.405-2.272a.463.463 0 0 0-.336-.146.47.47 0 0 0-.343.146l-.311.31a.445.445 0 0 0-.14.337c0 .136.047.25.14.343l2.996 2.996a.724.724 0 0 0 .27.18.652.652 0 0 0 .3.07.596.596 0 0 0 .274-.07.716.716 0 0 0 .253-.18L11.071 1.27a.445.445 0 0 0 .14-.337.453.453 0 0 0-.14-.28zm3.486 0a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178L7.682 8.365l-.376-.377-.19.192 1.07 1.07a.724.724 0 0 0 .27.18.652.652 0 0 0 .3.07.596.596 0 0 0 .274-.07.716.716 0 0 0 .253-.18l6.19-7.636a.445.445 0 0 0 .14-.337.453.453 0 0 0-.14-.28z"></path>
                   </svg>
-                  {/* Contador: Mostrar solo si hay más de 0 lectores (en grupos) O si es individual al menos mostrar algo si se quiere */}
+                  {/* Contador: Mostrar solo si hay mÃ¡s de 0 lectores (en grupos) O si es individual al menos mostrar algo si se quiere */}
                   {(message.readByCount > 0) && <span style={{ fontWeight: '500' }}>{message.readByCount}</span>}
 
-                  {/* Si es chat individual y está leído pero readByCount es 0 (legacy), mostrar 1 */}
+                  {/* Si es chat individual y estÃ¡ leÃ­do pero readByCount es 0 (legacy), mostrar 1 */}
                   {(!message.readByCount && message.isRead) ? <span style={{ fontWeight: '500' }}>1</span> : null}
                 </div>
               </div>
@@ -3199,7 +3521,7 @@ const ChatContent = ({
                         setOpenReadReceiptsId(null);
                       }}
                     >
-                      ×
+                      Ã—
                     </button>
                   </div>
                   <div className="popover-list">
@@ -3208,10 +3530,10 @@ const ChatContent = ({
                         <span style={{ color: '#666', fontSize: '12px' }}>Cargando...</span>
                       </div>
                     ) : (() => {
-                      // 🔥 FIX: Construcción inteligente de la lista
+                      // ðŸ”¥ FIX: ConstrucciÃ³n inteligente de la lista
                       let readerList = message.readByData || loadedReadBy[message.id] || message.readBy || [];
 
-                      // Si es mensaje entrante (no mío) y está leído, YO debería estar en la lista
+                      // Si es mensaje entrante (no mÃ­o) y estÃ¡ leÃ­do, YO deberÃ­a estar en la lista
                       if (!isOwnMessage && (message.isRead || (message.readBy && message.readBy.length > 0))) {
                         const amIInList = readerList.some(r => {
                           const rName = (typeof r === 'object' ? (r.username || r.nombre) : r);
@@ -3219,7 +3541,7 @@ const ChatContent = ({
                         });
 
                         if (!amIInList && currentUsername) {
-                          // Agregarme a mí mismo visualmente
+                          // Agregarme a mÃ­ mismo visualmente
                           readerList = [...readerList, {
                             username: currentUsername,
                             nombre: user?.nombre || currentUsername,
@@ -3289,7 +3611,7 @@ const ChatContent = ({
     );
   };
 
-  //  NUEVO: Función centralizada para abrir vista previa de imagen con soporte para galerías
+  //  NUEVO: FunciÃ³n centralizada para abrir vista previa de imagen con soporte para galerÃ­as
   const openImagePreview = useCallback((items, index) => {
     if (!items || index < 0 || index >= items.length) return;
 
@@ -3349,7 +3671,7 @@ const ChatContent = ({
         ref={chatHistoryRef}
         onScroll={handleScroll}
         onWheel={(e) => {
-          // 🔥 FIX: Permitir cargar mensajes anteriores con rueda del mouse
+          // ðŸ”¥ FIX: Permitir cargar mensajes anteriores con rueda del mouse
           // incluso si no hay suficiente contenido para scroll (overflow)
           if (e.deltaY < 0 && chatHistoryRef.current && chatHistoryRef.current.scrollTop === 0) {
             if (hasMoreMessages && !isLoadingMore) {
@@ -3410,7 +3732,7 @@ const ChatContent = ({
                   t.id === msg.id // Mantiene solo la primera ocurrencia de cada ID
                 ))
               ),
-              currentUsername //  NUEVO: Pasar usuario actual para detectar mensajes no leídos
+              currentUsername //  NUEVO: Pasar usuario actual para detectar mensajes no leÃ­dos
             ).map((item, idx) => {
               if (item.type === "date-separator") {
                 return (
@@ -3419,7 +3741,7 @@ const ChatContent = ({
                   </div>
                 );
               } else if (item.type === "unread-separator" && !hideUnreadSeparator) {
-                //  NUEVO: Separador de mensajes no leídos estilo WhatsApp
+                //  NUEVO: Separador de mensajes no leÃ­dos estilo WhatsApp
                 // Se oculta cuando el usuario empieza a escribir
                 return (
                   <div key={`unread-${idx}`} className="unread-separator" id="unread-separator">
@@ -3431,14 +3753,14 @@ const ChatContent = ({
                   </div>
                 );
               } else if (item.type === "unread-separator" && hideUnreadSeparator) {
-                // No renderizar nada si está oculto
+                // No renderizar nada si estÃ¡ oculto
                 return null;
               } else {
                 return renderMessage(item.data, item.index, item.isGroupStart);
               }
             })}
 
-            {/* 🔥 BOTÓN PARA CARGAR MENSAJES MÁS RECIENTES (FORWARD PAGINATION) */}
+            {/* ðŸ”¥ BOTÃ“N PARA CARGAR MENSAJES MÃS RECIENTES (FORWARD PAGINATION) */}
             {hasMoreAfter && (
               <div
                 className="load-more-container" // Reutilizamos clase
@@ -3470,7 +3792,7 @@ const ChatContent = ({
                   )}
                 </button>
 
-                {/* BOTÓN IR AL FINAL */}
+                {/* BOTÃ“N IR AL FINAL */}
                 <button
                   className="load-more-btn"
                   onClick={onGoToLatest}
@@ -3482,7 +3804,7 @@ const ChatContent = ({
               </div>
             )}
 
-            {/* ===  INDICADOR DE "ESTÁ ESCRIBIENDO"  === */}
+            {/* ===  INDICADOR DE "ESTÃ ESCRIBIENDO"  === */}
             {((!isGroup && isOtherUserTyping && typingUser) ||
               (isGroup &&
                 currentRoomCode &&
@@ -3547,7 +3869,7 @@ const ChatContent = ({
                           height: "auto",
                         }}
                       >
-                        {/* Nombre del usuario que está escribiendo */}
+                        {/* Nombre del usuario que estÃ¡ escribiendo */}
                         <div
                           style={{
                             color: "ff453a",
@@ -3666,7 +3988,7 @@ const ChatContent = ({
                     </div>
                   )}
 
-                  {/* Para grupos/salas - Mostrar todos los usuarios que están escribiendo */}
+                  {/* Para grupos/salas - Mostrar todos los usuarios que estÃ¡n escribiendo */}
                   {isGroup &&
                     currentRoomCode &&
                     roomTypingUsers &&
@@ -3732,7 +4054,7 @@ const ChatContent = ({
                               height: "auto",
                             }}
                           >
-                            {/* Nombre del usuario que está escribiendo */}
+                            {/* Nombre del usuario que estÃ¡ escribiendo */}
                             <div
                               style={{
                                 color: "ff453a",
@@ -3930,7 +4252,7 @@ const ChatContent = ({
         isSending={isSending}
         isRecording={isRecording || isRecordingLocal}
 
-        /* Respuesta y Edición */
+        /* Respuesta y EdiciÃ³n */
         replyingTo={replyingTo}
         onCancelReply={onCancelReply}
         editingMessage={editingMessageId ? messages.find(m => m.id === editingMessageId) : null}
@@ -3943,7 +4265,7 @@ const ChatContent = ({
         /* Refs */
         inputRef={inputRef}
 
-        /* Grabación (Sync de estado local) */
+        /* GrabaciÃ³n (Sync de estado local) */
         onRecordingStart={() => setIsRecordingLocal(true)}
         onRecordingStop={() => setIsRecordingLocal(false)}
 
@@ -3957,26 +4279,7 @@ const ChatContent = ({
         isGroup={isGroup}
         showMentionSuggestions={showMentionSuggestions}
         mentionSearch={mentionSearch}
-        mentionSuggestions={
-          /* Lógica de filtrado movida aquí */
-          isGroup && roomUsers
-            ? roomUsers.filter((user) => {
-              let searchName = '';
-              if (typeof user === "string") {
-                searchName = user;
-              } else if (user && typeof user === 'object') {
-                searchName = user.displayName
-                  || ((user.nombre && user.apellido) ? `${user.nombre} ${user.apellido}` : '')
-                  || user.username
-                  || user.nombre
-                  || '';
-              }
-              if (!searchName) return false;
-              const searchLower = searchName.toLowerCase();
-              return searchLower.includes(mentionSearch) && searchName !== currentUsername;
-            })
-            : []
-        }
+        mentionSuggestions={mentionSuggestionsFiltered}
         onMentionSelect={handleMentionSelect}
       />
 
@@ -4110,7 +4413,7 @@ const ChatContent = ({
         )
       }
 
-      {/*  NUEVO: Modal de reenvío de mensajes */}
+      {/*  NUEVO: Modal de reenvÃ­o de mensajes */}
       <ForwardMessageModal
         isOpen={showForwardModal}
         onClose={handleCloseForwardModal}
@@ -4119,12 +4422,13 @@ const ChatContent = ({
         assignedConversations={extendedConvs.length > 0 ? extendedConvs : assignedConversations}
         user={user}
         socket={socket}
+        userList={userList} // 🔥 NUEVO: Para resolución de nombres en reenvío
         //  Props de paginación para grupos
         roomsPage={forwardRoomsPage}
         roomsTotalPages={forwardRoomsTotalPages}
         roomsLoading={forwardRoomsLoading}
         onLoadMoreRooms={handleLoadMoreForwardRooms}
-        //  Props de paginación para conversaciones
+        //  Props de paginaciÃ³n para conversaciones
         convsPage={forwardConvsPage}
         convsTotalPages={forwardConvsTotalPages}
         convsLoading={forwardConvsLoading}

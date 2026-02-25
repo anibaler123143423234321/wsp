@@ -571,6 +571,70 @@ html.dark .thread-message:hover {
   overflow-y: auto;
 }
 
+.thread-input-overlay-wrap {
+  position: relative;
+  flex: 1;
+}
+
+.thread-input-highlight {
+  position: absolute;
+  inset: 0;
+  padding: 6px 10px;
+  border-radius: 12.83px;
+  font-size: 14.97px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #000000;
+  white-space: pre-wrap;
+  word-break: break-word;
+  pointer-events: none;
+  overflow: hidden;
+  max-height: 300px;
+}
+
+.thread-input-highlight.is-placeholder {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.thread-input-overlay-textarea {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  color: transparent !important;
+  caret-color: #000000;
+}
+
+.thread-input-overlay-textarea::selection {
+  color: transparent;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.thread-input-mention-highlight {
+  background-color: #fce8b2;
+  color: #3e2723;
+  border-radius: 4px;
+  padding: 0 2px;
+}
+
+html.dark .thread-input-highlight {
+  color: #e9edef !important;
+}
+
+html.dark .thread-input-highlight.is-placeholder {
+  color: rgba(233, 237, 239, 0.5) !important;
+}
+
+html.dark .thread-input-overlay-textarea {
+  color: transparent !important;
+  caret-color: #e9edef !important;
+}
+
+html.dark .thread-input-mention-highlight {
+  background-color: #b8860b !important;
+  color: #ffffff !important;
+}
+
 .thread-input::placeholder {
   color: rgba(0, 0, 0, 0.45);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;

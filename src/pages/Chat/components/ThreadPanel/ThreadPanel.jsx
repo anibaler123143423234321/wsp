@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   FaTimes,
   FaPaperPlane,
@@ -180,6 +180,7 @@ const ThreadPanel = ({
   onSendMessage,
   currentRoomCode, //  NUEVO: RoomCode actual de la sesión
   roomUsers = [], //  NUEVO: Lista de usuarios en la sala para menciones
+  userList = [], //  NUEVO: Lista global de usuarios para resolver nombres en menciones
   //  NUEVO: Props para modal de reenvío
   myActiveRooms = [],
   assignedConversations = [],
@@ -208,6 +209,9 @@ const ThreadPanel = ({
   const [mentionSearchTerm, setMentionSearchTerm] = useState("");
   const [filteredMembers, setFilteredMembers] = useState([]);
   const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
+  const [mentionLookupCache, setMentionLookupCache] = useState({});
+  const [roomUsersFromApi, setRoomUsersFromApi] = useState([]);
+  const [peopleDirectoryCache, setPeopleDirectoryCache] = useState([]);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null); //  REF para el contenedor de mensajes
   const isInitialLoadRef = useRef(true); //  Bandera para primera carga
@@ -215,6 +219,7 @@ const ThreadPanel = ({
   const emojiPickerRef = useRef(null);
   const fileInputRef = useRef(null);
   const inputRef = useRef(null);
+  const inputHighlightRef = useRef(null);
   const mentionDropdownRef = useRef(null);
   const messageMenuRef = useRef(null); //  NUEVO: Ref para menú de opciones
   const reactionPickerRef = useRef(null); //  NUEVO: Ref para picker de reacciones
@@ -241,6 +246,465 @@ const ThreadPanel = ({
   const [showPdfViewer, setShowPdfViewer] = useState(false);
   const [pdfData, setPdfData] = useState(null);
   const [pdfFileName, setPdfFileName] = useState("");
+
+  const normalizeMentionValue = useCallback((str) => {
+    if (!str) return "";
+    return String(str)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase();
+  }, []);
+
+  const isLikelyIdentifier = useCallback((value) => {
+    if (!value) return false;
+    const v = String(value).trim();
+    return /^\d{6,}$/.test(v) || v.includes("@");
+  }, []);
+
+  const normalizeMentionText = useCallback((str) => {
+    if (!str) return "";
+    return String(str)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[\u200B-\u200D\uFEFF]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toUpperCase();
+  }, []);
+
+  const myAliasesNormalized = useMemo(() => {
+    const aliases = new Set();
+    const nombre = (user?.nombre || user?.firstName || "").trim();
+    const apellido = (user?.apellido || user?.lastName || "").trim();
+
+    if (currentUsername) aliases.add(normalizeMentionText(currentUsername));
+    if (user?.username) aliases.add(normalizeMentionText(user.username));
+    if (user?.email) aliases.add(normalizeMentionText(user.email));
+    if (nombre) aliases.add(normalizeMentionText(nombre));
+    if (apellido) aliases.add(normalizeMentionText(apellido));
+    if (nombre && apellido) {
+      aliases.add(normalizeMentionText(`${nombre} ${apellido}`));
+      const firstName = nombre.split(/\s+/)[0];
+      const firstLastName = apellido.split(/\s+/)[0];
+      if (firstName && firstLastName) {
+        aliases.add(normalizeMentionText(`${firstName} ${firstLastName}`));
+      }
+    }
+
+    return Array.from(aliases).filter(Boolean);
+  }, [currentUsername, user, normalizeMentionText]);
+
+  const [persistentAliases, setPersistentAliases] = useState([]);
+  useEffect(() => {
+    if (myAliasesNormalized.length > 0) {
+      setPersistentAliases(myAliasesNormalized);
+    }
+  }, [myAliasesNormalized]);
+
+  useEffect(() => {
+    if (!isOpen || !currentRoomCode) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const result = await apiService.getRoomUsers(currentRoomCode);
+        const users = Array.isArray(result)
+          ? result
+          : (result?.users || result?.data || []);
+        if (!cancelled && Array.isArray(users)) {
+          setRoomUsersFromApi(users.filter((u) => u && typeof u === "object"));
+        }
+      } catch {
+        if (!cancelled) setRoomUsersFromApi([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, currentRoomCode]);
+
+  const mentionBaseUsers = useMemo(() => {
+    const base = [
+      ...(Array.isArray(roomUsers) ? roomUsers : []),
+      ...(Array.isArray(roomUsersFromApi) ? roomUsersFromApi : []),
+    ];
+
+    const map = new Map();
+    base.forEach((u) => {
+      if (!u) return;
+      if (typeof u === "string") {
+        const key = normalizeMentionValue(u);
+        if (key && !map.has(key)) map.set(key, u);
+        return;
+      }
+      const key = normalizeMentionValue(
+        u.username ||
+        u.userName ||
+        u?.id?.user ||
+        u.email ||
+        u.correo ||
+        `${u.nombre || u.firstName || ""} ${u.apellido || u.lastName || ""}`.trim()
+      );
+      if (!key) return;
+      if (!map.has(key)) {
+        map.set(key, u);
+      } else if (!map.get(key)?.nombre && u.nombre) {
+        // Preferir la variante enriquecida con nombre/apellido.
+        map.set(key, u);
+      }
+    });
+
+    return Array.from(map.values());
+  }, [roomUsers, roomUsersFromApi, normalizeMentionValue]);
+
+  const resolveFromListByAnyKey = useCallback((list, raw) => {
+    if (!Array.isArray(list) || list.length === 0 || !raw) return null;
+    const rawNorm = normalizeMentionValue(raw);
+    return list.find((u) => {
+      if (!u || typeof u !== "object") return false;
+      const firstName = (u.nombre || u.firstName || u.first_name || "").trim();
+      const lastName = (u.apellido || u.lastName || u.last_name || u.apellidos || u.surname || "").trim();
+      const fullName = `${firstName} ${lastName}`.trim();
+      const emailLocal = u.email ? String(u.email).split("@")[0] : "";
+      const candidates = [
+        u.username,
+        u.userName,
+        u.name,
+        u.displayName,
+        u.notify,
+        u.vname,
+        u.firstName,
+        u.lastName,
+        u.first_name,
+        u.last_name,
+        u.apellidos,
+        u.surname,
+        u.fullName,
+        u.full_name,
+        u.numeroAgente,
+        u.email,
+        u.correo,
+        emailLocal,
+        u?.id?.user,
+        fullName,
+      ]
+        .filter(Boolean)
+        .map(normalizeMentionValue);
+      return candidates.includes(rawNorm);
+    }) || null;
+  }, [normalizeMentionValue]);
+
+  useEffect(() => {
+    if (!isOpen || !Array.isArray(mentionBaseUsers) || mentionBaseUsers.length === 0) return;
+
+    const merged = [
+      ...mentionBaseUsers.filter((u) => typeof u === "object"),
+      ...(Array.isArray(userList) ? userList : []),
+      ...(Array.isArray(peopleDirectoryCache) ? peopleDirectoryCache : []),
+      ...Object.values(mentionLookupCache || {}),
+    ];
+
+    const identifiers = mentionBaseUsers
+      .map((u) => {
+        if (typeof u === "string") return u;
+        if (!u || typeof u !== "object") return "";
+        return u.username || u.userName || u?.id?.user || u.numeroAgente || u.email || u.correo || "";
+      })
+      .filter(Boolean);
+
+    const unresolved = identifiers.filter((id) => {
+      if (!isLikelyIdentifier(id)) return false;
+      return !resolveFromListByAnyKey(merged, id);
+    });
+
+    if (unresolved.length === 0 || peopleDirectoryCache.length > 0) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const directory = await apiService.getUsersFromBackend(0, 500);
+        if (!cancelled && Array.isArray(directory)) {
+          setPeopleDirectoryCache(directory.filter((u) => u && typeof u === "object"));
+        }
+      } catch {
+        if (!cancelled) setPeopleDirectoryCache([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isOpen,
+    mentionBaseUsers,
+    userList,
+    peopleDirectoryCache,
+    mentionLookupCache,
+    isLikelyIdentifier,
+    resolveFromListByAnyKey,
+  ]);
+
+  const getMentionDisplayName = useCallback((rawUser) => {
+    if (!rawUser) return "";
+    const merged = [
+      ...mentionBaseUsers.filter((u) => typeof u === "object"),
+      ...(Array.isArray(userList) ? userList : []),
+      ...(Array.isArray(peopleDirectoryCache) ? peopleDirectoryCache : []),
+      ...Object.values(mentionLookupCache || {}),
+    ];
+
+    const rawKey = typeof rawUser === "string"
+      ? rawUser
+      : (
+        `${rawUser.nombre || rawUser.firstName || rawUser.first_name || ""} ${rawUser.apellido || rawUser.lastName || rawUser.last_name || rawUser.apellidos || ""}`.trim() ||
+        rawUser.fullName ||
+        rawUser.full_name ||
+        rawUser.username ||
+        rawUser.userName ||
+        rawUser?.id?.user ||
+        rawUser.email ||
+        rawUser.correo ||
+        rawUser.displayName ||
+        rawUser.name ||
+        rawUser.notify ||
+        rawUser.vname ||
+        rawUser.numeroAgente ||
+        ""
+      );
+
+    const resolved = resolveFromListByAnyKey(merged, rawKey) || (typeof rawUser === "object" ? rawUser : null);
+    const firstName = (resolved?.nombre || resolved?.firstName || resolved?.first_name || "").trim();
+    const lastName = (resolved?.apellido || resolved?.lastName || resolved?.last_name || resolved?.apellidos || resolved?.surname || "").trim();
+    if (firstName && lastName) return `${firstName} ${lastName}`.trim();
+    if (firstName) return firstName;
+    if (resolved?.fullName) return resolved.fullName;
+    if (resolved?.full_name) return resolved.full_name;
+    if (resolved?.displayName) return resolved.displayName;
+    if (resolved?.name) return resolved.name;
+    if (resolved?.notify) return resolved.notify;
+    if (resolved?.vname) return resolved.vname;
+    if (resolved?.username && !isLikelyIdentifier(resolved.username)) return resolved.username;
+    return String(rawKey || "");
+  }, [mentionBaseUsers, userList, peopleDirectoryCache, mentionLookupCache, resolveFromListByAnyKey, isLikelyIdentifier]);
+
+  const hasMentionToUser = useCallback((text) => {
+    if (!text || persistentAliases.length === 0) return false;
+    const mentionRegex = /@([a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+(?:\s+[a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
+    let match;
+    while ((match = mentionRegex.exec(text)) !== null) {
+      const normalizedMention = normalizeMentionText(match[1]);
+      if (persistentAliases.includes(normalizedMention)) {
+        return true;
+      }
+    }
+    return false;
+  }, [persistentAliases, normalizeMentionText]);
+
+  const buildMentionOption = useCallback((rawUser) => {
+    const getBestDisplayName = (candidate, rawFallback) => {
+      const firstName = (candidate?.nombre || candidate?.firstName || candidate?.first_name || "").trim();
+      const lastName = (candidate?.apellido || candidate?.lastName || candidate?.last_name || candidate?.apellidos || candidate?.surname || "").trim();
+      if (firstName && lastName) {
+        return `${firstName} ${lastName}`.trim();
+      }
+      if (firstName) return firstName;
+      if (candidate?.fullName) return candidate.fullName;
+      if (candidate?.full_name) return candidate.full_name;
+
+      const rawName = typeof rawFallback === "object"
+        ? (
+          rawFallback.displayName ||
+          rawFallback.name ||
+          rawFallback.notify ||
+          rawFallback.vname ||
+          rawFallback.fullName ||
+          rawFallback.full_name ||
+          rawFallback.username ||
+          rawFallback?.id?.user ||
+          ""
+        )
+        : String(rawFallback || "");
+
+      if (rawName && !isLikelyIdentifier(rawName)) return rawName;
+
+      return (
+        candidate?.displayName ||
+        candidate?.name ||
+        candidate?.notify ||
+        candidate?.vname ||
+        candidate?.username ||
+        candidate?.id?.user ||
+        rawName ||
+        ""
+      );
+    };
+
+    const resolveFromMerged = (raw) => {
+      const merged = [
+        ...mentionBaseUsers.filter((u) => typeof u === "object"),
+        ...(Array.isArray(userList) ? userList : []),
+        ...(Array.isArray(peopleDirectoryCache) ? peopleDirectoryCache : []),
+        ...Object.values(mentionLookupCache || {}),
+      ];
+      return resolveFromListByAnyKey(merged, raw);
+    };
+
+    if (typeof rawUser === "string") {
+      const resolved = resolveFromMerged(rawUser);
+      const displayName = getBestDisplayName(resolved, rawUser);
+      if (!displayName) return null;
+      return {
+        ...(resolved || {}),
+        raw: rawUser,
+        username: resolved?.username || rawUser,
+        displayName,
+        mentionText: displayName || rawUser,
+      };
+    }
+
+    if (rawUser && typeof rawUser === "object") {
+      const lookupKey =
+        `${rawUser.nombre || rawUser.firstName || rawUser.first_name || ""} ${rawUser.apellido || rawUser.lastName || rawUser.last_name || rawUser.apellidos || ""}`.trim() ||
+        rawUser.username ||
+        rawUser?.id?.user ||
+        rawUser.email ||
+        rawUser.correo ||
+        rawUser.displayName ||
+        rawUser.name ||
+        rawUser.notify ||
+        rawUser.vname ||
+        rawUser.numeroAgente;
+      const resolved = resolveFromMerged(lookupKey);
+      const displayName = getBestDisplayName(resolved || rawUser, rawUser);
+      if (!displayName) return null;
+
+      return {
+        ...(resolved || {}),
+        ...rawUser,
+        raw: rawUser,
+        username: rawUser.username ?? resolved?.username,
+        userName: rawUser.userName ?? resolved?.userName,
+        id: rawUser.id ?? resolved?.id,
+        numeroAgente: rawUser.numeroAgente ?? resolved?.numeroAgente,
+        email: rawUser.email ?? resolved?.email,
+        correo: rawUser.correo ?? resolved?.correo,
+        nombre: rawUser.nombre ?? rawUser.firstName ?? rawUser.first_name ?? resolved?.nombre ?? resolved?.firstName ?? resolved?.first_name,
+        apellido: rawUser.apellido ?? rawUser.lastName ?? rawUser.last_name ?? rawUser.apellidos ?? resolved?.apellido ?? resolved?.lastName ?? resolved?.last_name ?? resolved?.apellidos,
+        displayName,
+        mentionText:
+          displayName ||
+          rawUser.username ||
+          resolved?.username ||
+          rawUser?.id?.user ||
+          resolved?.id?.user ||
+          rawUser.email ||
+          resolved?.email ||
+          "",
+      };
+    }
+
+    return null;
+  }, [isLikelyIdentifier, mentionBaseUsers, userList, peopleDirectoryCache, mentionLookupCache, resolveFromListByAnyKey]);
+
+  const matchesMentionSearch = useCallback((rawUser, option, term) => {
+    const normalizedTerm = normalizeMentionValue(term);
+    if (!normalizedTerm) return true;
+
+    const source = typeof rawUser === "object" && rawUser ? rawUser : {};
+    const firstName = (source.nombre || source.firstName || source.first_name || "").trim();
+    const lastName = (source.apellido || source.lastName || source.last_name || source.apellidos || source.surname || "").trim();
+    const fullName = `${firstName} ${lastName}`.trim();
+    const emailLocal = source.email ? String(source.email).split("@")[0] : "";
+
+    const searchables = [
+      option?.displayName,
+      option?.mentionText,
+      option?.username,
+      source.username,
+      source.userName,
+      source.displayName,
+      source.name,
+      source.notify,
+      source.vname,
+      source.numeroAgente,
+      source.email,
+      source.correo,
+      source?.id?.user,
+      source.firstName,
+      source.lastName,
+      source.first_name,
+      source.last_name,
+      source.apellidos,
+      source.surname,
+      source.fullName,
+      source.full_name,
+      fullName,
+      emailLocal,
+    ]
+      .filter(Boolean)
+      .map((v) => normalizeMentionValue(v));
+
+    return searchables.some((v) => v.includes(normalizedTerm));
+  }, [normalizeMentionValue]);
+
+  useEffect(() => {
+    if (!Array.isArray(mentionBaseUsers) || mentionBaseUsers.length === 0) return;
+
+    const merged = [
+      ...mentionBaseUsers.filter((u) => typeof u === "object"),
+      ...(Array.isArray(userList) ? userList : []),
+      ...(Array.isArray(peopleDirectoryCache) ? peopleDirectoryCache : []),
+      ...Object.values(mentionLookupCache || {}),
+    ];
+
+    const identifiers = mentionBaseUsers
+      .map((u) => {
+        if (typeof u === "string") return u;
+        if (!u || typeof u !== "object") return "";
+        return u.username || u.userName || u?.id?.user || u.numeroAgente || u.email || u.correo || "";
+      })
+      .filter(Boolean)
+      .map((v) => String(v).trim());
+
+    const toResolve = Array.from(new Set(identifiers))
+      .filter((id) => isLikelyIdentifier(id))
+      .filter((id) => !mentionLookupCache[normalizeMentionValue(id)])
+      .filter((id) => !resolveFromListByAnyKey(merged, id))
+      .slice(0, 100);
+
+    if (toResolve.length === 0) return;
+    let cancelled = false;
+
+    (async () => {
+      const resolved = await Promise.all(
+        toResolve.map(async (id) => {
+          try {
+            const list = await apiService.searchUsersFromBackend(id, 0, 10);
+            if (!Array.isArray(list) || list.length === 0) return null;
+            const match = resolveFromListByAnyKey(list, id) || list[0];
+            return match ? [normalizeMentionValue(id), match] : null;
+          } catch {
+            return null;
+          }
+        })
+      );
+
+      if (cancelled) return;
+      const patch = {};
+      resolved.forEach((r) => {
+        if (r && r[0] && r[1]) patch[r[0]] = r[1];
+      });
+      if (Object.keys(patch).length > 0) {
+        setMentionLookupCache((prev) => ({ ...prev, ...patch }));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mentionBaseUsers, userList, peopleDirectoryCache, mentionLookupCache, isLikelyIdentifier, normalizeMentionValue, resolveFromListByAnyKey]);
 
   // ============================================================
   // ESTADOS - Selección múltiple (Usando Hook Personalizado)
@@ -274,9 +738,66 @@ const ThreadPanel = ({
   // NUEVO: Estado para el visor de imágenes
   const [imagePreview, setImagePreview] = useState(null);
 
+  const renderTextWithMentionsRobust = (text) => {
+    if (!text) return text;
+    const mentionRegex = /@([a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+(?:\s+[a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = mentionRegex.exec(text)) !== null) {
+      const charBeforeMention = match.index > 0 ? text[match.index - 1] : "";
+      const isPartOfEmail = /[a-zA-Z0-9._-]/.test(charBeforeMention);
+      const mentionedText = match[1].toLowerCase().trim();
+      const emailDomains = ["gmail", "outlook", "hotmail", "yahoo", "icloud", "live", "msn", "aol", "protonmail", "zoho"];
+      const isEmailDomain = emailDomains.includes(mentionedText);
+
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index));
+      }
+
+      if (isPartOfEmail || isEmailDomain) {
+        parts.push(match[0]);
+        lastIndex = match.index + match[0].length;
+        continue;
+      }
+
+      const mentionedUser = match[1].trim();
+      const normalizedMention = normalizeMentionText(mentionedUser);
+      const isCurrentUser = persistentAliases.includes(normalizedMention);
+
+      parts.push(
+        <span
+          key={`mention-${match.index}`}
+          className={`mention-span ${isCurrentUser ? "mention-me" : "mention-other"}`}
+          style={{
+            display: "inline",
+            padding: "2px 6px",
+            borderRadius: "4px",
+            fontWeight: "500",
+            fontSize: "0.95em",
+            cursor: "pointer",
+          }}
+          title={`Mención a ${mentionedUser}`}
+        >
+          @{mentionedUser}
+        </span>
+      );
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts.length > 0 ? parts : text;
+  };
+
   //  NUEVO: Función para renderizar texto con menciones resaltadas (igual que ChatContent)
   const renderTextWithMentions = (text) => {
     if (!text) return text;
+    return renderTextWithMentionsRobust(text);
 
     // Obtener lista de usuarios válidos normalizada (sin acentos, mayúsculas)
     const normalizeText = (str) => {
@@ -1118,25 +1639,44 @@ const ThreadPanel = ({
     const textBeforeCursor = value.substring(0, cursorPos);
     const atMatch = textBeforeCursor.match(/@(\w*)$/);
 
-    if (atMatch && roomUsers && roomUsers.length > 0) {
+    if (atMatch) {
       const searchTerm = atMatch[1].toLowerCase();
       setMentionSearchTerm(searchTerm);
 
-      // Filtrar miembros basado en el término de búsqueda
-      const filtered = roomUsers.filter(user => {
-        let searchName = '';
-        if (typeof user === "string") {
-          searchName = user;
-        } else if (user && typeof user === 'object') {
-          // Prioridad: displayName > nombre+apellido > username > nombre
-          searchName = user.displayName
-            || ((user.nombre && user.apellido) ? `${user.nombre} ${user.apellido}` : '')
-            || user.username
-            || user.nombre
-            || '';
-        }
-        return searchName.toLowerCase().includes(searchTerm) && searchName !== currentUsername;
+      const primarySource = Array.isArray(mentionBaseUsers) ? mentionBaseUsers : [];
+      const fallbackSource = [
+        ...primarySource,
+        ...(Array.isArray(roomUsers) ? roomUsers : []),
+        ...(Array.isArray(roomUsersFromApi) ? roomUsersFromApi : []),
+        ...(Array.isArray(userList) ? userList : []),
+        ...Object.values(mentionLookupCache || {}),
+      ];
+
+      const buildFiltered = (sourceList) => sourceList
+        .map((member) => ({ raw: member, option: buildMentionOption(member) }))
+        .filter((x) => x.option)
+        .filter((x) => matchesMentionSearch(x.raw, x.option, searchTerm))
+        .map((x) => x.option)
+        .sort((a, b) => {
+          const aId = isLikelyIdentifier(a.displayName);
+          const bId = isLikelyIdentifier(b.displayName);
+          if (aId !== bId) return aId ? 1 : -1;
+          return a.displayName.localeCompare(b.displayName, "es", { sensitivity: "base" });
+        });
+
+      let filtered = buildFiltered(primarySource);
+      if (searchTerm.length > 0 && filtered.length === 0) {
+        filtered = buildFiltered(fallbackSource);
+      }
+
+      const dedupe = new Map();
+      filtered.forEach((opt) => {
+        const key = normalizeMentionValue(
+          opt.username || opt.mentionText || opt.displayName
+        );
+        if (!key || !dedupe.has(key)) dedupe.set(key, opt);
       });
+      filtered = Array.from(dedupe.values()).slice(0, 30);
 
       setFilteredMembers(filtered);
       setShowMentionSuggestions(filtered.length > 0);
@@ -1145,6 +1685,39 @@ const ThreadPanel = ({
       setShowMentionSuggestions(false);
     }
   };
+
+  const handleInputScroll = (e) => {
+    if (inputHighlightRef.current) {
+      inputHighlightRef.current.scrollTop = e.target.scrollTop;
+    }
+  };
+
+  const renderThreadInputWithMentions = useCallback((text) => {
+    if (!text) return null;
+    const mentionRegex = /@([a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+(?:\s+[a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = mentionRegex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index));
+      }
+      const mentionValue = match[1];
+      parts.push(
+        <span key={`input-mention-${match.index}`} className="thread-input-mention-highlight">
+          @{mentionValue}
+        </span>
+      );
+      lastIndex = match.index + match[0].length;
+    }
+
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts;
+  }, []);
 
   //  NUEVO: Handler de paste para imágenes
   //  NUEVO: Handler de paste inteligente
@@ -1162,16 +1735,9 @@ const ThreadPanel = ({
 
   //  NUEVO: Insertar mención seleccionada
   const insertMention = (user) => {
-    let username = '';
-    if (typeof user === "string") {
-      username = user;
-    } else if (user && typeof user === 'object') {
-      username = user.username
-        || user.displayName
-        || ((user.nombre && user.apellido) ? `${user.nombre} ${user.apellido}` : '')
-        || user.nombre
-        || '';
-    }
+    const username = typeof user === "object" && user?.mentionText
+      ? user.mentionText
+      : getMentionDisplayName(user);
     const cursorPos = inputRef.current?.selectionStart || input.length;
     const textBeforeCursor = input.substring(0, cursorPos);
     const textAfterCursor = input.substring(cursorPos);
@@ -1864,8 +2430,7 @@ const ThreadPanel = ({
                 : msg.from === "Tú" || msg.from === currentUsername || (user && (msg.from === user.username || msg.from === (user.nombre + ' ' + user.apellido)));
               const userColor = getUserColor(msg.from, isOwnMessage);
 
-              const mentionRegex = new RegExp(`@${currentUsername?.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w])`, 'i');
-              const isMentioned = mentionRegex.test(msg.text || msg.message || '');
+              const isMentioned = hasMentionToUser(msg.text || msg.message || "");
 
               const senderUser = roomUsers.find(u => u.username === msg.from || `${u.nombre} ${u.apellido}` === msg.from);
               const senderPicture = senderUser?.picture;
@@ -2808,16 +3373,7 @@ const ThreadPanel = ({
             {showMentionSuggestions && filteredMembers.length > 0 && (
               <div className="thread-mention-dropdown" ref={mentionDropdownRef}>
                 {filteredMembers.map((user, index) => {
-                  let displayName = '';
-                  if (typeof user === "string") {
-                    displayName = user;
-                  } else if (user && typeof user === 'object') {
-                    displayName = user.displayName
-                      || ((user.nombre && user.apellido) ? `${user.nombre} ${user.apellido}` : '')
-                      || user.username
-                      || user.nombre
-                      || '';
-                  }
+                  const displayName = user.displayName || getMentionDisplayName(user);
 
                   return (
                     <div
@@ -2883,18 +3439,27 @@ const ThreadPanel = ({
                 </svg>
               </button>
 
-              <textarea
-                ref={inputRef}
-                className="thread-input"
-                value={input}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                onPaste={handlePaste}
-
-                placeholder="Escribe un mensaje"
-                rows={1}
-                disabled={isSending}
-              />
+              <div className="thread-input-overlay-wrap">
+                <div
+                  ref={inputHighlightRef}
+                  className={`thread-input-highlight ${input ? "" : "is-placeholder"}`}
+                  aria-hidden="true"
+                >
+                  {input ? renderThreadInputWithMentions(input) : "Escribe un mensaje"}
+                </div>
+                <textarea
+                  ref={inputRef}
+                  className="thread-input thread-input-overlay-textarea"
+                  value={input}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  onPaste={handlePaste}
+                  onScroll={handleInputScroll}
+                  placeholder=""
+                  rows={1}
+                  disabled={isSending}
+                />
+              </div>
 
               {/* Botón de grabación de voz O enviar (estilo WhatsApp) */}
               {(!input.trim() && mediaFiles.length === 0) ? (
@@ -2933,6 +3498,7 @@ const ThreadPanel = ({
         assignedConversations={assignedConversations}
         user={user}
         socket={socket}
+        userList={userList}
       />
     </div >
   );
