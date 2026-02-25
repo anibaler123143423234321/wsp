@@ -221,7 +221,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
         }
 
         await showSuccessAlert('¡Eliminado!', 'Eliminado correctamente');
-        loadConversations(currentPage, searchTerm, filterType, statusFilter, capacityFilter);
+        loadConversations(currentPage, searchTerm, searchParticipant2, filterType, statusFilter, capacityFilter);
         if (onConversationUpdated) {
           onConversationUpdated();
         }
@@ -231,7 +231,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
             'No encontrado',
             'Ya fue eliminado o no existe. Se actualizará la lista.'
           );
-          loadConversations(currentPage, searchTerm, filterType, statusFilter, capacityFilter);
+          loadConversations(currentPage, searchTerm, searchParticipant2, filterType, statusFilter, capacityFilter);
         } else {
           await showErrorAlert('Error', 'No se pudo eliminar: ' + error.message);
         }
@@ -302,8 +302,9 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
 
   const handleViewMembers = async (conv) => {
     const title = 'Participantes';
+    // 🔥 NUEVO: Usar participantNames (Nombres Completos) si está disponible
     const memberList = filterType === 'assigned'
-      ? (conv.participants || conv.users || [])
+      ? (conv.participantNames || conv.participants || conv.users || [])
       : (conv.members || []);
 
     if (!memberList || memberList.length === 0) {
@@ -526,12 +527,11 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
                   {/* Name */}
                   <div className="mac-cell-name">
                     {(() => {
-                      // Para asignadas, generar nombre desde participantes
+                      // Para asignadas, SIEMPRE mostrar ambos participantes con nombres completos
                       let displayName = conv.name;
                       if (filterType === 'assigned' && conv.participants && conv.participants.length >= 2) {
-                        if (!conv.name || !conv.name.includes('↔')) {
-                          displayName = `${conv.participants[0]} ↔ ${conv.participants[1]}`;
-                        }
+                        const pNames = conv.participantNames || conv.participants;
+                        displayName = `${pNames[0]} ↔ ${pNames[1]}`;
                       }
                       return (
                         <div className="mac-name-text" title={displayName}>
