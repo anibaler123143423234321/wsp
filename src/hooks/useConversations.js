@@ -191,32 +191,34 @@ export const useConversations = (
 
                     if (unreadMessages.length > 0) {
                         try {
-                            // Marcar mensajes de participant1 a participant2
+                            // Marcar mensajes de participant1 (emisor) como leídos por participant2 (lector)
                             const unreadFromP1 = unreadMessages.filter(
                                 (msg) => msg.from === participant1
                             );
                             if (unreadFromP1.length > 0) {
-                                await apiService.markConversationAsRead(participant1, participant2);
-
-                                if (socket && socket.connected) {
-                                    socket.emit('markConversationAsRead', {
-                                        from: participant1,
-                                        to: participant2,
-                                    });
-                                }
-                            }
-
-                            // Marcar mensajes de participant2 a participant1
-                            const unreadFromP2 = unreadMessages.filter(
-                                (msg) => msg.from === participant2
-                            );
-                            if (unreadFromP2.length > 0) {
+                                // 🔥 FIX: El primer parámetro es el LECTOR (p2), el segundo el EMISOR (p1)
                                 await apiService.markConversationAsRead(participant2, participant1);
 
                                 if (socket && socket.connected) {
                                     socket.emit('markConversationAsRead', {
                                         from: participant2,
                                         to: participant1,
+                                    });
+                                }
+                            }
+
+                            // Marcar mensajes de participant2 (emisor) como leídos por participant1 (lector)
+                            const unreadFromP2 = unreadMessages.filter(
+                                (msg) => msg.from === participant2
+                            );
+                            if (unreadFromP2.length > 0) {
+                                // 🔥 FIX: El primer parámetro es el LECTOR (p1), el segundo el EMISOR (p2)
+                                await apiService.markConversationAsRead(participant1, participant2);
+
+                                if (socket && socket.connected) {
+                                    socket.emit('markConversationAsRead', {
+                                        from: participant1,
+                                        to: participant2,
                                     });
                                 }
                             }

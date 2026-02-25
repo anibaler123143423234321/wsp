@@ -1729,7 +1729,7 @@ class ApiService {
   async getUserRoomsPaginated(page = 1, limit = 10, search = '') {
     try {
       const user = this.getCurrentUser();
-      const identifier = user?.username || user?.email || (user?.nombre ? `${user.nombre} ${user.apellido || ''}`.trim() : '');
+      const identifier = user?.username || user?.email || "";
 
       if (!identifier) {
         throw new Error('Usuario no encontrado');
@@ -1772,14 +1772,12 @@ class ApiService {
         return { data: [], total: 0, page, limit, totalPages: 0 };
       }
 
-      // Usar el nombre completo si está disponible, sino usar username
-      const displayName = user.nombre && user.apellido
-        ? `${user.nombre} ${user.apellido}`
-        : (user.username || user.email);
+      // 🔥 FIX: Usar username (DNI) exclusivamente para evitar duplicados
+      const identifier = user.username || user.email;
 
       // ✅ Pasar username como query param para filtrar correctamente
-      const url = displayName
-        ? `${this.baseChatUrl}api/temporary-conversations/monitoring/list?username=${encodeURIComponent(displayName)}&page=${page}&limit=${limit}`
+      const url = identifier
+        ? `${this.baseChatUrl}api/temporary-conversations/monitoring/list?username=${encodeURIComponent(identifier)}&page=${page}&limit=${limit}`
         : `${this.baseChatUrl}api/temporary-conversations/monitoring/list?page=${page}&limit=${limit}`;
 
       const response = await this.fetchChatApi(url, {

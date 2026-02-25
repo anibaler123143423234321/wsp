@@ -536,15 +536,16 @@ const ChatPage = () => {
           console.log(`📝 Marcando chat asignado/favorito como leído. Conv: ${conv.id}`);
 
           // 1. Marcar en Backend (API)
-          apiService.markConversationAsRead(chatState.to, currentUserFullName).catch(err =>
+          // 🔥 FIX: El primer parámetro es QUIEN lee (Karen/DNI), el segundo de QUIÉN lee (Jesus)
+          apiService.markConversationAsRead(username, chatState.to).catch(err =>
             console.error('Error al marcar conversación como leída:', err)
           );
 
           // 2. Emitir Socket
           if (socket?.connected) {
             socket.emit('markConversationAsRead', {
-              from: chatState.to,
-              to: currentUserFullName,
+              from: username,
+              to: chatState.to,
               conversationId: conv.id
             });
           }
@@ -1532,12 +1533,13 @@ const ChatPage = () => {
         if (hasUnread) {
           try {
             // 1. Marcar en Backend
-            await apiService.markConversationAsRead(currentUserFullName, chatState.to);
+            // 🔥 FIX: Corregir orden (Lector primero: username/DNI, Emisor segundo: chatState.to)
+            await apiService.markConversationAsRead(username, chatState.to);
 
             // 2. Emitir Socket
             if (socket && socket.connected) {
               socket.emit('markConversationAsRead', {
-                from: currentUserFullName,
+                from: username,
                 to: chatState.to
               });
             }
