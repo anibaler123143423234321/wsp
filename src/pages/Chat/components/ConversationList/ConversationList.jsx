@@ -215,9 +215,12 @@ const ConversationList = ({
   // 🔥 FIX: Resolver participante (DNI o nombre completo) a nombre legible para display
   const resolveParticipantName = useCallback((participantId) => {
     if (!participantId) return 'Usuario';
-    const cached = userCache[participantId?.toLowerCase().trim()];
-    if (cached && cached.nombre && cached.apellido) {
-      return `${cached.nombre} ${cached.apellido}`;
+    const participantLower = participantId.toLowerCase().trim();
+    const cached = userCache[participantLower];
+    if (cached) {
+      if (cached.nombre || cached.apellido) {
+        return `${cached.nombre || ''} ${cached.apellido || ''}`.trim();
+      }
     }
     return participantId; // Fallback: mostrar el ID tal cual
   }, [userCache]);
@@ -226,9 +229,10 @@ const ConversationList = ({
   const findOtherParticipant = useCallback((participants) => {
     if (!participants || participants.length === 0) return null;
     const myUsername = user?.username?.toLowerCase().trim();
-    const myFullName = user?.nombre && user?.apellido
-      ? `${user.nombre} ${user.apellido}`.toLowerCase().trim()
+    const myFullName = (user?.nombre || user?.apellido)
+      ? `${user.nombre || ''} ${user.apellido || ''}`.toLowerCase().trim()
       : null;
+
     const other = participants.find(p => {
       const pLower = p?.toLowerCase().trim();
       return pLower !== myUsername && pLower !== myFullName;
@@ -441,27 +445,28 @@ const ConversationList = ({
       const newCache = { ...prevCache };
       if (userList && userList.length > 0) {
         userList.forEach(u => {
-          const fullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : u.username;
+          // 🔥 FIX: Robustecer construcción de nombre para caché (permitir nombre o apellido solos)
+          const fullName = (u.nombre || u.apellido)
+            ? `${u.nombre || ''} ${u.apellido || ''}`.trim()
+            : u.username;
+
           const key = fullName?.toLowerCase().trim();
+          const userData = {
+            picture: u.picture,
+            username: u.username,
+            nombre: u.nombre,
+            apellido: u.apellido,
+            isOnline: u.isOnline !== undefined ? u.isOnline : false
+          };
+
           if (key) {
-            newCache[key] = {
-              picture: u.picture,
-              username: u.username,
-              nombre: u.nombre,
-              apellido: u.apellido,
-              isOnline: u.isOnline !== undefined ? u.isOnline : false
-            };
+            newCache[key] = userData;
           }
-          // 🔥 FIX: También indexar por username (DNI) para buscar participantes
+
+          // 🔥 FIX: Siempre indexar por username (DNI) para búsquedas técnicas
           if (u.username) {
             const dniKey = u.username.toLowerCase().trim();
-            newCache[dniKey] = {
-              picture: u.picture,
-              username: u.username,
-              nombre: u.nombre,
-              apellido: u.apellido,
-              isOnline: u.isOnline !== undefined ? u.isOnline : false
-            };
+            newCache[dniKey] = userData;
           }
         });
       }
@@ -1659,7 +1664,7 @@ const ConversationList = ({
                               const otherParticipantNormalized = otherParticipantId.toLowerCase().trim();
                               // Buscar en userList
                               const otherUser = userList.find(u => {
-                                const uFullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : u.username;
+                                const uFullName = (u.nombre || u.apellido) ? `${u.nombre || ''} ${u.apellido || ''}`.trim() : u.username;
                                 const uUsername = u.username;
                                 return uFullName?.toLowerCase().trim() === otherParticipantNormalized ||
                                   uUsername?.toLowerCase().trim() === otherParticipantNormalized;
@@ -2063,22 +2068,26 @@ const ConversationList = ({
                               let otherParticipantPicture = conv.picture || null;
                               let isOtherParticipantOnline = false;
                               if (otherParticipantId) {
-                                const cachedUser = userCache[otherParticipantId?.toLowerCase().trim()];
+                                const lookupKey = otherParticipantId?.toLowerCase().trim();
+                                const cachedUser = userCache[lookupKey];
                                 if (cachedUser) {
                                   if (cachedUser.picture) otherParticipantPicture = cachedUser.picture;
                                   isOtherParticipantOnline = cachedUser.isOnline === true;
                                 } else {
                                   // Fallback: buscar por full name en userList
                                   const otherUser = userList.find(u => {
-                                    const fullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : u.username;
-                                    return u.username?.toLowerCase().trim() === otherParticipantId?.toLowerCase().trim()
-                                      || fullName?.toLowerCase().trim() === otherParticipantId?.toLowerCase().trim();
+                                    const fullName = (u.nombre || u.apellido) ? `${u.nombre || ''} ${u.apellido || ''}`.trim() : u.username;
+                                    const uUsername = u.username;
+                                    return uUsername?.toLowerCase().trim() === lookupKey
+                                      || fullName?.toLowerCase().trim() === lookupKey;
                                   });
                                   if (otherUser) {
                                     if (otherUser.picture) otherParticipantPicture = otherUser.picture;
                                     isOtherParticipantOnline = otherUser.isOnline === true;
                                   }
                                 }
+                                // 🔍 DEBUG: Trazar estado online en Asignados
+                                console.log(`🔍 [ASIGNADOS-DEBUG] conv=${conv.id}, otherParticipantId="${otherParticipantId}", lookupKey="${lookupKey}", cacheHit=${!!cachedUser}, cacheOnline=${cachedUser?.isOnline}, finalOnline=${isOtherParticipantOnline}, userListLen=${userList.length}, cacheKeys=${Object.keys(userCache).length}`);
                               }
                               const getInitials = (name) => { const parts = name.split(' '); if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase(); return name[0]?.toUpperCase() || 'U'; };
                               const isFavorite = favoriteConversationIds.includes(conv.id);

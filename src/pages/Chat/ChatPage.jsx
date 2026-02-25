@@ -1516,10 +1516,17 @@ const ChatPage = () => {
   const handleClearUnreadOnTyping = useCallback(async () => {
     if (chatState.isGroup && chatState.currentRoomCode) {
       // Para grupos, limpiar por roomCode
-      chatState.setUnreadMessages(prev => {
-        if (prev[chatState.currentRoomCode] === 0) return prev;
-        return { ...prev, [chatState.currentRoomCode]: 0 };
-      });
+      const hasUnread = (chatState.unreadMessages?.[chatState.currentRoomCode] || 0) > 0;
+
+      if (hasUnread) {
+        // 🔥 FIX: Sincronizar lectura de grupo con el backend
+        markRoomMessagesAsRead(chatState.currentRoomCode);
+
+        chatState.setUnreadMessages(prev => {
+          if (prev[chatState.currentRoomCode] === 0) return prev;
+          return { ...prev, [chatState.currentRoomCode]: 0 };
+        });
+      }
     } else if (!chatState.isGroup && chatState.to) {
       // 🔥 FIX: Para chats individuales, marcar como leído cuando el usuario escribe
       const conv = chatState.assignedConversations?.find(c =>

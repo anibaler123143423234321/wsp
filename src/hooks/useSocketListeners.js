@@ -227,12 +227,18 @@ export const useSocketListeners = (
 
             setUserList((prev) => {
                 // Buscar si el usuario ya existe en la lista (Case Insensitive)
-                //  FIX: Buscar por originalUsername (username real) ADEMÁS de displayName
                 const existingIndex = prev.findIndex(u => {
                     const uUsername = u.username?.toLowerCase().trim();
                     const uNombre = u.nombre?.toLowerCase().trim();
                     const uApellido = u.apellido?.toLowerCase().trim();
-                    const fullName = (uNombre && uApellido) ? `${uNombre} ${uApellido}` : uUsername;
+
+                    // 🔥 FIX: Construcción robusta de nombre completo (permitir nombres o apellidos solos)
+                    let fullName = "";
+                    if (uNombre || uApellido) {
+                        fullName = `${uNombre || ''} ${uApellido || ''}`.trim();
+                    } else {
+                        fullName = uUsername;
+                    }
 
                     //  FIX: Comparar con displayName, username original, O el nombre completo
                     return fullName === changedUserLower ||

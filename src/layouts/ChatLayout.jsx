@@ -195,13 +195,11 @@ const ChatLayout = ({
 
       // 🔥 CRÍTICO: Marcar hilo como leído en el backend
       try {
-        const currentUserName = user?.nombre && user?.apellido
-          ? `${user.nombre} ${user.apellido}`
-          : user?.username;
+        const readerUsername = user?.username; // 🔥 USAR DNI
 
-        if (currentUserName) {
-          console.log('📡 Marcando hilo como leído en backend:', resolvedMessage.id);
-          await apiService.markThreadAsRead(resolvedMessage.id, currentUserName);
+        if (readerUsername) {
+          console.log('📡 Marcando hilo como leído en backend:', resolvedMessage.id, 'por:', readerUsername);
+          await apiService.markThreadAsRead(resolvedMessage.id, readerUsername);
         }
       } catch (error) {
         console.error('Error al marcar hilo como leído:', error);
