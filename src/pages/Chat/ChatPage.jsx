@@ -687,10 +687,14 @@ const ChatPage = () => {
     // (previene que doble clic accidental limpie el contenido)
     const normalizedUserName = userName?.toLowerCase().trim();
     const currentTo = chatState.to?.toLowerCase().trim();
+    const convName = conversationData?.name?.toLowerCase().trim();
 
     // Si ya estamos en este chat Y hay mensajes cargados, y no hay messageId específico, no hacer nada
-    // Agregamos verificación de que realmente haya contenido visible para evitar bloquear chats vacíos
-    if (!chatState.isGroup && !chatState.currentRoomCode && currentTo === normalizedUserName && !messageId && messages.length > 0) {
+    // Comparamos contra el DNI (userName) o el Nombre (convName) para robustez
+    const isSameChat = !chatState.isGroup && !chatState.currentRoomCode &&
+      (currentTo === normalizedUserName || (convName && currentTo === convName));
+
+    if (isSameChat && !messageId && messages.length > 0) {
       console.log('⏭️ Ya estás en este chat, ignorando clic duplicado');
       return;
     }

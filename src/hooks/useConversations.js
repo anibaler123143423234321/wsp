@@ -243,7 +243,9 @@ export const useConversations = (
 
                 // Convertir mensajes al formato del frontend
                 const formattedMessages = historicalMessages.map((msg) => {
-                    const isOwnMessage = msg.from === currentUserFullName;
+                    const fromLower = msg.from?.toLowerCase().trim();
+                    const isOwnMessage = fromLower === username?.toLowerCase().trim() ||
+                        fromLower === currentUserFullName?.toLowerCase().trim();
 
                     return {
                         sender: msg.from,
@@ -364,7 +366,9 @@ export const useConversations = (
 
                 // Convertir mensajes al formato del frontend
                 const formattedMessages = historicalMessages.map((msg) => {
-                    const isOwnMessage = msg.from === currentUserFullName;
+                    const fromLower = msg.from?.toLowerCase().trim();
+                    const isOwnMessage = fromLower === username?.toLowerCase().trim() ||
+                        fromLower === currentUserFullName?.toLowerCase().trim();
                     return {
                         sender: msg.from,
                         realSender: msg.from,

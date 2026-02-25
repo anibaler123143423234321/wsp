@@ -9,6 +9,18 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
 
   const [error, setError] = useState(null); //  Estado de error
 
+  // 🔥 NUEVO: Resolver nombre completo para detección robusta de "isSelf"
+  const currentUserFullName = user?.nombre && user?.apellido
+    ? `${user.nombre} ${user.apellido}`
+    : (user?.fullName || username);
+
+  const isSelf = (from) => {
+    if (!from) return false;
+    const fromLower = from.toLowerCase().trim();
+    return fromLower === (username || '').toLowerCase().trim() ||
+      fromLower === (currentUserFullName || '').toLowerCase().trim();
+  };
+
   // 🔥 NUEVO: Estados para paginación bidireccional (búsqueda)
   const [hasMoreBefore, setHasMoreBefore] = useState(false);
   const [hasMoreAfter, setHasMoreAfter] = useState(false);
@@ -90,76 +102,79 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       }
 
       // Convertir mensajes de BD al formato del frontend
-      const formattedMessages = historicalMessages.map((msg) => ({
-        sender: msg.from === username ? "Tú" : msg.from,
-        realSender: msg.from, //  Nombre real del remitente (sin convertir a "Tú")
-        senderRole: msg.senderRole || null, //  Incluir role del remitente
-        senderNumeroAgente: msg.senderNumeroAgente || null, //  Incluir numeroAgente del remitente
-        receiver: msg.groupName || msg.to || username,
-        text: msg.message || "",
-        isGroup: msg.isGroup,
-        time:
-          msg.time ||
-          new Date(msg.sentAt).toLocaleTimeString('es-ES', {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false
-          }),
-        isSent: msg.from === username,
-        isSelf: msg.from === username,
-        isRead: msg.isRead || false, // Estado de lectura del mensaje
-        readByCount: msg.readByCount || 0, // Cantidad de lectores (lazy loading)
-        readBy: null, // Se carga bajo demanda con getMessageReadBy
-        mediaType: msg.mediaType,
-        mediaData: msg.mediaData, // Ahora es URL en lugar de Base64
-        fileName: msg.fileName,
-        fileSize: msg.fileSize, // Tamaño del archivo en bytes
-        id: msg.id,
-        sentAt: msg.sentAt,
-        // Campos de respuesta
-        replyToMessageId: msg.replyToMessageId,
-        replyToSender: msg.replyToSender, //  Mantener el valor original de la BD
-        replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null, //  Incluir numeroAgente del remitente original
-        replyToText: msg.replyToText,
-        // Campos de hilos
-        threadCount: msg.threadCount || 0,
-        unreadThreadCount: msg.unreadThreadCount || 0,
-        lastReplyFrom: msg.lastReplyFrom || null,
-        lastReplyText: msg.lastReplyText || null, //  NUEVO: Texto del último mensaje del hilo
-        // 🔥 NUEVO: Calcular si hay menciones pendientes en el hilo
-        hasUnreadThreadMentions: (msg.unreadThreadCount > 0 && msg.lastReplyText)
-          ? (() => {
-            // Detectar menciones en lastReplyText
-            const mentionRegex = /@([a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+(?:\s+[a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
-            const mentions = [];
-            let match;
-            while ((match = mentionRegex.exec(msg.lastReplyText)) !== null) {
-              mentions.push(match[1].trim().toUpperCase());
-            }
-            const userNameUpper = username.toUpperCase();
-            return mentions.some(mention =>
-              userNameUpper.includes(mention) || mention.includes(userNameUpper)
-            );
-          })()
-          : false,
-        // Campos de edición
-        isEdited: msg.isEdited || false,
-        editedAt: msg.editedAt,
-        //  Campos de eliminación
-        isDeleted: msg.isDeleted || false,
-        deletedBy: msg.deletedBy || null,
-        deletedAt: msg.deletedAt || null,
-        //  Campos de reacciones
-        reactions: msg.reactions || [],
-        //  NUEVO: Campos de videollamada
-        type: msg.type || null,
-        videoCallUrl: msg.videoCallUrl || null,
-        videoRoomID: msg.videoRoomID || null,
-        metadata: msg.metadata || null,
-        //  NUEVO: Campo de reenvío
-        isForwarded: msg.isForwarded || false,
-        attachments: msg.attachments || [],
-      }));
+      const formattedMessages = historicalMessages.map((msg) => {
+        const msgIsSelf = isSelf(msg.from);
+        return {
+          sender: msgIsSelf ? "Tú" : msg.from,
+          realSender: msg.from, //  Nombre real del remitente (sin convertir a "Tú")
+          senderRole: msg.senderRole || null, //  Incluir role del remitente
+          senderNumeroAgente: msg.senderNumeroAgente || null, //  Incluir numeroAgente del remitente
+          receiver: msg.groupName || msg.to || username,
+          text: msg.message || "",
+          isGroup: msg.isGroup,
+          time:
+            msg.time ||
+            new Date(msg.sentAt).toLocaleTimeString('es-ES', {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false
+            }),
+          isSent: msgIsSelf,
+          isSelf: msgIsSelf,
+          isRead: msg.isRead || false, // Estado de lectura del mensaje
+          readByCount: msg.readByCount || 0, // Cantidad de lectores (lazy loading)
+          readBy: null, // Se carga bajo demanda con getMessageReadBy
+          mediaType: msg.mediaType,
+          mediaData: msg.mediaData, // Ahora es URL en lugar de Base64
+          fileName: msg.fileName,
+          fileSize: msg.fileSize, // Tamaño del archivo en bytes
+          id: msg.id,
+          sentAt: msg.sentAt,
+          // Campos de respuesta
+          replyToMessageId: msg.replyToMessageId,
+          replyToSender: msg.replyToSender, //  Mantener el valor original de la BD
+          replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null, //  Incluir numeroAgente del remitente original
+          replyToText: msg.replyToText,
+          // Campos de hilos
+          threadCount: msg.threadCount || 0,
+          unreadThreadCount: msg.unreadThreadCount || 0,
+          lastReplyFrom: msg.lastReplyFrom || null,
+          lastReplyText: msg.lastReplyText || null, //  NUEVO: Texto del último mensaje del hilo
+          // 🔥 NUEVO: Calcular si hay menciones pendientes en el hilo
+          hasUnreadThreadMentions: (msg.unreadThreadCount > 0 && msg.lastReplyText)
+            ? (() => {
+              // Detectar menciones en lastReplyText
+              const mentionRegex = /@([a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+(?:\s+[a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
+              const mentions = [];
+              let match;
+              while ((match = mentionRegex.exec(msg.lastReplyText)) !== null) {
+                mentions.push(match[1].trim().toUpperCase());
+              }
+              const userNameUpper = username.toUpperCase();
+              return mentions.some(mention =>
+                userNameUpper.includes(mention) || mention.includes(userNameUpper)
+              );
+            })()
+            : false,
+          // Campos de edición
+          isEdited: msg.isEdited || false,
+          editedAt: msg.editedAt,
+          //  Campos de eliminación
+          isDeleted: msg.isDeleted || false,
+          deletedBy: msg.deletedBy || null,
+          deletedAt: msg.deletedAt || null,
+          //  Campos de reacciones
+          reactions: msg.reactions || [],
+          //  NUEVO: Campos de videollamada
+          type: msg.type || null,
+          videoCallUrl: msg.videoCallUrl || null,
+          videoRoomID: msg.videoRoomID || null,
+          metadata: msg.metadata || null,
+          //  NUEVO: Campo de reenvío
+          isForwarded: msg.isForwarded || false,
+          attachments: msg.attachments || [],
+        }
+      });
 
       // Los mensajes ya vienen en orden cronológico correcto del backend
       setMessages(formattedMessages);
@@ -266,68 +281,71 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       }
 
       // Convertir mensajes de BD al formato del frontend
-      const formattedMessages = historicalMessages.map((msg) => ({
-        sender: msg.from === username ? "Tú" : msg.from,
-        realSender: msg.from,
-        senderRole: msg.senderRole || null,
-        senderNumeroAgente: msg.senderNumeroAgente || null,
-        receiver: msg.groupName || msg.to || username,
-        text: msg.message || "",
-        isGroup: msg.isGroup,
-        time:
-          msg.time ||
-          new Date(msg.sentAt).toLocaleTimeString('es-ES', {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false
-          }),
-        isSent: msg.from === username,
-        isSelf: msg.from === username,
-        isRead: msg.isRead || false,
-        readByCount: msg.readByCount || 0,
-        readBy: null,
-        mediaType: msg.mediaType,
-        mediaData: msg.mediaData,
-        fileName: msg.fileName,
-        fileSize: msg.fileSize,
-        id: msg.id,
-        sentAt: msg.sentAt,
-        replyToMessageId: msg.replyToMessageId,
-        replyToSender: msg.replyToSender,
-        replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null,
-        replyToText: msg.replyToText,
-        threadCount: msg.threadCount || 0,
-        unreadThreadCount: msg.unreadThreadCount || 0,
-        lastReplyFrom: msg.lastReplyFrom || null,
-        lastReplyText: msg.lastReplyText || null,
-        // 🔥 NUEVO: Calcular si hay menciones pendientes en el hilo
-        hasUnreadThreadMentions: (msg.unreadThreadCount > 0 && msg.lastReplyText)
-          ? (() => {
-            const mentionRegex = /@([a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+(?:\s+[a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
-            const mentions = [];
-            let match;
-            while ((match = mentionRegex.exec(msg.lastReplyText)) !== null) {
-              mentions.push(match[1].trim().toUpperCase());
-            }
-            const userNameUpper = username.toUpperCase();
-            return mentions.some(mention =>
-              userNameUpper.includes(mention) || mention.includes(userNameUpper)
-            );
-          })()
-          : false,
-        isEdited: msg.isEdited || false,
-        editedAt: msg.editedAt,
-        isDeleted: msg.isDeleted || false,
-        deletedBy: msg.deletedBy || null,
-        deletedAt: msg.deletedAt || null,
-        reactions: msg.reactions || [],
-        type: msg.type || null,
-        videoCallUrl: msg.videoCallUrl || null,
-        videoRoomID: msg.videoRoomID || null,
-        metadata: msg.metadata || null,
-        isForwarded: msg.isForwarded || false,
-        attachments: msg.attachments || [],
-      }));
+      const formattedMessages = historicalMessages.map((msg) => {
+        const msgIsSelf = isSelf(msg.from);
+        return {
+          sender: msgIsSelf ? "Tú" : msg.from,
+          realSender: msg.from,
+          senderRole: msg.senderRole || null,
+          senderNumeroAgente: msg.senderNumeroAgente || null,
+          receiver: msg.groupName || msg.to || username,
+          text: msg.message || "",
+          isGroup: msg.isGroup,
+          time:
+            msg.time ||
+            new Date(msg.sentAt).toLocaleTimeString('es-ES', {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false
+            }),
+          isSent: msgIsSelf,
+          isSelf: msgIsSelf,
+          isRead: msg.isRead || false,
+          readByCount: msg.readByCount || 0,
+          readBy: null,
+          mediaType: msg.mediaType,
+          mediaData: msg.mediaData,
+          fileName: msg.fileName,
+          fileSize: msg.fileSize,
+          id: msg.id,
+          sentAt: msg.sentAt,
+          replyToMessageId: msg.replyToMessageId,
+          replyToSender: msg.replyToSender,
+          replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null,
+          replyToText: msg.replyToText,
+          threadCount: msg.threadCount || 0,
+          unreadThreadCount: msg.unreadThreadCount || 0,
+          lastReplyFrom: msg.lastReplyFrom || null,
+          lastReplyText: msg.lastReplyText || null,
+          // 🔥 NUEVO: Calcular si hay menciones pendientes en el hilo
+          hasUnreadThreadMentions: (msg.unreadThreadCount > 0 && msg.lastReplyText)
+            ? (() => {
+              const mentionRegex = /@([a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+(?:\s+[a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
+              const mentions = [];
+              let match;
+              while ((match = mentionRegex.exec(msg.lastReplyText)) !== null) {
+                mentions.push(match[1].trim().toUpperCase());
+              }
+              const userNameUpper = username.toUpperCase();
+              return mentions.some(mention =>
+                userNameUpper.includes(mention) || mention.includes(userNameUpper)
+              );
+            })()
+            : false,
+          isEdited: msg.isEdited || false,
+          editedAt: msg.editedAt,
+          isDeleted: msg.isDeleted || false,
+          deletedBy: msg.deletedBy || null,
+          deletedAt: msg.deletedAt || null,
+          reactions: msg.reactions || [],
+          type: msg.type || null,
+          videoCallUrl: msg.videoCallUrl || null,
+          videoRoomID: msg.videoRoomID || null,
+          metadata: msg.metadata || null,
+          isForwarded: msg.isForwarded || false,
+          attachments: msg.attachments || [],
+        }
+      });
 
       // Agregar mensajes más antiguos al inicio
       setMessages((prevMessages) => {
@@ -406,47 +424,50 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       }
 
       // Convertir formato
-      const formattedMessages = forwardMessages.map((msg) => ({
-        sender: msg.from === username ? "Tú" : msg.from,
-        realSender: msg.from,
-        senderRole: msg.senderRole || null,
-        senderNumeroAgente: msg.senderNumeroAgente || null,
-        receiver: msg.groupName || msg.to || username,
-        text: msg.message || "",
-        isGroup: msg.isGroup,
-        time: msg.time || new Date(msg.sentAt).toLocaleTimeString('es-ES', { hour: "2-digit", minute: "2-digit", hour12: false }),
-        isSent: msg.from === username,
-        isSelf: msg.from === username,
-        isRead: msg.isRead || false,
-        readByCount: msg.readByCount || 0,
-        readBy: null,
-        mediaType: msg.mediaType,
-        mediaData: msg.mediaData,
-        fileName: msg.fileName,
-        fileSize: msg.fileSize,
-        id: msg.id,
-        sentAt: msg.sentAt,
-        replyToMessageId: msg.replyToMessageId,
-        replyToSender: msg.replyToSender,
-        replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null,
-        replyToText: msg.replyToText,
-        threadCount: msg.threadCount || 0,
-        unreadThreadCount: msg.unreadThreadCount || 0,
-        lastReplyFrom: msg.lastReplyFrom || null,
-        lastReplyText: msg.lastReplyText || null,
-        isEdited: msg.isEdited || false,
-        editedAt: msg.editedAt,
-        isDeleted: msg.isDeleted || false,
-        deletedBy: msg.deletedBy || null,
-        deletedAt: msg.deletedAt || null,
-        reactions: msg.reactions || [],
-        type: msg.type || null,
-        videoCallUrl: msg.videoCallUrl || null,
-        videoRoomID: msg.videoRoomID || null,
-        metadata: msg.metadata || null,
-        isForwarded: msg.isForwarded || false,
-        attachments: msg.attachments || [],
-      }));
+      const formattedMessages = forwardMessages.map((msg) => {
+        const msgIsSelf = isSelf(msg.from);
+        return {
+          sender: msgIsSelf ? "Tú" : msg.from,
+          realSender: msg.from,
+          senderRole: msg.senderRole || null,
+          senderNumeroAgente: msg.senderNumeroAgente || null,
+          receiver: msg.groupName || msg.to || username,
+          text: msg.message || "",
+          isGroup: msg.isGroup,
+          time: msg.time || new Date(msg.sentAt).toLocaleTimeString('es-ES', { hour: "2-digit", minute: "2-digit", hour12: false }),
+          isSent: msgIsSelf,
+          isSelf: msgIsSelf,
+          isRead: msg.isRead || false,
+          readByCount: msg.readByCount || 0,
+          readBy: null,
+          mediaType: msg.mediaType,
+          mediaData: msg.mediaData,
+          fileName: msg.fileName,
+          fileSize: msg.fileSize,
+          id: msg.id,
+          sentAt: msg.sentAt,
+          replyToMessageId: msg.replyToMessageId,
+          replyToSender: msg.replyToSender,
+          replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null,
+          replyToText: msg.replyToText,
+          threadCount: msg.threadCount || 0,
+          unreadThreadCount: msg.unreadThreadCount || 0,
+          lastReplyFrom: msg.lastReplyFrom || null,
+          lastReplyText: msg.lastReplyText || null,
+          isEdited: msg.isEdited || false,
+          editedAt: msg.editedAt,
+          isDeleted: msg.isDeleted || false,
+          deletedBy: msg.deletedBy || null,
+          deletedAt: msg.deletedAt || null,
+          reactions: msg.reactions || [],
+          type: msg.type || null,
+          videoCallUrl: msg.videoCallUrl || null,
+          videoRoomID: msg.videoRoomID || null,
+          metadata: msg.metadata || null,
+          isForwarded: msg.isForwarded || false,
+          attachments: msg.attachments || [],
+        }
+      });
 
       // AGREGAR AL FINAL
       setMessages((prevMessages) => {
@@ -663,66 +684,69 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       historicalMessages = historicalMessages.filter(msg => !msg.threadId && !msg.thread_id && !msg.parentMessageId);
 
       // Convertir mensajes de BD al formato del frontend
-      const formattedMessages = historicalMessages.map((msg) => ({
-        sender: msg.from === username ? "Tú" : msg.from,
-        realSender: msg.from,
-        senderRole: msg.senderRole || null,
-        senderNumeroAgente: msg.senderNumeroAgente || null,
-        receiver: msg.groupName || msg.to || username,
-        text: msg.message || "",
-        isGroup: msg.isGroup,
-        time: msg.time || new Date(msg.sentAt).toLocaleTimeString('es-ES', {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false
-        }),
-        isSent: msg.from === username,
-        isSelf: msg.from === username,
-        isRead: msg.isRead || false,
-        readByCount: msg.readByCount || 0,
-        readBy: null,
-        mediaType: msg.mediaType,
-        mediaData: msg.mediaData,
-        fileName: msg.fileName,
-        fileSize: msg.fileSize,
-        id: msg.id,
-        sentAt: msg.sentAt,
-        replyToMessageId: msg.replyToMessageId,
-        replyToSender: msg.replyToSender,
-        replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null,
-        replyToText: msg.replyToText,
-        threadCount: msg.threadCount || 0,
-        unreadThreadCount: msg.unreadThreadCount || 0,
-        lastReplyFrom: msg.lastReplyFrom || null,
-        lastReplyText: msg.lastReplyText || null,
-        // 🔥 NUEVO: Calcular si hay menciones pendientes en el hilo
-        hasUnreadThreadMentions: (msg.unreadThreadCount > 0 && msg.lastReplyText)
-          ? (() => {
-            const mentionRegex = /@([a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+(?:\s+[a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
-            const mentions = [];
-            let match;
-            while ((match = mentionRegex.exec(msg.lastReplyText)) !== null) {
-              mentions.push(match[1].trim().toUpperCase());
-            }
-            const userNameUpper = username.toUpperCase();
-            return mentions.some(mention =>
-              userNameUpper.includes(mention) || mention.includes(userNameUpper)
-            );
-          })()
-          : false,
-        isEdited: msg.isEdited || false,
-        editedAt: msg.editedAt,
-        isDeleted: msg.isDeleted || false,
-        deletedBy: msg.deletedBy || null,
-        deletedAt: msg.deletedAt || null,
-        reactions: msg.reactions || [],
-        type: msg.type || null,
-        videoCallUrl: msg.videoCallUrl || null,
-        videoRoomID: msg.videoRoomID || null,
-        metadata: msg.metadata || null,
-        isForwarded: msg.isForwarded || false,
-        attachments: msg.attachments || [],
-      }));
+      const formattedMessages = historicalMessages.map((msg) => {
+        const msgIsSelf = isSelf(msg.from);
+        return {
+          sender: msgIsSelf ? "Tú" : msg.from,
+          realSender: msg.from,
+          senderRole: msg.senderRole || null,
+          senderNumeroAgente: msg.senderNumeroAgente || null,
+          receiver: msg.groupName || msg.to || username,
+          text: msg.message || "",
+          isGroup: msg.isGroup,
+          time: msg.time || new Date(msg.sentAt).toLocaleTimeString('es-ES', {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false
+          }),
+          isSent: msgIsSelf,
+          isSelf: msgIsSelf,
+          isRead: msg.isRead || false,
+          readByCount: msg.readByCount || 0,
+          readBy: null,
+          mediaType: msg.mediaType,
+          mediaData: msg.mediaData,
+          fileName: msg.fileName,
+          fileSize: msg.fileSize,
+          id: msg.id,
+          sentAt: msg.sentAt,
+          replyToMessageId: msg.replyToMessageId,
+          replyToSender: msg.replyToSender,
+          replyToSenderNumeroAgente: msg.replyToSenderNumeroAgente || null,
+          replyToText: msg.replyToText,
+          threadCount: msg.threadCount || 0,
+          unreadThreadCount: msg.unreadThreadCount || 0,
+          lastReplyFrom: msg.lastReplyFrom || null,
+          lastReplyText: msg.lastReplyText || null,
+          // 🔥 NUEVO: Calcular si hay menciones pendientes en el hilo
+          hasUnreadThreadMentions: (msg.unreadThreadCount > 0 && msg.lastReplyText)
+            ? (() => {
+              const mentionRegex = /@([a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+(?:\s+[a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
+              const mentions = [];
+              let match;
+              while ((match = mentionRegex.exec(msg.lastReplyText)) !== null) {
+                mentions.push(match[1].trim().toUpperCase());
+              }
+              const userNameUpper = username.toUpperCase();
+              return mentions.some(mention =>
+                userNameUpper.includes(mention) || mention.includes(userNameUpper)
+              );
+            })()
+            : false,
+          isEdited: msg.isEdited || false,
+          editedAt: msg.editedAt,
+          isDeleted: msg.isDeleted || false,
+          deletedBy: msg.deletedBy || null,
+          deletedAt: msg.deletedAt || null,
+          reactions: msg.reactions || [],
+          type: msg.type || null,
+          videoCallUrl: msg.videoCallUrl || null,
+          videoRoomID: msg.videoRoomID || null,
+          metadata: msg.metadata || null,
+          isForwarded: msg.isForwarded || false,
+          attachments: msg.attachments || [],
+        }
+      });
 
       setMessages(formattedMessages);
 
