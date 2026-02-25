@@ -1813,29 +1813,29 @@ const ConversationList = ({
                       filteredRooms.sort((a, b) => {
                         // Helper para obtener la fecha más reciente de una sala
                         const getDate = (room) => {
+                          // 🔥 Priorizar lastActivity (viene calculado del backend con el último mensaje real)
+                          if (room.lastActivity) {
+                            const t = new Date(room.lastActivity).getTime();
+                            if (!isNaN(t)) return t;
+                          }
+
                           const msgDate = room.lastMessage?.sentAt || room.lastMessage?.createdAt || room.lastMessage?.date;
-                          // Intentar crear fecha del mensaje (evitar strings de hora sola como '10:30')
-                          let d1 = 0;
                           if (msgDate) {
                             const t = new Date(msgDate).getTime();
-                            if (!isNaN(t)) d1 = t;
+                            if (!isNaN(t)) return t;
                           }
 
-                          // Intentar fecha de actualización o creación de la sala
-                          let d2 = 0;
                           if (room.updatedAt) {
                             const t = new Date(room.updatedAt).getTime();
-                            if (!isNaN(t)) d2 = t;
+                            if (!isNaN(t)) return t;
                           }
 
-                          let d3 = 0;
                           if (room.createdAt) {
                             const t = new Date(room.createdAt).getTime();
-                            if (!isNaN(t)) d3 = t;
+                            if (!isNaN(t)) return t;
                           }
 
-                          const maxDate = Math.max(d1, d2, d3);
-                          return maxDate;
+                          return 0;
                         };
 
                         const dateA = getDate(a);

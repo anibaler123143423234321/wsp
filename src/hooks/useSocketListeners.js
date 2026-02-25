@@ -160,7 +160,8 @@ export const useSocketListeners = (
         });
 
         const parseDate = (r) => {
-            const dateStr = r.lastMessage?.sentAt || r.lastMessage?.time || r.lastMessageTime || r.createdAt;
+            // 🔥 Priorizar lastActivity del backend (fecha real del último mensaje)
+            const dateStr = r.lastActivity || r.lastMessage?.sentAt || r.lastMessage?.time || r.lastMessageTime || r.createdAt;
             if (!dateStr) return 0;
             const d = new Date(dateStr).getTime();
             return isNaN(d) ? 0 : d;
@@ -837,6 +838,7 @@ export const useSocketListeners = (
                                 if (r.roomCode === data.roomCode) {
                                     return {
                                         ...r,
+                                        lastActivity: sentAt, // 🔥 Actualizar para que el sort lo mueva arriba
                                         lastMessage: {
                                             text: messageText,
                                             from: data.from,
@@ -1081,9 +1083,13 @@ export const useSocketListeners = (
                                 });
 
                                 return updated.sort((a, b) => {
-                                    const aTime = a.lastMessage?.sentAt || a.lastMessageTime || a.createdAt || '';
-                                    const bTime = b.lastMessage?.sentAt || b.lastMessageTime || b.createdAt || '';
-                                    return new Date(bTime) - new Date(aTime);
+                                    const aTime = a.lastMessage?.sentAt || a.lastMessageTime || a.createdAt || 0;
+                                    const bTime = b.lastMessage?.sentAt || b.lastMessageTime || b.createdAt || 0;
+                                    const aDate = new Date(aTime).getTime();
+                                    const bDate = new Date(bTime).getTime();
+                                    const safeA = isNaN(aDate) ? 0 : aDate;
+                                    const safeB = isNaN(bDate) ? 0 : bDate;
+                                    return safeB - safeA;
                                 });
                             });
 
@@ -1483,9 +1489,13 @@ export const useSocketListeners = (
 
                 // Reordenar: más recientes primero
                 return updated.sort((a, b) => {
-                    const aTime = a.lastMessage?.sentAt || a.lastMessageTime || a.createdAt || '';
-                    const bTime = b.lastMessage?.sentAt || b.lastMessageTime || b.createdAt || '';
-                    return new Date(bTime) - new Date(aTime);
+                    const aTime = a.lastMessage?.sentAt || a.lastMessageTime || a.createdAt || 0;
+                    const bTime = b.lastMessage?.sentAt || b.lastMessageTime || b.createdAt || 0;
+                    const aDate = new Date(aTime).getTime();
+                    const bDate = new Date(bTime).getTime();
+                    const safeA = isNaN(aDate) ? 0 : aDate;
+                    const safeB = isNaN(bDate) ? 0 : bDate;
+                    return safeB - safeA;
                 });
             });
 

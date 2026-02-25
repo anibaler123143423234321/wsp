@@ -1110,10 +1110,22 @@ const ChatPage = () => {
       const myNameNormalized = normalizeUsername(currentUserFullName);
       const myDniNormalized = normalizeUsername(user?.username || '');
 
-      const assignedConv = chatState.assignedConversations?.find((conv) => {
-        const participants = conv.participants || [];
-        return participants.some(p => normalizeUsername(p) === normalizeUsername(chatState.to));
+      let assignedConv = chatState.adminViewConversation;
+      if (!assignedConv) {
+        assignedConv = chatState.assignedConversations?.find((conv) => {
+          if (conv.name && normalizeUsername(conv.name) === normalizeUsername(chatState.to)) return true;
+          const participants = conv.participants || [];
+          return participants.some(p => normalizeUsername(p) === normalizeUsername(chatState.to));
+        });
+      }
+
+      console.log('🔍 [handleSendMessage] DEBUG assignedConv:', {
+        fromState: !!chatState.adminViewConversation,
+        foundId: assignedConv?.id,
+        participants: assignedConv?.participants,
+        to: chatState.to
       });
+
       const effectiveIsGroup = assignedConv ? false : chatState.isGroup;
 
       // 🛡️ FRONTEND CROSS-TALK FIX
@@ -1210,6 +1222,7 @@ const ChatPage = () => {
         from: currentUserFullName,
         fromId: user.id,
         to: chatState.to,
+        groupName: effectiveIsGroup ? chatState.to : undefined,
         message: String(input || ""),
         isGroup: effectiveIsGroup,
         roomCode: finalRoomCode,
@@ -1263,7 +1276,7 @@ const ChatPage = () => {
         // INDIVIDUAL: Frontend guarda en BD, luego emite por socket
         const savedMessage = await apiService.createMessage({
           ...messageObj,
-          to: messageObj.actualRecipient || messageObj.to
+          to: messageObj.to
         });
 
         console.log('✅ Mensaje guardado:', savedMessage.id);
@@ -1555,10 +1568,13 @@ const ChatPage = () => {
       const myNameNormalized = normalizeUsername(currentUserFullName);
       const myDniNormalized = normalizeUsername(user?.username || '');
 
-      const assignedConv = chatState.assignedConversations?.find((conv) => {
-        const participants = conv.participants || [];
-        return participants.some(p => normalizeUsername(p) === normalizeUsername(chatState.to));
-      });
+      let assignedConv = chatState.adminViewConversation;
+      if (!assignedConv) {
+        assignedConv = chatState.assignedConversations?.find((conv) => {
+          const participants = conv.participants || [];
+          return participants.some(p => normalizeUsername(p) === normalizeUsername(chatState.to));
+        });
+      }
 
       // Si es grupo, SIEMPRE es grupo
       const effectiveIsGroup = chatState.isGroup;
@@ -1584,6 +1600,7 @@ const ChatPage = () => {
       const messageData = {
         to: chatState.to,
         isGroup: effectiveIsGroup,
+        groupName: effectiveIsGroup ? chatState.to : undefined,
         from: currentUserFullName,
         fromId: user.id,
         mediaType: "audio",
@@ -1616,7 +1633,7 @@ const ChatPage = () => {
         // INDIVIDUAL: Frontend guarda en BD, luego emite por socket
         const savedMessage = await apiService.createMessage({
           ...messageData,
-          to: messageData.actualRecipient || messageData.to
+          to: messageData.to
         });
 
         if (socket && socket.connected) {
@@ -2152,8 +2169,8 @@ const ChatPage = () => {
 
   // Callbacks para paginación
   const handleLoadUserRooms = useCallback(
-    async (page) => {
-      await roomManagement.loadMyActiveRooms(page, true, null, user);
+    async (page, append = true) => {
+      await roomManagement.loadMyActiveRooms(page, append, null, user);
     },
     [roomManagement, user]
   );
