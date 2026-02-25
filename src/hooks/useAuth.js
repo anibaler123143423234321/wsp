@@ -16,11 +16,7 @@ export const useAuth = () => {
       if (apiService.isAuthenticated()) {
         const currentUser = apiService.getCurrentUser();
         setUser(currentUser);
-        const displayName =
-          currentUser.nombre && currentUser.apellido
-            ? `${currentUser.nombre} ${currentUser.apellido}`
-            : currentUser.username || currentUser.email;
-        setUsername(displayName);
+        setUsername(currentUser.username || currentUser.email);
         setIsAuthenticated(true);
 
         const isUserAdmin =
