@@ -1645,7 +1645,7 @@ const ConversationList = ({
                             let displayName = conv.name || otherParticipantDisplay;
 
                             const isHighlighted = highlightedChatId === chatId;
-                            const isSelected = (!isGroup && to && (to === (displayName || '') || otherParticipant?.toLowerCase().trim() === to?.toLowerCase().trim())) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
+                            const isSelected = (!isGroup && to && (to === (displayName || '') || otherParticipantId?.toLowerCase().trim() === to?.toLowerCase().trim())) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
                             // 🔥 NUEVO: Verificar si hay menciones pendientes
                             const hasMentions = hasPendingMentions(conv.id, conv.lastMessage, conv);
                             const isFavorite = true; // Siempre es favorito en esta sección
@@ -1655,8 +1655,8 @@ const ConversationList = ({
                             // 🔥 FIX: Usar conv.picture como valor base (viene de la API)
                             let otherParticipantPicture = conv.picture || null;
 
-                            if (otherParticipant) {
-                              const otherParticipantNormalized = otherParticipant.toLowerCase().trim();
+                            if (otherParticipantId) {
+                              const otherParticipantNormalized = otherParticipantId.toLowerCase().trim();
                               // Buscar en userList
                               const otherUser = userList.find(u => {
                                 const uFullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : u.username;
@@ -1686,11 +1686,11 @@ const ConversationList = ({
                                 id={chatId}
                                 className={`flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer ${isSelected ? 'selected-conversation' : ''} ${isHighlighted ? 'highlighted-chat' : ''}`}
                                 style={{ padding: '4px 12px', gap: '6px', minHeight: '40px' }}
-                                onClick={() => onUserSelect && onUserSelect(otherParticipant, null, conv)}
+                                onClick={() => onUserSelect && onUserSelect(otherParticipantId, null, conv)}
                               >
                                 <div className="relative flex-shrink-0" style={{ width: '32px', height: '32px' }}>
                                   <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold" style={{ width: '32px', height: '32px', fontSize: '14px', backgroundColor: '#A50104' }}>
-                                    {otherParticipantPicture ? <img src={otherParticipantPicture} alt={otherParticipant} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = getInitials(otherParticipant); }} /> : getInitials(otherParticipant)}
+                                    {otherParticipantPicture ? <img src={otherParticipantPicture} alt={displayName} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = getInitials(displayName); }} /> : getInitials(displayName)}
                                   </div>
 
                                   {/* 🔥 Indicador de estado para favoritos */}
