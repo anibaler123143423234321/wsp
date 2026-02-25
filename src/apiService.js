@@ -248,31 +248,24 @@ class ApiService {
 
   // Método para cerrar sesión
   logout() {
-    const user = this.getCurrentUser();
-    const username = user?.username;
+    // 1. Preservar configuración que debe persistir (Sede y Tema)
+    const savedSede = localStorage.getItem("selectedSede");
+    const savedTheme = localStorage.getItem("theme");
 
-    // 1. Limpiar contadores de mensajes no leídos
-    // Prioridad: username (DNI)
-    if (username) {
-      localStorage.removeItem(`unreadCounts_${username}`);
+    // 2. Limpiar TODO el localStorage
+    localStorage.clear();
+
+    // 3. Restaurar lo preservado
+    if (savedSede) localStorage.setItem("selectedSede", savedSede);
+    if (savedTheme) localStorage.setItem("theme", savedTheme);
+
+    // Resetear a la sede por defecto si no había una guardada
+    if (!savedSede) {
+      this.setSede('CHICLAYO_PIURA');
+    } else {
+      // Sincronizar la sede actual con la restaurada
+      this.setSede(savedSede);
     }
-
-    // También por nombre completo (legacy/compatibilidad)
-    const displayFullName =
-      user?.nombre && user?.apellido
-        ? `${user.nombre} ${user.apellido}`
-        : user?.displayfullname || user?.username;
-
-    if (displayFullName && displayFullName !== username) {
-      localStorage.removeItem(`unreadCounts_${displayFullName}`);
-    }
-
-    // 2. Limpiar otros datos de sesión
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    localStorage.removeItem("selectedSede");
-    // Resetear a la sede por defecto
-    this.setSede('CHICLAYO_PIURA');
 
     // 🔥 Limpiar token en SW
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
