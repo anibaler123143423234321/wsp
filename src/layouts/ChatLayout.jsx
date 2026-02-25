@@ -231,19 +231,55 @@ const ChatLayout = ({
   // Si el mensaje del hilo tiene un ID temporal, vigilamos la lista de mensajes
   // por si llega el ID real confirmado por el servidor.
   React.useEffect(() => {
-    if (showThreadPanel && threadMessage && String(threadMessage.id).startsWith('temp_')) {
-      // Buscar en la lista de mensajes uno que ya no sea temporal y que coincida
-      const realMessage = messages.find(m =>
-        (m.tempId === threadMessage.id || m.id === threadMessage.id.replace('temp_', '')) ||
-        (m.from === threadMessage.from && (m.text === threadMessage.text || m.message === threadMessage.message) && !String(m.id).startsWith('temp_'))
-      );
+    if (!showThreadPanel || !threadMessage || !String(threadMessage.id).startsWith('temp_')) return;
 
-      if (realMessage && !String(realMessage.id).startsWith('temp_')) {
-        console.log('🔄 Sincronizando ID real para el panel de hilos:', realMessage.id);
-        setThreadMessage(realMessage);
-      }
+    // Buscar en la lista de mensajes uno que ya no sea temporal y que coincida
+    const threadText = threadMessage.text || threadMessage.message || '';
+    const threadFrom = threadMessage.from || threadMessage.realSender || '';
+
+    const realMessage = messages.find(m => {
+      if (String(m.id).startsWith('temp_')) return false; // Ignorar otros temporales
+
+      // Match por tempId directo
+      if (m.tempId === threadMessage.id) return true;
+
+      // Match por contenido + remitente (robusto: compara text Y message)
+      const msgText = m.text || m.message || '';
+      const msgFrom = m.from || m.realSender || '';
+      if (msgFrom === threadFrom && msgText === threadText && threadText) return true;
+
+      return false;
+    });
+
+    if (realMessage) {
+      console.log('🔄 Sincronizando ID real para el panel de hilos:', realMessage.id);
+      setThreadMessage(realMessage);
     }
   }, [messages, showThreadPanel, threadMessage]);
+
+  // 🔥 Timeout fallback: si después de 5s el ID sigue siendo temporal, desbloquear
+  React.useEffect(() => {
+    if (!showThreadPanel || !threadMessage || !String(threadMessage.id).startsWith('temp_')) return;
+
+    const timeout = setTimeout(() => {
+      if (String(threadMessage?.id).startsWith('temp_')) {
+        console.warn('⏰ Timeout: ID temporal no resuelto, forzando desbloqueo del hilo');
+        // Buscar el mensaje más reciente del mismo remitente como fallback
+        const fallback = [...messages].reverse().find(m =>
+          !String(m.id).startsWith('temp_') &&
+          (m.from === threadMessage.from || m.realSender === threadMessage.realSender)
+        );
+        if (fallback) {
+          setThreadMessage(fallback);
+        } else {
+          // Último recurso: quitar el prefijo temp_ para desbloquear
+          setThreadMessage(prev => ({ ...prev, id: Date.now() }));
+        }
+      }
+    }, 5000);
+
+    return () => clearTimeout(timeout);
+  }, [showThreadPanel, threadMessage?.id]);
 
   // Cerrar paneles si cambia el chat
   React.useEffect(() => {
