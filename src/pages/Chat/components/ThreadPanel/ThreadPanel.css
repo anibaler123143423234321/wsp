@@ -499,6 +499,7 @@ html.dark .thread-message:hover {
   border-radius: 24px;
   padding: 4px 10px;
   width: 100%;
+  min-width: 0;
   min-height: auto;
 }
 
@@ -552,6 +553,7 @@ html.dark .thread-message:hover {
 
 .thread-input {
   flex: 1;
+  width: 100%;
   background: #FAFAFA;
   /* Igual que ChatContent */
   border: none;
@@ -569,28 +571,33 @@ html.dark .thread-message:hover {
   max-height: 300px;
   min-height: 24px;
   overflow-y: auto;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .thread-input-overlay-wrap {
   position: relative;
   flex: 1;
+  width: 100%;
+  min-width: 0;
 }
 
 .thread-input-highlight {
   position: absolute;
   inset: 0;
+  width: 100%;
+  box-sizing: border-box;
   padding: 6px 10px;
   border-radius: 12.83px;
   font-size: 14.97px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-weight: 400;
   line-height: 1.4;
-  color: #000000;
   white-space: pre-wrap;
   word-break: break-word;
   pointer-events: none;
+  color: #000000;
   overflow: hidden;
-  max-height: 300px;
 }
 
 .thread-input-highlight.is-placeholder {
@@ -600,8 +607,11 @@ html.dark .thread-message:hover {
 .thread-input-overlay-textarea {
   position: relative;
   z-index: 1;
-  background: transparent;
+  display: block;
+  width: 100%;
+  background: transparent !important;
   color: transparent !important;
+  -webkit-text-fill-color: transparent;
   caret-color: #000000;
 }
 
@@ -617,24 +627,6 @@ html.dark .thread-message:hover {
   padding: 0 2px;
 }
 
-html.dark .thread-input-highlight {
-  color: #e9edef !important;
-}
-
-html.dark .thread-input-highlight.is-placeholder {
-  color: rgba(233, 237, 239, 0.5) !important;
-}
-
-html.dark .thread-input-overlay-textarea {
-  color: transparent !important;
-  caret-color: #e9edef !important;
-}
-
-html.dark .thread-input-mention-highlight {
-  background-color: #b8860b !important;
-  color: #ffffff !important;
-}
-
 .thread-input::placeholder {
   color: rgba(0, 0, 0, 0.45);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -644,6 +636,39 @@ html.dark .thread-input-mention-highlight {
 
 .thread-input:focus {
   outline: none;
+}
+
+@media (max-width: 600px) {
+  .thread-input-container {
+    padding: 4px 6px;
+  }
+
+  .thread-input-wrapper {
+    gap: 4px;
+    padding: 3px 6px;
+    border-radius: 18px;
+  }
+
+  .thread-emoji-btn,
+  .thread-plus-btn {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+  }
+
+  .thread-send-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    padding: 6px;
+  }
+
+  .thread-input,
+  .thread-input-highlight {
+    padding: 6px 8px;
+    font-size: 14px;
+    min-height: 22px;
+  }
 }
 
 /* Estilos para los iconos SVG del input */
@@ -1911,6 +1936,26 @@ html.dark .thread-input {
   color: #e9edef !important;
 }
 
+html.dark .thread-input-highlight {
+  color: #e9edef !important;
+}
+
+html.dark .thread-input-highlight.is-placeholder {
+  color: rgba(233, 237, 239, 0.5) !important;
+}
+
+html.dark .thread-input-overlay-textarea {
+  background: transparent !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  caret-color: #e9edef !important;
+}
+
+html.dark .thread-input-mention-highlight {
+  background-color: #b8860b !important;
+  color: #ffffff !important;
+}
+
 html.dark .thread-input::placeholder {
   color: rgba(233, 237, 239, 0.5) !important;
 }
@@ -2057,13 +2102,13 @@ html.dark .new-messages-count {
   color: #00a884;
 }
 
-/* Estilo mensaje mencionado (Fondo Rosado) */
+/* Estilo mensaje mencionado (Fondo Amarillo) */
 .thread-message-text.mentioned {
-  background-color: rgb(253, 230, 234) !important;
+  background-color: rgba(252, 232, 178, 0.45) !important;
 }
 
 html.dark .thread-message-text.mentioned {
-  background-color: rgba(253, 230, 234, 0.15) !important;
+  background-color: rgba(184, 134, 11, 0.25) !important;
 }
 
 .wa-reply-icon-small {

@@ -209,6 +209,7 @@ const ThreadPanel = ({
   const [mentionSearchTerm, setMentionSearchTerm] = useState("");
   const [filteredMembers, setFilteredMembers] = useState([]);
   const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
+  const [activeMentionRange, setActiveMentionRange] = useState(null);
   const [mentionLookupCache, setMentionLookupCache] = useState({});
   const [roomUsersFromApi, setRoomUsersFromApi] = useState([]);
   const [peopleDirectoryCache, setPeopleDirectoryCache] = useState([]);
@@ -1523,16 +1524,7 @@ const ThreadPanel = ({
           } : {}),
         };
 
-        // 🚀 OPTIMISTIC UPDATE: Agregar inmediatamente con ID temporal
-        const tempId = `temp_${Date.now()}`;
-        setThreadMessages(prev => [...prev, {
-          ...messageData,
-          id: tempId,
-          message: messageData.text,
-          sentAt: new Date().toISOString(),
-        }]);
-
-        // Enviar UN solo mensaje
+        // Enviar UN solo mensaje (esperar data final del backend/socket)
         onSendMessage(messageData);
 
       } else {
@@ -1542,16 +1534,7 @@ const ThreadPanel = ({
           ...baseMessageData,
         };
 
-        // 🚀 OPTIMISTIC UPDATE: Agregar inmediatamente con ID temporal
-        const tempId = `temp_${Date.now()}`;
-        setThreadMessages(prev => [...prev, {
-          ...messageData,
-          id: tempId,
-          message: currentInput,
-          sentAt: new Date().toISOString(),
-        }]);
-
-        // Enviar (no esperar - fire and forget)
+        // Enviar (esperar data final del backend/socket)
         onSendMessage(messageData);
       }
 
@@ -1642,6 +1625,10 @@ const ThreadPanel = ({
     if (atMatch) {
       const searchTerm = atMatch[1].toLowerCase();
       setMentionSearchTerm(searchTerm);
+      setActiveMentionRange({
+        start: cursorPos - atMatch[0].length,
+        end: cursorPos,
+      });
 
       const primarySource = Array.isArray(mentionBaseUsers) ? mentionBaseUsers : [];
       const fallbackSource = [
@@ -1683,6 +1670,7 @@ const ThreadPanel = ({
       setSelectedMentionIndex(0);
     } else {
       setShowMentionSuggestions(false);
+      setActiveMentionRange(null);
     }
   };
 
@@ -1718,6 +1706,23 @@ const ThreadPanel = ({
 
     return parts;
   }, []);
+
+  const renderActiveMentionInInput = useCallback((text) => {
+    if (!text) return null;
+    if (!activeMentionRange) return text;
+
+    const start = Math.max(0, activeMentionRange.start ?? 0);
+    const end = Math.min(text.length, activeMentionRange.end ?? 0);
+    if (end <= start) return text;
+
+    return (
+      <>
+        {text.slice(0, start)}
+        <span className="thread-input-mention-highlight">{text.slice(start, end)}</span>
+        {text.slice(end)}
+      </>
+    );
+  }, [activeMentionRange]);
 
   //  NUEVO: Handler de paste para imágenes
   //  NUEVO: Handler de paste inteligente
@@ -1758,6 +1763,7 @@ const ThreadPanel = ({
     }
 
     setShowMentionSuggestions(false);
+    setActiveMentionRange(null);
   };
 
 
@@ -1813,6 +1819,7 @@ const ThreadPanel = ({
       if (e.key === 'Escape') {
         e.preventDefault();
         setShowMentionSuggestions(false);
+        setActiveMentionRange(null);
         return;
       }
     }
@@ -3445,7 +3452,7 @@ const ThreadPanel = ({
                   className={`thread-input-highlight ${input ? "" : "is-placeholder"}`}
                   aria-hidden="true"
                 >
-                  {input ? renderThreadInputWithMentions(input) : "Escribe un mensaje"}
+                  {input ? renderActiveMentionInInput(input) : "Escribe un mensaje"}
                 </div>
                 <textarea
                   ref={inputRef}
