@@ -644,6 +644,7 @@ const ChatPage = () => {
       stopRingtone, //  Pasar función
       loadAssignedConversations: conversations.loadAssignedConversations,
       loadMyActiveRooms: roomManagement.loadMyActiveRooms,
+      loadFavoriteRoomCodes: chatState.loadFavoriteRoomCodes, // 🔥 NUEVO: Para refrescar favoritos en tiempo real
       clearMessages
     },
     {

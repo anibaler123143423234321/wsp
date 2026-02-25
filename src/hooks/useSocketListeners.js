@@ -84,7 +84,7 @@ export const useSocketListeners = (
     const {
         addNewMessage, updateMessage, playMessageSound,
         playRingtone, stopRingtone,
-        loadAssignedConversations, loadMyActiveRooms, clearMessages
+        loadAssignedConversations, loadMyActiveRooms, loadFavoriteRoomCodes, clearMessages
     } = messageFunctions;
 
     const { username, user, soundsEnabled, favoriteRoomCodes = [], areAlertsEnabled = true } = authData;
@@ -311,6 +311,8 @@ export const useSocketListeners = (
             });
             // Recargar mis salas activas para que aparezca la nueva sala
             if (loadMyActiveRooms) loadMyActiveRooms(1);
+            if (loadFavoriteRoomCodes) loadFavoriteRoomCodes(username); //  Refrescar favoritos
+            if (loadAssignedConversations) loadAssignedConversations(1); //  Refrescar asignados
         });
 
         s.on("joinRequestRejected", (data) => {
@@ -322,32 +324,6 @@ export const useSocketListeners = (
             });
         });
 
-        s.on("removedFromRoom", (data) => {
-            console.log('🚫 removedFromRoom:', data);
-            Swal.fire({
-                icon: 'warning',
-                title: 'Eliminado de la sala',
-                html: `
-                    <div style="text-align: left;">
-                        <p><strong>Sala:</strong> ${data.roomName || data.roomCode}</p>
-                        <p><strong>Por:</strong> ${data.removedBy || 'Administrador'}</p>
-                        <p style="margin-top: 10px; font-size: 0.9em; color: #666;">Ya no tienes acceso a este chat.</p>
-                    </div>
-                `,
-                confirmButtonText: 'Entendido',
-                confirmButtonColor: '#d33'
-            });
-
-            // Recargar mis salas activas para quitar la sala eliminada
-            if (loadMyActiveRooms) loadMyActiveRooms(1);
-
-            // Si el usuario está viendo esa sala en este momento, sacarlo
-            if (currentRoomCodeRef.current === data.roomCode) {
-                if (clearMessages) clearMessages();
-                // Emitir evento para cerrar chat en ChatPage (manejado por handleEscKey o similar)
-                window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-            }
-        });
 
         // 🔥 NUEVO: Listener para actualizar IDs temporales → reales
         // El backend envía este evento cuando el mensaje se guarda en BD
@@ -1783,7 +1759,9 @@ export const useSocketListeners = (
             if (currentRoomCodeRef.current !== data.roomCode) {
                 showSuccessAlert("Agregado a sala", data.message);
             }
-            loadMyActiveRooms();
+            if (loadMyActiveRooms) loadMyActiveRooms();
+            if (loadFavoriteRoomCodes) loadFavoriteRoomCodes(username);
+            if (loadAssignedConversations) loadAssignedConversations();
         });
 
         s.on("removedFromRoom", (data) => {
@@ -1800,13 +1778,25 @@ export const useSocketListeners = (
                 currentRoomCodeRef.current = null;
                 clearMessages();
             }
-            loadMyActiveRooms();
+            if (loadMyActiveRooms) loadMyActiveRooms();
+            if (loadFavoriteRoomCodes) loadFavoriteRoomCodes(username);
+            if (loadAssignedConversations) loadAssignedConversations();
             showErrorAlert("Eliminado de sala", data.message);
         });
 
         s.on("newConversationAssigned", () => {
             loadAssignedConversations();
             showSuccessAlert("Nueva conversación", "Se te ha asignado un nuevo chat.");
+        });
+
+        s.on("favoriteStatusChanged", (data) => {
+            console.log("⭐ favoriteStatusChanged recibido:", data);
+            if (loadFavoriteRoomCodes) loadFavoriteRoomCodes(username);
+
+            // Si el backend lo excluye de la lista activa al ser favorito,
+            // refrescamos también las otras listas para mantener coherencia.
+            if (loadMyActiveRooms) loadMyActiveRooms();
+            if (loadAssignedConversations) loadAssignedConversations();
         });
 
         s.on("userTyping", (data) => {
