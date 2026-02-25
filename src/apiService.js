@@ -249,13 +249,25 @@ class ApiService {
   // Método para cerrar sesión
   logout() {
     const user = this.getCurrentUser();
+    const username = user?.username;
+
+    // 1. Limpiar contadores de mensajes no leídos
+    // Prioridad: username (DNI)
+    if (username) {
+      localStorage.removeItem(`unreadCounts_${username}`);
+    }
+
+    // También por nombre completo (legacy/compatibilidad)
     const displayFullName =
       user?.nombre && user?.apellido
         ? `${user.nombre} ${user.apellido}`
         : user?.displayfullname || user?.username;
-    if (displayFullName) {
+
+    if (displayFullName && displayFullName !== username) {
       localStorage.removeItem(`unreadCounts_${displayFullName}`);
     }
+
+    // 2. Limpiar otros datos de sesión
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     localStorage.removeItem("selectedSede");
