@@ -248,6 +248,14 @@ class ApiService {
 
   // Método para cerrar sesión
   logout() {
+    const user = this.getCurrentUser();
+    const displayFullName =
+      user?.nombre && user?.apellido
+        ? `${user.nombre} ${user.apellido}`
+        : user?.displayfullname || user?.username;
+    if (displayFullName) {
+      localStorage.removeItem(`unreadCounts_${displayFullName}`);
+    }
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     localStorage.removeItem("selectedSede");
@@ -814,6 +822,12 @@ class ApiService {
 
       if (role) {
         params.append('role', role); // 👈 Enviar el rol
+      }
+
+      // 🔥 FIX: Enviar también el DNI (username) para el filtrado exacto en el backend
+      const username = user?.username || user?.email;
+      if (username) {
+        params.append('username', username);
       }
 
       const response = await this.fetchChatApi(
@@ -1676,14 +1690,16 @@ class ApiService {
       const user = this.getCurrentUser();
       const displayName = user?.nombre && user?.apellido
         ? `${user.nombre} ${user.apellido}`
-        : (user?.username || user?.email);
+        : (user?.username);
 
       if (!displayName) {
         throw new Error('Usuario no encontrado');
       }
 
+      const searchId = user?.username || displayName;
+
       // Construir URL con parámetros
-      let url = `${this.baseChatUrl}api/temporary-conversations/assigned/list?username=${encodeURIComponent(displayName)}&page=${page}&limit=${limit}`;
+      let url = `${this.baseChatUrl}api/temporary-conversations/assigned/list?username=${encodeURIComponent(searchId)}&page=${page}&limit=${limit}`;
 
       // 🔥 NUEVO: Agregar parámetro de búsqueda si existe
       if (search && search.trim()) {
@@ -2139,10 +2155,8 @@ class ApiService {
         throw new Error("No hay token de autenticación o usuario");
       }
 
-      // Calcular el username de la misma forma que en useAuth
-      const username = user.nombre && user.apellido
-        ? `${user.nombre} ${user.apellido}`
-        : user.username || user.email;
+      // 🔥 FIX: Enviar DNI (username) en lugar de nombre completo para conteo de no leídos
+      const username = user.username || user.email;
 
       const response = await fetch(
         `${this.baseChatUrl}api/messages/unread-counts?username=${encodeURIComponent(username)}`,

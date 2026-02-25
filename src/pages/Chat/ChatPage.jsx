@@ -291,7 +291,12 @@ const ChatPage = () => {
         user?.nombre && user?.apellido
           ? `${user.nombre} ${user.apellido}`
           : user?.username;
-      return conv.participants?.includes(displayName);
+      // 🔥 FIX: Verificar pertenencia tanto por DNI (username) como por nombre completo
+      return conv.participants?.some(p => {
+        const pLower = p?.toLowerCase().trim();
+        return pLower === user?.username?.toLowerCase().trim()
+          || pLower === displayName?.toLowerCase().trim();
+      });
     });
 
     // 1. Unread count from Assigned Conversations
@@ -498,15 +503,32 @@ const ChatPage = () => {
         // Buscar conversación asignada o en favoritos
         const normalizedTo = chatState.to.toLowerCase().trim();
 
+        // 🔥 FIX: Función robusta para encontrar la conversación considerando DNIs y Nombres Completos
+        const findConversation = (conversations) => {
+          return conversations?.find(c => {
+            // 1. Coincidencia directa con DNI o nombre en participants
+            if (c.participants?.some(p => p?.toLowerCase().trim() === normalizedTo)) return true;
+            // 2. Coincidencia con nombre de la conversación (si existe)
+            if (c.name?.toLowerCase().trim() === normalizedTo) return true;
+            // 3. Resolución de DNI a Nombre Completo usando userList
+            return c.participants?.some(p => {
+              const resolvedUser = chatState.userList?.find(u => u.username === p);
+              if (resolvedUser) {
+                const fullName = resolvedUser.nombre && resolvedUser.apellido
+                  ? `${resolvedUser.nombre} ${resolvedUser.apellido}`.toLowerCase().trim()
+                  : null;
+                return fullName === normalizedTo;
+              }
+              return false;
+            });
+          });
+        };
+
         // 1. Buscar en asignados
-        const assignedConv = chatState.assignedConversations?.find(c =>
-          c.participants?.some(p => p?.toLowerCase().trim() === normalizedTo)
-        );
+        const assignedConv = findConversation(chatState.assignedConversations);
 
         // 2. Buscar en favoritos (donde type === 'conv')
-        const favoriteConv = chatState.favoriteRooms?.find(f =>
-          f.type === 'conv' && f.participants?.some(p => p?.toLowerCase().trim() === normalizedTo)
-        );
+        const favoriteConv = findConversation(chatState.favoriteRooms?.filter(f => f.type === 'conv'));
 
         const conv = assignedConv || favoriteConv;
 
@@ -708,13 +730,15 @@ const ChatPage = () => {
 
     // 2. Definir quién soy yo (normalizado)
     const myNameNormalized = normalizeUsername(currentUserFullName);
+    // 🔥 FIX: También normalizar DNI para comparación
+    const myDniNormalized = normalizeUsername(user?.username || '');
 
     // 3. Lógica Inteligente: ¿Soy Participante o Soy Admin?
     if (conversationData && conversationData.participants) {
 
-      // Verificamos si YO estoy en la lista de participantes
+      // Verificamos si YO estoy en la lista de participantes (por DNI o por nombre)
       const isParticipant = conversationData.participants.some(
-        p => normalizeUsername(p) === myNameNormalized
+        p => normalizeUsername(p) === myNameNormalized || normalizeUsername(p) === myDniNormalized
       );
 
       if (isParticipant) {
@@ -724,23 +748,24 @@ const ChatPage = () => {
 
         // Encontrar al OTRO participante para ponerlo en el título 'to'
         const otherPerson = conversationData.participants.find(
-          p => normalizeUsername(p) !== myNameNormalized
+          p => normalizeUsername(p) !== myNameNormalized && normalizeUsername(p) !== myDniNormalized
         );
 
         // Establecer el destinatario (esto dispara la carga de mensajes)
-        chatState.setTo(otherPerson || userName);
+        // 🔥 FIX: Usar conversationData.name (que viene de la API) si existe
+        chatState.setTo(conversationData.name || otherPerson || userName);
 
       } else {
         // === MODO OBSERVADOR (Monitoreo Admin) ===
         // Esto activa la carga especial en 'loadAdminViewMessages'
         chatState.setAdminViewConversation(conversationData);
-        chatState.setTo(userName); // Título visual "Usuario A ↔️ Usuario B"
+        chatState.setTo(conversationData.name || userName); // Título visual con el nombre de la API
       }
 
     } else {
       // === MODO CHAT DIRECTO NORMAL ===
       chatState.setAdminViewConversation(null);
-      chatState.setTo(userName);
+      chatState.setTo(conversationData?.name || userName);
     }
 
     // 4. 🔥 NUEVO: Si hay messageId, cargar mensajes alrededor de ese ID
@@ -1002,15 +1027,17 @@ const ChatPage = () => {
     if (conversation) {
       // Usar misma lógica que handleUserSelect para chats asignados
       const myNameNormalized = normalizeUsername(currentUserFullName);
+      const myDniNormalized = normalizeUsername(user?.username || '');
+
       const isParticipant = conversation.participants?.some(
-        p => normalizeUsername(p) === myNameNormalized
+        p => normalizeUsername(p) === myNameNormalized || normalizeUsername(p) === myDniNormalized
       );
 
       if (isParticipant) {
         // MODO PARTICIPANTE - trabajar en el chat
         chatState.setAdminViewConversation(null);
         const otherPerson = conversation.participants.find(
-          p => normalizeUsername(p) !== myNameNormalized
+          p => normalizeUsername(p) !== myNameNormalized && normalizeUsername(p) !== myDniNormalized
         );
         chatState.setTo(otherPerson || targetUsername);
       } else {
@@ -1080,7 +1107,9 @@ const ChatPage = () => {
 
     try {
       // 2. Normalización y verificación de chat asignado
-      const currentUserNormalized = normalizeUsername(currentUserFullName);
+      const myNameNormalized = normalizeUsername(currentUserFullName);
+      const myDniNormalized = normalizeUsername(user?.username || '');
+
       const assignedConv = chatState.assignedConversations?.find((conv) => {
         const participants = conv.participants || [];
         return participants.some(p => normalizeUsername(p) === normalizeUsername(chatState.to));
@@ -1212,7 +1241,10 @@ const ChatPage = () => {
         messageObj.isAssignedConversation = true;
         messageObj.conversationId = assignedConv.id;
         messageObj.participants = assignedConv.participants;
-        const other = assignedConv.participants.find(p => normalizeUsername(p) !== currentUserNormalized);
+        const other = assignedConv.participants.find(p => {
+          const pNorm = normalizeUsername(p);
+          return pNorm !== myNameNormalized && pNorm !== myDniNormalized;
+        });
         if (other) messageObj.actualRecipient = other;
       }
 
@@ -1520,7 +1552,8 @@ const ChatPage = () => {
 
     try {
       // Determinar correctamente si estamos en grupo o chat asignado
-      const currentUserNormalized = normalizeUsername(currentUserFullName);
+      const myNameNormalized = normalizeUsername(currentUserFullName);
+      const myDniNormalized = normalizeUsername(user?.username || '');
 
       const assignedConv = chatState.assignedConversations?.find((conv) => {
         const participants = conv.participants || [];
@@ -1566,7 +1599,10 @@ const ChatPage = () => {
         messageData.isAssignedConversation = true;
         messageData.conversationId = assignedConv.id;
         messageData.participants = assignedConv.participants;
-        const other = assignedConv.participants.find(p => normalizeUsername(p) !== currentUserNormalized);
+        const other = assignedConv.participants.find(p => {
+          const pNorm = normalizeUsername(p);
+          return pNorm !== myNameNormalized && pNorm !== myDniNormalized;
+        });
         if (other) messageData.actualRecipient = other;
       }
 
@@ -2074,18 +2110,25 @@ const ChatPage = () => {
   const canSendMessages = useMemo(() => {
     if (!chatState.to) return false;
 
-    const currentUserFullName =
+    // 🔥 FIX: Considerar tanto Nombre Completo como DNI para permisos
+    const myNameNormalized = normalizeUsername(
       user?.nombre && user?.apellido
         ? `${user.nombre} ${user.apellido}`
-        : user?.username;
+        : user?.username
+    );
+    const myDniNormalized = normalizeUsername(user?.username || '');
 
-    const currentUserNormalized = normalizeUsername(currentUserFullName);
     const toNormalized = normalizeUsername(chatState.to);
 
     const assignedConv = chatState.assignedConversations?.find((conv) => {
+      // Intentar encontrar al OTRO participante
       const otherUser = conv.participants?.find(
-        (p) => normalizeUsername(p) !== currentUserNormalized
+        (p) => {
+          const pNorm = normalizeUsername(p);
+          return pNorm !== myNameNormalized && pNorm !== myDniNormalized;
+        }
       );
+
       return (
         normalizeUsername(otherUser) === toNormalized ||
         normalizeUsername(conv.name) === toNormalized
@@ -2094,7 +2137,10 @@ const ChatPage = () => {
 
     if (assignedConv && assignedConv.participants) {
       const isUserParticipant = assignedConv.participants.some(
-        (p) => normalizeUsername(p) === currentUserNormalized
+        (p) => {
+          const pNorm = normalizeUsername(p);
+          return pNorm === myNameNormalized || pNorm === myDniNormalized;
+        }
       );
       if (!isUserParticipant) {
         return false;

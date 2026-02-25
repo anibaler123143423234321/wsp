@@ -212,6 +212,30 @@ const ConversationList = ({
   const isAdmin = ['ADMIN', 'JEFEPISO'].includes(user?.role);
   const canViewMonitoring = ['SUPERADMIN', 'PROGRAMADOR'].includes(user?.role);
 
+  // 🔥 FIX: Resolver participante (DNI o nombre completo) a nombre legible para display
+  const resolveParticipantName = useCallback((participantId) => {
+    if (!participantId) return 'Usuario';
+    const cached = userCache[participantId?.toLowerCase().trim()];
+    if (cached && cached.nombre && cached.apellido) {
+      return `${cached.nombre} ${cached.apellido}`;
+    }
+    return participantId; // Fallback: mostrar el ID tal cual
+  }, [userCache]);
+
+  // 🔥 FIX: Encontrar el "otro" participante (que no soy yo) en una conversación
+  const findOtherParticipant = useCallback((participants) => {
+    if (!participants || participants.length === 0) return null;
+    const myUsername = user?.username?.toLowerCase().trim();
+    const myFullName = user?.nombre && user?.apellido
+      ? `${user.nombre} ${user.apellido}`.toLowerCase().trim()
+      : null;
+    const other = participants.find(p => {
+      const pLower = p?.toLowerCase().trim();
+      return pLower !== myUsername && pLower !== myFullName;
+    });
+    return other || participants[0];
+  }, [user]);
+
   // 🔥 Función para manejar búsqueda desde el modal
   const handleSearchFromModal = useCallback(async (term, searchType, selectedResult = null) => {
     console.log(`🔍 Búsqueda desde modal: "${term}" - Tipo: ${searchType}`, selectedResult);
@@ -428,6 +452,17 @@ const ConversationList = ({
               isOnline: u.isOnline !== undefined ? u.isOnline : false
             };
           }
+          // 🔥 FIX: También indexar por username (DNI) para buscar participantes
+          if (u.username) {
+            const dniKey = u.username.toLowerCase().trim();
+            newCache[dniKey] = {
+              picture: u.picture,
+              username: u.username,
+              nombre: u.nombre,
+              apellido: u.apellido,
+              isOnline: u.isOnline !== undefined ? u.isOnline : false
+            };
+          }
         });
       }
       return newCache;
@@ -447,12 +482,13 @@ const ConversationList = ({
   useEffect(() => {
     let isMounted = true;
     const loadFavorites = async () => {
-      const displayName = getDisplayName();
-      if (!displayName || !isMounted) return;
+      // 🔥 FIX: Usar user.username (DNI) para API de favoritos
+      const apiUsername = user?.username;
+      if (!apiUsername || !isMounted) return;
 
       try {
         // 🔥 El endpoint ahora devuelve tanto salas como conversaciones unificadas
-        const allFavorites = await apiService.getUserFavoriteRoomsWithData(displayName);
+        const allFavorites = await apiService.getUserFavoriteRoomsWithData(apiUsername);
 
         console.log('🔍 Favoritos recibidos del backend:', allFavorites);
 
@@ -518,15 +554,16 @@ const ConversationList = ({
 
   const handleToggleFavorite = async (room, e) => {
     e.stopPropagation();
-    const displayName = getDisplayName();
-    if (!displayName) return;
+    // 🔥 FIX: Usar user.username (DNI) para API de favoritos
+    const apiUsername = user?.username;
+    if (!apiUsername) return;
 
     // Capturar el estado actual ANTES de la llamada API
     const wasAlreadyFavorite = favoriteRoomCodes.includes(room.roomCode);
     console.log('⭐ handleToggleFavorite:', { roomCode: room.roomCode, wasAlreadyFavorite });
 
     try {
-      const result = await apiService.toggleRoomFavorite(displayName, room.roomCode, room.id);
+      const result = await apiService.toggleRoomFavorite(apiUsername, room.roomCode, room.id);
       console.log('⭐ API result:', result);
 
       // 🔥 NUEVO: Usar el estado capturado para decidir, no confiar solo en result.isFavorite
@@ -577,10 +614,11 @@ const ConversationList = ({
 
   const handleToggleConversationFavorite = async (conversation, e) => {
     e.stopPropagation();
-    const displayName = getDisplayName();
-    if (!displayName) return;
+    // 🔥 FIX: Usar user.username (DNI) para API de favoritos
+    const apiUsername = user?.username;
+    if (!apiUsername) return;
     try {
-      const result = await apiService.toggleConversationFavorite(displayName, conversation.id);
+      const result = await apiService.toggleConversationFavorite(apiUsername, conversation.id);
       if (result.isFavorite) {
         // 🔥 Agregar a IDs y a la lista unificada
         setFavoriteConversationIds(prev => [...prev, conversation.id]);
@@ -982,7 +1020,12 @@ const ConversationList = ({
   const myAssignedConversations = useMemo(() => {
     const result = assignedConversationsFiltered.filter(conv => {
       const displayName = getDisplayName();
-      const belongsToUser = conv.participants?.includes(displayName);
+      // 🔥 FIX: Verificar pertenencia tanto por DNI (username) como por nombre completo
+      const belongsToUser = conv.participants?.some(p => {
+        const pLower = p?.toLowerCase().trim();
+        return pLower === user?.username?.toLowerCase().trim()
+          || pLower === displayName?.toLowerCase().trim();
+      });
       const isFavorite = favoriteConversationIds.includes(conv.id);
       return belongsToUser && !isFavorite;
     });
@@ -1257,8 +1300,8 @@ const ConversationList = ({
                   {/* Lista de conversaciones directas que coinciden */}
                   {matchingConvs.map((conv) => {
                     const participants = conv.participants || [];
-                    const currentUserFullName = user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.username;
-                    const otherParticipant = participants.find(p => p?.toLowerCase() !== currentUserFullName?.toLowerCase()) || participants[0];
+                    const otherParticipantId = findOtherParticipant(participants);
+                    const otherParticipantDisplay = conv.name || resolveParticipantName(otherParticipantId);
                     const getInitials = (name) => { const parts = name?.split(' ') || []; return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : (name?.[0]?.toUpperCase() || 'U'); };
 
                     return (
@@ -1266,17 +1309,17 @@ const ConversationList = ({
                         key={`chat-conv-${conv.id}`}
                         className="flex items-center transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer"
                         style={{ padding: '8px 12px', gap: '10px', minHeight: '50px' }}
-                        onClick={() => onUserSelect && onUserSelect(otherParticipant, null, conv)}
+                        onClick={() => onUserSelect && onUserSelect(otherParticipantId, null, conv)}
                       >
                         <div
                           className="relative flex-shrink-0 rounded-full overflow-hidden flex items-center justify-center text-white font-bold"
                           style={{ width: '40px', height: '40px', fontSize: '14px', backgroundColor: '#A50104' }}
                         >
-                          {getInitials(otherParticipant)}
+                          {getInitials(otherParticipantDisplay)}
                         </div>
                         <div className="flex-1 min-w-0 flex flex-col" style={{ gap: '2px' }}>
                           <HighlightedText
-                            text={otherParticipant}
+                            text={otherParticipantDisplay}
                             highlight={term}
                             className="font-semibold text-[#111] truncate"
                           />
@@ -1574,8 +1617,8 @@ const ConversationList = ({
                             // Conversación favorita
                             const conv = item.data;
                             const participants = conv.participants || [];
-                            const currentUserFullName = user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.username;
-                            const otherParticipant = participants.find(p => p?.toLowerCase() !== currentUserFullName?.toLowerCase()) || participants[0];
+                            const otherParticipantId = findOtherParticipant(participants);
+                            const otherParticipantDisplay = resolveParticipantName(otherParticipantId);
 
                             // 🔥 FIX: Búsqueda robusta de unreadCount (String vs Number)
                             let itemUnreadCount = 0;
@@ -1598,16 +1641,8 @@ const ConversationList = ({
 
                             const getInitials = (name) => { const parts = name?.split(' ') || []; return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : (name?.[0]?.toUpperCase() || 'U'); };
                             const chatId = `conv-${conv.id}`;
-                            // Calcular displayName (igual que en Asignados)
-                            const participant1Name = participants[0] || 'Usuario 1';
-                            const participant2Name = participants[1] || 'Usuario 2';
-                            const currentUserNormalized = currentUserFullName?.toLowerCase().trim();
-                            const p1Normalized = participant1Name?.toLowerCase().trim();
-                            const p2Normalized = participant2Name?.toLowerCase().trim();
-                            let displayName = conv.name;
-                            if (currentUserNormalized === p1Normalized) { displayName = participant2Name; }
-                            else if (currentUserNormalized === p2Normalized) { displayName = participant1Name; }
-                            else if (!conv.name) { displayName = `${participant1Name} ↔️ ${participant2Name}`; }
+                            // 🔥 FIX: Usar conv.name si existe, sino resolveParticipantName
+                            let displayName = conv.name || otherParticipantDisplay;
 
                             const isHighlighted = highlightedChatId === chatId;
                             const isSelected = (!isGroup && to && (to === (displayName || '') || otherParticipant?.toLowerCase().trim() === to?.toLowerCase().trim())) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
@@ -2020,38 +2055,28 @@ const ConversationList = ({
                           <>
                             {convsToShow.map((conv) => {
                               const participants = conv.participants || [];
-                              const participant1Name = participants[0] || 'Usuario 1';
-                              const participant2Name = participants[1] || 'Usuario 2';
-                              const currentUserFullName = user?.nombre && user?.apellido ? `${user.nombre} ${user.apellido}` : user?.username;
-                              let displayName = conv.name;
-                              let otherParticipantName = null;
-                              const currentUserNormalized = currentUserFullName?.toLowerCase().trim();
-                              const participant1Normalized = participant1Name?.toLowerCase().trim();
-                              const participant2Normalized = participant2Name?.toLowerCase().trim();
-
-                              if (currentUserNormalized === participant1Normalized) { displayName = participant2Name; otherParticipantName = participant2Name; }
-                              else if (currentUserNormalized === participant2Normalized) { displayName = participant1Name; otherParticipantName = participant1Name; }
-                              else if (!conv.name) { displayName = `${participant1Name} ↔️ ${participant2Name}`; }
+                              // 🔥 FIX: Usar helpers para resolver participantes (ya sean DNI o nombres completos)
+                              const otherParticipantId = findOtherParticipant(participants);
+                              const displayName = conv.name || resolveParticipantName(otherParticipantId);
 
                               // 🔥 FIX: Usar conv.picture como valor base (viene de la API)
                               let otherParticipantPicture = conv.picture || null;
                               let isOtherParticipantOnline = false;
-                              if (otherParticipantName) {
-                                const otherParticipantNormalized = otherParticipantName?.toLowerCase().trim();
-                                const otherUser = userList.find(u => {
-                                  const fullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : u.username;
-                                  return fullName?.toLowerCase().trim() === otherParticipantNormalized;
-                                });
-                                if (otherUser) {
-                                  // Si está en userList, usar esa foto
-                                  if (otherUser.picture) otherParticipantPicture = otherUser.picture;
-                                  isOtherParticipantOnline = otherUser.isOnline === true;
+                              if (otherParticipantId) {
+                                const cachedUser = userCache[otherParticipantId?.toLowerCase().trim()];
+                                if (cachedUser) {
+                                  if (cachedUser.picture) otherParticipantPicture = cachedUser.picture;
+                                  isOtherParticipantOnline = cachedUser.isOnline === true;
                                 } else {
-                                  const cachedUser = userCache[otherParticipantNormalized];
-                                  if (cachedUser) {
-                                    // Si está en cache, usar esa foto
-                                    if (cachedUser.picture) otherParticipantPicture = cachedUser.picture;
-                                    isOtherParticipantOnline = cachedUser.isOnline === true;
+                                  // Fallback: buscar por full name en userList
+                                  const otherUser = userList.find(u => {
+                                    const fullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : u.username;
+                                    return u.username?.toLowerCase().trim() === otherParticipantId?.toLowerCase().trim()
+                                      || fullName?.toLowerCase().trim() === otherParticipantId?.toLowerCase().trim();
+                                  });
+                                  if (otherUser) {
+                                    if (otherUser.picture) otherParticipantPicture = otherUser.picture;
+                                    isOtherParticipantOnline = otherUser.isOnline === true;
                                   }
                                 }
                               }
@@ -2073,7 +2098,7 @@ const ConversationList = ({
                                   id={chatId}
                                   className={`flex transition-colors duration-150 hover:bg-[#f5f6f6] rounded-lg mb-1 cursor-pointer group overflow-visible relative ${isSelected ? 'selected-conversation' : ''} ${isHighlighted ? 'highlighted-chat' : ''}`}
                                   style={{ padding: '4px 12px', gap: '6px', minHeight: '40px', display: 'flex', alignItems: 'center', width: '100%', minWidth: 0, position: 'relative' }}
-                                  onClick={() => { if (onUserSelect) onUserSelect(displayName, null, conv); }}
+                                  onClick={() => { if (onUserSelect) onUserSelect(otherParticipantId, null, conv); }}
                                 >
                                   <div className="relative flex-shrink-0" style={{ width: '32px', height: '32px' }}>
                                     <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold" style={{ width: '32px', height: '32px', fontSize: '14px', backgroundColor: '#A50104' }}>

@@ -418,12 +418,9 @@ const CreateConversationModal = ({
         return username;
       };
 
-      const user1FullName = getFullNameForUser(selectedUser1);
-      const user2FullName = getFullNameForUser(selectedUser2);
-
       await onCreateConversation({
-        user1: user1FullName,
-        user2: user2FullName,
+        user1: selectedUser1, // ENVIAMOS EL DNI A LA DB
+        user2: selectedUser2, // ENVIAMOS EL DNI A LA DB
         name: conversationName
       });
     } finally {

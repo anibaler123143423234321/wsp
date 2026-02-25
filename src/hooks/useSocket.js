@@ -72,7 +72,7 @@ export const useSocket = (isAuthenticated, username, user) => {
 
           // 🔍 DEBUG: Interceptar TODAS las emisiones de socket para diagnosticar
           const originalEmit = socket.current.emit.bind(socket.current);
-          socket.current.emit = function(...args) {
+          socket.current.emit = function (...args) {
             const eventName = args[0];
             if (eventName !== 'ping' && eventName !== 'pong') {
               console.log(`🔍 [SOCKET-EMIT] ${eventName}`, args.length > 1 ? args[1] : '');
@@ -83,18 +83,14 @@ export const useSocket = (isAuthenticated, username, user) => {
             return originalEmit(...args);
           };
 
-          const displayName =
-            user.nombre && user.apellido
-              ? `${user.nombre} ${user.apellido}`
-              : user.username || user.email;
-
           //  OPTIMIZADO: Solo enviamos datos del usuario.
           // Ya NO enviamos la lista gigante de conversaciones.
+          // 🔥 FIX: Enviar user.username (DNI) como identificador principal
           socket.current.emit("register", {
-            username: displayName,
+            username: user.username,
             userData: {
               id: user.id,
-              username: displayName,
+              username: user.username,
               role: user.role || "USER",
               nombre: user.nombre,
               apellido: user.apellido,
@@ -104,7 +100,6 @@ export const useSocket = (isAuthenticated, username, user) => {
               picture: user.picture || null,
               numeroAgente: user.numeroAgente || null,
             },
-            // assignedConversations: [] // Eliminado para evitar sobrecarga
           });
 
           // Notificar a la app que el socket está listo
@@ -122,17 +117,13 @@ export const useSocket = (isAuthenticated, username, user) => {
           console.log(`🔄 Socket reconectado (intento ${attemptNumber})`);
           isConnecting.current = false;
 
-          const displayName =
-            user.nombre && user.apellido
-              ? `${user.nombre} ${user.apellido}`
-              : user.username || user.email;
-
           // Re-registrar usuario de forma ligera
+          // 🔥 FIX: Enviar user.username (DNI) como identificador principal
           socket.current.emit("register", {
-            username: displayName,
+            username: user.username,
             userData: {
               id: user.id,
-              username: displayName,
+              username: user.username,
               role: user.role || "USER",
               nombre: user.nombre,
               apellido: user.apellido,
