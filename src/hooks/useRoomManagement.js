@@ -621,11 +621,24 @@ export const useRoomManagement = (
     );
 
     // Remover usuarios de sala
-    const handleRemoveUsersFromRoom = useCallback(() => {
-        if (currentRoomCode) {
+    const handleRemoveUsersFromRoom = useCallback(async () => {
+        if (!currentRoomCode) return;
+
+        try {
+            const response = await apiService.getRoomUsers(currentRoomCode);
+            let usersArray = [];
+            if (Array.isArray(response)) {
+                usersArray = response;
+            } else if (response && typeof response === 'object') {
+                usersArray = response.users || response.data || [];
+            }
+            setRoomUsers(usersArray);
+        } catch (error) {
+            console.error('Error loading room users before remove modal:', error);
+        } finally {
             chatState.setShowRemoveUsersFromRoomModal(true);
         }
-    }, [currentRoomCode, chatState]);
+    }, [currentRoomCode, chatState, setRoomUsers]);
 
     // Callback cuando se remueven usuarios
     const handleUsersRemoved = useCallback(async () => {

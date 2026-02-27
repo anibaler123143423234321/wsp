@@ -238,6 +238,7 @@ const ThreadPanel = ({
   const [showMessageMenu, setShowMessageMenu] = useState(null); // ID del mensaje con menú abierto
   const [showForwardModal, setShowForwardModal] = useState(false);
   const [messageToForward, setMessageToForward] = useState(null);
+
   const [showReactionPicker, setShowReactionPicker] = useState(null); // ID del mensaje con picker abierto
   const [replyingTo, setReplyingTo] = useState(null); // Mensaje al que se responde
   const [openReadReceiptsId, setOpenReadReceiptsId] = useState(null); //  NUEVO: ID del mensaje con popover de leídos abierto
@@ -498,6 +499,11 @@ const ThreadPanel = ({
     if (resolved?.username && !isLikelyIdentifier(resolved.username)) return resolved.username;
     return String(rawKey || "");
   }, [mentionBaseUsers, userList, peopleDirectoryCache, mentionLookupCache, resolveFromListByAnyKey, isLikelyIdentifier]);
+
+  const mainMessageSenderDisplayName = useMemo(() => {
+    const senderRaw = message?.fullName || message?.displayName || message?.from || message?.sender || '';
+    return getMentionDisplayName(senderRaw) || senderRaw || 'Usuario';
+  }, [message?.fullName, message?.displayName, message?.from, message?.sender, getMentionDisplayName]);
 
   const hasMentionToUser = useCallback((text) => {
     if (!text || persistentAliases.length === 0) return false;
@@ -2183,8 +2189,8 @@ const ThreadPanel = ({
         style={{ marginTop: isSelectionMode ? '54px' : '4px' }}
       >
         <div className="thread-main-message-header">
-          <strong style={{ color: getUserColor(message.from, message.from === currentUsername) }}>
-            {message.from}
+          <strong style={{ color: getUserColor(mainMessageSenderDisplayName, (message.from === currentUsername) || (message.from === currentUserFullName)) }}>
+            {mainMessageSenderDisplayName}
           </strong>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span className="thread-replies-count">

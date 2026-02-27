@@ -137,6 +137,7 @@ const ThreadsListPanel = ({
 
   const handleThreadClick = (thread) => {
     if (onOpenThread) {
+      const senderDisplayName = getDisplayName(thread.from || thread.sender, thread.fullName);
       // Adaptar el thread al formato que espera ThreadPanel
       const threadMessage = {
         ...thread,
@@ -145,6 +146,8 @@ const ThreadsListPanel = ({
         message: thread.message,
         sender: thread.from,
         from: thread.from,
+        fullName: senderDisplayName,
+        displayName: senderDisplayName,
         realSender: thread.from,
         receiver: isGroup ? (roomName || to) : to,
         to: isGroup ? (roomName || to) : to,

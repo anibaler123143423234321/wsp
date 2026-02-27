@@ -2529,6 +2529,7 @@ const ChatPage = () => {
         setShowRemoveUsersFromRoomModal={chatState.setShowRemoveUsersFromRoomModal}
         username={username}
         onUsersRemoved={roomManagement.handleUsersRemoved}
+        userList={chatState.userList}
       />
 
       {/* Panel de configuración */}

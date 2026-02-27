@@ -239,6 +239,23 @@ const ConversationList = ({
     return participantId; // Fallback: mostrar el ID tal cual
   }, [userCache]);
 
+  // Prioriza nombre completo del backend para mostrar en la lista
+  const resolveConversationDisplayName = useCallback((conv, fallbackParticipantId = null) => {
+    if (!conv) return resolveParticipantName(fallbackParticipantId);
+
+    const candidates = [
+      conv.fullName,
+      conv.lastMessage?.fullName,
+      conv.displayName,
+      conv.name,
+      resolveParticipantName(fallbackParticipantId),
+      fallbackParticipantId,
+    ];
+
+    const firstValid = candidates.find((value) => typeof value === 'string' && value.trim().length > 0);
+    return firstValid || 'Usuario';
+  }, [resolveParticipantName]);
+
   // 🔥 FIX: Encontrar el "otro" participante (que no soy yo) en una conversación
   const findOtherParticipant = useCallback((participants) => {
     if (!participants || participants.length === 0) return null;
@@ -1661,7 +1678,7 @@ const ConversationList = ({
                             const getInitials = (name) => { const parts = name?.split(' ') || []; return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : (name?.[0]?.toUpperCase() || 'U'); };
                             const chatId = `conv-${conv.id}`;
                             // 🔥 FIX: Usar conv.name si existe, sino resolveParticipantName
-                            let displayName = conv.name || otherParticipantDisplay;
+                            let displayName = resolveConversationDisplayName(conv, otherParticipantId) || otherParticipantDisplay;
 
                             const isHighlighted = highlightedChatId === chatId;
                             const isSelected = (!isGroup && to && (to === (displayName || '') || otherParticipantId?.toLowerCase().trim() === to?.toLowerCase().trim())) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
@@ -2076,7 +2093,7 @@ const ConversationList = ({
                               const participants = conv.participants || [];
                               // 🔥 FIX: Usar helpers para resolver participantes (ya sean DNI o nombres completos)
                               const otherParticipantId = findOtherParticipant(participants);
-                              const displayName = conv.name || resolveParticipantName(otherParticipantId);
+                              const displayName = resolveConversationDisplayName(conv, otherParticipantId);
 
                               // 🔥 FIX: Usar conv.picture como valor base (viene de la API)
                               let otherParticipantPicture = conv.picture || null;

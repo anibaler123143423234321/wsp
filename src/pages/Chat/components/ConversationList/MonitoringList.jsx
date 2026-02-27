@@ -30,6 +30,18 @@ const MonitoringList = ({
     currentRoomCode,
     isGroup,
 }) => {
+    const resolveMonitoringDisplayName = (conv, participant1Name, participant2Name) => {
+        const candidates = [
+            conv?.fullName,
+            conv?.lastMessage?.fullName,
+            conv?.displayName,
+            conv?.name,
+        ];
+        const preferred = candidates.find((value) => typeof value === 'string' && value.trim().length > 0);
+        if (preferred) return preferred;
+        return `${participant1Name} ↔ ${participant2Name}`;
+    };
+
     const filteredMonitoring = monitoringConversations
         // 🔥 FIX: Excluir conversaciones que ya están en favoritos
         .filter(conv => !favoriteConversationIds.includes(conv.id))
@@ -71,14 +83,7 @@ const MonitoringList = ({
                         if (currentUserNormalized === participant1Normalized) { otherParticipantName = participant2Name; }
                         else if (currentUserNormalized === participant2Normalized) { otherParticipantName = participant1Name; }
 
-                        // 🚀 REGLA ESTRICTA para vistas de administrador (Monitoreo/Gestionar):
-                        // Siempre mostrar "Usuario 1 ↔ Usuario 2" ignorando el nombre guardado,
-                        // a menos que el nombre guardado ya contenga "↔" (por si acaso).
-                        if (conv.name && conv.name.includes('↔')) {
-                            displayName = conv.name;
-                        } else {
-                            displayName = `${participant1Name} ↔ ${participant2Name}`;
-                        }
+                        displayName = resolveMonitoringDisplayName(conv, participant1Name, participant2Name);
 
                         // Usar picture para el avatar si está disponible
                         let otherParticipantPicture = conv.picture || null;
@@ -194,3 +199,4 @@ const MonitoringList = ({
 };
 
 export default MonitoringList;
+

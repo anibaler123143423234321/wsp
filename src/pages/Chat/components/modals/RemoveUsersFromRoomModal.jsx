@@ -5,8 +5,65 @@ import apiService from "../../../../apiService";
 import { showSuccessAlert, showErrorAlert, showConfirmAlert } from "../../../../sweetalert2";
 import './Modal.css';
 
-const RemoveUsersFromRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembers = [], onUsersRemoved, currentUser, removerUser }) => {
+const RemoveUsersFromRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembers = [], userList = [], onUsersRemoved, currentUser, removerUser }) => {
   const [selectedUsers, setSelectedUsers] = useState([]);
+
+  const resolveMemberUsername = (member) => {
+    if (typeof member === 'string') return member;
+    if (!member || typeof member !== 'object') return '';
+    return member.username || member.userName || member.id || member.uid || '';
+  };
+
+  const resolveMemberDisplayName = (member, username) => {
+    const fromUserList = userList.find((u) => {
+      if (!u || typeof u !== 'object') return false;
+      const uUsername = (u.username || '').toString().toLowerCase().trim();
+      const uDisplayName = (u.displayName || '').toString().toLowerCase().trim();
+      const target = (username || '').toString().toLowerCase().trim();
+      return uUsername === target || uDisplayName === target;
+    });
+
+    const fromUserListFullName = fromUserList
+      ? [fromUserList.nombre, fromUserList.apellido].filter(Boolean).join(' ').trim()
+      : '';
+
+    if (typeof member === 'string') {
+      const candidates = [
+        fromUserListFullName,
+        fromUserList?.fullName,
+        fromUserList?.displayName,
+        username,
+      ];
+      const firstValid = candidates.find((value) => typeof value === 'string' && value.trim().length > 0);
+      return firstValid || 'Usuario desconocido';
+    }
+
+    if (!member || typeof member !== 'object') {
+      const candidates = [
+        fromUserListFullName,
+        fromUserList?.fullName,
+        fromUserList?.displayName,
+        username,
+      ];
+      const firstValid = candidates.find((value) => typeof value === 'string' && value.trim().length > 0);
+      return firstValid || 'Usuario desconocido';
+    }
+
+    const fullNameFromNames = [member.nombre, member.apellido].filter(Boolean).join(' ').trim();
+    const candidates = [
+      member.fullName,
+      fullNameFromNames,
+      fromUserListFullName,
+      fromUserList?.fullName,
+      fromUserList?.displayName,
+      member.displayName,
+      member.name,
+      username,
+    ];
+
+    const firstValid = candidates.find((value) => typeof value === 'string' && value.trim().length > 0);
+    return firstValid || 'Usuario desconocido';
+  };
 
   // Resetear selección cuando se abre el modal
   useEffect(() => {
@@ -75,7 +132,7 @@ const RemoveUsersFromRoomModal = ({ isOpen, onClose, roomCode, roomName, current
 
   // Filtrar miembros para mostrar solo los que no son el usuario actual
   const removableMembers = currentMembers.filter(member => {
-    const username = typeof member === 'string' ? member : member.username;
+    const username = resolveMemberUsername(member);
     return username !== currentUser;
   });
 
@@ -164,26 +221,8 @@ const RemoveUsersFromRoomModal = ({ isOpen, onClose, roomCode, roomName, current
               backgroundColor: '#fff'
             }}>
               {removableMembers.map((member, index) => {
-                // Handle multiple data formats from different API responses
-                let username, displayName;
-
-                if (typeof member === 'string') {
-                  username = member;
-                  displayName = member;
-                } else if (member && typeof member === 'object') {
-                  // Try to get username from various possible fields
-                  username = member.username || member.displayName || member.nombre || member.id || '';
-
-                  // Build display name from available fields
-                  if (member.nombre && member.apellido) {
-                    displayName = `${member.nombre} ${member.apellido}`;
-                  } else {
-                    displayName = member.displayName || member.nombre || member.username || username;
-                  }
-                } else {
-                  username = '';
-                  displayName = 'Usuario desconocido';
-                }
+                const username = resolveMemberUsername(member);
+                const displayName = resolveMemberDisplayName(member, username);
 
                 const isSelected = selectedUsers.includes(username);
 

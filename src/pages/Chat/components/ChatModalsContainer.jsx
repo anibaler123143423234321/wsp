@@ -41,6 +41,7 @@ const ChatModalsContainer = ({
     setShowRemoveUsersFromRoomModal,
     username,
     onUsersRemoved,
+    userList = [],
 }) => {
     return (
         <>
@@ -88,6 +89,7 @@ const ChatModalsContainer = ({
                 roomCode={currentRoomCode}
                 roomName={to}
                 currentMembers={roomUsers}
+                userList={userList}
                 currentUser={username}
                 removerUser={currentUser}
                 onUsersRemoved={onUsersRemoved}
