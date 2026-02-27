@@ -1010,7 +1010,9 @@ const ChatContent = ({
   const handleMentionSelect = (user) => {
     const username = (typeof user === "string"
       ? user
-      : (user.displayName || (user.nombre ? `${user.nombre} ${user.apellido || ''}` : '') || user.username || "")).trim();
+      : (user.displayName || user.fullName || user.fullname || user.name ||
+        ((user.nombre || user.apellido) ? `${user.nombre || ''} ${user.apellido || ''}`.trim() : null) ||
+        user.username || "")).trim();
     const beforeMention = input.substring(0, mentionCursorPosition);
     const afterMention = input.substring(mentionCursorPosition + mentionSearch.length + 1);
     const newInput = `${beforeMention}@${username} ${afterMention}`;
@@ -3997,28 +3999,37 @@ const ChatContent = ({
           isGroup && roomUsers
             ? roomUsers.filter((user) => {
               let searchName = '';
+
+              const getBestName = (u) => {
+                if (!u || typeof u !== 'object') return null;
+                return (u.displayName || u.fullName || u.fullname || u.name ||
+                  ((u.nombre || u.apellido) ? `${u.nombre || ''} ${u.apellido || ''}`.trim() : null) || "").trim();
+              };
+
               if (typeof user === "string") {
                 // 🔥 RESOLVER DNI CONTRA LISTA GLOBAL
                 const idLower = user.toLowerCase().trim();
                 const found = userList.find(u => (u.username || '').toLowerCase().trim() === idLower);
-                searchName = found
-                  ? (found.displayName || `${found.nombre || ''} ${found.apellido || ''}`.trim() || found.username)
-                  : user;
+                // Si no se encuentra en userList, buscar en otros objetos de roomUsers que ya estén resueltos
+                const resolvedInRoom = roomUsers.find(ru => typeof ru === 'object' && (ru.username || '').toLowerCase().trim() === idLower);
+
+                searchName = (found ? (getBestName(found) || found.username) :
+                  (resolvedInRoom ? (getBestName(resolvedInRoom) || resolvedInRoom.username) : user));
               } else if (user && typeof user === 'object') {
-                // 🔥 PRIORIDAD: displayName > Full Name > Global search > username
-                let name = user.displayName
-                  || ((user.nombre || user.apellido) ? `${user.nombre || ''} ${user.apellido || ''}`.trim() : '');
+                // 🔥 PRIORIDAD: Local Data > Global search > username
+                let name = getBestName(user);
 
                 if (!name && user.username) {
                   const idLower = user.username.toLowerCase().trim();
                   const found = userList.find(u => (u.username || '').toLowerCase().trim() === idLower);
                   if (found) {
-                    name = found.displayName || `${found.nombre || ''} ${found.apellido || ''}`.trim();
+                    name = getBestName(found);
                   }
                 }
 
                 searchName = name || user.username || '';
               }
+
               if (!searchName) return false;
               const searchLower = searchName.toLowerCase();
               return searchLower.includes(mentionSearch.toLowerCase()) && searchName !== currentUsername;

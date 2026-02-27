@@ -863,15 +863,55 @@ const ChatPage = () => {
     //  NUEVO: Cargar usuarios de la sala desde la API (con displayName, role, email, etc.)
     try {
       const response = await apiService.getRoomUsers(group.roomCode);
+      let apiUsers = [];
+
       if (Array.isArray(response)) {
-        chatState.setRoomUsers(response);
+        apiUsers = response;
       } else if (response && typeof response === 'object') {
-        chatState.setRoomUsers(response.users || response.data || []);
+        apiUsers = response.users || response.data || [];
         // 🔥 NUEVO: Actualizar selectedRoomData con maxCapacity de la API
         if (response.maxCapacity) {
           setSelectedRoomData(prev => ({ ...prev, maxCapacity: response.maxCapacity }));
         }
       }
+
+      // 🔥 ENRIQUECIMIENTO Y DEDUPLICACIÓN: Priorizar objetos sobre strings
+      const userMap = new Map();
+
+      apiUsers.forEach(u => {
+        let username = typeof u === 'string' ? u : u.username;
+        if (!username) return;
+
+        const idLower = username.toLowerCase().trim();
+        const existing = userMap.get(idLower);
+
+        if (typeof u === 'string') {
+          if (existing) return; // Ya hay algo, no sobreescribir con string
+          const found = chatState.userList.find(gl => (gl.username || '').toLowerCase().trim() === idLower);
+          if (found) {
+            userMap.set(idLower, {
+              ...found,
+              username: u,
+              displayName: found.displayName || `${found.nombre || ''} ${found.apellido || ''}`.trim() || u
+            });
+          } else {
+            userMap.set(idLower, { username: u, displayName: u });
+          }
+        } else {
+          // Es un objeto, asegurar mejores campos y sobreescribir
+          if (!u.displayName && (u.nombre || u.apellido)) {
+            u.displayName = `${u.nombre || ''} ${u.apellido || ''}`.trim();
+          }
+          if (!u.picture) {
+            const found = chatState.userList.find(gl => (gl.username || '').toLowerCase().trim() === idLower);
+            if (found?.picture) u.picture = found.picture;
+          }
+          userMap.set(idLower, u);
+        }
+      });
+
+      const enrichedUsers = Array.from(userMap.values());
+      chatState.setRoomUsers(enrichedUsers);
     } catch (error) {
       console.error('Error al cargar usuarios de la sala:', error);
       chatState.setRoomUsers(group.members || []); // Fallback a group.members si falla
@@ -2477,6 +2517,7 @@ const ChatPage = () => {
         onPinMessage={handlePinMessage}
         onPollVote={handlePollVote}
         onRoomUpdated={() => roomManagement.loadMyActiveRooms(1, false, null, user)}
+        setRoomUsers={chatState.setRoomUsers} // 🔥 NUEVO: Para actualizar globalmente desde paneles
         // Props de modales
         showCreateRoomModal={chatState.showCreateRoomModal}
         setShowCreateRoomModal={chatState.setShowCreateRoomModal}

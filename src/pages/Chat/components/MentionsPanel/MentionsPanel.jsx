@@ -13,7 +13,8 @@ const MentionsPanel = ({
     roomName,
     // Callback para navegar al mensaje
     onGoToMessage,
-    roomUsers = []
+    roomUsers = [],
+    userList = [] // 🔥 NUEVO: Para resolución de nombres profesionales
 }) => {
     const [mentions, setMentions] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -77,22 +78,44 @@ const MentionsPanel = ({
     };
 
     const getUserPicture = (username) => {
-        const user = roomUsers.find(u => u.username === username ||
-            `${u.nombre} ${u.apellido}` === username);
+        const idLower = (username || '').toLowerCase().trim();
+        const user = roomUsers.find(u => (u.username || '').toLowerCase().trim() === idLower)
+            || userList.find(u => (u.username || '').toLowerCase().trim() === idLower);
         return user?.picture;
+    };
+
+    const getBestName = (u) => {
+        if (!u || typeof u !== 'object') return null;
+        return u.displayName || u.fullName || u.fullname || u.name ||
+            ((u.nombre || u.apellido) ? `${u.nombre || ''} ${u.apellido || ''}`.trim() : null);
     };
 
     const getDisplayName = (from, fullName) => {
         // 1. Si el API ya devuelve fullName, usarlo
         if (fullName) return fullName;
-        // 2. Buscar en roomUsers por username (DNI)
-        if (from && roomUsers && roomUsers.length > 0) {
-            const user = roomUsers.find(u => u && typeof u === 'object' && u.username === from);
-            if (user && user.nombre && user.apellido) {
-                return `${user.nombre} ${user.apellido}`.trim();
-            }
+
+        const idLower = (from || '').toLowerCase().trim();
+
+        // 2. Buscar en roomUsers
+        const userRoom = roomUsers && roomUsers.length > 0
+            ? roomUsers.find(u => u && typeof u === 'object' && (u.username || '').toLowerCase().trim() === idLower)
+            : null;
+
+        if (userRoom) {
+            const name = getBestName(userRoom);
+            if (name) return name;
         }
-        // 3. Si ya tiene espacios (es un nombre), mostrarlo directo
+
+        // 3. Buscar en userList (Global)
+        const userGlobal = userList && userList.length > 0
+            ? userList.find(u => u && typeof u === 'object' && (u.username || '').toLowerCase().trim() === idLower)
+            : null;
+
+        if (userGlobal) {
+            const name = getBestName(userGlobal);
+            if (name) return name;
+        }
+
         return from || '?';
     };
 

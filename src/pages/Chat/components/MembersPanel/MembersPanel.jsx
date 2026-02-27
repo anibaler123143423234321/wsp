@@ -12,7 +12,8 @@ const MembersPanel = ({
     currentRoomCode,
     user,
     userList,
-    socket //  NUEVO: Socket para escuchar eventos en tiempo real
+    socket, //  NUEVO: Socket para escuchar eventos en tiempo real
+    setRoomUsers: setGlobalRoomUsers // 🔥 NUEVO: Setter global para sincronización
 }) => {
     const [filterText, setFilterText] = useState('');
     const [roomUsers, setRoomUsers] = useState([]);
@@ -125,7 +126,14 @@ const MembersPanel = ({
                 picture: apiUser.picture || findPicture(apiUser.displayName)
             }));
 
+
             setRoomUsers(enrichedUsers);
+
+            // 🔥 SINCRONIZACIÓN GLOBAL: Actualizar el estado centralizado
+            if (setGlobalRoomUsers) {
+                console.log('✅ MembersPanel: Sincronizando estado global de roomUsers');
+                setGlobalRoomUsers(enrichedUsers);
+            }
         } catch (error) {
             console.error('Error al cargar usuarios de la sala:', error);
             setRoomUsers(propRoomUsers || []);

@@ -35,30 +35,32 @@ const resolveDisplayName = (identifier, roomUsers = [], userList = []) => {
     if (!identifier) return 'Usuario';
     const idLower = identifier.toString().toLowerCase().trim();
 
+    const getBestName = (u) => {
+        if (!u || typeof u !== 'object') return null;
+        return u.displayName || u.fullName || u.fullname || u.name ||
+            ((u.nombre || u.apellido) ? `${u.nombre || ''} ${u.apellido || ''}`.trim() : null);
+    };
+
     // 1. Buscar en userList (global)
-    const foundGlobal = (userList || []).find(u => u.username?.toLowerCase().trim() === idLower);
-    if (foundGlobal && typeof foundGlobal === 'object') {
-        const name = foundGlobal.displayName || ((foundGlobal.nombre || foundGlobal.apellido) ? `${foundGlobal.nombre || ''} ${foundGlobal.apellido || ''}`.trim() : '');
+    const foundGlobal = (userList || []).find(u => (u.username || '').toString().toLowerCase().trim() === idLower);
+    if (foundGlobal) {
+        const name = getBestName(foundGlobal);
         if (name) return name;
     }
 
     // 2. Buscar en roomUsers (específico de la sala)
-    // roomUsers puede ser una lista de objetos o una lista de DNIs (strings)
     const foundRoom = (roomUsers || []).find(u => {
         if (typeof u === 'string') return u.toLowerCase().trim() === idLower;
         return (u.username || '').toString().toLowerCase().trim() === idLower;
     });
 
-    if (foundRoom && typeof foundRoom === 'object') {
-        const name = foundRoom.displayName || ((foundRoom.nombre || foundRoom.apellido) ? `${foundRoom.nombre || ''} ${foundRoom.apellido || ''}`.trim() : '');
+    if (foundRoom) {
+        const name = getBestName(foundRoom);
         if (name) return name;
     }
 
-    // 3. Si no hay nombre profesional pero encontramos el objeto, usar username como fallback final
-    if (foundGlobal && typeof foundGlobal === 'object') return foundGlobal.username || identifier;
-    if (foundRoom && typeof foundRoom === 'object') return foundRoom.username || identifier;
-
-    return identifier;
+    // 3. Fallback final
+    return (foundGlobal?.username || foundRoom?.username || identifier);
 };
 
 // 🔥 NUEVO: Helper para detectar si un mensaje menciona al usuario actual

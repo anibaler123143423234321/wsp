@@ -79,6 +79,7 @@ const EmojiIcon = ({ className }) => (
  * @param {Function} props.onMentionSelect - Handler for selecting a mention
  * @param {string} props.mentionSearch - Current mention search string
  * @param {boolean} props.isGroup - Whether this is a group chat
+ * @param {Array} props.userList - List of users for mention suggestions
  */
 const ChatInput = ({
     value = "",
@@ -115,6 +116,7 @@ const ChatInput = ({
     mentionSuggestions = [],
     onMentionSelect,
     isGroup = false,
+    userList = [], // 🔥 NUEVO: Para resolución de nombres profesionales
 }) => {
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [isRecordingLocal, setIsRecordingLocal] = useState(false);
@@ -334,22 +336,37 @@ const ChatInput = ({
                                 boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.5)'
                             }}
                         >
-                            {mentionSuggestions.map((user, index) => {
-                                const displayName = typeof user === "string"
-                                    ? user
-                                    : (user.displayName || ((user.nombre || user.apellido) ? `${user.nombre || ''} ${user.apellido || ''}`.trim() : '') || user.mentionText || user.username || "").trim();
+                            {mentionSuggestions.map((suggestionUser, index) => {
+                                // 🔥 RESOLVER NOMBRE PROFESIONAL - Lógica exhaustiva
+                                const idLower = (typeof suggestionUser === "string" ? suggestionUser : suggestionUser.username || "").toLowerCase().trim();
+                                const foundGlobal = userList.find(u => (u.username || "").toLowerCase().trim() === idLower);
+
+                                const getBestName = (u) => {
+                                    if (!u || typeof u !== 'object') return null;
+                                    return (u.displayName || u.fullName || u.fullname || u.name ||
+                                        ((u.nombre || u.apellido) ? `${u.nombre || ''} ${u.apellido || ''}`.trim() : null) || "").trim();
+                                };
+
+                                let name = getBestName(suggestionUser);
+
+                                if (!name && foundGlobal) {
+                                    name = getBestName(foundGlobal);
+                                }
+
+                                const displayName = (name || (typeof suggestionUser === "string" ? suggestionUser : suggestionUser.username) || "").trim();
+                                const userPicture = suggestionUser.picture || foundGlobal?.picture;
 
                                 return (
                                     <div
                                         key={index}
                                         className="chat-input-mention-item"
-                                        onClick={() => onMentionSelect && onMentionSelect(user)}
+                                        onClick={() => onMentionSelect && onMentionSelect(suggestionUser)}
                                     >
                                         <div
                                             className="chat-input-mention-avatar"
-                                            style={{ background: user.picture ? `url(${user.picture}) center/cover` : "#667eea" }}
+                                            style={{ background: userPicture ? `url(${userPicture}) center/cover` : "#667eea" }}
                                         >
-                                            {!user.picture && displayName.charAt(0).toUpperCase()}
+                                            {!userPicture && displayName.charAt(0).toUpperCase()}
                                         </div>
                                         <div className="chat-input-mention-name">{displayName}</div>
                                     </div>
