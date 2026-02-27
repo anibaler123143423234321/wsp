@@ -222,6 +222,7 @@ const getSenderSuffix = (message) => {
 const ChatContent = ({
   // Props de mensajes
   messages,
+  userList = [], // 🔥 NUEVO: Para resolución de nombres profesionales
   highlightMessageId,
   onMessageHighlighted,
   replyingTo,
@@ -1007,7 +1008,9 @@ const ChatContent = ({
   };
 
   const handleMentionSelect = (user) => {
-    const username = typeof user === "string" ? user : (user.displayName || user.username || user.nombre || '');
+    const username = (typeof user === "string"
+      ? user
+      : (user.displayName || (user.nombre ? `${user.nombre} ${user.apellido || ''}` : '') || user.username || "")).trim();
     const beforeMention = input.substring(0, mentionCursorPosition);
     const afterMention = input.substring(mentionCursorPosition + mentionSearch.length + 1);
     const newInput = `${beforeMention}@${username} ${afterMention}`;
@@ -3995,17 +3998,30 @@ const ChatContent = ({
             ? roomUsers.filter((user) => {
               let searchName = '';
               if (typeof user === "string") {
-                searchName = user;
+                // 🔥 RESOLVER DNI CONTRA LISTA GLOBAL
+                const idLower = user.toLowerCase().trim();
+                const found = userList.find(u => (u.username || '').toLowerCase().trim() === idLower);
+                searchName = found
+                  ? (found.displayName || `${found.nombre || ''} ${found.apellido || ''}`.trim() || found.username)
+                  : user;
               } else if (user && typeof user === 'object') {
-                searchName = user.displayName
-                  || ((user.nombre && user.apellido) ? `${user.nombre} ${user.apellido}` : '')
-                  || user.username
-                  || user.nombre
-                  || '';
+                // 🔥 PRIORIDAD: displayName > Full Name > Global search > username
+                let name = user.displayName
+                  || ((user.nombre || user.apellido) ? `${user.nombre || ''} ${user.apellido || ''}`.trim() : '');
+
+                if (!name && user.username) {
+                  const idLower = user.username.toLowerCase().trim();
+                  const found = userList.find(u => (u.username || '').toLowerCase().trim() === idLower);
+                  if (found) {
+                    name = found.displayName || `${found.nombre || ''} ${found.apellido || ''}`.trim();
+                  }
+                }
+
+                searchName = name || user.username || '';
               }
               if (!searchName) return false;
               const searchLower = searchName.toLowerCase();
-              return searchLower.includes(mentionSearch) && searchName !== currentUsername;
+              return searchLower.includes(mentionSearch.toLowerCase()) && searchName !== currentUsername;
             })
             : []
         }

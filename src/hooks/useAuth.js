@@ -10,13 +10,34 @@ export const useAuth = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
-    const checkAuth = () => {
-      setIsLoading(true); // Iniciar carga
+    const checkAuth = async () => {
+      setIsLoading(true);
 
       if (apiService.isAuthenticated()) {
         const currentUser = apiService.getCurrentUser();
-        setUser(currentUser);
-        setUsername(currentUser.username || currentUser.email);
+
+        // 🔥 SELF-HEALING: Rectificar username si es un nombre completo (sesión antigua)
+        // Si el username tiene espacios o no es puramente numérico, es un nombre
+        if (currentUser.username && (currentUser.username.includes(" ") || isNaN(currentUser.username))) {
+          console.warn("⚠️ Sesión antigua detectada (nombre como username). Rectificando...");
+          try {
+            const newToken = await apiService.refreshToken();
+            if (newToken) {
+              const updatedUser = apiService.getCurrentUser();
+              console.log("✅ Sesión rectificada con éxito:", updatedUser.username);
+              setUser(updatedUser);
+              setUsername(updatedUser.username);
+            }
+          } catch (err) {
+            console.error("❌ No se pudo rectificar la sesión automáticamente:", err);
+            // Si falla el auto-fix y el username sigue mal, podrías forzar logout
+            // apiService.logout(); 
+          }
+        } else {
+          setUser(currentUser);
+          setUsername(currentUser.username || currentUser.email);
+        }
+
         setIsAuthenticated(true);
 
         const isUserAdmin =
@@ -30,7 +51,7 @@ export const useAuth = () => {
         setIsAdmin(false);
       }
 
-      setIsLoading(false); // Finalizar carga
+      setIsLoading(false);
     };
 
     // Verificar autenticación inicial

@@ -337,7 +337,7 @@ const ChatInput = ({
                             {mentionSuggestions.map((user, index) => {
                                 const displayName = typeof user === "string"
                                     ? user
-                                    : user.mentionText || user.displayName || (user.nombre && user.apellido ? `${user.nombre} ${user.apellido}` : user.username || user.nombre || "");
+                                    : (user.displayName || ((user.nombre || user.apellido) ? `${user.nombre || ''} ${user.apellido || ''}`.trim() : '') || user.mentionText || user.username || "").trim();
 
                                 return (
                                     <div

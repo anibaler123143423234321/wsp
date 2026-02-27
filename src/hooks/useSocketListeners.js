@@ -30,6 +30,37 @@ const getRealMessageId = (id) => {
     return id;
 };
 
+// 🔥 NUEVO: Resolver nombre amigable contra roomUsers o userList
+const resolveDisplayName = (identifier, roomUsers = [], userList = []) => {
+    if (!identifier) return 'Usuario';
+    const idLower = identifier.toString().toLowerCase().trim();
+
+    // 1. Buscar en userList (global)
+    const foundGlobal = (userList || []).find(u => u.username?.toLowerCase().trim() === idLower);
+    if (foundGlobal && typeof foundGlobal === 'object') {
+        const name = foundGlobal.displayName || ((foundGlobal.nombre || foundGlobal.apellido) ? `${foundGlobal.nombre || ''} ${foundGlobal.apellido || ''}`.trim() : '');
+        if (name) return name;
+    }
+
+    // 2. Buscar en roomUsers (específico de la sala)
+    // roomUsers puede ser una lista de objetos o una lista de DNIs (strings)
+    const foundRoom = (roomUsers || []).find(u => {
+        if (typeof u === 'string') return u.toLowerCase().trim() === idLower;
+        return (u.username || '').toString().toLowerCase().trim() === idLower;
+    });
+
+    if (foundRoom && typeof foundRoom === 'object') {
+        const name = foundRoom.displayName || ((foundRoom.nombre || foundRoom.apellido) ? `${foundRoom.nombre || ''} ${foundRoom.apellido || ''}`.trim() : '');
+        if (name) return name;
+    }
+
+    // 3. Si no hay nombre profesional pero encontramos el objeto, usar username como fallback final
+    if (foundGlobal && typeof foundGlobal === 'object') return foundGlobal.username || identifier;
+    if (foundRoom && typeof foundRoom === 'object') return foundRoom.username || identifier;
+
+    return identifier;
+};
+
 // 🔥 NUEVO: Helper para detectar si un mensaje menciona al usuario actual
 const hasMentionToCurrentUser = (messageText, currentUserFullName) => {
     if (!messageText || !currentUserFullName) return false;
@@ -70,6 +101,7 @@ export const useSocketListeners = (
 ) => {
     // Desestructurar estado
     const {
+        roomUsers, userList,
         setUserList, setUserListPage, setUserListHasMore, setUserListLoading,
         setRoomUsers, setMyActiveRooms, myActiveRooms, setAssignedConversations, //  Agregado myActiveRooms
         setMonitoringConversations, setUnreadMessages, setPendingMentions, setPendingThreads,
@@ -87,9 +119,11 @@ export const useSocketListeners = (
         loadAssignedConversations, loadMyActiveRooms, loadFavoriteRoomCodes, clearMessages
     } = messageFunctions;
 
-    const { username, user, soundsEnabled, favoriteRoomCodes = [], areAlertsEnabled = true } = authData;
+    const { username, user, userList: authUserList, soundsEnabled, favoriteRoomCodes = [], areAlertsEnabled = true } = authData;
 
-    //  CRÍTICO: Usar ref para tener siempre el valor actualizado
+    // 🔥 SYNC: Refs para evitar cierres obsoletos (stale closures)
+    const roomUsersRef = useRef(roomUsers || []);
+    const userListRef = useRef(authUserList || userList || []);
     const soundsEnabledRef = useRef(soundsEnabled);
     const areAlertsEnabledRef = useRef(areAlertsEnabled); // 🔥 NUEVO Ref para alertas globales
     const myActiveRoomsRef = useRef(myActiveRooms || []); //  Nuevo Ref
@@ -123,12 +157,31 @@ export const useSocketListeners = (
         areMessageAlertsEnabledRef.current = authData.areMessageAlertsEnabled;
     }, [authData.areThreadAlertsEnabled, authData.areMessageAlertsEnabled]);
 
-    // 🔥 SYNC: Mantener myActiveRoomsRef sincronizado con el estado
+    // 🔥 SYNC: Mantener refs actualizados
+    useEffect(() => {
+        roomUsersRef.current = roomUsers || [];
+    }, [roomUsers]);
+
+    useEffect(() => {
+        userListRef.current = authUserList || userList || [];
+    }, [authUserList, userList]);
+
     useEffect(() => {
         myActiveRoomsRef.current = myActiveRooms || [];
     }, [myActiveRooms]);
 
     //  Actualizar ref cuando cambien favoritos
+    // 🔥 NUEVO: Mantener el nombre completo del usuario actualizado para menciones
+    useEffect(() => {
+        if (user) {
+            const fullName = (user.nombre || user.apellido)
+                ? `${user.nombre || ''} ${user.apellido || ''}`.trim()
+                : user.username;
+            console.log('👤 [useSocketListeners] Sincronizando currentUserFullNameRef:', fullName);
+            currentUserFullNameRef.current = fullName;
+        }
+    }, [user]);
+
     useEffect(() => {
         favoriteRoomCodesRef.current = favoriteRoomCodes;
     }, [favoriteRoomCodes]);
@@ -517,9 +570,10 @@ export const useSocketListeners = (
                         // Buscar nombre de la sala en referencias locales
                         const roomInfo = myActiveRoomsRef.current.find(r => r.roomCode === data.roomCode);
                         const roomName = roomInfo?.name || data.roomCode || 'Chat';
+                        const friendlySender = resolveDisplayName(data.lastReplyFrom, roomUsersRef.current, chatState.userList);
 
                         const notificationTitle = `Hilo en ${roomName}`;
-                        const notificationBody = `${data.lastReplyFrom}: ${data.lastReplyText}`;
+                        const notificationBody = `${friendlySender}: ${data.lastReplyText}`;
 
                         // 🔥 CHECK: Alertas Globales AND Alertas de Hilos
                         if (areAlertsEnabledRef.current && areThreadAlertsEnabledRef.current) {
@@ -883,56 +937,59 @@ export const useSocketListeners = (
                         return sortRoomsByBackendLogic(updated, favoriteRoomCodesRef.current);
                     });
 
-                    //  NOTIFICACIÓN TOAST para grupos (solo si NO es mensaje propio y chat NO está abierto)
-                    if (!isOwnMessage && !isChatOpen) {
-                        // 🔥 NUEVO: Detectar si hay mención al usuario actual
+                    // ------------------------------------------------
+                    //  NOTIFICACIÓN Y SONIDO (solo si NO es mensaje propio)
+                    // ------------------------------------------------
+                    if (!isOwnMessage) {
                         const currentUserFullName = currentUserFullNameRef.current || username;
                         const hasMention = hasMentionToCurrentUser(messageText, currentUserFullName);
-                        console.log('🔊 [GRUPO] Reproduciendo sonido:', { hasMention, messageText });
-                        // 🔥 CHECK: Solo reproducir si las alertas globales están activadas
-                        if (areAlertsEnabledRef.current) {
+
+                        console.log('🔊 [GRUPO] Evaluación de sonido:', {
+                            hasMention,
+                            isChatOpen,
+                            roomCode: data.roomCode,
+                            areAlertsEnabled: areAlertsEnabledRef.current
+                        });
+
+                        // 🔥 REGLA DE SONIDO: Sonar si el chat está cerrado O si es una mención (aunque esté abierto)
+                        if (areAlertsEnabledRef.current && (!isChatOpen || hasMention)) {
                             playMessageSound(soundsEnabledRef.current, hasMention);
-                        } else {
-                            console.log('🔇 Sonido grupo silenciado por "Silenciar todas las alertas"');
                         }
 
-                        // 🔥 LÓGICA DE NOTIFICACIÓN MEJORADA:
-                        // Si la pestaña está oculta, mostrar notificación de sistema.
-                        // Si la pestaña está visible, mostrar SweetAlert (independientemente del foco).
-                        // 🔥 CHECK: Alertas Globales AND Alertas de Mensajes
-                        if (areAlertsEnabledRef.current && areMessageAlertsEnabledRef.current) {
+                        // NOTIFICACIONES (Solo si el chat NO está abierto y las alertas están activadas)
+                        if (!isChatOpen && areAlertsEnabledRef.current && areMessageAlertsEnabledRef.current) {
+                            const friendlySender = resolveDisplayName(data.from, roomUsersRef.current, userListRef.current);
+
                             if (systemNotifications.canShow()) {
                                 systemNotifications.show(
                                     hasMention ? `🔴 Te mencionaron en ${data.roomName || data.roomCode}` : `Nuevo mensaje en ${data.roomName || data.roomCode}`,
-                                    hasMention ? `${data.from} te mencionó: ${messageText}` : `${data.from}: ${messageText}`,
+                                    hasMention ? `${friendlySender} te mencionó: ${messageText}` : `${friendlySender}: ${messageText}`,
                                     { tag: `room-${data.roomCode}`, silent: !soundsEnabledRef.current },
                                     () => {
                                         const realId = getRealMessageId(data.id);
                                         const messageId = realId || (data.id?.toString().startsWith('temp_') ? null : data.id);
-                                        window.dispatchEvent(new CustomEvent("navigateToRoom", {
+                                        window.dispatchEvent(new CustomEvent("navigateToGroup", {
                                             detail: { roomCode: data.roomCode, messageId }
                                         }));
                                     }
                                 );
                             } else {
-                                // Si no podemos mostrar notificación de sistema (pestaña visible),
-                                // mostramos el SweetAlert Toast siempre (antes requería focus)
-                                console.log('🚀 [ALERT TRIGGER] Llamando a Swal.fire (GRUPO)');
+                                // Fallback a Swal Toast si la pestaña está visible
                                 Swal.fire({
                                     toast: true,
                                     position: "top-end",
-                                    icon: hasMention ? "warning" : "info", // Icono distinto para mención
+                                    icon: hasMention ? "warning" : "info",
                                     title: hasMention ? `🔴 Te mencionaron en ${data.roomName || data.roomCode}` : `Mensaje en ${data.roomName || data.roomCode}`,
                                     html: `
-                                <div class="toast-content">
-                                    <div class="toast-sender">${data.from}</div>
-                                    <div class="toast-message">${messageText.substring(0, 80)}${messageText.length > 80 ? "..." : ""}</div>
-                                </div>
-                            `,
+                                        <div class="toast-content">
+                                            <div class="toast-sender">${friendlySender}</div>
+                                            <div class="toast-message">${messageText.substring(0, 80)}${messageText.length > 80 ? "..." : ""}</div>
+                                        </div>
+                                    `,
                                     showConfirmButton: true,
                                     confirmButtonText: "Ver",
                                     showCloseButton: true,
-                                    timer: hasMention ? 10000 : 6000, // Más tiempo para menciones
+                                    timer: hasMention ? 10000 : 6000,
                                     customClass: {
                                         popup: 'modern-toast',
                                         title: 'modern-toast-title',
@@ -945,7 +1002,7 @@ export const useSocketListeners = (
                                     if (result.isConfirmed) {
                                         const realId = getRealMessageId(data.id);
                                         const messageId = realId || (data.id?.toString().startsWith('temp_') ? null : data.id);
-                                        window.dispatchEvent(new CustomEvent("navigateToRoom", {
+                                        window.dispatchEvent(new CustomEvent("navigateToGroup", {
                                             detail: { roomCode: data.roomCode, messageId }
                                         }));
                                     }
@@ -957,7 +1014,7 @@ export const useSocketListeners = (
 
                 // CASO B: CHATS INDIVIDUALES
             } else {
-                //  Limpiar indicador de typing inmediatamente cuando llega el mensaje
+                //  Limpiar indicadores
                 if (!isOwnMessage) {
                     setTypingUser(null);
                 }
@@ -1186,40 +1243,43 @@ export const useSocketListeners = (
                     }
                 }
 
-                //  NOTIFICACIONES SOLO si NO es mensaje propio y chat NO está abierto
-                if (!isOwnMessage && !isChatOpen) {
-                    // 🔥 NUEVO: Detectar si hay mención al usuario actual
-                    const hasMention = hasMentionToCurrentUser(messageText, currentFullName || username);
-                    console.log('🔊 [DIRECTO] Reproduciendo sonido:', { hasMention, messageText });
-                    // 🔥 CHECK: Solo reproducir si las alertas globales están activadas
-                    if (areAlertsEnabledRef.current) {
+                // ------------------------------------------------
+                //  NOTIFICACIÓN Y SONIDO (solo si NO es mensaje propio)
+                // ------------------------------------------------
+                if (!isOwnMessage) {
+                    const currentUserFullName = currentUserFullNameRef.current || username;
+                    const hasMention = hasMentionToCurrentUser(messageText, currentUserFullName);
+
+                    console.log('🔊 [DIRECTO] Evaluación de sonido:', {
+                        hasMention,
+                        isChatOpen,
+                        from: data.from,
+                        areAlertsEnabled: areAlertsEnabledRef.current
+                    });
+
+                    // 🔥 REGLA DE SONIDO: Sonar si (chat cerrado) O (hay mención aunque esté abierto)
+                    if (areAlertsEnabledRef.current && (!isChatOpen || hasMention)) {
                         playMessageSound(soundsEnabledRef.current, hasMention);
-                    } else {
-                        console.log('🔇 Sonido mención silenciado por "Silenciar todas las alertas"');
                     }
 
-                    // 🔥 LÓGICA DE NOTIFICACIÓN MEJORADA (DM):
-                    // 🔥 CHECK: Alertas Globales AND Alertas de Mensajes
-                    if (areAlertsEnabledRef.current && areMessageAlertsEnabledRef.current) {
+                    // NOTIFICACIONES (Solo si el chat NO está abierto y las alertas están activadas)
+                    if (!isChatOpen && areAlertsEnabledRef.current && areMessageAlertsEnabledRef.current) {
+                        const friendlySender = resolveDisplayName(data.from, roomUsersRef.current, userListRef.current);
+
                         if (systemNotifications.canShow()) {
                             systemNotifications.show(
-                                hasMention ? `🔴 ${data.from} te mencionó` : `Nuevo mensaje de ${data.from}`,
+                                hasMention ? `🔴 ${friendlySender} te mencionó` : `Mensaje de ${friendlySender}`,
                                 messageText,
                                 { tag: `chat-${data.from}`, silent: !soundsEnabledRef.current },
-                                () => {
-                                    window.dispatchEvent(new CustomEvent("navigateToChat", {
-                                        detail: { to: data.from, messageId: data.id }
-                                    }));
-                                }
+                                () => window.dispatchEvent(new CustomEvent("navigateToChat", { detail: { to: data.from } }))
                             );
                         } else {
-                            // Si pestaña es visible, mostrar toast siempre
-                            console.log('🚀 [ALERT TRIGGER] Llamando a Swal.fire (DM)');
+                            // Fallback a Swal Toast
                             Swal.fire({
                                 toast: true,
                                 position: "top-end",
                                 icon: hasMention ? "warning" : "info",
-                                title: hasMention ? `🔴 ${data.from} te mencionó` : `Mensaje de ${data.from}`,
+                                title: hasMention ? `🔴 ${friendlySender} te mencionó` : `Mensaje de ${friendlySender}`,
                                 html: `
                             <div class="toast-content">
                                 <div class="toast-message">${messageText.substring(0, 80)}${messageText.length > 80 ? "..." : ""}</div>
@@ -1247,7 +1307,6 @@ export const useSocketListeners = (
                         }
                     }
                 }
-
             }
         });
 
@@ -1961,6 +2020,7 @@ export const useSocketListeners = (
                         groupName = foundRoom?.roomName || foundRoom?.name || foundRoom?.groupName || data.roomName || data.roomCode;
                     }
 
+                    const friendlySender = resolveDisplayName(data.lastReplyFrom, roomUsersRef.current, userListRef.current);
                     const notificationTitle = data.isGroup
                         ? (hasMention ? `🔴 Te mencionaron en hilo - ${groupName}` : `Nueva respuesta en hilo - ${groupName}`)
                         : (hasMention ? `🔴 Te mencionaron en hilo` : `Nueva respuesta en hilo`);
@@ -1968,7 +2028,7 @@ export const useSocketListeners = (
                     if (systemNotifications.canShow()) {
                         systemNotifications.show(
                             notificationTitle,
-                            `${data.lastReplyFrom} respondió en un hilo: ${data.lastReplyText}`,
+                            `${friendlySender} respondió en un hilo: ${data.lastReplyText}`,
                             { tag: `thread-${data.messageId}`, silent: !soundsEnabledRef.current },
                             () => {
                                 if (data.isGroup && data.roomCode) {
@@ -1993,7 +2053,7 @@ export const useSocketListeners = (
                             title: notificationTitle,
                             html: `
                             <div class="toast-content">
-                                <div class="toast-sender">${data.lastReplyFrom}</div>
+                                <div class="toast-sender">${friendlySender}</div>
                                 <div class="toast-message">Respondió en un hilo</div>
                             </div>
                         `,

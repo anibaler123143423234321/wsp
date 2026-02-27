@@ -88,10 +88,11 @@ const ChatPage = () => {
     clearInput,
   } = useMessages();
 
-  const currentUserFullName =
+  const currentUserFullName = user?.displayName || (
     user?.nombre && user?.apellido
       ? `${user.nombre} ${user.apellido}`
-      : username;
+      : username
+  );
 
   const {
     messages,
@@ -659,13 +660,13 @@ const ChatPage = () => {
 
   // Función para cargar más usuarios (paginación)
   const loadMoreUsers = () => {
-    if (!socket || !socket.connected || userListLoading || !userListHasMore) {
+    if (!socket || !socket.connected || chatState.userListLoading || !chatState.userListHasMore) {
       return;
     }
 
-    setUserListLoading(true);
+    chatState.setUserListLoading(true);
     socket.emit("requestUserListPage", {
-      page: userListPage + 1,
+      page: chatState.userListPage + 1,
       pageSize: 10,
     });
   };
@@ -687,6 +688,7 @@ const ChatPage = () => {
     },
     {
       user,
+      userList: chatState.userList, // 🔥 NUEVO: Para resolución de nombres amigables
       username,
       isAdmin,
       soundsEnabled: chatState.soundsEnabled,
@@ -1309,6 +1311,11 @@ const ChatPage = () => {
       // DIFERENCIA CLAVE: Para GRUPOS, el backend guarda. Para INDIVIDUALES, el frontend guarda.
       if (effectiveIsGroup) {
         // GRUPO: Solo emitir por socket, el backend guarda y emite de vuelta
+        console.log('📡 [handleSendMessage] Emitiendo a GRUPO:', {
+          to: messageObj.to,
+          roomCode: messageObj.roomCode,
+          isGroup: messageObj.isGroup
+        });
         if (socket && socket.connected) {
           socket.emit("message", messageObj);
         }
