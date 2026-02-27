@@ -1154,6 +1154,7 @@ export const useSocketListeners = (
                         if (String(conv.id) === String(favConvId)) {
                             return {
                                 ...conv,
+                                lastActivity: data.sentAt || new Date().toISOString(), // 🔥 FIX: Para que suba arriba
                                 lastMessage: {
                                     text: messageText,
                                     from: data.from,
@@ -1511,6 +1512,7 @@ export const useSocketListeners = (
                         return {
                             ...conv,
                             // Unificar estructura para que sortRoomsByBackendLogic funcione
+                            lastActivity: data.lastMessageTime, // 🔥 CRÍTICO: Para que suba arriba en favoritos
                             lastMessage: {
                                 text: data.lastMessage,
                                 from: data.lastMessageFrom || data.from,

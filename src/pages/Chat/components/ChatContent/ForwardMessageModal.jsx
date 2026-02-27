@@ -22,107 +22,14 @@ const ForwardMessageModal = ({
     convsPage = 1,
     convsTotalPages = 1,
     convsLoading = false,
-    onLoadMoreConvs, // Función callback para cargar más conversaciones
-    userList = [] // 🔥 NUEVO: Para resolución de nombres
+    onLoadMoreConvs // Función callback para cargar más conversaciones
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedDestination, setSelectedDestination] = useState(null);
     const [isSending, setIsSending] = useState(false);
-    const [forwardLookupCache, setForwardLookupCache] = useState({});
 
     //  NUEVO: Ref para la lista scrolleable
     const destinationsListRef = useRef(null);
-
-    const normalizeValue = useCallback((value) => {
-        if (!value) return '';
-        return String(value).normalize("NFD").replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
-    }, []);
-
-    const resolveUserByAnyKey = useCallback((value) => {
-        if (!value || !Array.isArray(userList) || userList.length === 0) return null;
-        const key = normalizeValue(value);
-        return userList.find((u) => {
-            if (!u || typeof u !== 'object') return false;
-            const fullName = `${u.nombre || ''} ${u.apellido || ''}`.trim();
-            const emailLocal = u.email ? String(u.email).split('@')[0] : '';
-            const candidates = [
-                u.username,
-                u.userName,
-                u.name,
-                u.displayName,
-                u.notify,
-                u.vname,
-                u.email,
-                u.correo,
-                emailLocal,
-                u?.id?.user,
-                fullName,
-            ]
-                .filter(Boolean)
-                .map(normalizeValue);
-            return candidates.includes(key);
-        });
-    }, [userList, normalizeValue]);
-
-    const getDisplayName = useCallback((identifier) => {
-        const cached = forwardLookupCache[normalizeValue(identifier)];
-        const resolved = cached || resolveUserByAnyKey(identifier);
-        if (resolved?.nombre && resolved?.apellido) return `${resolved.nombre} ${resolved.apellido}`.trim();
-        if (resolved?.displayName) return resolved.displayName;
-        if (resolved?.name) return resolved.name;
-        if (resolved?.username) return resolved.username;
-        return identifier || 'Usuario';
-    }, [resolveUserByAnyKey, forwardLookupCache, normalizeValue]);
-
-    useEffect(() => {
-        const ids = (assignedConversations || [])
-            .flatMap((conv) => conv?.participants || [])
-            .filter(Boolean)
-            .map((p) => String(p).trim())
-            .filter((p) => /^\d{6,}$/.test(p) || p.includes('@'));
-
-        const toResolve = Array.from(new Set(ids))
-            .filter((id) => !forwardLookupCache[normalizeValue(id)])
-            .slice(0, 20);
-
-        if (toResolve.length === 0) return;
-        let cancelled = false;
-
-        (async () => {
-            const resolved = await Promise.all(
-                toResolve.map(async (id) => {
-                    try {
-                        const list = await apiService.searchUsersFromBackend(id, 0, 10);
-                        if (!Array.isArray(list) || list.length === 0) return null;
-                        const match = list.find((u) => {
-                            const full = `${u.nombre || ''} ${u.apellido || ''}`.trim();
-                            const emailLocal = u.email ? String(u.email).split('@')[0] : '';
-                            return [u.username, u.email, u.correo, u?.id?.user, full, emailLocal]
-                                .filter(Boolean)
-                                .map(normalizeValue)
-                                .includes(normalizeValue(id));
-                        }) || list[0];
-                        return match ? [normalizeValue(id), match] : null;
-                    } catch {
-                        return null;
-                    }
-                })
-            );
-
-            if (cancelled) return;
-            const patch = {};
-            resolved.forEach((r) => {
-                if (r && r[0] && r[1]) patch[r[0]] = r[1];
-            });
-            if (Object.keys(patch).length > 0) {
-                setForwardLookupCache((prev) => ({ ...prev, ...patch }));
-            }
-        })();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [assignedConversations, forwardLookupCache, normalizeValue]);
 
     // Filtrar chats disponibles por búsqueda
     const filteredRooms = useMemo(() => {
@@ -139,12 +46,9 @@ const ForwardMessageModal = ({
         const search = searchTerm.toLowerCase();
         return assignedConversations.filter(conv =>
             conv.name?.toLowerCase().includes(search) ||
-            conv.participants?.some(p => {
-                const display = getDisplayName(p);
-                return String(display).toLowerCase().includes(search) || String(p).toLowerCase().includes(search);
-            })
+            conv.participants?.some(p => p.toLowerCase().includes(search))
         );
-    }, [assignedConversations, searchTerm, getDisplayName]);
+    }, [assignedConversations, searchTerm]);
 
     //  NUEVO: Handler para scroll infinito
     const handleScroll = useCallback(() => {
@@ -223,7 +127,7 @@ const ForwardMessageModal = ({
 
             // Construir mensaje reenviado
             const forwardedMessage = {
-                from: currentUserFullName,
+                from: user?.username || currentUserFullName, // 🔥 FIX: Usar username (DNI) en vez de nombre completo
                 fromId: user.id,
                 to: selectedDestination.type === 'group' ? selectedDestination.name : selectedDestination.to,
                 message: message.text || message.message || '',
@@ -341,16 +245,19 @@ const ForwardMessageModal = ({
                                 const currentUserUsername = user?.username;
 
                                 const participants = conv.participants || [];
-                                const otherParticipantIdentifier = participants.find((p) => {
-                                    const pNorm = normalizeValue(p);
-                                    return pNorm !== normalizeValue(currentUserFullName) &&
-                                        pNorm !== normalizeValue(currentUserUsername);
-                                });
+                                // Find other participant: exclude current user by both DNI and full name
+                                const otherParticipant = participants.find(p =>
+                                    p !== currentUserFullName &&
+                                    p !== currentUserUsername
+                                );
 
-                                let displayName = getDisplayName(otherParticipantIdentifier) || conv.name || 'Usuario';
-                                if (!displayName || displayName === otherParticipantIdentifier) {
-                                    displayName = conv.name || displayName || 'Usuario';
-                                }
+                                // 🔥 FIX: conv.name ya trae el nombre correcto del API ("KAREN CONDEMARIN")
+                                // Usarlo primero antes de intentar resolver desde participants (que son DNIs)
+                                const displayName = conv.name ||
+                                    conv.displayName ||
+                                    conv.otherUserName ||
+                                    otherParticipant ||
+                                    'Chat asignado';
 
                                 return (
                                     <div

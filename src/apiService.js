@@ -199,7 +199,7 @@ class ApiService {
       // Estructura de datos que devuelve tu API
       const user = {
         id: data.data.userId,
-        username: data.data.username,
+        username: data.data.username || loginCredentials.username, // 🔥 Garantizar DNI
         nombre: data.data.nombre,
         apellido: data.data.apellido,
         role: data.data.role,

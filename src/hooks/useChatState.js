@@ -53,7 +53,8 @@ export const useChatState = () => {
         if (!displayName) return;
         try {
             const roomsWithData = await apiService.getUserFavoriteRoomsWithData(displayName);
-            const codes = roomsWithData.map(r => r.roomCode);
+            // 🔥 FIX: Incluimos tanto roomCode (grupos) como id (conversaciones)
+            const codes = roomsWithData.map(r => r.roomCode || String(r.id));
             console.log('🔥 useChatState: Favoritos cargados tempranamente:', { codes, count: roomsWithData.length });
             setFavoriteRoomCodes(codes);
             setFavoriteRooms(roomsWithData); // Guardar datos completos

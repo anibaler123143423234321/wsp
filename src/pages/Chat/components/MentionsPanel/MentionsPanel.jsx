@@ -77,10 +77,23 @@ const MentionsPanel = ({
     };
 
     const getUserPicture = (username) => {
-        // Intentar buscar en roomUsers (si es sala actual)
         const user = roomUsers.find(u => u.username === username ||
             `${u.nombre} ${u.apellido}` === username);
         return user?.picture;
+    };
+
+    const getDisplayName = (from, fullName) => {
+        // 1. Si el API ya devuelve fullName, usarlo
+        if (fullName) return fullName;
+        // 2. Buscar en roomUsers por username (DNI)
+        if (from && roomUsers && roomUsers.length > 0) {
+            const user = roomUsers.find(u => u && typeof u === 'object' && u.username === from);
+            if (user && user.nombre && user.apellido) {
+                return `${user.nombre} ${user.apellido}`.trim();
+            }
+        }
+        // 3. Si ya tiene espacios (es un nombre), mostrarlo directo
+        return from || '?';
     };
 
     if (!isOpen) return null;
@@ -134,12 +147,12 @@ const MentionsPanel = ({
                                         {senderPicture ? (
                                             <img src={senderPicture} alt="" />
                                         ) : (
-                                            <span>{(mention.from || '?')[0].toUpperCase()}</span>
+                                            <span>{(getDisplayName(mention.from, mention.fullName) || '?')[0].toUpperCase()}</span>
                                         )}
                                     </div>
                                     <div className="mention-info">
                                         <div className="mention-top">
-                                            <span className="mention-sender">{mention.from}</span>
+                                            <span className="mention-sender">{getDisplayName(mention.from, mention.fullName)}</span>
                                             <span className="mention-date">{formatDate(mention.sentAt)}</span>
                                         </div>
                                         {mention.groupName && isGroup && (

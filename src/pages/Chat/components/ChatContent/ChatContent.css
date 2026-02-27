@@ -2376,7 +2376,7 @@ html.dark .wa-file-download {
 
 .mention-span.mention-me {
   background-color: #fce8b2 !important;
-  /* Oro/Amarillo fuerte para que se note */
+  /* Amarillo suave */
   color: #3e2723 !important;
   /* Marrón oscuro */
   border-radius: 4px;
@@ -2385,7 +2385,7 @@ html.dark .wa-file-download {
 
 .mention-span.mention-other {
   background-color: #fce8b2 !important;
-  /* Amarillo brillante para otros */
+  /* Amarillo suave para otros */
   color: #3e2723 !important;
   /* Marrón oscuro */
   border-radius: 4px;
@@ -2646,7 +2646,7 @@ html.dark .flex.items-end .rounded-xl p {
   color: #e5e5e5 !important;
 }
 
-/* Mentions in dark mode - keep yellow but darker text */
+/* Mentions in dark mode */
 html.dark .mention-span.mention-me,
 html.dark .mention-span.mention-other {
   background-color: #b8860b !important;

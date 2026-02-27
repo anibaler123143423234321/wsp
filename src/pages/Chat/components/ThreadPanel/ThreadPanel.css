@@ -1360,7 +1360,7 @@ html.dark .mention-avatar-placeholder {
   border-radius: 4px;
 }
 
-/* Mentions in dark mode - keep yellow but darker text (matching ChatContent) */
+/* Mentions in dark mode */
 html.dark .thread-message-text .mention-span.mention-me,
 html.dark .thread-message-text .mention-span.mention-other,
 html.dark .thread-message-text .mention {
@@ -1371,6 +1371,32 @@ html.dark .thread-message-text .mention {
 /*  NUEVO - Estilos para menú de opciones de mensajes */
 .thread-message {
   position: relative;
+}
+
+/* 🔥 Fondo rosado para mensajes donde te mencionan (igual que ChatContent) */
+.thread-message.thread-message-mentioned {
+  background-color: #fce7f3 !important;
+  border-left: 3px solid #be185d;
+  transition: background-color 0.3s ease;
+}
+
+.thread-message.thread-message-mentioned:hover {
+  background-color: #fbcfe8 !important;
+}
+
+/* Eliminar fondo de la burbuja para que se vea el fondo rosado */
+.thread-message.thread-message-mentioned .thread-message-text {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html.dark .thread-message.thread-message-mentioned {
+  background-color: rgba(190, 24, 93, 0.15) !important;
+  border-left: 3px solid #fbcfe8;
+}
+
+html.dark .thread-message.thread-message-mentioned:hover {
+  background-color: rgba(190, 24, 93, 0.25) !important;
 }
 
 .thread-message-actions {

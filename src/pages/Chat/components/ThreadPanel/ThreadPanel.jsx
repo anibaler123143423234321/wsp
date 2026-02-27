@@ -191,6 +191,13 @@ const ThreadPanel = ({
   onSelectAttachment = null, // 🔥 NUEVO: Callback para cambiar a hilo de adjunto específico
 }) => {
   const { getUserColor } = useUserNameColor();
+
+  // 🔥 NUEVO: Identidad estandarizada (nombre completo) para ser consistente con ChatPage.jsx
+  const currentUserFullName = useMemo(() => {
+    if (!user) return currentUsername;
+    const full = `${user.nombre || ""} ${user.apellido || ""}`.trim();
+    return full || currentUsername;
+  }, [user, currentUsername]);
   //  NUEVO: Detectar si el mensaje padre tiene un ID temporal
   const isTemporaryId = message?.id && String(message.id).startsWith('temp_');
   // if (!isOpen) return null; //  MOVIDO AL FINAL PARA RESPETAR REGLAS DE HOOKS
@@ -223,6 +230,8 @@ const ThreadPanel = ({
   const inputHighlightRef = useRef(null);
   const mentionDropdownRef = useRef(null);
   const messageMenuRef = useRef(null); //  NUEVO: Ref para menú de opciones
+  const reactionUsersTimeoutRef = useRef(null); // Para delay del popover de reacciones
+  const searchedIdentifiersRef = useRef(new Set()); // 🔥 FIX API LOOP
   const reactionPickerRef = useRef(null); //  NUEVO: Ref para picker de reacciones
 
   //  NUEVOS ESTADOS - Menú de opciones y reenvío
@@ -671,21 +680,32 @@ const ThreadPanel = ({
 
     const toResolve = Array.from(new Set(identifiers))
       .filter((id) => isLikelyIdentifier(id))
-      .filter((id) => !mentionLookupCache[normalizeMentionValue(id)])
-      .filter((id) => !resolveFromListByAnyKey(merged, id))
-      .slice(0, 100);
+      .filter((id) => {
+        const normId = normalizeMentionValue(id);
+        if (searchedIdentifiersRef.current.has(normId)) return false;
+        if (mentionLookupCache[normId]) return false;
+        return !resolveFromListByAnyKey(merged, id);
+      })
+      .slice(0, 50);
 
     if (toResolve.length === 0) return;
-    let cancelled = false;
 
+    // 🔥 FIX: Marcar como buscado SINCRÓNICAMENTE
+    toResolve.forEach(id => {
+      const normId = normalizeMentionValue(id);
+      searchedIdentifiersRef.current.add(normId);
+    });
+
+    let cancelled = false;
     (async () => {
       const resolved = await Promise.all(
         toResolve.map(async (id) => {
+          const normId = normalizeMentionValue(id);
           try {
             const list = await apiService.searchUsersFromBackend(id, 0, 10);
             if (!Array.isArray(list) || list.length === 0) return null;
             const match = resolveFromListByAnyKey(list, id) || list[0];
-            return match ? [normalizeMentionValue(id), match] : null;
+            return match ? [normId, match] : null;
           } catch {
             return null;
           }
@@ -779,7 +799,7 @@ const ThreadPanel = ({
             fontSize: "0.95em",
             cursor: "pointer",
           }}
-          title={`Mención a ${mentionedUser}`}
+          title={`Menci\u00f3n a ${mentionedUser}`}
         >
           @{mentionedUser}
         </span>
@@ -872,7 +892,7 @@ const ThreadPanel = ({
               fontSize: "0.95em",
               cursor: "pointer",
             }}
-            title={`Mención a ${mentionedUser}`}
+            title={`Menci\u00f3n a ${mentionedUser}`}
           >
             @{mentionedUser}
           </span>
@@ -1464,7 +1484,7 @@ const ThreadPanel = ({
 
       const baseMessageData = {
         threadId: resolvedThreadId,
-        from: currentUsername,
+        from: currentUsername, // 🔥 FIX: Usar username (DNI) para que la BD guarde el identificador correcto
         to: toValue,
         isGroup: isGroupActual,
         roomCode: roomCodeValue,
@@ -2434,7 +2454,11 @@ const ThreadPanel = ({
               const msg = item;
               const isOwnMessage = msg.isSelf !== undefined
                 ? msg.isSelf
-                : msg.from === "Tú" || msg.from === currentUsername || (user && (msg.from === user.username || msg.from === (user.nombre + ' ' + user.apellido)));
+                : msg.from === "Tú" ||
+                msg.from === currentUsername ||
+                (currentUserFullName && msg.from === currentUserFullName) ||
+                msg.sender === currentUsername ||
+                (currentUserFullName && msg.sender === currentUserFullName);
               const userColor = getUserColor(msg.from, isOwnMessage);
 
               const isMentioned = hasMentionToUser(msg.text || msg.message || "");
@@ -2560,7 +2584,7 @@ const ThreadPanel = ({
                 <div
                   key={msg.id || index}
                   id={`thread-message-${msg.id}`} // Agregado ID para scroll
-                  className={`thread-message ${isOwnMessage ? "thread-message-own" : "thread-message-other"} ${!isGroupStart ? "thread-message-grouped" : ""}`}
+                  className={`thread-message ${isOwnMessage ? "thread-message-own" : "thread-message-other"} ${!isGroupStart ? "thread-message-grouped" : ""} ${isMentioned ? "thread-message-mentioned" : ""}`}
                   onClick={(e) => handleMessageClick(e, msg)}
                   style={{
                     cursor: (isSelectionMode || 'pointer'),
@@ -2601,7 +2625,9 @@ const ThreadPanel = ({
                       <div className="thread-message-header">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <strong style={{ color: userColor }}>
-                            {msg.from} {getSenderSuffix(msg, roomUsers)}
+                            {(senderUser && senderUser.nombre && senderUser.apellido)
+                              ? `${senderUser.nombre} ${senderUser.apellido}`.trim()
+                              : (senderUser?.displayName || msg.from)} {getSenderSuffix(msg, roomUsers)}
                           </strong>
                         </div>
                         <span className="thread-message-time">{formatTime(msg)}</span>
@@ -3010,7 +3036,7 @@ const ThreadPanel = ({
                       <div className="thread-reactions-row" style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
                         {Object.entries(msg.reactions.reduce((acc, r) => {
                           if (!acc[r.emoji]) acc[r.emoji] = [];
-                          acc[r.emoji].push(r.username);
+                          acc[r.emoji].push(r.fullName || r.username);
                           return acc;
                         }, {})).map(([emoji, users]) => (
                           <div
@@ -3207,7 +3233,7 @@ const ThreadPanel = ({
                             <FaCopy className="menu-icon" /> Copiar texto
                           </button>
                           {/* Botón de editar - solo para mensajes propios */}
-                          {msg.from === currentUsername && (
+                          {(msg.from === currentUsername || msg.from === currentUserFullName) && (
                             <button
                               className="menu-item"
                               onClick={() => handleStartEdit(msg)}

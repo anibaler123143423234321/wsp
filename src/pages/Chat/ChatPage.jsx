@@ -190,25 +190,56 @@ const ChatPage = () => {
         // 1. Obtener conteos de mensajes no leídos globales
         const counts = await apiService.getUnreadCounts();
 
-        // 2. MERGE con el estado actual en lugar de reemplazar
-        // Esto preserva los contadores incrementados por socket en tiempo real
-        // y los contadores guardados en localStorage (que son los reales antes del F5)
+        // 2. Sincronizar contadores:
+        // - El endpoint GET /unread-counts solo devuelve keys con valor > 0
+        // - Para elementos visibles (salas/conversaciones cargadas), si no viene key => es 0
+        // - Evitar preservar valores locales viejos (ej: 99+) cuando backend ya está en 0
         if (counts) {
+          const knownRoomCodes = new Set([
+            ...(chatState.myActiveRooms || []).map(r => String(r.roomCode)).filter(Boolean),
+            ...(chatState.favoriteRooms || [])
+              .filter(f => f?.type === 'room')
+              .map(f => String(f.roomCode))
+              .filter(Boolean),
+          ]);
+
+          const knownConversationIds = new Set([
+            ...(chatState.assignedConversations || []).map(c => String(c.id)).filter(Boolean),
+            ...(chatState.favoriteRooms || [])
+              .filter(f => f?.type === 'conv')
+              .map(f => String(f.id))
+              .filter(Boolean),
+          ]);
+
           chatState.setUnreadMessages(prev => {
-            const merged = { ...counts };
-            // Preservar contadores locales que sean MAYORES que los del backend
-            for (const key of Object.keys(prev)) {
-              if (prev[key] > (merged[key] || 0)) {
+            const merged = {};
+
+            // 2.1 Valores explícitos que sí devolvió backend (>0)
+            for (const [key, value] of Object.entries(counts || {})) {
+              merged[String(key)] = Number(value) || 0;
+            }
+
+            // 2.2 Para salas/conversaciones visibles, falta de key en backend = 0
+            for (const roomCode of knownRoomCodes) {
+              if (merged[roomCode] === undefined) {
+                merged[roomCode] = 0;
+              }
+            }
+
+            for (const conversationId of knownConversationIds) {
+              if (merged[conversationId] === undefined) {
+                merged[conversationId] = 0;
+              }
+            }
+
+            // 2.3 Mantener contador del chat activo durante una actualización race-condition
+            // para evitar parpadeos cuando un mensaje llega exactamente durante el poll.
+            for (const key of Object.keys(prev || {})) {
+              if (merged[key] === undefined && (key === String(chatState.currentRoomCode) || key === String(chatState.to))) {
                 merged[key] = prev[key];
               }
             }
-            // Limpiar keys con valor 0 que el backend no devuelve
-            // (si el backend dice 0 y local dice 0, no necesitamos la key)
-            for (const key of Object.keys(merged)) {
-              if (merged[key] === 0) {
-                delete merged[key];
-              }
-            }
+
             return merged;
           });
         }
@@ -222,7 +253,14 @@ const ChatPage = () => {
     // 🚀 OPTIMIZADO: Polling cada 5 minutos como respaldo (WebSocket maneja tiempo real)
     const interval = setInterval(fetchUnreadCounts, 300000);
     return () => clearInterval(interval);
-  }, [username]);
+  }, [
+    username,
+    chatState.myActiveRooms,
+    chatState.favoriteRooms,
+    chatState.assignedConversations,
+    chatState.currentRoomCode,
+    chatState.to
+  ]);
 
   // ===== FUNCIONES QUE PERMANECEN AQUÍ =====
   // (Estas tienen dependencias muy específicas con el estado local)
@@ -1225,7 +1263,7 @@ const ChatPage = () => {
 
       // C. CONSTRUCCIÓN DEL MENSAJE ÚNICO
       let messageObj = {
-        from: currentUserFullName,
+        from: username,
         fromId: user.id,
         to: chatState.to,
         groupName: effectiveIsGroup ? chatState.to : undefined,
@@ -1307,45 +1345,63 @@ const ChatPage = () => {
 
       } // Fin del bucle
 
-      // 🔥 NUEVO: Reordenar FAVORITOS inmediatamente cuando YO escribo
-      chatState.setFavoriteRooms(prev => {
-        const isCurrentFav = chatState.favoriteRoomCodes.includes(String(messageObj.roomCode)) ||
-          (messageObj.conversationId && chatState.favoriteRoomCodes.includes(String(messageObj.conversationId)));
+      // 🔥 NUEVO: Función de ordenamiento unificada (para ser consistente con useSocketListeners)
+      const sortUnified = (rooms, codes) => {
+        if (!rooms || !Array.isArray(rooms)) return rooms;
+        const favCodes = Array.isArray(codes) ? codes.map(c => String(c).toLowerCase().trim()) : [];
+        const parseDate = (r) => {
+          const dateStr = r.lastActivity || r.lastMessage?.sentAt || r.lastMessageTime || r.createdAt;
+          if (!dateStr) return 0;
+          const d = new Date(dateStr).getTime();
+          return isNaN(d) ? 0 : d;
+        };
+        const favorites = rooms.filter(r => {
+          const rc = r.roomCode ? String(r.roomCode).toLowerCase().trim() : '';
+          const ri = r.id ? String(r.id).toLowerCase().trim() : '';
+          return favCodes.includes(rc) || favCodes.includes(ri);
+        });
+        const others = rooms.filter(r => {
+          const rc = r.roomCode ? String(r.roomCode).toLowerCase().trim() : '';
+          const ri = r.id ? String(r.id).toLowerCase().trim() : '';
+          return !favCodes.includes(rc) && !favCodes.includes(ri);
+        });
+        const sorter = (g) => [...g].sort((a, b) => parseDate(b) - parseDate(a));
+        return [...sorter(favorites), ...sorter(others)];
+      };
 
-        if (!isCurrentFav) return prev;
+      const now = new Date().toISOString();
+      const timeNow = new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
 
-        const sentAt = new Date().toISOString();
-        const updated = prev.map(conv => {
-          const isTarget = (messageObj.roomCode && conv.roomCode === messageObj.roomCode) ||
-            (messageObj.conversationId && String(conv.id) === String(messageObj.conversationId));
+      const updateList = (prev) => {
+        const isTarget = (r) => (messageObj.roomCode && String(r.roomCode) === String(messageObj.roomCode)) ||
+          (messageObj.conversationId && String(r.id) === String(messageObj.conversationId));
 
-          if (isTarget) {
+        if (!prev.some(isTarget)) return prev;
+
+        const updated = prev.map(r => {
+          if (isTarget(r)) {
             return {
-              ...conv,
+              ...r,
+              lastActivity: now, // 🔥 CRÍTICO: Para el sort
               lastMessage: {
                 text: messageObj.message,
                 from: currentUserFullName,
-                time: new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
-                sentAt: sentAt,
+                time: timeNow,
+                sentAt: now,
                 mediaType: messageObj.mediaType,
                 fileName: messageObj.fileName
               }
             };
           }
-          return conv;
+          return r;
         });
+        return sortUnified(updated, chatState.favoriteRoomCodes);
+      };
 
-        // Reordenar usando la lógica compartida que ahora es más robusta con parseDate mejorado
-        // Nota: Importamos sortRoomsByBackendLogic indirectamente vía chatState si estuviera disponible,
-        // pero como no lo está, usaremos un sort local simple aquí que imite la lógica
-        return [...updated].sort((a, b) => {
-          const getT = (r) => {
-            const d = r.lastMessage?.sentAt || r.lastMessageTime || r.createdAt;
-            return d ? new Date(d).getTime() : 0;
-          };
-          return getT(b) - getT(a);
-        });
-      });
+      // Actualizar todas las listas relevantes inmediatamente
+      chatState.setFavoriteRooms(updateList);
+      chatState.setMyActiveRooms(updateList);
+      chatState.setAssignedConversations(updateList);
 
       // Limpieza final exitosa
       clearInput();
@@ -1615,7 +1671,7 @@ const ChatPage = () => {
         to: chatState.to,
         isGroup: effectiveIsGroup,
         groupName: effectiveIsGroup ? chatState.to : undefined,
-        from: currentUserFullName,
+        from: username,
         fromId: user.id,
         mediaType: "audio",
         mediaData: uploadResult.fileUrl,
@@ -1857,7 +1913,7 @@ const ChatPage = () => {
       const messagePayload = {
         to: chatState.to,
         isGroup: chatState.isGroup,
-        from: currentUserFullName,
+        from: username,
         fromId: user?.id,
         roomCode: chatState.currentRoomCode,
         type: "video_call", //  Esto activa la tarjeta visual
@@ -1881,7 +1937,7 @@ const ChatPage = () => {
 
       try {
         const savedMessage = await apiService.createMessage({
-          from: currentUserFullName,
+          from: username,
           fromId: user?.id,
           to: chatState.to,
           roomCode: chatState.isGroup ? chatState.currentRoomCode : undefined,

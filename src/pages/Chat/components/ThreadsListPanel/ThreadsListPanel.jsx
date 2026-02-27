@@ -192,6 +192,20 @@ const ThreadsListPanel = ({
     return user?.picture;
   };
 
+  const getDisplayName = (from, fullName) => {
+    // 1. Si el API ya devuelve fullName, usarlo
+    if (fullName) return fullName;
+    // 2. Buscar en roomUsers por username (DNI)
+    if (from && roomUsers && roomUsers.length > 0) {
+      const user = roomUsers.find(u => u && typeof u === 'object' && u.username === from);
+      if (user && user.nombre && user.apellido) {
+        return `${user.nombre} ${user.apellido}`.trim();
+      }
+    }
+    // 3. Fallback al valor original
+    return from || '?';
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -259,12 +273,12 @@ const ThreadsListPanel = ({
                       {senderPicture ? (
                         <img src={senderPicture} alt="" />
                       ) : (
-                        <span>{(thread.from || thread.sender || '?')[0].toUpperCase()}</span>
+                        <span>{(getDisplayName(thread.from || thread.sender, thread.fullName) || '?')[0].toUpperCase()}</span>
                       )}
                     </div>
                     <div className="thread-item-content">
                       <div className="thread-item-header">
-                        <span className="thread-item-sender">{thread.from || thread.sender}</span>
+                        <span className="thread-item-sender">{getDisplayName(thread.from || thread.sender, thread.fullName)}</span>
                         <span className="thread-item-date">{formatDate(thread.sentAt)}</span>
                       </div>
                       <div className="thread-item-message">

@@ -205,9 +205,23 @@ const ConversationList = ({
   const whatsappSearchTimeoutRef = useRef(null);
   const searchResultsRef = useRef(null);
 
-  // 🔥 Estados locales para listas ordenadas (se actualizan automáticamente)
-  const [sortedRooms, setSortedRooms] = useState([]);
   const [sortedAssignedConversations, setSortedAssignedConversations] = useState([]);
+  const [sortedRooms, setSortedRooms] = useState([]);
+
+  // 🔥 NUEVO: Lista de favoritos siempre ordenada por actividad más reciente
+  const sortedFavoritesList = useMemo(() => {
+    if (!favoriteRooms || !Array.isArray(favoriteRooms)) return [];
+    return [...favoriteRooms].sort((a, b) => {
+      const parseDate = (item) => {
+        // Prioridad: lastActivity > sentAt > lastMessageTime > createdAt
+        const dateStr = item.lastActivity || item.lastMessage?.sentAt || item.lastMessageTime || item.createdAt;
+        if (!dateStr) return 0;
+        const d = new Date(dateStr).getTime();
+        return isNaN(d) ? 0 : d;
+      };
+      return parseDate(b) - parseDate(a);
+    });
+  }, [favoriteRooms]);
 
   const isAdmin = ['ADMIN', 'JEFEPISO'].includes(user?.role);
   const canViewMonitoring = ['SUPERADMIN', 'PROGRAMADOR'].includes(user?.role);
@@ -1533,11 +1547,11 @@ const ConversationList = ({
                     count={totalRealFavorites}
                   />
                   {showFavorites && (() => {
-                    // El backend ya devuelve ambos unificados y ordenados
-                    const allFavorites = favoriteRooms.map(item => ({
+                    // 🔥 Usar la lista memorizada y ya ordenada para mayor robustez
+                    const allFavorites = sortedFavoritesList.map(item => ({
                       type: item.type,
                       data: item,
-                      date: new Date(item.lastMessage?.sentAt || 0)
+                      date: new Date(item.lastActivity || item.lastMessage?.sentAt || 0)
                     }));
 
                     const totalFavorites = allFavorites.length;
