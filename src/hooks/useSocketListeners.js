@@ -248,7 +248,33 @@ export const useSocketListeners = (
         console.log('🔌 useSocketListeners useEffect ejecutado. Socket ID:', s.id);
 
         s.on('roomJoined', (data) => {
-            chatState.setRoomUsers(data.users);
+            // Enriquecer con cache de displayNames y preservar datos previos
+            const nameCache = chatState.roomUsersNameCacheRef?.current;
+            chatState.setRoomUsers(prev => {
+                const prevMap = new Map();
+                prev.forEach(u => {
+                    if (u && u.username) prevMap.set(u.username.toLowerCase().trim(), u);
+                });
+                return (data.users || []).map(u => {
+                    if (!u || typeof u !== 'object' || !u.username) return u;
+                    const key = u.username.toLowerCase().trim();
+                    const cached = prevMap.get(key);
+                    const nameCached = nameCache?.get(key);
+                    if (u.displayName && !/^\d+$/.test(u.displayName)) {
+                        // Datos buenos, alimentar cache
+                        if (nameCache) nameCache.set(key, { displayName: u.displayName, nombre: u.nombre, apellido: u.apellido, picture: u.picture });
+                        return u;
+                    }
+                    // Intentar recuperar de prev o del cache persistente
+                    if (cached && cached.displayName && !/^\d+$/.test(cached.displayName)) {
+                        return { ...u, displayName: cached.displayName, nombre: cached.nombre || u.nombre, apellido: cached.apellido || u.apellido, picture: u.picture || cached.picture };
+                    }
+                    if (nameCached && nameCached.displayName && !/^\d+$/.test(nameCached.displayName)) {
+                        return { ...u, displayName: nameCached.displayName, nombre: nameCached.nombre || u.nombre, apellido: nameCached.apellido || u.apellido, picture: u.picture || nameCached.picture };
+                    }
+                    return u;
+                });
+            });
             chatState.setPinnedMessageId(data.pinnedMessageId || null);
         });
 
@@ -330,7 +356,31 @@ export const useSocketListeners = (
         // =====================================================
         s.on("roomUsers", (data) => {
             if (data.roomCode === currentRoomCodeRef.current) {
-                setRoomUsers(data.users);
+                // Enriquecer con cache de displayNames y preservar datos previos
+                const nameCache = chatState.roomUsersNameCacheRef?.current;
+                setRoomUsers(prev => {
+                    const prevMap = new Map();
+                    prev.forEach(u => {
+                        if (u && u.username) prevMap.set(u.username.toLowerCase().trim(), u);
+                    });
+                    return (data.users || []).map(u => {
+                        if (!u || typeof u !== 'object' || !u.username) return u;
+                        const key = u.username.toLowerCase().trim();
+                        const cached = prevMap.get(key);
+                        const nameCached = nameCache?.get(key);
+                        if (u.displayName && !/^\d+$/.test(u.displayName)) {
+                            if (nameCache) nameCache.set(key, { displayName: u.displayName, nombre: u.nombre, apellido: u.apellido, picture: u.picture });
+                            return u;
+                        }
+                        if (cached && cached.displayName && !/^\d+$/.test(cached.displayName)) {
+                            return { ...u, displayName: cached.displayName, nombre: cached.nombre || u.nombre, apellido: cached.apellido || u.apellido, picture: u.picture || cached.picture };
+                        }
+                        if (nameCached && nameCached.displayName && !/^\d+$/.test(nameCached.displayName)) {
+                            return { ...u, displayName: nameCached.displayName, nombre: nameCached.nombre || u.nombre, apellido: nameCached.apellido || u.apellido, picture: u.picture || nameCached.picture };
+                        }
+                        return u;
+                    });
+                });
             }
             if (data.roomCode !== currentRoomCodeRef.current) {
                 setMyActiveRooms((prevRooms) =>

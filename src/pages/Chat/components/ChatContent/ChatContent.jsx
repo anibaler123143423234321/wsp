@@ -80,22 +80,6 @@ const formatFileSize = (bytes) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-const renderFileIcon = (fileName) => {
-  if (!fileName) return <FaFileAlt size={24} color="#666" />;
-  const ext = fileName.split('.').pop().toLowerCase();
-
-  switch (ext) {
-    case 'pdf': return <FaFilePdf size={24} color="#e74c3c" />;
-    case 'doc': case 'docx': return <FaFileWord size={24} color="#3498db" />;
-    case 'xls': case 'xlsx': case 'csv': return <FaFileExcel size={24} color="#2ecc71" />;
-    case 'jpg': case 'jpeg': case 'png': case 'gif': return <FaFileImage size={24} color="#9b59b6" />;
-    case 'mp4': case 'mov': case 'avi': return <FaFileVideo size={24} color="#e67e22" />;
-    case 'mp3': case 'wav': case 'ogg': return <FaFileAudio size={24} color="#f1c40f" />;
-    default: return <FaFileAlt size={24} color="#666" />;
-  }
-};
-
-
 // Icono de emoji personalizado (estilo WhatsApp)
 const EmojiIcon = ({ className, style }) => (
   <svg
@@ -261,6 +245,7 @@ const ChatContent = ({
   isGroup,
   currentRoomCode,
   roomUsers,
+  roomUsersNameCache,
   currentUsername,
   user,
   socket,
@@ -1008,14 +993,60 @@ const ChatContent = ({
   };
 
   const handleMentionSelect = (user) => {
-    const username = (typeof user === "string"
-      ? user
-      : (user.displayName || user.fullName || user.fullname || user.name ||
-        ((user.nombre || user.apellido) ? `${user.nombre || ''} ${user.apellido || ''}`.trim() : null) ||
-        user.username || "")).trim();
+    const getBestName = (u) => {
+      if (!u || typeof u !== 'object') return null;
+      const dn = (u.displayName || '').trim();
+      const nombreApellido = ((u.nombre || u.apellido) ? `${u.nombre || ''} ${u.apellido || ''}`.trim() : '');
+      if (dn && !/^\d+$/.test(dn)) return dn;
+      if (nombreApellido && !/^\d+$/.test(nombreApellido)) return nombreApellido;
+      const alt = (u.fullName || u.fullname || u.name || '').trim();
+      if (alt && !/^\d+$/.test(alt)) return alt;
+      return dn || nombreApellido || alt || '';
+    };
+
+    // El user ya viene enriquecido desde mentionSuggestions
+    let resolvedName = getBestName(user);
+
+    // Fallback: si el nombre es numérico (DNI), intentar nombre+apellido directo
+    if ((!resolvedName || /^\d+$/.test(resolvedName)) && user && typeof user === 'object') {
+      if (user.nombre || user.apellido) {
+        resolvedName = `${user.nombre || ''} ${user.apellido || ''}`.trim();
+      }
+    }
+
+    // Fallback: buscar en userList si el nombre sigue siendo numérico (DNI)
+    if ((!resolvedName || /^\d+$/.test(resolvedName))) {
+      const idLower = (typeof user === "string" ? user : user.username || user.id || "").toLowerCase().trim();
+      // Buscar en cache persistente
+      if (roomUsersNameCache) {
+        const cached = roomUsersNameCache.get(idLower);
+        if (cached && cached.displayName && !/^\d+$/.test(cached.displayName)) {
+          resolvedName = cached.displayName;
+        }
+      }
+      // Buscar en userList global
+      if (!resolvedName || /^\d+$/.test(resolvedName)) {
+        const foundGlobal = userList.find(u => (u.username || "").toLowerCase().trim() === idLower);
+        if (foundGlobal) {
+          const betterName = getBestName(foundGlobal);
+          if (betterName && !/^\d+$/.test(betterName)) {
+            resolvedName = betterName;
+          }
+          if ((!resolvedName || /^\d+$/.test(resolvedName)) && (foundGlobal.nombre || foundGlobal.apellido)) {
+            resolvedName = `${foundGlobal.nombre || ''} ${foundGlobal.apellido || ''}`.trim();
+          }
+        }
+      }
+    }
+
+    // Fallback final
+    if (!resolvedName) {
+      resolvedName = (typeof user === "string" ? user : user.username || "").trim();
+    }
+
     const beforeMention = input.substring(0, mentionCursorPosition);
     const afterMention = input.substring(mentionCursorPosition + mentionSearch.length + 1);
-    const newInput = `${beforeMention}@${username} ${afterMention}`;
+    const newInput = `${beforeMention}@${resolvedName} ${afterMention}`;
     setInput(newInput);
     setShowMentionSuggestions(false);
     setMentionSearch("");
@@ -3995,44 +4026,57 @@ const ChatContent = ({
         showMentionSuggestions={showMentionSuggestions}
         mentionSearch={mentionSearch}
         mentionSuggestions={
-          /* Lógica de filtrado movida aquí */
+          /* Enriquecer roomUsers con cache + userList y filtrar por búsqueda */
           isGroup && roomUsers
-            ? roomUsers.filter((user) => {
-              let searchName = '';
-
+            ? roomUsers.map((user) => {
+              if (typeof user === 'string' || !user) return user;
+              // Si ya tiene displayName no-numérico, no tocar
+              const dn = (user.displayName || '').trim();
+              if (dn && !/^\d+$/.test(dn)) return user;
+              // Intentar nombre+apellido del propio objeto
+              const nombreApellido = ((user.nombre || user.apellido) ? `${user.nombre || ''} ${user.apellido || ''}`.trim() : '');
+              if (nombreApellido && !/^\d+$/.test(nombreApellido)) {
+                return { ...user, displayName: nombreApellido };
+              }
+              const idLower = (user.username || '').toLowerCase().trim();
+              // Buscar en cache persistente de displayNames
+              if (roomUsersNameCache) {
+                const cached = roomUsersNameCache.get(idLower);
+                if (cached && cached.displayName && !/^\d+$/.test(cached.displayName)) {
+                  return { ...user, displayName: cached.displayName, nombre: cached.nombre || user.nombre, apellido: cached.apellido || user.apellido, picture: user.picture || cached.picture };
+                }
+              }
+              // Buscar en userList global
+              const found = userList.find(gl => (gl.username || '').toLowerCase().trim() === idLower);
+              if (found) {
+                const foundDn = (found.displayName || '').trim();
+                const foundNa = ((found.nombre || found.apellido) ? `${found.nombre || ''} ${found.apellido || ''}`.trim() : '');
+                const bestName = (foundDn && !/^\d+$/.test(foundDn)) ? foundDn : (foundNa && !/^\d+$/.test(foundNa)) ? foundNa : null;
+                if (bestName) {
+                  return { ...user, displayName: bestName, picture: user.picture || found.picture };
+                }
+              }
+              return user;
+            }).filter((user) => {
               const getBestName = (u) => {
                 if (!u || typeof u !== 'object') return null;
-                return (u.displayName || u.fullName || u.fullname || u.name ||
-                  ((u.nombre || u.apellido) ? `${u.nombre || ''} ${u.apellido || ''}`.trim() : null) || "").trim();
+                const dn2 = (u.displayName || '').trim();
+                const na2 = ((u.nombre || u.apellido) ? `${u.nombre || ''} ${u.apellido || ''}`.trim() : '');
+                if (dn2 && !/^\d+$/.test(dn2)) return dn2;
+                if (na2 && !/^\d+$/.test(na2)) return na2;
+                return dn2 || na2 || '';
               };
 
+              let searchName = '';
               if (typeof user === "string") {
-                // 🔥 RESOLVER DNI CONTRA LISTA GLOBAL
-                const idLower = user.toLowerCase().trim();
-                const found = userList.find(u => (u.username || '').toLowerCase().trim() === idLower);
-                // Si no se encuentra en userList, buscar en otros objetos de roomUsers que ya estén resueltos
-                const resolvedInRoom = roomUsers.find(ru => typeof ru === 'object' && (ru.username || '').toLowerCase().trim() === idLower);
-
-                searchName = (found ? (getBestName(found) || found.username) :
-                  (resolvedInRoom ? (getBestName(resolvedInRoom) || resolvedInRoom.username) : user));
-              } else if (user && typeof user === 'object') {
-                // 🔥 PRIORIDAD: Local Data > Global search > username
-                let name = getBestName(user);
-
-                if (!name && user.username) {
-                  const idLower = user.username.toLowerCase().trim();
-                  const found = userList.find(u => (u.username || '').toLowerCase().trim() === idLower);
-                  if (found) {
-                    name = getBestName(found);
-                  }
-                }
-
-                searchName = name || user.username || '';
+                searchName = user;
+              } else {
+                searchName = getBestName(user) || user.username || '';
               }
 
               if (!searchName) return false;
-              const searchLower = searchName.toLowerCase();
-              return searchLower.includes(mentionSearch.toLowerCase()) && searchName !== currentUsername;
+              return searchName.toLowerCase().includes(mentionSearch.toLowerCase())
+                && searchName !== currentUsername;
             })
             : []
         }

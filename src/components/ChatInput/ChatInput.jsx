@@ -337,24 +337,20 @@ const ChatInput = ({
                             }}
                         >
                             {mentionSuggestions.map((suggestionUser, index) => {
-                                // 🔥 RESOLVER NOMBRE PROFESIONAL - Lógica exhaustiva
-                                const idLower = (typeof suggestionUser === "string" ? suggestionUser : suggestionUser.username || "").toLowerCase().trim();
-                                const foundGlobal = userList.find(u => (u.username || "").toLowerCase().trim() === idLower);
-
                                 const getBestName = (u) => {
                                     if (!u || typeof u !== 'object') return null;
-                                    return (u.displayName || u.fullName || u.fullname || u.name ||
-                                        ((u.nombre || u.apellido) ? `${u.nombre || ''} ${u.apellido || ''}`.trim() : null) || "").trim();
+                                    // Intentar nombre+apellido primero si displayName es numérico
+                                    const dn = (u.displayName || '').trim();
+                                    const nombreApellido = ((u.nombre || u.apellido) ? `${u.nombre || ''} ${u.apellido || ''}`.trim() : '');
+                                    if (dn && !/^\d+$/.test(dn)) return dn;
+                                    if (nombreApellido && !/^\d+$/.test(nombreApellido)) return nombreApellido;
+                                    const alt = (u.fullName || u.fullname || u.name || '').trim();
+                                    if (alt && !/^\d+$/.test(alt)) return alt;
+                                    return dn || nombreApellido || alt || '';
                                 };
 
-                                let name = getBestName(suggestionUser);
-
-                                if (!name && foundGlobal) {
-                                    name = getBestName(foundGlobal);
-                                }
-
-                                const displayName = (name || (typeof suggestionUser === "string" ? suggestionUser : suggestionUser.username) || "").trim();
-                                const userPicture = suggestionUser.picture || foundGlobal?.picture;
+                                const displayName = (getBestName(suggestionUser) || (typeof suggestionUser === "string" ? suggestionUser : suggestionUser.username) || "").trim();
+                                const userPicture = suggestionUser?.picture;
 
                                 return (
                                     <div

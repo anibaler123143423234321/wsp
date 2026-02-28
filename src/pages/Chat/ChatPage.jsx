@@ -869,7 +869,6 @@ const ChatPage = () => {
         apiUsers = response;
       } else if (response && typeof response === 'object') {
         apiUsers = response.users || response.data || [];
-        // 🔥 NUEVO: Actualizar selectedRoomData con maxCapacity de la API
         if (response.maxCapacity) {
           setSelectedRoomData(prev => ({ ...prev, maxCapacity: response.maxCapacity }));
         }
@@ -911,6 +910,14 @@ const ChatPage = () => {
       });
 
       const enrichedUsers = Array.from(userMap.values());
+      // Alimentar cache de displayNames
+      enrichedUsers.forEach(u => {
+        if (u && u.username && u.displayName && !/^\d+$/.test(u.displayName)) {
+          chatState.roomUsersNameCacheRef.current.set(u.username.toLowerCase().trim(), {
+            displayName: u.displayName, nombre: u.nombre, apellido: u.apellido, picture: u.picture
+          });
+        }
+      });
       chatState.setRoomUsers(enrichedUsers);
     } catch (error) {
       console.error('Error al cargar usuarios de la sala:', error);
@@ -2469,6 +2476,7 @@ const ChatPage = () => {
         isGroup={chatState.isGroup}
         currentRoomCode={chatState.currentRoomCode}
         roomUsers={chatState.roomUsers}
+        roomUsersNameCache={chatState.roomUsersNameCacheRef.current}
         messages={messages}
         adminViewConversation={chatState.adminViewConversation}
         input={input}

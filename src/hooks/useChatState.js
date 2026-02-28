@@ -139,6 +139,9 @@ export const useChatState = () => {
     const currentUserFullNameRef = useRef(null);
     const userListRef = useRef(userList);
 
+    // Cache de displayNames por username - sobrevive a sobreescrituras de socket
+    const roomUsersNameCacheRef = useRef(new Map());
+
     // ===== EFECTO PARA MANEJAR RESIZE DE VENTANA =====
     // Cuando cambiamos de desktop a móvil, el sidebar overlay debe estar cerrado
     const previousWidthRef = useRef(window.innerWidth);
@@ -327,5 +330,6 @@ export const useChatState = () => {
         adminViewConversationRef,
         currentUserFullNameRef,
         userListRef,
+        roomUsersNameCacheRef,
     };
 };

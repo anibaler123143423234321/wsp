@@ -49,6 +49,49 @@ export const useRoomManagement = (
 
     const { clearMessages, loadInitialMessages, loadMessagesAroundId, setHighlightMessageId } = messagingFunctions;
 
+    // Helper: enriquecer usuarios de sala con displayName desde userList global
+    const enrichRoomUsers = (rawUsers) => {
+        const globalUserList = chatState.userList || [];
+        const userMap = new Map();
+        rawUsers.forEach(u => {
+            let uname = typeof u === 'string' ? u : u.username;
+            if (!uname) return;
+            const idLower = uname.toLowerCase().trim();
+            const existing = userMap.get(idLower);
+
+            if (typeof u === 'string') {
+                if (existing) return;
+                const found = globalUserList.find(gl => (gl.username || '').toLowerCase().trim() === idLower);
+                if (found) {
+                    userMap.set(idLower, {
+                        ...found,
+                        username: u,
+                        displayName: found.displayName || `${found.nombre || ''} ${found.apellido || ''}`.trim() || u
+                    });
+                } else {
+                    userMap.set(idLower, { username: u, displayName: u });
+                }
+            } else {
+                if (!u.displayName && (u.nombre || u.apellido)) {
+                    u.displayName = `${u.nombre || ''} ${u.apellido || ''}`.trim();
+                }
+                if (!u.displayName || /^\d+$/.test(u.displayName)) {
+                    const found = globalUserList.find(gl => (gl.username || '').toLowerCase().trim() === idLower);
+                    if (found) {
+                        u.displayName = found.displayName || `${found.nombre || ''} ${found.apellido || ''}`.trim() || u.displayName;
+                        if (!u.picture && found.picture) u.picture = found.picture;
+                    }
+                }
+                if (!u.picture) {
+                    const found = globalUserList.find(gl => (gl.username || '').toLowerCase().trim() === idLower);
+                    if (found?.picture) u.picture = found.picture;
+                }
+                userMap.set(idLower, u);
+            }
+        });
+        return Array.from(userMap.values());
+    };
+
     // Función para cargar salas activas con paginación
     const loadMyActiveRooms = useCallback(
         async (page = 1, append = false, limitOverride, user) => {
@@ -389,14 +432,28 @@ export const useRoomManagement = (
                 ));
                 // Cargar usuarios de la sala
                 let roomUsersData = [];
-                let roomMaxCapacity = 0; // 🔥 NUEVO: Guardar maxCapacity
+                let roomMaxCapacity = 0;
                 try {
                     const response = await apiService.getRoomUsers(room.roomCode);
                     if (Array.isArray(response)) {
                         roomUsersData = response;
                     } else if (response && typeof response === 'object') {
                         roomUsersData = response.users || response.data || [];
-                        roomMaxCapacity = response.maxCapacity || 0; // 🔥 NUEVO: Capturar maxCapacity
+                        roomMaxCapacity = response.maxCapacity || 0;
+                    }
+
+                    // Enriquecer usuarios: asegurar displayName y picture
+                    roomUsersData = enrichRoomUsers(roomUsersData);
+                    // Alimentar cache de displayNames
+                    const nameCache = chatState.roomUsersNameCacheRef?.current;
+                    if (nameCache) {
+                        roomUsersData.forEach(u => {
+                            if (u && u.username && u.displayName && !/^\d+$/.test(u.displayName)) {
+                                nameCache.set(u.username.toLowerCase().trim(), {
+                                    displayName: u.displayName, nombre: u.nombre, apellido: u.apellido, picture: u.picture
+                                });
+                            }
+                        });
                     }
                     setRoomUsers(roomUsersData);
                 } catch (error) {
@@ -612,7 +669,7 @@ export const useRoomManagement = (
                 if (currentRoomCode) {
                     const roomUsers = await apiService.getRoomUsers(currentRoomCode);
                     if (Array.isArray(roomUsers)) {
-                        setRoomUsers(roomUsers);
+                        setRoomUsers(enrichRoomUsers(roomUsers));
                     }
                 }
             }
@@ -632,7 +689,7 @@ export const useRoomManagement = (
             } else if (response && typeof response === 'object') {
                 usersArray = response.users || response.data || [];
             }
-            setRoomUsers(usersArray);
+            setRoomUsers(enrichRoomUsers(usersArray));
         } catch (error) {
             console.error('Error loading room users before remove modal:', error);
         } finally {
@@ -645,14 +702,13 @@ export const useRoomManagement = (
         if (currentRoomCode) {
             try {
                 const response = await apiService.getRoomUsers(currentRoomCode);
-                // API returns { users: [...], totalUsers: N, ... } object
                 let usersArray = [];
                 if (Array.isArray(response)) {
                     usersArray = response;
                 } else if (response && typeof response === 'object') {
                     usersArray = response.users || response.data || [];
                 }
-                setRoomUsers(usersArray);
+                setRoomUsers(enrichRoomUsers(usersArray));
                 console.log('✅ Room users refreshed after removal:', usersArray.length);
             } catch (error) {
                 console.error('Error refreshing room users:', error);

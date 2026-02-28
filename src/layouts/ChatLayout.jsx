@@ -36,7 +36,7 @@ const ChatLayout = ({
   setPendingThreads, // ðŸ”¥ NUEVO: Para limpiar hilos pendientes
 
   // Props del chat
-  to, isGroup, currentRoomCode, roomUsers, messages, input, setInput,
+  to, isGroup, currentRoomCode, roomUsers, roomUsersNameCache, messages, input, setInput,
   onSendMessage, onFileSelect, onRecordAudio, onStopRecording, isRecording,
   mediaFiles, mediaPreviews, onCancelMediaUpload, onRemoveMediaFile, onLeaveRoom, onToggleMenu,
   onEditMessage, onDeleteMessage, hasMoreMessages, isLoadingMore, isLoadingMessages, onLoadMoreMessages,
@@ -533,6 +533,7 @@ const ChatLayout = ({
             isGroup={isGroup}
             currentRoomCode={currentRoomCode}
             roomUsers={roomUsers}
+            roomUsersNameCache={roomUsersNameCache}
             currentUsername={currentUsername}
             onEditMessage={onEditMessage}
             onDeleteMessage={onDeleteMessage}
