@@ -1943,6 +1943,18 @@ const ThreadPanel = ({
               : msg
           )
         );
+
+        // 🔥 NUEVO: Emitir evento de socket para sincronizar en tiempo real
+        if (socket && socket.connected) {
+          socket.emit("editMessage", {
+            messageId: editingMessageId,
+            username: currentUsername,
+            newText: editText,
+            to: message.to || message.receiver,
+            isGroup: !!(message.isGroup || currentRoomCode),
+            roomCode: currentRoomCode || message.roomCode,
+          });
+        }
       }
     } catch (error) {
       console.error("Error al editar mensaje:", error);
@@ -3518,7 +3530,7 @@ const ThreadPanel = ({
                   {isSending ? (
                     <FaSpinner className="thread-spinner" />
                   ) : (
-                    <FaPaperPlane />
+                    'Enviar'
                   )}
                 </button>
               )}

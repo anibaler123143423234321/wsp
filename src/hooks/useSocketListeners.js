@@ -486,6 +486,40 @@ export const useSocketListeners = (
             }
         });
 
+        // 🔥 NUEVO: Listener para eliminación de mensajes en tiempo real
+        s.on("messageDeleted", (data) => {
+            console.log('🗑️ messageDeleted recibido:', data);
+            if (updateMessage && data.messageId) {
+                updateMessage(data.messageId, {
+                    isDeleted: true,
+                    deletedAt: data.deletedAt,
+                    deletedBy: data.deletedBy || null,
+                    text: data.deletedBy
+                        ? `Mensaje eliminado por ${data.deletedBy}`
+                        : 'Mensaje eliminado',
+                });
+            }
+        });
+
+        // 🔥 NUEVO: Listener para edición de mensajes en tiempo real
+        s.on("messageEdited", (data) => {
+            console.log('✏️ messageEdited recibido:', data);
+            if (updateMessage && data.messageId) {
+                const updateData = {
+                    text: data.newText,
+                    isEdited: true,
+                    editedAt: data.editedAt,
+                };
+                // Incluir campos multimedia si el backend los envió
+                if (data.mediaType !== undefined) updateData.mediaType = data.mediaType;
+                if (data.mediaData !== undefined) updateData.mediaData = data.mediaData;
+                if (data.fileName !== undefined) updateData.fileName = data.fileName;
+                if (data.fileSize !== undefined) updateData.fileSize = data.fileSize;
+
+                updateMessage(data.messageId, updateData);
+            }
+        });
+
         // 🚀 NUEVO: Actualizar contadores de hilo en tiempo real
         console.log('🔌 Registrando listener threadCountUpdated');
         s.on("threadCountUpdated", (data) => {

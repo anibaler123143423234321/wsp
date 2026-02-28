@@ -783,29 +783,29 @@ html.dark .thread-message:hover {
 }
 
 .thread-send-btn {
-  background: #1976d2;
+  background: none;
   border: none;
-  color: white;
+  color: #00a884;
   cursor: pointer;
-  padding: 8px 12px;
-  border-radius: 50%;
-  font-size: 16px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
   transition: all 0.2s;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  white-space: nowrap;
 }
 
 .thread-send-btn:hover:not(:disabled) {
-  background: #1565c0;
-  transform: scale(1.05);
+  color: #008f72;
+  background: rgba(0, 168, 132, 0.08);
 }
 
 .thread-send-btn:disabled {
-  background: #ccc;
+  color: #bbb;
   cursor: not-allowed;
 }
 
@@ -1799,8 +1799,8 @@ html.dark .thread-read-receipts-trigger span {
 
 /* Input container */
 html.dark .thread-input-container {
-  background: #1f1f1f !important;
-  border-top-color: #3a3a3a !important;
+  background: #1a1a1a !important;
+  border-top-color: #1a1a1a !important;
 }
 
 html.dark .thread-input {
@@ -1944,7 +1944,7 @@ html.dark .thread-read-receipts-popover.position-bottom::after {
 
 /* ===== DARK MODE PARA INPUT DEL HILO ===== */
 html.dark .thread-input-container {
-  background: #1f1f1f !important;
+  background: #1a1a1a !important;
   border-top-color: #2a2a2a !important;
 }
 
