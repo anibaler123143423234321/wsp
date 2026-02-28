@@ -102,6 +102,8 @@
 }
 
 .thread-main-message {
+  margin-right: 15px;
+  margin-left: 15px;
   padding: 4px;
   background: #fff;
   border-radius: 10px;
@@ -1782,7 +1784,7 @@ html.dark .thread-message-other .thread-message-text {
 
 /* Mensajes propios */
 html.dark .thread-message-own .thread-message-text {
-  background: #005c4b !important;
+  background: transparent !important;
   color: #e5e5e5 !important;
 }
 

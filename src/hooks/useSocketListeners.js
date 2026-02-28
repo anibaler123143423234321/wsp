@@ -490,13 +490,15 @@ export const useSocketListeners = (
         s.on("messageDeleted", (data) => {
             console.log('🗑️ messageDeleted recibido:', data);
             if (updateMessage && data.messageId) {
+                const deletedText = data.deletedBy
+                    ? `Mensaje eliminado por ${data.deletedBy}`
+                    : 'Mensaje eliminado';
                 updateMessage(data.messageId, {
                     isDeleted: true,
                     deletedAt: data.deletedAt,
                     deletedBy: data.deletedBy || null,
-                    text: data.deletedBy
-                        ? `Mensaje eliminado por ${data.deletedBy}`
-                        : 'Mensaje eliminado',
+                    text: deletedText,
+                    message: deletedText,
                 });
             }
         });
@@ -507,6 +509,7 @@ export const useSocketListeners = (
             if (updateMessage && data.messageId) {
                 const updateData = {
                     text: data.newText,
+                    message: data.newText,
                     isEdited: true,
                     editedAt: data.editedAt,
                 };

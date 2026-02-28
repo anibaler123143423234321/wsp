@@ -1172,16 +1172,65 @@ const ThreadPanel = ({
       ));
     };
 
+    // 🔥 NUEVO: Handler para edición de mensajes en el hilo
+    const handleMessageEdited = (data) => {
+      console.log('✏️ ThreadPanel evento messageEdited:', data);
+      setThreadMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === data.messageId
+            ? {
+              ...msg,
+              text: data.newText,
+              message: data.newText,
+              isEdited: true,
+              editedAt: data.editedAt,
+              ...(data.mediaType !== undefined && { mediaType: data.mediaType }),
+              ...(data.mediaData !== undefined && { mediaData: data.mediaData }),
+              ...(data.fileName !== undefined && { fileName: data.fileName }),
+              ...(data.fileSize !== undefined && { fileSize: data.fileSize }),
+            }
+            : msg
+        )
+      );
+    };
+
+    // 🔥 NUEVO: Handler para eliminación de mensajes en el hilo
+    const handleMessageDeleted = (data) => {
+      console.log('🗑️ ThreadPanel evento messageDeleted:', data);
+      setThreadMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.id === data.messageId) {
+            const deletedText = data.deletedBy
+              ? `Mensaje eliminado por ${data.deletedBy}`
+              : 'Mensaje eliminado';
+            return {
+              ...msg,
+              isDeleted: true,
+              deletedAt: data.deletedAt,
+              deletedBy: data.deletedBy || null,
+              text: deletedText,
+              message: deletedText,
+            };
+          }
+          return msg;
+        })
+      );
+    };
+
     socket.on("threadMessage", handleThreadMessage);
     socket.on("threadCountUpdated", handleThreadCountUpdated);
     socket.on("reactionUpdated", handleReactionUpdated);
     socket.on("messageRead", handleMessageRead);
+    socket.on("messageEdited", handleMessageEdited);
+    socket.on("messageDeleted", handleMessageDeleted);
 
     return () => {
       socket.off("threadMessage", handleThreadMessage);
       socket.off("threadCountUpdated", handleThreadCountUpdated);
       socket.off("reactionUpdated", handleReactionUpdated);
       socket.off("messageRead", handleMessageRead);
+      socket.off("messageEdited", handleMessageEdited);
+      socket.off("messageDeleted", handleMessageDeleted);
     };
   }, [socket, message?.id, currentUsername]);
 
@@ -2519,7 +2568,8 @@ const ThreadPanel = ({
                       fontSize: '11px',
                       cursor: 'pointer',
                       padding: '1px 5px',
-                      borderRadius: '10px'
+                      borderRadius: '10px',
+                      marginLeft: '0'
                     }}
                   >
                     <svg viewBox="0 0 16 11" height="11" width="16" preserveAspectRatio="xMidYMid meet">
@@ -3020,7 +3070,16 @@ const ThreadPanel = ({
                           </div>
                         </div>
                       ) : (
-                        <div style={{ position: 'relative', display: 'inline-block', maxWidth: '100%' }}>
+                        <div
+                          style={{
+                            position: 'relative',
+                            display: 'inline-block',
+                            maxWidth: '100%',
+                            ...(readReceiptsJSX
+                              ? (isOwnMessage ? { paddingLeft: '22px' } : { paddingRight: '22px' })
+                              : {})
+                          }}
+                        >
                           <div className={`thread-message-text${isMentioned ? ' mentioned' : ''}`}
                           >
                             {msg.message || msg.text ? (
@@ -3039,7 +3098,7 @@ const ThreadPanel = ({
                             <div style={{
                               position: 'absolute',
                               bottom: '3px',
-                              ...(isOwnMessage ? { left: '4px' } : { right: '6px' }),
+                              ...(isOwnMessage ? { left: '6px' } : { right: '6px' }),
                               lineHeight: 1,
                             }}>
                               {readReceiptsJSX}

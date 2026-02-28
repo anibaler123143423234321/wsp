@@ -184,6 +184,27 @@ const ChatPage = () => {
     }
   }, [chatState.unreadMessages, username]);
 
+  // 🔥 FIX: Refs para evitar dependencias circulares en el polling de unreads
+  const myActiveRoomsRef = useRef(chatState.myActiveRooms);
+  const favoriteRoomsRef = useRef(chatState.favoriteRooms);
+  const assignedConversationsRef = useRef(chatState.assignedConversations);
+  const currentRoomCodeRef = useRef(chatState.currentRoomCode);
+  const toRef = useRef(chatState.to);
+
+  useEffect(() => {
+    myActiveRoomsRef.current = chatState.myActiveRooms;
+    favoriteRoomsRef.current = chatState.favoriteRooms;
+    assignedConversationsRef.current = chatState.assignedConversations;
+    currentRoomCodeRef.current = chatState.currentRoomCode;
+    toRef.current = chatState.to;
+  }, [
+    chatState.myActiveRooms,
+    chatState.favoriteRooms,
+    chatState.assignedConversations,
+    chatState.currentRoomCode,
+    chatState.to
+  ]);
+
   useEffect(() => {
     const fetchUnreadCounts = async () => {
       if (!username) return;
@@ -197,16 +218,16 @@ const ChatPage = () => {
         // - Evitar preservar valores locales viejos (ej: 99+) cuando backend ya está en 0
         if (counts) {
           const knownRoomCodes = new Set([
-            ...(chatState.myActiveRooms || []).map(r => String(r.roomCode)).filter(Boolean),
-            ...(chatState.favoriteRooms || [])
+            ...(myActiveRoomsRef.current || []).map(r => String(r.roomCode)).filter(Boolean),
+            ...(favoriteRoomsRef.current || [])
               .filter(f => f?.type === 'room')
               .map(f => String(f.roomCode))
               .filter(Boolean),
           ]);
 
           const knownConversationIds = new Set([
-            ...(chatState.assignedConversations || []).map(c => String(c.id)).filter(Boolean),
-            ...(chatState.favoriteRooms || [])
+            ...(assignedConversationsRef.current || []).map(c => String(c.id)).filter(Boolean),
+            ...(favoriteRoomsRef.current || [])
               .filter(f => f?.type === 'conv')
               .map(f => String(f.id))
               .filter(Boolean),
@@ -236,7 +257,7 @@ const ChatPage = () => {
             // 2.3 Mantener contador del chat activo durante una actualización race-condition
             // para evitar parpadeos cuando un mensaje llega exactamente durante el poll.
             for (const key of Object.keys(prev || {})) {
-              if (merged[key] === undefined && (key === String(chatState.currentRoomCode) || key === String(chatState.to))) {
+              if (merged[key] === undefined && (key === String(currentRoomCodeRef.current) || key === String(toRef.current))) {
                 merged[key] = prev[key];
               }
             }
@@ -254,14 +275,7 @@ const ChatPage = () => {
     // 🚀 OPTIMIZADO: Polling cada 5 minutos como respaldo (WebSocket maneja tiempo real)
     const interval = setInterval(fetchUnreadCounts, 300000);
     return () => clearInterval(interval);
-  }, [
-    username,
-    chatState.myActiveRooms,
-    chatState.favoriteRooms,
-    chatState.assignedConversations,
-    chatState.currentRoomCode,
-    chatState.to
-  ]);
+  }, [username]);
 
   // ===== FUNCIONES QUE PERMANECEN AQUÍ =====
   // (Estas tienen dependencias muy específicas con el estado local)
