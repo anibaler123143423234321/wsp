@@ -62,8 +62,8 @@ class SystemNotifications {
 
         const notification = new Notification(title, {
             body: body,
-            icon: chatIcon,
-            badge: chatIcon,
+            icon: '/pwa-512x512.png',
+            badge: '/pwa-192x192.png',
             tag: options.tag || 'chat-notification',
             renotify: true,
             requireInteraction: false,
