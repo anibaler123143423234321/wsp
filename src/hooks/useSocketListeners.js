@@ -695,7 +695,7 @@ export const useSocketListeners = (
                                     title: notificationTitle,
                                     html: `
                                 <div class="toast-content">
-                                    <div class="toast-sender">${data.lastReplyFrom}</div>
+                                    <div class="toast-sender">${friendlySender}</div>
                                     <div class="toast-message">${(data.lastReplyText || '').substring(0, 80)}</div>
                                 </div>
                             `,
