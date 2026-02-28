@@ -102,8 +102,7 @@
 }
 
 .thread-main-message {
-  padding: 8px;
-  margin: 4px;
+  padding: 4px;
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
@@ -119,7 +118,7 @@
 }
 
 .thread-main-message-header strong {
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 600;
 }
 
@@ -133,7 +132,7 @@
 
 .thread-main-message-text {
   color: #333;
-  font-size: 13px;
+  font-size: 10px;
   line-height: 1.35;
   margin-bottom: 4px;
   word-wrap: break-word;
@@ -176,7 +175,7 @@
 
 .thread-replies-count {
   display: inline-block;
-  font-size: 11px;
+  font-size: 10px;
   color: #54656f;
   font-weight: 600;
   background: #ffffff;
@@ -190,7 +189,6 @@
 .thread-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 8px;
   /* Padding reducido */
   background: #f0f2f5;
 }
@@ -257,8 +255,8 @@ html.dark .thread-message:hover {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 10px 0;
-  padding: 0 12px;
+  margin: 4px 0;
+  padding: 0 8px;
   width: 100%;
 }
 
@@ -308,7 +306,7 @@ html.dark .thread-message:hover {
 }
 
 .thread-message-header strong {
-  font-size: 12px;
+  font-size: 10px;
   /* Texto nombre más pequeño */
   color: #54656F;
 }
@@ -373,7 +371,7 @@ html.dark .thread-message:hover {
 }
 
 .thread-input-container {
-  padding: 5px 8px;
+  padding: 7px 8px;
   background: #ffffff;
   border-top: 1px solid #d1d5db;
   display: flex;

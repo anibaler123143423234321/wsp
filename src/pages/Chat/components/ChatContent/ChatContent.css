@@ -448,14 +448,51 @@
   display: flex;
   flex-direction: row;
   width: 100%;
-  padding: 2px 16px 2px 0;
-  /* Padding reducido arriba/abajo */
+  padding: 2px 16px;
+  /* Balanceado en desktop */
   margin-bottom: 0 !important;
-  /* Sin margen entre mensajes del mismo grupo */
   position: relative;
   transition: background-color 0.2s ease;
   border-radius: 0;
 }
+
+/* 1. Invertir dirección de la fila */
+.message-row.is-own {
+  flex-direction: row-reverse;
+  text-align: right;
+  padding: 2px 16px !important;
+  /* Balanceado en desktop */
+}
+
+/* Responsive: Cuando disminuye a mobile, tomar más a la derecha */
+@media (max-width: 768px) {
+  .message-row {
+    padding-left: 32px;
+    /* Más a la derecha en mobile */
+    padding-right: 8px;
+  }
+
+  .message-row.is-own {
+    padding-right: 32px !important;
+    /* Más a la izquierda en mobile */
+    padding-left: 8px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .message-row {
+    padding-left: 20px;
+    padding-right: 4px;
+  }
+
+  .message-row.is-own {
+    padding-right: 20px !important;
+    padding-left: 4px !important;
+  }
+}
+
+
+
 
 /* Estilo específico para la bolita de contador (+3) */
 .mini-read-avatar.counter-bubble {
@@ -510,6 +547,18 @@
 .message-row:hover {
   background-color: #c3c6ce !important;
   /* Gris un poco más visible */
+}
+
+/* Dark mode overrides for message rows */
+html.dark .message-row p,
+html.dark .message-row span,
+html.dark .message-row div {
+  color: inherit;
+}
+
+html.dark .header-timestamp,
+html.dark .message-timestamp-left {
+  color: #9ca3af !important;
 }
 
 /* Separación extra cuando empieza un nuevo grupo de mensajes */
@@ -598,9 +647,17 @@
 
 .header-timestamp {
   font-size: 10px !important;
-  /* Antes era 11px */
   color: #6b7280;
   margin-top: 2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Responsive para timestamps */
+@media (max-width: 600px) {
+  .header-timestamp {
+    font-size: 9px !important;
+  }
 }
 
 /* Cuerpo del Texto */
@@ -1158,8 +1215,6 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 4px 0;
-  padding: 0 20px;
   width: 100%;
 }
 
@@ -1181,7 +1236,7 @@
 
 .date-separator-content {
   font-size: 12px !important;
-  padding: 6px 14px;
+  padding: 2px 4px;
   color: #dc2626;
   font-weight: 600;
   white-space: nowrap;
@@ -3311,15 +3366,15 @@ html.dark .mention-span.mention-other {
 
 /* 🌙 DARK MODE PARA MENCIONES EN LA FILA COMPLETA */
 html.dark .message-row.message-mentioned {
-  background-color: rgba(190, 24, 93, 0.15) !important;
-  /* Mismo tono rosado pero sutil y oscuro */
-  border-left: 3px solid #fbcfe8;
-  /* Borde rosado pastel brillante */
+  background-color: rgba(190, 24, 93, 0.3) !important;
+  /* Más notorio (0.3 vs 0.15) */
+  border-left: 4px solid #fbcfe8;
+  /* Borde un poco más grueso (4px vs 3px) */
 }
 
 html.dark .message-row.message-mentioned:hover {
-  background-color: rgba(190, 24, 93, 0.25) !important;
-  /* Más notorio al hover */
+  background-color: rgba(190, 24, 93, 0.4) !important;
+  /* Aumentado proporcionalmente al hover */
 }
 
 .wa-thread-icon-small {

@@ -1050,6 +1050,43 @@
   flex-shrink: 0;
 }
 
+.room-members-names-display {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 12px;
+  font-size: 13px;
+  color: #54656f;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+}
+
+.member-name-item {
+  color: #111b21;
+  font-weight: 600;
+}
+
+.more-members-indicator {
+  color: #8696a0;
+  font-weight: 400;
+  margin-left: 2px;
+}
+
+@media (max-width: 1200px) {
+  .room-members-names-display {
+    max-width: 200px;
+  }
+}
+
+@media (max-width: 900px) {
+  .room-members-names-display {
+    display: none;
+  }
+}
+
 .room-members-pile {
   display: flex;
   align-items: center;
@@ -1391,10 +1428,6 @@
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s;
-}
-
-.members-panel-invite-btn:hover {
-  background-color: #f5f6f6;
 }
 
 .members-list {

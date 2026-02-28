@@ -148,9 +148,9 @@ const Login = ({ onLoginSuccess }) => {
             </Button>
           </div>
 
-          <div className="forgot-password">
+          {/* <div className="forgot-password">
             <a href="#" onClick={(e) => e.preventDefault()}>¿Olvidaste tu contraseña?</a>
-          </div>
+          </div> */}
         </div>
       </form >
     </div >
