@@ -128,7 +128,7 @@ const ForwardMessageModal = ({
             // Construir mensaje reenviado
             const forwardedMessage = {
                 from: user?.username || currentUserFullName, // 🔥 FIX: Usar username (DNI) en vez de nombre completo
-                fromId: user.id,
+                // fromId: user.id, // 🔥 REMOVIDO: El backend lo resuelve vía DNI (username)
                 to: selectedDestination.type === 'group' ? selectedDestination.name : selectedDestination.to,
                 message: message.text || message.message || '',
                 isGroup: selectedDestination.type === 'group',

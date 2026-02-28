@@ -31,7 +31,7 @@ export const useVideoCall = (roomID, meetingContainerRef) => {
                 const user = JSON.parse(userStr);
                 return {
                     displayName: (user.nombre && user.apellido && `${user.nombre} ${user.apellido}`) || user.username || "Usuario",
-                    userID: String((user.id || user.username) + '_' + randomID(5)),
+                    userID: String((user.username || user.id) + '_' + randomID(5)),
                     userRole: user.role || null
                 };
             }

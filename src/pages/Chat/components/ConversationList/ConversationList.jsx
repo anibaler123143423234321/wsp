@@ -400,7 +400,8 @@ const ConversationList = ({
 
       if (searchType === 'message') {
         // Buscar mensajes
-        const messagesResult = await apiService.searchMessagesByUserId(user.id, term);
+        // 🔥 FIX: Usar searchMessages (DNI) en lugar de searchByUserId (ID CRM irrelevante)
+        const messagesResult = await apiService.searchMessages(term);
         setMessageSearchResults(messagesResult || []);
         resultCount = (messagesResult || []).length;
       }
@@ -995,7 +996,8 @@ const ConversationList = ({
         if (currentFilter === 'messages') {
           try {
             console.log(`🔎 Buscando mensajes para: "${searchValue}"`);
-            const messagesResult = await apiService.searchMessagesByUserId(user.id, searchValue);
+            // 🔥 FIX: Usar searchMessages (DNI) en lugar de searchByUserId (ID CRM irrelevante)
+            const messagesResult = await apiService.searchMessages(searchValue);
             setMessageSearchResults(messagesResult || []);
           } catch (error) {
             console.error('Error al buscar mensajes:', error);

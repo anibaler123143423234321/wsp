@@ -89,7 +89,7 @@ export const useSocket = (isAuthenticated, username, user) => {
           socket.current.emit("register", {
             username: user.username,
             userData: {
-              id: user.id,
+              // id: user.id, // 🔥 REMOVIDO: Evitar usar ID de CRM irrelevante
               username: user.username,
               role: user.role || "USER",
               nombre: user.nombre,
@@ -122,7 +122,7 @@ export const useSocket = (isAuthenticated, username, user) => {
           socket.current.emit("register", {
             username: user.username,
             userData: {
-              id: user.id,
+              // id: user.id, // 🔥 REMOVIDO: Evitar usar ID de CRM irrelevante
               username: user.username,
               role: user.role || "USER",
               nombre: user.nombre,

@@ -1327,7 +1327,7 @@ const ChatPage = () => {
       // C. CONSTRUCCIÓN DEL MENSAJE ÚNICO
       let messageObj = {
         from: username,
-        fromId: user.id,
+        // fromId: user.id, // 🔥 REMOVIDO: El backend lo resuelve vía DNI (username)
         to: chatState.to,
         groupName: effectiveIsGroup ? chatState.to : undefined,
         message: String(input || ""),
@@ -1740,7 +1740,7 @@ const ChatPage = () => {
         isGroup: effectiveIsGroup,
         groupName: effectiveIsGroup ? chatState.to : undefined,
         from: username,
-        fromId: user.id,
+        // fromId: user.id, // 🔥 REMOVIDO: El backend lo resuelve vía DNI (username)
         mediaType: "audio",
         mediaData: uploadResult.fileUrl,
         fileName: uploadResult.fileName,
@@ -1793,7 +1793,7 @@ const ChatPage = () => {
 
   // Función para enviar mensaje en hilo
   const handleSendThreadMessage = useCallback(async (messageData) => {
-    if (!user || !user.id) return;
+    if (!user || (!user.id && !user.username)) return;
 
     try {
       const messageObj = {
@@ -1803,7 +1803,7 @@ const ChatPage = () => {
         isGroup: !!messageData.isGroup,
         roomCode: messageData.roomCode || null,
         threadId: messageData.threadId,
-        fromId: user.id,
+        fromId: user.id, // TODO: Eliminar si el backend de hilos también resuelve el ID solo
         //  NUEVO: Incluir datos de respuesta
         replyToMessageId: messageData.replyToMessageId || null,
         replyToSender: messageData.replyToSender || null,

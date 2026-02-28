@@ -198,7 +198,7 @@ class ApiService {
 
       // Estructura de datos que devuelve tu API
       const user = {
-        id: data.data.userId,
+        // id: data.data.userId, // 🔥 REMOVIDO: Este ID es del CRM y causaba discrepancias. El backend de chat resuelve el ID real vía DNI.
         username: data.data.username || loginCredentials.username, // 🔥 Garantizar DNI
         nombre: data.data.nombre,
         apellido: data.data.apellido,
