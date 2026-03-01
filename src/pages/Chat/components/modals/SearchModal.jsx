@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import BaseModal from './BaseModal';
 import './SearchModal.css';
 import apiService from '../../../../apiService';
@@ -172,7 +172,7 @@ const SearchModal = ({ isOpen, onClose, onSearch }) => {
       onSearch(searchTerm, selectedType, result);
     }
 
-    // 🔥 Cerrar modal después de seleccionar
+    //  Cerrar modal después de seleccionar
     setTimeout(() => {
       onClose();
     }, 100); // Pequeño delay para que se vea el resaltado antes de cerrar
@@ -398,4 +398,5 @@ const SearchModal = ({ isOpen, onClose, onSearch }) => {
 };
 
 export default SearchModal;
+
 

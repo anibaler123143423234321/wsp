@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+﻿import { useState, useRef, useCallback, useEffect } from 'react';
 import apiService from '../apiService';
 
 /**
@@ -45,17 +45,17 @@ export const useChatState = () => {
     const [myActiveRooms, setMyActiveRooms] = useState([]);
     const [isSending, setIsSending] = useState(false);
     const [favoriteRoomCodes, setFavoriteRoomCodes] = useState([]); //  Códigos de salas favoritas
-    const [favoriteRooms, setFavoriteRooms] = useState([]); //  🔥 NUEVO: Salas favoritas con datos completos (incluido unreadCount)
+    const [favoriteRooms, setFavoriteRooms] = useState([]); //   NUEVO: Salas favoritas con datos completos (incluido unreadCount)
     const [lastFavoriteUpdate, setLastFavoriteUpdate] = useState(null); //  Notifica actualizaciones a favoritos
 
-    // 🔥 Función para cargar favoritos tempranamente (llamada desde ChatPage)
+    //  Función para cargar favoritos tempranamente (llamada desde ChatPage)
     const loadFavoriteRoomCodes = useCallback(async (displayName) => {
         if (!displayName) return;
         try {
             const roomsWithData = await apiService.getUserFavoriteRoomsWithData(displayName);
-            // 🔥 FIX: Incluimos tanto roomCode (grupos) como id (conversaciones)
+            //  FIX: Incluimos tanto roomCode (grupos) como id (conversaciones)
             const codes = roomsWithData.map(r => r.roomCode || String(r.id));
-            console.log('🔥 useChatState: Favoritos cargados tempranamente:', { codes, count: roomsWithData.length });
+            console.log(' useChatState: Favoritos cargados tempranamente:', { codes, count: roomsWithData.length });
             setFavoriteRoomCodes(codes);
             setFavoriteRooms(roomsWithData); // Guardar datos completos
         } catch (error) {
@@ -65,19 +65,19 @@ export const useChatState = () => {
 
     // ===== ESTADOS ADICIONALES =====
     const [unreadMessages, setUnreadMessages] = useState({});
-    const [unreadCountsLoaded, setUnreadCountsLoaded] = useState(false); // 🔥 Flag para saber si los contadores ya cargaron
+    const [unreadCountsLoaded, setUnreadCountsLoaded] = useState(false); //  Flag para saber si los contadores ya cargaron
     const [socketConnected, setSocketConnected] = useState(false);
     const [soundsEnabled, setSoundsEnabled] = useState(() => {
         const saved = localStorage.getItem('soundsEnabled');
         return saved === 'true';
     });
-    // 🔥 NUEVO: Estado global para silenciar TODAS las alertas (sonidos y notificaciones)
+    //  NUEVO: Estado global para silenciar TODAS las alertas (sonidos y notificaciones)
     const [areAlertsEnabled, setAreAlertsEnabled] = useState(() => {
         const saved = localStorage.getItem('areAlertsEnabled');
         // Por defecto TRUE (alertas activadas)
         return saved !== 'false';
     });
-    // 🔥 NUEVO: Estados granulares (Hilos vs Mensajes)
+    //  NUEVO: Estados granulares (Hilos vs Mensajes)
     const [areThreadAlertsEnabled, setAreThreadAlertsEnabled] = useState(() => {
         const saved = localStorage.getItem('areThreadAlertsEnabled');
         return saved !== 'false';
@@ -87,15 +87,15 @@ export const useChatState = () => {
         return saved !== 'false';
     });
     const [pendingMentions, setPendingMentions] = useState({});
-    const [pendingThreads, setPendingThreads] = useState({}); // 🔥 NUEVO: Rastrea salas con hilos no leídos
+    const [pendingThreads, setPendingThreads] = useState({}); //  NUEVO: Rastrea salas con hilos no leídos
     const [typingUser, setTypingUser] = useState(null);
     const [typingTimeout, setTypingTimeout] = useState(null);
     const [roomTypingUsers, setRoomTypingUsers] = useState({});
     const [adminViewConversation, setAdminViewConversation] = useState(null);
     const [isAdminViewLoading, setIsAdminViewLoading] = useState(false);
-    const [isAdminViewLoadingMore, setIsAdminViewLoadingMore] = useState(false); // 🔥 NUEVO
-    const [adminViewHasMore, setAdminViewHasMore] = useState(true); // 🔥 NUEVO
-    const [adminViewOffset, setAdminViewOffset] = useState(0); // 🔥 NUEVO
+    const [isAdminViewLoadingMore, setIsAdminViewLoadingMore] = useState(false); //  NUEVO
+    const [adminViewHasMore, setAdminViewHasMore] = useState(true); //  NUEVO
+    const [adminViewOffset, setAdminViewOffset] = useState(0); //  NUEVO
     const [replyingTo, setReplyingTo] = useState(null);
     const [isUploadingFile, setIsUploadingFile] = useState(false);
     const [pinnedMessageId, setPinnedMessageId] = useState(null);
@@ -226,8 +226,8 @@ export const useChatState = () => {
         isSending,
         setIsSending,
         favoriteRoomCodes,
-        favoriteRooms, // 🔥 NUEVO: Exponer datos completos
-        setFavoriteRooms, // 🔥 NUEVO: Permitir actualización externa (sockets)
+        favoriteRooms, //  NUEVO: Exponer datos completos
+        setFavoriteRooms, //  NUEVO: Permitir actualización externa (sockets)
         setFavoriteRoomCodes,
         loadFavoriteRoomCodes,
         lastFavoriteUpdate,
@@ -333,3 +333,4 @@ export const useChatState = () => {
         roomUsersNameCacheRef,
     };
 };
+

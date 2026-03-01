@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+﻿import { useState, useRef, useCallback, useEffect } from 'react';
 import LeftSidebar from '../LeftSidebar/LeftSidebar';
 import ConversationList from '../ConversationList/ConversationList';
 import './Sidebar.css';
@@ -57,16 +57,16 @@ const Sidebar = ({
   onGoToRoomsPage,
   soundsEnabled,
   onEnableSounds,
-  favoriteRooms, // 🔥 NUEVO
-  setFavoriteRooms, // 🔥 NUEVO
-  pendingMentions = {}, // 🔥 NUEVO: Para detectar menciones pendientes
-  pendingThreads = {} // 🔥 NUEVO: Para detectar hilos pendientes
+  favoriteRooms, //  NUEVO
+  setFavoriteRooms, //  NUEVO
+  pendingMentions = {}, //  NUEVO: Para detectar menciones pendientes
+  pendingThreads = {} //  NUEVO: Para detectar hilos pendientes
 }) => {
 
   // Estado para el ancho del sidebar
   const initialWidth = sidebarCollapsed ? 450 : 540;
   const [sidebarWidth, setSidebarWidth] = useState(initialWidth);
-  const maxWidth = useRef(initialWidth); // 🔥 Ancho máximo = ancho inicial
+  const maxWidth = useRef(initialWidth); //  Ancho máximo = ancho inicial
 
   // Modo compacto cuando el ancho es menor a 300px
   const isCompactMode = sidebarWidth <= 300;
@@ -100,7 +100,7 @@ const Sidebar = ({
     if (!isResizing.current) return;
     const deltaX = e.clientX - startX.current;
     const newWidth = startWidth.current + deltaX;
-    // 🔥 Usamos maxWidth.current como límite máximo en lugar de 800
+    //  Usamos maxWidth.current como límite máximo en lugar de 800
     if (newWidth >= 170 && newWidth <= maxWidth.current) {
       setSidebarWidth(newWidth);
     }
@@ -198,8 +198,8 @@ const Sidebar = ({
             onGoToRoomsPage={onGoToRoomsPage}
             isCompact={isCompactMode}
             to={to}
-            pendingMentions={pendingMentions} // 🔥 NUEVO: Pasar menciones pendientes
-            pendingThreads={pendingThreads} // 🔥 NUEVO: Pasar hilos pendientes
+            pendingMentions={pendingMentions} //  NUEVO: Pasar menciones pendientes
+            pendingThreads={pendingThreads} //  NUEVO: Pasar hilos pendientes
           />
         </div>
 

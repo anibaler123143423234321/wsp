@@ -3,7 +3,7 @@ import Swal from 'sweetalert2';
 import { showSuccessAlert, showErrorAlert } from '../sweetalert2';
 import { systemNotifications } from '../utils/systemNotifications';
 
-// 🔥 Mapa global de IDs temporales → IDs reales
+//  Mapa global de IDs temporales → IDs reales
 // Persiste entre re-renders para que el toast pueda acceder al ID real
 const tempIdToRealIdMap = new Map();
 
@@ -30,8 +30,8 @@ const getRealMessageId = (id) => {
     return id;
 };
 
-// 🔥 NUEVO: Resolver nombre amigable contra roomUsers o userList
-const resolveDisplayName = (identifier, roomUsers = [], userList = []) => {
+//  NUEVO: Resolver nombre amigable contra roomUsers o userList
+export const resolveDisplayName = (identifier, roomUsers = [], userList = []) => {
     if (!identifier) return 'Usuario';
     const idLower = identifier.toString().toLowerCase().trim();
 
@@ -63,7 +63,7 @@ const resolveDisplayName = (identifier, roomUsers = [], userList = []) => {
     return (foundGlobal?.username || foundRoom?.username || identifier);
 };
 
-// 🔥 NUEVO: Helper para detectar si un mensaje menciona al usuario actual
+//  NUEVO: Helper para detectar si un mensaje menciona al usuario actual
 const hasMentionToCurrentUser = (messageText, currentUserFullName) => {
     if (!messageText || !currentUserFullName) return false;
 
@@ -108,7 +108,7 @@ export const useSocketListeners = (
         setRoomUsers, setMyActiveRooms, myActiveRooms, setAssignedConversations, //  Agregado myActiveRooms
         setMonitoringConversations, setUnreadMessages, setPendingMentions, setPendingThreads,
         setTypingUser, setRoomTypingUsers, setPinnedMessageId,
-        setLastFavoriteUpdate, setFavoriteRooms, // 🔥 NUEVO: setFavoriteRooms agregado
+        setLastFavoriteUpdate, setFavoriteRooms, //  NUEVO: setFavoriteRooms agregado
         // Refs vitales
         currentRoomCodeRef, toRef, isGroupRef, currentUserFullNameRef,
         adminViewConversationRef //  Para detectar chat asignado abierto
@@ -123,34 +123,34 @@ export const useSocketListeners = (
 
     const { username, user, userList: authUserList, soundsEnabled, favoriteRoomCodes = [], areAlertsEnabled = true } = authData;
 
-    // 🔥 SYNC: Refs para evitar cierres obsoletos (stale closures)
+    //  SYNC: Refs para evitar cierres obsoletos (stale closures)
     const roomUsersRef = useRef(roomUsers || []);
     const userListRef = useRef(authUserList || userList || []);
     const soundsEnabledRef = useRef(soundsEnabled);
-    const areAlertsEnabledRef = useRef(areAlertsEnabled); // 🔥 NUEVO Ref para alertas globales
+    const areAlertsEnabledRef = useRef(areAlertsEnabled); //  NUEVO Ref para alertas globales
     const myActiveRoomsRef = useRef(myActiveRooms || []); //  Nuevo Ref
     const favoriteRoomCodesRef = useRef(favoriteRoomCodes); //  Ref para favoritos
     const lastThreadUpdateRef = useRef({}); // Para deduplicación de eventos de hilo
-    const processedMessagesRef = useRef(new Set()); // 🔥 NUEVO: Para deduplicación de mensajes
-    const lastAssignedUpdateRef = useRef({}); // 🔥 FIX: Deduplicación de assignedConversationUpdated
+    const processedMessagesRef = useRef(new Set()); //  NUEVO: Para deduplicación de mensajes
+    const lastAssignedUpdateRef = useRef({}); //  FIX: Deduplicación de assignedConversationUpdated
 
     // Actualizar ref cuando cambie soundsEnabled
     useEffect(() => {
         soundsEnabledRef.current = soundsEnabled;
     }, [soundsEnabled]);
 
-    // 🔥 NUEVO: Actualizar ref cuando cambie areAlertsEnabled
+    //  NUEVO: Actualizar ref cuando cambie areAlertsEnabled
     useEffect(() => {
         console.log('🔄 useSocketListeners: areAlertsEnabled actualizado a:', areAlertsEnabled);
         areAlertsEnabledRef.current = areAlertsEnabled;
     }, [areAlertsEnabled]);
 
-    // 🔥 NUEVO: Mantener sincronizado el ref de favoritos
+    //  NUEVO: Mantener sincronizado el ref de favoritos
     useEffect(() => {
         favoriteRoomCodesRef.current = favoriteRoomCodes;
     }, [favoriteRoomCodes]);
 
-    // 🔥 NUEVO: Refs para alertas granulares
+    //  NUEVO: Refs para alertas granulares
     const areThreadAlertsEnabledRef = useRef(authData.areThreadAlertsEnabled);
     const areMessageAlertsEnabledRef = useRef(authData.areMessageAlertsEnabled);
 
@@ -159,7 +159,7 @@ export const useSocketListeners = (
         areMessageAlertsEnabledRef.current = authData.areMessageAlertsEnabled;
     }, [authData.areThreadAlertsEnabled, authData.areMessageAlertsEnabled]);
 
-    // 🔥 SYNC: Mantener refs actualizados
+    //  SYNC: Mantener refs actualizados
     useEffect(() => {
         roomUsersRef.current = roomUsers || [];
     }, [roomUsers]);
@@ -173,7 +173,7 @@ export const useSocketListeners = (
     }, [myActiveRooms]);
 
     //  Actualizar ref cuando cambien favoritos
-    // 🔥 NUEVO: Mantener el nombre completo del usuario actualizado para menciones
+    //  NUEVO: Mantener el nombre completo del usuario actualizado para menciones
     useEffect(() => {
         if (user) {
             const fullName = (user.nombre || user.apellido)
@@ -215,7 +215,7 @@ export const useSocketListeners = (
         });
 
         const parseDate = (r) => {
-            // 🔥 Priorizar lastActivity del backend (fecha real del último mensaje)
+            //  Priorizar lastActivity del backend (fecha real del último mensaje)
             const dateStr = r.lastActivity || r.lastMessage?.sentAt || r.lastMessage?.time || r.lastMessageTime || r.createdAt;
             if (!dateStr) return 0;
             const d = new Date(dateStr).getTime();
@@ -313,7 +313,7 @@ export const useSocketListeners = (
                     const uNombre = u.nombre?.toLowerCase().trim();
                     const uApellido = u.apellido?.toLowerCase().trim();
 
-                    // 🔥 FIX: Construcción robusta de nombre completo (permitir nombres o apellidos solos)
+                    //  FIX: Construcción robusta de nombre completo (permitir nombres o apellidos solos)
                     let fullName = "";
                     if (uNombre || uApellido) {
                         fullName = `${uNombre || ''} ${uApellido || ''}`.trim();
@@ -402,7 +402,7 @@ export const useSocketListeners = (
             }
         });
 
-        // 🔥 NUEVO: Manejo de solicitudes de ingreso y expulsiones
+        //  NUEVO: Manejo de solicitudes de ingreso y expulsiones
         s.on("userApproved", (data) => {
             console.log('✅ userApproved:', data);
             Swal.fire({
@@ -430,7 +430,7 @@ export const useSocketListeners = (
         });
 
 
-        // 🔥 NUEVO: Listener para actualizar IDs temporales → reales
+        //  NUEVO: Listener para actualizar IDs temporales → reales
         // El backend envía este evento cuando el mensaje se guarda en BD
         s.on("messageIdUpdate", (data) => {
             console.log('🔄 messageIdUpdate recibido:', data);
@@ -442,7 +442,7 @@ export const useSocketListeners = (
                 });
                 console.log(`🔄 Mapeado ID temporal ${data.tempId} → ${data.realId}`);
 
-                // 🔥 NUEVO: Actualizar el mensaje en el estado de la UI inmediatamente
+                //  NUEVO: Actualizar el mensaje en el estado de la UI inmediatamente
                 // Esto desbloquea el ThreadPanel al quitar el prefijo 'temp_'
                 if (updateMessage) {
                     updateMessage(data.tempId, { id: data.realId });
@@ -486,7 +486,7 @@ export const useSocketListeners = (
             }
         });
 
-        // 🔥 NUEVO: Listener para eliminación de mensajes en tiempo real
+        //  NUEVO: Listener para eliminación de mensajes en tiempo real
         s.on("messageDeleted", (data) => {
             console.log('🗑️ messageDeleted recibido:', data);
             if (updateMessage && data.messageId) {
@@ -503,7 +503,7 @@ export const useSocketListeners = (
             }
         });
 
-        // 🔥 NUEVO: Listener para edición de mensajes en tiempo real
+        //  NUEVO: Listener para edición de mensajes en tiempo real
         s.on("messageEdited", (data) => {
             console.log('✏️ messageEdited recibido:', data);
             if (updateMessage && data.messageId) {
@@ -528,7 +528,7 @@ export const useSocketListeners = (
         s.on("threadCountUpdated", (data) => {
             console.log('🧵 threadCountUpdated:', data, '| updateMessage exists?', !!updateMessage);
 
-            // 🔥 FIX: Si el backend NO envía threadCount, IGNORAR este evento.
+            //  FIX: Si el backend NO envía threadCount, IGNORAR este evento.
             // El backend emite 2 veces: primero sin threadCount, luego CON threadCount.
             // Solo procesamos el evento que tiene el valor real.
             if (typeof data.threadCount !== 'number') {
@@ -567,7 +567,7 @@ export const useSocketListeners = (
                 });
             }
 
-            // 🔥 NUEVO: Si hay una mención al usuario en el hilo, marcar la sala
+            //  NUEVO: Si hay una mención al usuario en el hilo, marcar la sala
             if (data.lastReplyText && data.from !== username) {
                 const currentFullName = currentUserFullNameRef.current;
 
@@ -591,13 +591,13 @@ export const useSocketListeners = (
                             : room
                     ));
 
-                    // 🔥 NUEVO: También agregar a pendingMentions para que aparezca el punto rojo
+                    //  NUEVO: También agregar a pendingMentions para que aparezca el punto rojo
                     setPendingMentions(prev => ({
                         ...prev,
                         [data.roomCode]: true
                     }));
 
-                    // 🔥 NUEVO: Marcar el mensaje padre con hasUnreadThreadMentions
+                    //  NUEVO: Marcar el mensaje padre con hasUnreadThreadMentions
                     if (updateMessage) {
                         updateMessage(data.messageId, (prev) => ({
                             ...prev,
@@ -607,7 +607,7 @@ export const useSocketListeners = (
 
                     console.log('📝 pendingMentions actualizado por mención en hilo:', data.roomCode);
                 } else if (data.roomCode) {
-                    // 🔥 NUEVO: Si NO hay mención pero SÍ hay mensaje nuevo en hilo, marcar pendingThreads
+                    //  NUEVO: Si NO hay mención pero SÍ hay mensaje nuevo en hilo, marcar pendingThreads
                     console.log('🟢 Mensaje nuevo en hilo (sin mención), marcando sala:', data.roomCode);
                     setPendingThreads(prev => ({
                         ...prev,
@@ -615,10 +615,10 @@ export const useSocketListeners = (
                     }));
                 }
 
-                // 🔥 NUEVO: Notificar al usuario sobre el mensaje de hilo
+                //  NUEVO: Notificar al usuario sobre el mensaje de hilo
                 // Solo si NO es mensaje propio Y el chat NO está abierto
                 if (data.lastReplyFrom !== username) {
-                    // 🔥 FIX: Calcular si el chat está abierto para NO mostrar notificación
+                    //  FIX: Calcular si el chat está abierto para NO mostrar notificación
                     const currentRoom = currentRoomCodeRef.current;
                     const currentIsGroup = isGroupRef.current;
                     const currentTo = toRef.current?.toLowerCase().trim();
@@ -654,7 +654,7 @@ export const useSocketListeners = (
                         lastReplyFrom: data.lastReplyFrom
                     });
 
-                    // 🔥 Solo mostrar notificación si el chat NO está abierto
+                    //  Solo mostrar notificación si el chat NO está abierto
                     if (!isThreadChatOpen) {
                         // Buscar nombre de la sala en referencias locales
                         const roomInfo = myActiveRoomsRef.current.find(r => r.roomCode === data.roomCode);
@@ -664,7 +664,7 @@ export const useSocketListeners = (
                         const notificationTitle = `Hilo en ${roomName}`;
                         const notificationBody = `${friendlySender}: ${data.lastReplyText}`;
 
-                        // 🔥 CHECK: Alertas Globales AND Alertas de Hilos
+                        //  CHECK: Alertas Globales AND Alertas de Hilos
                         if (areAlertsEnabledRef.current && areThreadAlertsEnabledRef.current) {
                             if (systemNotifications.canShow()) {
                                 systemNotifications.show(
@@ -672,7 +672,7 @@ export const useSocketListeners = (
                                     notificationBody,
                                     { tag: `thread-${data.messageId}`, silent: !soundsEnabledRef.current },
                                     () => {
-                                        // 🔥 FIX: Si no hay roomCode (es DM/Asignado), navegar por usuario
+                                        //  FIX: Si no hay roomCode (es DM/Asignado), navegar por usuario
                                         if (data.roomCode) {
                                             window.dispatchEvent(new CustomEvent("navigateToRoom", {
                                                 detail: { roomCode: data.roomCode, messageId: data.messageId, isThread: true }
@@ -713,7 +713,7 @@ export const useSocketListeners = (
                                     }
                                 }).then((result) => {
                                     if (result.isConfirmed) {
-                                        // 🔥 FIX: Si no hay roomCode (es DM/Asignado), navegar por usuario
+                                        //  FIX: Si no hay roomCode (es DM/Asignado), navegar por usuario
                                         if (data.roomCode) {
                                             window.dispatchEvent(new CustomEvent("navigateToRoom", {
                                                 detail: { roomCode: data.roomCode, messageId: data.messageId, isThread: true }
@@ -775,7 +775,7 @@ export const useSocketListeners = (
             }
 
             const currentFullName = currentUserFullNameRef.current;
-            // 🔥 FIX: Comparación case-insensitive para evitar notificaciones propias
+            //  FIX: Comparación case-insensitive para evitar notificaciones propias
             const isOwnMessage = (data.from?.toLowerCase().trim() === username?.toLowerCase().trim()) ||
                 (data.from?.toLowerCase().trim() === currentFullName?.toLowerCase().trim());
 
@@ -861,7 +861,7 @@ export const useSocketListeners = (
                 //  SIEMPRE agregar mensaje al chat si está abierto (propio o no)
                 //  EXCEPTO si es un mensaje de hilo (se muestra en ThreadPanel)
                 if (isChatOpen && !data.threadId) {
-                    // 🔥 FIX READ RECEIPTS: Si el usuario ESTÁ VIENDO el chat y NO es mensaje propio,
+                    //  FIX READ RECEIPTS: Si el usuario ESTÁ VIENDO el chat y NO es mensaje propio,
                     // agregarlo automáticamente a readBy[] para que el contador sea correcto desde el inicio
                     let readBy = data.readBy || [];
                     let readByCount = data.readByCount || 0;
@@ -930,7 +930,7 @@ export const useSocketListeners = (
                         return newState;
                     });
 
-                    // 🔥 NUEVO: Detectar si el mensaje menciona al usuario actual
+                    //  NUEVO: Detectar si el mensaje menciona al usuario actual
                     const currentUserFullName = currentUserFullNameRef.current || username;
                     console.log(`🔍 Verificando mención en grupo ${data.roomCode}:`, {
                         messageText: messageText.substring(0, 50),
@@ -963,7 +963,7 @@ export const useSocketListeners = (
                                 if (r.roomCode === data.roomCode) {
                                     return {
                                         ...r,
-                                        lastActivity: sentAt, // 🔥 Actualizar para que el sort lo mueva arriba
+                                        lastActivity: sentAt, //  Actualizar para que el sort lo mueva arriba
                                         lastMessage: {
                                             text: messageText,
                                             from: data.from,
@@ -977,7 +977,7 @@ export const useSocketListeners = (
                                 return r;
                             });
                         } else {
-                            // 🔥 La sala NO existe, agregarla
+                            //  La sala NO existe, agregarla
                             console.log('📬 newMessage: Sala no encontrada, agregando:', data.roomCode);
                             const newRoom = {
                                 roomCode: data.roomCode,
@@ -997,7 +997,7 @@ export const useSocketListeners = (
                         return sortRoomsByBackendLogic(updated, favoriteRoomCodesRef.current);
                     });
 
-                    // 🔥 CRÍTICO: También actualizar FAVORITOS si es un grupo favorito
+                    //  CRÍTICO: También actualizar FAVORITOS si es un grupo favorito
                     setFavoriteRooms(prev => {
                         const targetFav = prev.find(f => String(f.roomCode) === String(data.roomCode));
 
@@ -1040,7 +1040,7 @@ export const useSocketListeners = (
                             areAlertsEnabled: areAlertsEnabledRef.current
                         });
 
-                        // 🔥 REGLA DE SONIDO: Sonar si el chat está cerrado O si es una mención (aunque esté abierto)
+                        //  REGLA DE SONIDO: Sonar si el chat está cerrado O si es una mención (aunque esté abierto)
                         if (areAlertsEnabledRef.current && (!isChatOpen || hasMention)) {
                             playMessageSound(soundsEnabledRef.current, hasMention);
                         }
@@ -1133,11 +1133,11 @@ export const useSocketListeners = (
                     });
                 }
 
-                //  🔥 ACTUALIZAR assignedConversations como FALLBACK
+                //   ACTUALIZAR assignedConversations como FALLBACK
                 // El evento 'assignedConversationUpdated' del backend debería encargarse de esto,
                 // pero si no llega en 300ms, actualizamos aquí para evitar que el chat no suba
 
-                // 🔥 FIX: Si no hay conversationId, buscar la conversación por participantes
+                //  FIX: Si no hay conversationId, buscar la conversación por participantes
                 {
                     const explicitConvId = data.conversationId;
                     const fromLower = data.from?.toLowerCase().trim();
@@ -1154,7 +1154,7 @@ export const useSocketListeners = (
 
                         // Esperar 300ms para ver si llega assignedConversationUpdated
                         setTimeout(() => {
-                            // 🔥 FIX: Verificar AMBAS condiciones:
+                            //  FIX: Verificar AMBAS condiciones:
                             // 1. La marca del messageKey fue borrada (assignedConversationUpdated llegó ANTES que message)
                             // 2. Existe marca assigned-done (assignedConversationUpdated ya procesó este convId)
                             if (!processedMessagesRef.current.has(messageKey) || processedMessagesRef.current.has(`assigned-done-${convId}`)) {
@@ -1258,7 +1258,7 @@ export const useSocketListeners = (
                         // Caso normal: el backend envió conversationId
                         runDmFallback(explicitConvId);
                     } else if (!data.isGroup && fromLower && toLower) {
-                        // 🔥 FIX: Buscar conversación por participantes
+                        //  FIX: Buscar conversación por participantes
                         setAssignedConversations(prev => {
                             const found = prev.find(c => {
                                 const participants = (c.participants || []).map(p => p?.toLowerCase().trim());
@@ -1274,10 +1274,10 @@ export const useSocketListeners = (
                     }
                 }
 
-                // 🔥 Sincronizar FAVORITOS para DMs: solo lastMessage (NO contador)
+                //  Sincronizar FAVORITOS para DMs: solo lastMessage (NO contador)
                 // El contador se maneja en assignedConversationUpdated o en el fallback
                 setFavoriteRooms(prev => {
-                    // 🔥 FIX: Buscar por conversationId o por participantes
+                    //  FIX: Buscar por conversationId o por participantes
                     let favConvId = data.conversationId;
                     if (!favConvId && !data.isGroup && data.from && data.to) {
                         const fromL = data.from?.toLowerCase().trim();
@@ -1300,7 +1300,7 @@ export const useSocketListeners = (
                         if (String(conv.id) === String(favConvId)) {
                             return {
                                 ...conv,
-                                lastActivity: data.sentAt || new Date().toISOString(), // 🔥 FIX: Para que suba arriba
+                                lastActivity: data.sentAt || new Date().toISOString(), //  FIX: Para que suba arriba
                                 lastMessage: {
                                     text: messageText,
                                     from: data.from,
@@ -1309,7 +1309,7 @@ export const useSocketListeners = (
                                     mediaType: data.mediaType,
                                     fileName: data.fileName
                                 }
-                                // 🔥 FIX: NO tocar unreadCount aquí - lo maneja assignedConversationUpdated o fallback
+                                //  FIX: NO tocar unreadCount aquí - lo maneja assignedConversationUpdated o fallback
                             };
                         }
                         return conv;
@@ -1318,7 +1318,7 @@ export const useSocketListeners = (
                     return sortRoomsByBackendLogic(updated, favoriteRoomCodesRef.current);
                 });
 
-                // 🔥 NUEVO: Detectar menciones en chats individuales (no asignados)
+                //  NUEVO: Detectar menciones en chats individuales (no asignados)
                 if (!isOwnMessage && !isChatOpen && !data.isAssignedConversation) {
                     const currentUserFullName = currentUserFullNameRef.current || username;
                     if (hasMentionToCurrentUser(messageText, currentUserFullName)) {
@@ -1346,7 +1346,7 @@ export const useSocketListeners = (
                         areAlertsEnabled: areAlertsEnabledRef.current
                     });
 
-                    // 🔥 REGLA DE SONIDO: Sonar si (chat cerrado) O (hay mención aunque esté abierto)
+                    //  REGLA DE SONIDO: Sonar si (chat cerrado) O (hay mención aunque esté abierto)
                     if (areAlertsEnabledRef.current && (!isChatOpen || hasMention)) {
                         playMessageSound(soundsEnabledRef.current, hasMention);
                     }
@@ -1415,7 +1415,7 @@ export const useSocketListeners = (
                 backendCount: data.count
             });
 
-            // 🔥 FIX: NO actualizar contador NI reproducir sonido aquí
+            //  FIX: NO actualizar contador NI reproducir sonido aquí
             // El evento 'message' ya maneja ambos correctamente
             // Este listener solo actualiza lastMessage para el ordenamiento
 
@@ -1452,7 +1452,7 @@ export const useSocketListeners = (
                                         mediaType: data.lastMessage.mediaType || null,
                                         fileName: data.lastMessage.fileName || null
                                     }
-                                    // 🔥 FIX: NO actualizar unreadCount aquí
+                                    //  FIX: NO actualizar unreadCount aquí
                                     // El evento 'message' ya lo actualizó correctamente
                                 };
                             }
@@ -1494,7 +1494,7 @@ export const useSocketListeners = (
                         const salaActualizada = updated.find(r => r.roomCode === data.roomCode);
                         console.log('📬 Sala actualizada:', salaActualizada?.roomCode, 'sentAt:', salaActualizada?.lastMessage?.sentAt);
                     } else {
-                        // 🔥 La sala NO existe en la lista, agregarla al inicio
+                        //  La sala NO existe en la lista, agregarla al inicio
                         console.log('📬 Sala no encontrada en lista, agregando:', data.roomCode);
                         const newRoom = {
                             roomCode: data.roomCode,
@@ -1528,7 +1528,7 @@ export const useSocketListeners = (
         s.on("assignedConversationUpdated", (data) => {
             console.log("💬 assignedConversationUpdated recibido:", data);
 
-            // 🔥 FIX: Deduplicar - el backend puede emitir este evento más de una vez para el mismo mensaje
+            //  FIX: Deduplicar - el backend puede emitir este evento más de una vez para el mismo mensaje
             const dedupeKey = `${data.conversationId}-${data.lastMessage}-${data.lastMessageTime}`;
             if (lastAssignedUpdateRef.current[data.conversationId] === dedupeKey) {
                 console.log("⏭️ assignedConversationUpdated DUPLICADO, ignorando:", data.conversationId);
@@ -1542,7 +1542,7 @@ export const useSocketListeners = (
                 }
             }, 2000);
 
-            // 🔥 FIX: Limpiar marcas existentes Y marcar que este convId ya fue procesado
+            //  FIX: Limpiar marcas existentes Y marcar que este convId ya fue procesado
             // Esto cubre tanto el caso donde 'message' llegó antes, como donde llega después
             for (const key of processedMessagesRef.current) {
                 if (key.startsWith(`${data.conversationId}-`)) {
@@ -1605,7 +1605,7 @@ export const useSocketListeners = (
                             ...conv,
                             lastMessage: {
                                 text: data.lastMessage,
-                                sentAt: data.lastMessageTime, // 🔥 FIX: Usar estructura correcta
+                                sentAt: data.lastMessageTime, //  FIX: Usar estructura correcta
                                 from: data.lastMessageFrom,
                                 mediaType: data.lastMessageMediaType
                             },
@@ -1630,7 +1630,7 @@ export const useSocketListeners = (
                 });
             });
 
-            // 2. 🔥 NUEVO: También actualizar FAVORITOS si la conversación está ahí
+            // 2.  NUEVO: También actualizar FAVORITOS si la conversación está ahí
             setFavoriteRooms(prev => {
                 const targetFav = prev.find(c => String(c.id) === String(data.conversationId));
                 const isFavCode = favoriteRoomCodesRef.current.includes(String(data.conversationId));
@@ -1660,7 +1660,7 @@ export const useSocketListeners = (
                         return {
                             ...conv,
                             // Unificar estructura para que sortRoomsByBackendLogic funcione
-                            lastActivity: data.lastMessageTime, // 🔥 CRÍTICO: Para que suba arriba en favoritos
+                            lastActivity: data.lastMessageTime, //  CRÍTICO: Para que suba arriba en favoritos
                             lastMessage: {
                                 text: data.lastMessage,
                                 from: data.lastMessageFrom || data.from,
@@ -1674,11 +1674,11 @@ export const useSocketListeners = (
                     return conv;
                 });
 
-                // 🔥 CRÍTICO: Usar el ordenamiento unificado para que suba al principio
+                //  CRÍTICO: Usar el ordenamiento unificado para que suba al principio
                 return sortRoomsByBackendLogic(updated, favoriteRoomCodesRef.current);
             });
 
-            // 3. 🔥 CRÍTICO: Asegurar que el contador global se actualice siempre
+            // 3.  CRÍTICO: Asegurar que el contador global se actualice siempre
             if (!isOwnMessage) {
                 const isCurrentRoom = String(currentRoomCodeRef.current) === String(data.conversationId);
                 const isCurrentChat = currentTo && (currentTo === data.lastMessageFrom?.toLowerCase().trim());
@@ -1699,9 +1699,9 @@ export const useSocketListeners = (
         s.on("unreadCountReset", (data) => {
             console.log('📥 EVENTO unreadCountReset RECIBIDO:', data);
 
-            // 🔥 FIX: Manejar reset de conversaciones asignadas (por conversationId)
+            //  FIX: Manejar reset de conversaciones asignadas (por conversationId)
             if (data.conversationId) {
-                // 🔥 FIX: Solo resetear si el chat asignado está realmente abierto
+                //  FIX: Solo resetear si el chat asignado está realmente abierto
                 const adminConv = adminViewConversationRef?.current;
                 const currentTo = toRef.current?.toLowerCase().trim();
                 const currentIsGroup = isGroupRef.current;
@@ -1743,7 +1743,7 @@ export const useSocketListeners = (
                 return;
             }
 
-            // 🔥 FIX: Solo resetear el contador si el chat está actualmente abierto
+            //  FIX: Solo resetear el contador si el chat está actualmente abierto
             // Si el chat NO está abierto, mantener el contador para que el punto rojo persista
             const currentIsGroup = isGroupRef.current;
             const currentRoom = currentRoomCodeRef.current;
@@ -1782,7 +1782,7 @@ export const useSocketListeners = (
             }
         });
 
-        // 🔥 NUEVO: Listener para actualización de lectura en conversaciones (Blue Checks)
+        //  NUEVO: Listener para actualización de lectura en conversaciones (Blue Checks)
         s.on("conversationRead", (data) => {
             console.log("👁️ conversationRead recibido:", data);
 
@@ -1900,7 +1900,7 @@ export const useSocketListeners = (
         });
 
         s.on("addedToRoom", (data) => {
-            // 🔥 CLUSTER FIX: Filtrar por username porque server.emit envía a TODOS
+            //  CLUSTER FIX: Filtrar por username porque server.emit envía a TODOS
             const currentFullName = currentUserFullNameRef.current;
             if (data.username !== username && data.username !== currentFullName) {
                 return; // Este evento no es para este usuario
@@ -1915,7 +1915,7 @@ export const useSocketListeners = (
         });
 
         s.on("removedFromRoom", (data) => {
-            // 🔥 CLUSTER FIX: Filtrar por username porque server.emit envía a TODOS
+            //  CLUSTER FIX: Filtrar por username porque server.emit envía a TODOS
             const currentFullName = currentUserFullNameRef.current;
             if (data.username !== username && data.username !== currentFullName) {
                 return; // Este evento no es para este usuario
@@ -2034,7 +2034,7 @@ export const useSocketListeners = (
             const currentFullName = currentUserFullNameRef.current;
             const isOwnReply = data.lastReplyFrom === username || data.lastReplyFrom === currentFullName;
 
-            // 🔥 NUEVO: Detectar menciones en hilos (segundo listener)
+            //  NUEVO: Detectar menciones en hilos (segundo listener)
             if (!isOwnReply && data.lastReplyText && data.roomCode) {
                 console.log('🔍 [Listener 2] Verificando mención en hilo:', {
                     roomCode: data.roomCode,
@@ -2061,7 +2061,7 @@ export const useSocketListeners = (
                         [data.roomCode]: true
                     }));
 
-                    // 🔥 NUEVO: Marcar el mensaje padre con hasUnreadThreadMentions
+                    //  NUEVO: Marcar el mensaje padre con hasUnreadThreadMentions
                     if (updateMessage) {
                         updateMessage(data.messageId, (prev) => ({
                             ...prev,
@@ -2094,9 +2094,9 @@ export const useSocketListeners = (
                 }
 
                 // Reproducir sonido y mostrar notificación si el chat no está abierto
-                // 🔥 CHECK: Globales AND Hilos
+                //  CHECK: Globales AND Hilos
                 if (!isChatOpen && areAlertsEnabledRef.current && areThreadAlertsEnabledRef.current) {
-                    // 🔥 NUEVO: Detectar si hay mención en la respuesta del hilo
+                    //  NUEVO: Detectar si hay mención en la respuesta del hilo
                     const hasMention = hasMentionToCurrentUser(data.lastReplyText, currentFullName || username);
                     console.log('🔊 [THREAD] Reproduciendo sonido:', { hasMention, lastReplyText: data.lastReplyText });
                     playMessageSound(soundsEnabledRef.current, hasMention);
@@ -2198,10 +2198,10 @@ export const useSocketListeners = (
                         return null; // Sin cambios - updateMessage ignora este caso
                     }
 
-                    // 🔥 FIX: Actualizar readByCount para que coincida con readBy.length
+                    //  FIX: Actualizar readByCount para que coincida con readBy.length
                     const readByArray = data.readBy || [];
 
-                    // 🔥 NUEVO: Si el backend envió readByData con información completa, usarla
+                    //  NUEVO: Si el backend envió readByData con información completa, usarla
                     // readByData es un array de objetos o strings:  [{ username, nombre, apellido, picture }, ...]
                     const readByData = data.readByData || readByArray;
 
@@ -2293,8 +2293,8 @@ export const useSocketListeners = (
         return () => {
             //  CRÍTICO: Cleanup de TODOS los event listeners para evitar memory leaks
             // Sin esto, cada re-render agrega nuevos listeners sin remover los anteriores
-            s.off('userStatusChanged'); // 🔥 FIX: Faltaba cleanup - causaba memory leak
-            s.off('messageIdUpdate');   // 🔥 FIX: Faltaba cleanup - causaba memory leak
+            s.off('userStatusChanged'); //  FIX: Faltaba cleanup - causaba memory leak
+            s.off('messageIdUpdate');   //  FIX: Faltaba cleanup - causaba memory leak
             s.off('roomJoined');
             s.off('messagePinned');
             s.off('userList');

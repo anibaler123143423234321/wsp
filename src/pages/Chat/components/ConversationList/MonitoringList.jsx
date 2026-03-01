@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 
 const PinIcon = ({ size = 14, className, style }) => (
@@ -43,7 +43,7 @@ const MonitoringList = ({
     };
 
     const filteredMonitoring = monitoringConversations
-        // 🔥 FIX: Excluir conversaciones que ya están en favoritos
+        //  FIX: Excluir conversaciones que ya están en favoritos
         .filter(conv => !favoriteConversationIds.includes(conv.id))
         .filter(conv => {
             if (!assignedSearchTerm.trim()) return true;
@@ -114,7 +114,7 @@ const MonitoringList = ({
 
                         const chatId = `conv-${conv.id}`;
                         const isHighlighted = highlightedChatId === chatId;
-                        // 🔥 NUEVO: Verificar si hay menciones pendientes
+                        //  NUEVO: Verificar si hay menciones pendientes
                         const hasMentions = hasPendingMentions(conv.id, conv.lastMessage, conv);
 
                         const isSelected = (!isGroup && to && (to === displayName || participants.some(p => p?.toLowerCase().trim() === to?.toLowerCase().trim()))) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
@@ -132,13 +132,13 @@ const MonitoringList = ({
                                         {otherParticipantPicture ? <img src={otherParticipantPicture} alt={displayName} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = getInitials(displayName); }} /> : getInitials(displayName)}
                                     </div>
                                     <div className="absolute bottom-0 right-0 rounded-full border-2 border-white" style={{ width: '12px', height: '12px', backgroundColor: isOtherParticipantOnline ? '#10b981' : '#9ca3af' }} title={isOtherParticipantOnline ? 'En línea' : 'Desconectado'} />
-                                    {/* 🔥 Badge de no leídos para modo compacto */}
+                                    {/*  Badge de no leídos para modo compacto */}
                                     {isCompact && itemUnreadCount > 0 && (
                                         <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '16px', height: '16px', fontSize: '9px', fontWeight: 'bold', padding: '0 3px' }}>
                                             {itemUnreadCount > 99 ? '99+' : itemUnreadCount}
                                         </div>
                                     )}
-                                    {/* 🔥 NUEVO: Punto rojo para menciones */}
+                                    {/*  NUEVO: Punto rojo para menciones */}
                                     {hasMentions && (
                                         <div
                                             className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white"
@@ -146,7 +146,7 @@ const MonitoringList = ({
                                             title="Tienes menciones pendientes"
                                         />
                                     )}
-                                    {/* 🔥 NUEVO: Punto verde para mensajes nuevos (sin menciones) */}
+                                    {/*  NUEVO: Punto verde para mensajes nuevos (sin menciones) */}
                                     {!hasMentions && (itemUnreadCount > 0 || pendingThreads[conv.id]) && (
                                         <div
                                             className="absolute top-0 right-0 rounded-full border-2 border-white"
@@ -199,4 +199,5 @@ const MonitoringList = ({
 };
 
 export default MonitoringList;
+
 

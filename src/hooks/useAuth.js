@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import apiService from "../apiService";
 
 export const useAuth = () => {
@@ -16,7 +16,7 @@ export const useAuth = () => {
       if (apiService.isAuthenticated()) {
         const currentUser = apiService.getCurrentUser();
 
-        // 🔥 SELF-HEALING: Rectificar username si es un nombre completo (sesión antigua)
+        //  SELF-HEALING: Rectificar username si es un nombre completo (sesión antigua)
         // Si el username tiene espacios o no es puramente numérico, es un nombre
         if (currentUser.username && (currentUser.username.includes(" ") || isNaN(currentUser.username))) {
           console.warn("⚠️ Sesión antigua detectada (nombre como username). Rectificando...");
@@ -94,3 +94,4 @@ export const useAuth = () => {
     refreshAuth,
   };
 };
+

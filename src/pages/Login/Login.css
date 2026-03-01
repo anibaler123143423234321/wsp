@@ -1,4 +1,4 @@
-/* Estilos del componente Login - Premium Edition */
+﻿/* Estilos del componente Login - Premium Edition */
 
 /* ========================================
    CARD PRINCIPAL
@@ -403,7 +403,7 @@
   /* Mantener blanco */
 }
 
-/* 🔥 FIX: Aumentar especificidad y usar body.dark */
+/*  FIX: Aumentar especificidad y usar body.dark */
 body.dark .login-card .welcome-title {
   color: #1a1a1a !important;
 }
@@ -454,7 +454,7 @@ body.dark .login-card .welcome-subtitle {
   color: #c62d42;
 }
 
-/* 🔥 OVERRIDE NUCLEAR: Forzar color negro pase lo que pase */
+/*  OVERRIDE NUCLEAR: Forzar color negro pase lo que pase */
 .force-light-text {
   color: #000000 !important;
   fill: #000000 !important;

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef } from 'react';
 // MentionsPanel removed
 import {
     FaTimes,
@@ -41,7 +41,7 @@ const InfoPanel = ({ isOpen, onClose, chatInfo, onCreatePoll, user, onRoomUpdate
     const canEditGroupInfo = isGroup && allowedRoles.includes(userRole);
     const isSuperAdmin = userRole === 'SUPERADMIN';
 
-    // 🔥 NUEVO: Handler para vaciar todos los mensajes del chat
+    //  NUEVO: Handler para vaciar todos los mensajes del chat
     const handleClearChat = async () => {
         const chatName = isGroup ? (chatInfo.roomName || chatInfo.roomCode) : chatInfo.to;
         const result = await Swal.fire({
@@ -357,7 +357,7 @@ const InfoPanel = ({ isOpen, onClose, chatInfo, onCreatePoll, user, onRoomUpdate
                                 text="Abrir Pizarra"
                                 onClick={() => console.log("Abrir pizarra")}
                             />
-                            {/* 🔥 NUEVO: Botón vaciar chat - Solo SUPERADMIN */}
+                            {/*  NUEVO: Botón vaciar chat - Solo SUPERADMIN */}
                             {isSuperAdmin && (
                                 <ActionRow
                                     icon={<FaTrashAlt />}

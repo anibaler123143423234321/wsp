@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+﻿import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { FaTimes, FaSearch, FaShare } from 'react-icons/fa';
 import { Users, MessageSquare } from 'lucide-react';
 import apiService from '../../../../apiService';
@@ -127,8 +127,8 @@ const ForwardMessageModal = ({
 
             // Construir mensaje reenviado
             const forwardedMessage = {
-                from: user?.username || currentUserFullName, // 🔥 FIX: Usar username (DNI) en vez de nombre completo
-                // fromId: user.id, // 🔥 REMOVIDO: El backend lo resuelve vía DNI (username)
+                from: user?.username || currentUserFullName, //  FIX: Usar username (DNI) en vez de nombre completo
+                // fromId: user.id, //  REMOVIDO: El backend lo resuelve vía DNI (username)
                 to: selectedDestination.type === 'group' ? selectedDestination.name : selectedDestination.to,
                 message: message.text || message.message || '',
                 isGroup: selectedDestination.type === 'group',
@@ -251,7 +251,7 @@ const ForwardMessageModal = ({
                                     p !== currentUserUsername
                                 );
 
-                                // 🔥 FIX: conv.name ya trae el nombre correcto del API ("KAREN CONDEMARIN")
+                                //  FIX: conv.name ya trae el nombre correcto del API ("KAREN CONDEMARIN")
                                 // Usarlo primero antes de intentar resolver desde participants (que son DNIs)
                                 const displayName = conv.name ||
                                     conv.displayName ||

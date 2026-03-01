@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { FaTimes, FaAt, FaSpinner, FaArrowRight } from 'react-icons/fa';
 import apiService from '../../../../apiService';
 import './MentionsPanel.css';
@@ -14,7 +14,7 @@ const MentionsPanel = ({
     // Callback para navegar al mensaje
     onGoToMessage,
     roomUsers = [],
-    userList = [] // 🔥 NUEVO: Para resolución de nombres profesionales
+    userList = [] //  NUEVO: Para resolución de nombres profesionales
 }) => {
     const [mentions, setMentions] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -200,3 +200,4 @@ const MentionsPanel = ({
 };
 
 export default MentionsPanel;
+

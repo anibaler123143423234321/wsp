@@ -1,4 +1,4 @@
-.thread-panel-container {
+﻿.thread-panel-container {
   width: 450px;
   height: 100%;
   background-color: #f0f2f5 !important;
@@ -1371,7 +1371,7 @@ html.dark .thread-message-text .mention {
   position: relative;
 }
 
-/* 🔥 Fondo rosado para mensajes donde te mencionan (igual que ChatContent) */
+/*  Fondo rosado para mensajes donde te mencionan (igual que ChatContent) */
 .thread-message.thread-message-mentioned {
   background-color: #fce7f3 !important;
   border-left: 3px solid #be185d;

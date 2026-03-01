@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Utilidad para actualizar el favicon con un badge de contador
  * Muestra el número de mensajes no leídos sobre el ícono de la pestaña
  */
@@ -17,7 +17,7 @@ class FaviconBadge {
     }
 
     init() {
-        // 🔥 FIX: Manejar múltiples links de favicon y asegurar tipo correcto
+        //  FIX: Manejar múltiples links de favicon y asegurar tipo correcto
         const links = document.querySelectorAll("link[rel*='icon']");
         this.originalLinks = [];
 
@@ -45,12 +45,12 @@ class FaviconBadge {
         this.canvas.height = 64; // Aumentado de 32 a 64
         this.ctx = this.canvas.getContext('2d');
 
-        // 🔥 FIX: Para SVGs, renderizar primero en un canvas temporal para convertir a PNG
+        //  FIX: Para SVGs, renderizar primero en un canvas temporal para convertir a PNG
         this._loadSvgAsPng();
     }
 
     /**
-     * 🔥 Convierte el SVG del favicon a PNG para que funcione con canvas.drawImage
+     *  Convierte el SVG del favicon a PNG para que funcione con canvas.drawImage
      */
     _loadSvgAsPng() {
         const tempImg = new Image();
@@ -155,7 +155,7 @@ class FaviconBadge {
         // Actualizar el favicon
         try {
             const dataUrl = this.canvas.toDataURL('image/png');
-            this.faviconLink.type = 'image/png'; // 🔥 IMPORTANTE: Cambiar tipo a PNG
+            this.faviconLink.type = 'image/png'; //  IMPORTANTE: Cambiar tipo a PNG
             this.faviconLink.href = dataUrl;
         } catch (error) {
             console.error('Error al actualizar favicon:', error);
@@ -183,3 +183,4 @@ export const faviconBadge = new FaviconBadge();
 
 // También exportar la clase por si se necesita crear múltiples instancias
 export default FaviconBadge;
+

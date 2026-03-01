@@ -1,4 +1,4 @@
-import useEnterToSend from "../../hooks/useEnterToSend";
+﻿import useEnterToSend from "../../hooks/useEnterToSend";
 import './ChatInput.css';
 
 
@@ -116,7 +116,7 @@ const ChatInput = ({
     mentionSuggestions = [],
     onMentionSelect,
     isGroup = false,
-    userList = [], // 🔥 NUEVO: Para resolución de nombres profesionales
+    userList = [], //  NUEVO: Para resolución de nombres profesionales
 }) => {
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [isRecordingLocal, setIsRecordingLocal] = useState(false);
@@ -419,3 +419,4 @@ const ChatInput = ({
 };
 
 export default ChatInput;
+

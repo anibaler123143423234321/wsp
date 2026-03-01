@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+﻿import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   FaTimes,
   FaPaperPlane,
@@ -186,13 +186,13 @@ const ThreadPanel = ({
   assignedConversations = [],
   user,
   onBackToThreadsList, //  NUEVO: Callback para volver a la lista de hilos
-  onUpdateParentMessage, // 🔥 NUEVO: Callback para actualizar contador del mensaje padre
-  selectedAttachment = null, // 🔥 NUEVO: Adjunto seleccionado para filtrar el hilo
-  onSelectAttachment = null, // 🔥 NUEVO: Callback para cambiar a hilo de adjunto específico
+  onUpdateParentMessage, //  NUEVO: Callback para actualizar contador del mensaje padre
+  selectedAttachment = null, //  NUEVO: Adjunto seleccionado para filtrar el hilo
+  onSelectAttachment = null, //  NUEVO: Callback para cambiar a hilo de adjunto específico
 }) => {
   const { getUserColor } = useUserNameColor();
 
-  // 🔥 NUEVO: Identidad estandarizada (nombre completo) para ser consistente con ChatPage.jsx
+  //  NUEVO: Identidad estandarizada (nombre completo) para ser consistente con ChatPage.jsx
   const currentUserFullName = useMemo(() => {
     if (!user) return currentUsername;
     const full = `${user.nombre || ""} ${user.apellido || ""}`.trim();
@@ -231,7 +231,7 @@ const ThreadPanel = ({
   const mentionDropdownRef = useRef(null);
   const messageMenuRef = useRef(null); //  NUEVO: Ref para menú de opciones
   const reactionUsersTimeoutRef = useRef(null); // Para delay del popover de reacciones
-  const searchedIdentifiersRef = useRef(new Set()); // 🔥 FIX API LOOP
+  const searchedIdentifiersRef = useRef(new Set()); //  FIX API LOOP
   const reactionPickerRef = useRef(null); //  NUEVO: Ref para picker de reacciones
 
   //  NUEVOS ESTADOS - Menú de opciones y reenvío
@@ -696,7 +696,7 @@ const ThreadPanel = ({
 
     if (toResolve.length === 0) return;
 
-    // 🔥 FIX: Marcar como buscado SINCRÓNICAMENTE
+    //  FIX: Marcar como buscado SINCRÓNICAMENTE
     toResolve.forEach(id => {
       const normId = normalizeMentionValue(id);
       searchedIdentifiersRef.current.add(normId);
@@ -970,7 +970,7 @@ const ThreadPanel = ({
     prevThreadMessagesLengthRef.current = threadMessages.length;
   }, [threadMessages]);
 
-  // 🔥 NUEVO: Sincronizar contador local cuando estamos en vista de adjunto
+  //  NUEVO: Sincronizar contador local cuando estamos en vista de adjunto
   useEffect(() => {
     if (selectedAttachment) {
       setCurrentThreadCount(threadMessages.length);
@@ -1049,7 +1049,7 @@ const ThreadPanel = ({
 
       // Asegurar comparación laxa por si uno es string y otro number
       if (String(newMessage.threadId) === String(message?.id)) {
-        // 🔥 FILTRO: Si estamos viendo un adjunto específico, IGNORAR mensajes que no sean para este adjunto
+        //  FILTRO: Si estamos viendo un adjunto específico, IGNORAR mensajes que no sean para este adjunto
         if (selectedAttachment && String(newMessage.replyToAttachmentId) !== String(selectedAttachment.id)) {
           console.log('🔇 ThreadPanel: Ignorando mensaje de otro contexto de adjunto', {
             msgAttachmentId: newMessage.replyToAttachmentId,
@@ -1058,7 +1058,7 @@ const ThreadPanel = ({
           return;
         }
 
-        // 🔥 FILTRO INVERSO: Si estamos en hilo GENERAL, ¿queremos ver respuestas a adjuntos?
+        //  FILTRO INVERSO: Si estamos en hilo GENERAL, ¿queremos ver respuestas a adjuntos?
         // Si el usuario dijo "se mezcló", probablemente NO quiere ver respuestas a adjuntos en el general.
         // DESCOMENTAR SI SE REQUIERE:
         /*
@@ -1102,7 +1102,7 @@ const ThreadPanel = ({
     const handleThreadCountUpdated = (data) => {
       console.log('🔢 ThreadPanel evento threadCountUpdated:', data);
 
-      // 🔥 FIX: Ignorar eventos sin threadCount (backend emite 2 veces)
+      //  FIX: Ignorar eventos sin threadCount (backend emite 2 veces)
       if (typeof data.threadCount !== 'number') {
         console.log('🚫 ThreadPanel: ignorando evento sin threadCount');
         return;
@@ -1111,7 +1111,7 @@ const ThreadPanel = ({
       if (String(data.messageId) === String(message?.id)) {
         console.log(`🔢 ThreadPanel: procesando actualización para hilo ${data.messageId}, threadCount=${data.threadCount}`);
 
-        // 🔥 FIX: Si estamos viendo un adjunto específico, NO actualizar el contador con el global
+        //  FIX: Si estamos viendo un adjunto específico, NO actualizar el contador con el global
         // El contador local se actualizará basado en los mensajes filtrados recibidos via socket
         if (!selectedAttachment) {
           setCurrentThreadCount(data.threadCount);
@@ -1172,7 +1172,7 @@ const ThreadPanel = ({
       ));
     };
 
-    // 🔥 NUEVO: Handler para edición de mensajes en el hilo
+    //  NUEVO: Handler para edición de mensajes en el hilo
     const handleMessageEdited = (data) => {
       console.log('✏️ ThreadPanel evento messageEdited:', data);
       setThreadMessages((prev) =>
@@ -1194,7 +1194,7 @@ const ThreadPanel = ({
       );
     };
 
-    // 🔥 NUEVO: Handler para eliminación de mensajes en el hilo
+    //  NUEVO: Handler para eliminación de mensajes en el hilo
     const handleMessageDeleted = (data) => {
       console.log('🗑️ ThreadPanel evento messageDeleted:', data);
       setThreadMessages((prev) =>
@@ -1235,7 +1235,7 @@ const ThreadPanel = ({
   }, [socket, message?.id, currentUsername]);
 
 
-  // 🔥 Estado para mensajes del hilo
+  //  Estado para mensajes del hilo
   const [totalThreadMessages, setTotalThreadMessages] = useState(0);
 
   const loadThreadMessages = useCallback(async () => {
@@ -1247,13 +1247,13 @@ const ThreadPanel = ({
     }
     setLoading(true);
     try {
-      // 🔥 Carga hasta 100 mensajes del hilo, opcionalmente filtrado por adjunto
+      //  Carga hasta 100 mensajes del hilo, opcionalmente filtrado por adjunto
       const response = await apiService.getThreadMessages(
         threadId,
         100,
         0,
         'DESC',
-        selectedAttachment?.id // 🔥 Pasar ID de adjunto
+        selectedAttachment?.id //  Pasar ID de adjunto
       );
       const messages = response.data || response;
       const total = response.total ?? messages.length;
@@ -1266,7 +1266,7 @@ const ThreadPanel = ({
     } finally {
       setLoading(false);
     }
-  }, [message?.id, selectedAttachment?.id]); // 🔥 FIX: Incluir selectedAttachment en dependencias
+  }, [message?.id, selectedAttachment?.id]); //  FIX: Incluir selectedAttachment en dependencias
 
   // useEffect para cargar mensajes cuando se abre el hilo
   useEffect(() => {
@@ -1280,7 +1280,7 @@ const ThreadPanel = ({
       prevThreadMessagesLengthRef.current = 0; //  Resetear ref de longitud
       loadThreadMessages();
     }
-  }, [message?.id, selectedAttachment?.id, loadThreadMessages]); // 🔥 FIX: Incluir loadThreadMessages
+  }, [message?.id, selectedAttachment?.id, loadThreadMessages]); //  FIX: Incluir loadThreadMessages
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -1515,7 +1515,7 @@ const ThreadPanel = ({
             }
             return "Archivo adjunto";
           })(),
-          replyToAttachmentId: currentReplyingTo.attachment?.id || (selectedAttachment?.id || null) // 🔥 NUEVO
+          replyToAttachmentId: currentReplyingTo.attachment?.id || (selectedAttachment?.id || null) //  NUEVO
         };
       })() : (selectedAttachment ? {
         // Si no hay replyingTo explícito pero estamos en un hilo de adjunto,
@@ -1539,7 +1539,7 @@ const ThreadPanel = ({
 
       const baseMessageData = {
         threadId: resolvedThreadId,
-        from: currentUsername, // 🔥 FIX: Usar username (DNI) para que la BD guarde el identificador correcto
+        from: currentUsername, //  FIX: Usar username (DNI) para que la BD guarde el identificador correcto
         to: toValue,
         isGroup: isGroupActual,
         roomCode: roomCodeValue,
@@ -1552,7 +1552,7 @@ const ThreadPanel = ({
         toValue,
         roomCodeValue,
         originalMessageId: message.id,
-        replyToAttachmentId: baseMessageData.replyToAttachmentId // 🔥 LOG CRÍTICO
+        replyToAttachmentId: baseMessageData.replyToAttachmentId //  LOG CRÍTICO
       });
 
       if (!resolvedThreadId || isNaN(resolvedThreadId)) {
@@ -1565,7 +1565,7 @@ const ThreadPanel = ({
         return;
       }
 
-      // 🔥 REFACTORED: Subir TODOS los archivos primero, luego enviar UN solo mensaje con attachments
+      //  REFACTORED: Subir TODOS los archivos primero, luego enviar UN solo mensaje con attachments
       if (currentMediaFiles.length > 0) {
         // 1. Subir todos los archivos en paralelo
         const uploadPromises = currentMediaFiles.map(file => apiService.uploadFile(file, "chat"));
@@ -1651,7 +1651,7 @@ const ThreadPanel = ({
         mediaData: uploadResult.fileUrl,
         fileName: uploadResult.fileName,
         fileSize: uploadResult.fileSize,
-        replyToAttachmentId: selectedAttachment?.id || null // 🔥 NUEVO
+        replyToAttachmentId: selectedAttachment?.id || null //  NUEVO
       };
 
       console.log('🎙️ ThreadPanel preparando mensaje de voz:', {
@@ -1993,7 +1993,7 @@ const ThreadPanel = ({
           )
         );
 
-        // 🔥 NUEVO: Emitir evento de socket para sincronizar en tiempo real
+        //  NUEVO: Emitir evento de socket para sincronizar en tiempo real
         if (socket && socket.connected) {
           socket.emit("editMessage", {
             messageId: editingMessageId,
@@ -2501,7 +2501,7 @@ const ThreadPanel = ({
         ) : (
           <>
             {groupThreadMessagesByDate(
-              // 🔥 FILTRO DE DISCUSIÓN:
+              //  FILTRO DE DISCUSIÓN:
               // Si NO hay adjunto seleccionado (Hilo General), ocultar mensajes que pertenecen a un adjunto específico.
               // Si SÍ hay adjunto, threadMessages ya viene filtrado por el backend/socket.
               !selectedAttachment
@@ -3386,7 +3386,7 @@ const ThreadPanel = ({
       </div>
 
       <div className="thread-input-container">
-        {/* 🔥 NUEVO: Bloqueo de entrada si el ID es temporal */}
+        {/*  NUEVO: Bloqueo de entrada si el ID es temporal */}
         {isTemporaryId ? (
           <div style={{
             padding: '20px',
@@ -3616,3 +3616,4 @@ const ThreadPanel = ({
 
 
 export default ThreadPanel;
+

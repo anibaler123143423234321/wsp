@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+﻿import { useRef, useEffect } from "react";
 import io from "socket.io-client";
 import apiService from "../apiService"; // Asegúrate de que la ruta sea correcta
 
@@ -85,11 +85,11 @@ export const useSocket = (isAuthenticated, username, user) => {
 
           //  OPTIMIZADO: Solo enviamos datos del usuario.
           // Ya NO enviamos la lista gigante de conversaciones.
-          // 🔥 FIX: Enviar user.username (DNI) como identificador principal
+          //  FIX: Enviar user.username (DNI) como identificador principal
           socket.current.emit("register", {
             username: user.username,
             userData: {
-              // id: user.id, // 🔥 REMOVIDO: Evitar usar ID de CRM irrelevante
+              // id: user.id, //  REMOVIDO: Evitar usar ID de CRM irrelevante
               username: user.username,
               role: user.role || "USER",
               nombre: user.nombre,
@@ -118,11 +118,11 @@ export const useSocket = (isAuthenticated, username, user) => {
           isConnecting.current = false;
 
           // Re-registrar usuario de forma ligera
-          // 🔥 FIX: Enviar user.username (DNI) como identificador principal
+          //  FIX: Enviar user.username (DNI) como identificador principal
           socket.current.emit("register", {
             username: user.username,
             userData: {
-              // id: user.id, // 🔥 REMOVIDO: Evitar usar ID de CRM irrelevante
+              // id: user.id, //  REMOVIDO: Evitar usar ID de CRM irrelevante
               username: user.username,
               role: user.role || "USER",
               nombre: user.nombre,

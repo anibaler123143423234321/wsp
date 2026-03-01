@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+﻿import { useState, useRef, useCallback, useEffect } from "react";
 import whatsappSoundUrl from '../assets/sonidos/whatsapp_pc.mp3';
 import mentionSoundUrl from '../assets/sonidos/etiqueta.mp3';
 
@@ -101,7 +101,7 @@ export const useMessages = () => {
     const label = isMention ? 'etiqueta.mp3' : 'whatsapp_pc.mp3';
     console.log('🔊 playMessageSound llamado:', { soundsEnabled, isMention });
 
-    // 🔥 Intentar Web Audio API primero (más confiable)
+    //  Intentar Web Audio API primero (más confiable)
     if (_audioReady) {
       const buffer = isMention ? _mentionBuffer : _whatsappBuffer;
       if (buffer) {
@@ -280,7 +280,7 @@ export const useMessages = () => {
     isRecording,
     setIsRecording,
     messageSound,
-    mentionSound, // 🔥 NUEVO: Exportar ref del sonido de menciones
+    mentionSound, //  NUEVO: Exportar ref del sonido de menciones
     playMessageSound,
     ringtoneSound, //  Exportar ref
     playRingtone,  //  Exportar función play
@@ -293,3 +293,4 @@ export const useMessages = () => {
     clearInput,
   };
 };
+

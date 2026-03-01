@@ -1,4 +1,4 @@
-// 🔇 Silenciar logs de Workbox en desarrollo/producción
+﻿// 🔇 Silenciar logs de Workbox en desarrollo/producción
 self.__WB_DISABLE_DEV_LOGS = true;
 
 // Importar Workbox (necesario si quieres mantener precache, si no se puede hacer manual)
@@ -12,7 +12,7 @@ clientsClaim();
 precacheAndRoute(self.__WB_MANIFEST);
 
 // ---------------------------------------------------------------------------
-// 🔥 INTERCEPTOR MÁGICO PARA IMÁGENES PROTEGIDAS DE BACKENDJAVA (CHICLAYO)
+//  INTERCEPTOR MÁGICO PARA IMÁGENES PROTEGIDAS DE BACKENDJAVA (CHICLAYO)
 // ---------------------------------------------------------------------------
 // El usuario requiere que CUALQUIER petición a "apisozarusac.../api/files" lleve token.
 // Como las etiquetas <img> no envían headers, el Service Worker debe interceptarlo.
@@ -24,7 +24,7 @@ self.addEventListener('fetch', (event) => {
 
     // Solo interceptar si es una petición a la API de archivos protegidos
     if (API_DOMAIN_PATTERN.test(url)) {
-        // console.log('🔥 [SW] Interceptando imagen protegida:', url);
+        // console.log(' [SW] Interceptando imagen protegida:', url);
 
         event.respondWith(
             (async () => {
@@ -85,3 +85,4 @@ self.addEventListener('message', (event) => {
         console.log('✅ [SW] Token recibido y guardado en memoria.');
     }
 });
+

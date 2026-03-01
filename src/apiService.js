@@ -1,4 +1,4 @@
-// Servicio para conectar con la API (múltiples backends según sede)
+﻿// Servicio para conectar con la API (múltiples backends según sede)
 // URLs para CHICLAYO / PIURA
 // URLs para CHICLAYO / PIURA
 const API_BASE_URL_CHICLAYO = import.meta.env.VITE_API_BASE_URL_CHICLAYO;
@@ -15,7 +15,7 @@ class ApiService {
     this.baseChatUrl = API_BASECHAT_URL_CHICLAYO;
     this.currentSede = 'CHICLAYO_PIURA';
 
-    // 🔥 ENVIAR TOKEN AL SERVICE WORKER AL INICIAR
+    //  ENVIAR TOKEN AL SERVICE WORKER AL INICIAR
     this.syncTokenToSW();
   }
 
@@ -95,7 +95,7 @@ class ApiService {
 
       let response = await doUpload(token);
 
-      // 🔥 Manejo de errores 400, 401 y 403 (similar a fetchWithAuth)
+      //  Manejo de errores 400, 401 y 403 (similar a fetchWithAuth)
       if (response.status === 401 || response.status === 403 || response.status === 400) {
         let shouldRetry = false;
 
@@ -198,8 +198,8 @@ class ApiService {
 
       // Estructura de datos que devuelve tu API
       const user = {
-        // id: data.data.userId, // 🔥 REMOVIDO: Este ID es del CRM y causaba discrepancias. El backend de chat resuelve el ID real vía DNI.
-        username: data.data.username || loginCredentials.username, // 🔥 Garantizar DNI
+        // id: data.data.userId, //  REMOVIDO: Este ID es del CRM y causaba discrepancias. El backend de chat resuelve el ID real vía DNI.
+        username: data.data.username || loginCredentials.username, //  Garantizar DNI
         nombre: data.data.nombre,
         apellido: data.data.apellido,
         role: data.data.role,
@@ -218,7 +218,7 @@ class ApiService {
       localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("selectedSede", sede);
 
-      this.syncTokenToSW(); // 🔥 Actualizar SW
+      this.syncTokenToSW(); //  Actualizar SW
 
       return {
         success: true,
@@ -267,7 +267,7 @@ class ApiService {
       this.setSede(savedSede);
     }
 
-    // 🔥 Limpiar token en SW
+    //  Limpiar token en SW
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({ type: 'SET_TOKEN', token: null });
     }
@@ -338,8 +338,8 @@ class ApiService {
           }
 
           // ✅ NUEVO: Llamar a /renew-token como fallback
-          console.log(`🔄 Intentando renew-token para usuario:`, currentUser.username); // 🔥 DEBUG
-          console.log(`📡 URL: ${this.baseUrl}api/authentication/renew-token`); // 🔥 DEBUG
+          console.log(`🔄 Intentando renew-token para usuario:`, currentUser.username); //  DEBUG
+          console.log(`📡 URL: ${this.baseUrl}api/authentication/renew-token`); //  DEBUG
 
           refreshResp = await fetch(
             `${this.baseUrl}api/authentication/renew-token`,
@@ -430,7 +430,7 @@ class ApiService {
             localStorage.setItem("user", JSON.stringify(updatedUser));
           }
 
-          this.syncTokenToSW(); // 🔥 Actualizar SW con nuevo token
+          this.syncTokenToSW(); //  Actualizar SW con nuevo token
 
           return newToken;
         } else {
@@ -476,7 +476,7 @@ class ApiService {
 
     let response = await doRequest(headers);
 
-    // 🔥 Manejo de errores 400, 401 y 403
+    //  Manejo de errores 400, 401 y 403
     if (response.status === 400 || response.status === 401 || response.status === 403) {
       let shouldRetry = false;
 
@@ -669,7 +669,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Método para agregar usuario directamente a sala (bypassing pending) - Para admins
+  //  NUEVO: Método para agregar usuario directamente a sala (bypassing pending) - Para admins
   async addUserDirectlyToRoom(roomCode, username) {
     try {
       const response = await this.fetchChatApi(
@@ -760,7 +760,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener TODAS las salas paginadas (para el modal de gestión)
+  //  NUEVO: Obtener TODAS las salas paginadas (para el modal de gestión)
   async getAllRoomsPaginated(page = 1, limit = 10, search = '', status = '', capacity = '') {
     try {
       const params = new URLSearchParams({
@@ -829,7 +829,7 @@ class ApiService {
         params.append('role', role); // 👈 Enviar el rol
       }
 
-      // 🔥 FIX: Enviar también el DNI (username) para el filtrado exacto en el backend
+      //  FIX: Enviar también el DNI (username) para el filtrado exacto en el backend
       const username = user?.username || user?.email;
       if (username) {
         params.append('username', username);
@@ -877,7 +877,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Vaciar todos los mensajes de una sala (grupos/favoritos) - Solo SUPERADMIN
+  //  NUEVO: Vaciar todos los mensajes de una sala (grupos/favoritos) - Solo SUPERADMIN
   async clearAllMessagesInRoom(roomCode, deletedBy) {
     try {
       const response = await this.fetchChatApi(
@@ -900,7 +900,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Vaciar todos los mensajes de una conversación directa - Solo SUPERADMIN
+  //  NUEVO: Vaciar todos los mensajes de una conversación directa - Solo SUPERADMIN
   async clearAllMessagesInConversation(from, to, deletedBy) {
     try {
       const response = await this.fetchChatApi(
@@ -1139,12 +1139,12 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener mensajes entre usuarios ordenados por ID (para evitar problemas con sentAt corrupto)
+  //  NUEVO: Obtener mensajes entre usuarios ordenados por ID (para evitar problemas con sentAt corrupto)
   async getUserMessagesOrderedById(from, to, limit = 10, offset = 0, isGroup = false, roomCode = null) {
     try {
       let url = `${this.baseChatUrl}api/messages/user/${from}/${to}/by-id?limit=${limit}&offset=${offset}`;
 
-      // 🔥 Agregar parámetros de filtro si existen
+      //  Agregar parámetros de filtro si existen
       if (isGroup !== undefined) url += `&isGroup=${isGroup}`;
       if (roomCode) url += `&roomCode=${roomCode}`;
 
@@ -1205,12 +1205,12 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener mensajes de una sala ordenados por ID (para evitar problemas con sentAt corrupto)
+  //  NUEVO: Obtener mensajes de una sala ordenados por ID (para evitar problemas con sentAt corrupto)
   async getRoomMessagesOrderedById(roomCode, limit = 10, offset = 0, isGroup = true, username = null) {
     try {
       let url = `${this.baseChatUrl}api/messages/room/${roomCode}/by-id?limit=${limit}&offset=${offset}`;
 
-      // 🔥 Agregar parámetros de filtro
+      //  Agregar parámetros de filtro
       if (isGroup !== undefined) url += `&isGroup=${isGroup}`;
       if (username) url += `&username=${encodeURIComponent(username)}`;
 
@@ -1242,7 +1242,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener mensajes alrededor de un messageId específico (para jump-to-message en grupos)
+  //  NUEVO: Obtener mensajes alrededor de un messageId específico (para jump-to-message en grupos)
   async getMessagesAroundId(roomCode, messageId, limit = 30) {
     try {
       const response = await fetch(
@@ -1269,7 +1269,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener mensajes alrededor de un messageId para chats individuales
+  //  NUEVO: Obtener mensajes alrededor de un messageId para chats individuales
   async getUserMessagesAroundId(from, to, messageId, limit = 30) {
     try {
       const response = await this.fetchChatApi(
@@ -1293,7 +1293,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener mensajes alrededor de un messageId genérico (para búsqueda WhatsApp)
+  //  NUEVO: Obtener mensajes alrededor de un messageId genérico (para búsqueda WhatsApp)
   // Este endpoint detecta automáticamente si es grupo o chat directo
   async getMessagesAroundById(messageId, before = 25, after = 25) {
     try {
@@ -1443,7 +1443,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener lista de quiénes leyeron un mensaje (lazy loading)
+  //  NUEVO: Obtener lista de quiénes leyeron un mensaje (lazy loading)
   async getMessageReadBy(messageId) {
     try {
       const response = await this.fetchChatApi(
@@ -1465,7 +1465,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener un mensaje específico por ID (para mensajes fijados antiguos)
+  //  NUEVO: Obtener un mensaje específico por ID (para mensajes fijados antiguos)
   async getMessageById(messageId, roomCode = null) {
     try {
       let url = `${this.baseChatUrl}api/messages/${messageId}`;
@@ -1506,7 +1506,7 @@ class ApiService {
         message: newText
       };
 
-      // 🔥 Agregar campos multimedia si se proporcionan
+      //  Agregar campos multimedia si se proporcionan
       if (mediaType !== null) body.mediaType = mediaType;
       if (mediaData !== null) body.mediaData = mediaData;
       if (fileName !== null) body.fileName = fileName;
@@ -1655,7 +1655,7 @@ class ApiService {
         ? `${user.nombre} ${user.apellido}`
         : (user?.username || user?.email);
 
-      // 🔥 IMPORTANTE: Enviar el rol del usuario para que el backend muestre todas las conversaciones a admins
+      //  IMPORTANTE: Enviar el rol del usuario para que el backend muestre todas las conversaciones a admins
       const userRole = user?.role || '';
 
       // ✅ Pasar username, role, search, page y limit como query params
@@ -1689,7 +1689,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener conversaciones asignadas con paginación
+  //  NUEVO: Obtener conversaciones asignadas con paginación
   async getAssignedConversationsPaginated(page = 1, limit = 10, search = '') {
     try {
       const user = this.getCurrentUser();
@@ -1706,7 +1706,7 @@ class ApiService {
       // Construir URL con parámetros
       let url = `${this.baseChatUrl}api/temporary-conversations/assigned/list?username=${encodeURIComponent(searchId)}&page=${page}&limit=${limit}`;
 
-      // 🔥 NUEVO: Agregar parámetro de búsqueda si existe
+      //  NUEVO: Agregar parámetro de búsqueda si existe
       if (search && search.trim()) {
         url += `&search=${encodeURIComponent(search.trim())}`;
       }
@@ -1730,7 +1730,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener salas del usuario con paginación
+  //  NUEVO: Obtener salas del usuario con paginación
   async getUserRoomsPaginated(page = 1, limit = 10, search = '') {
     try {
       const user = this.getCurrentUser();
@@ -1743,7 +1743,7 @@ class ApiService {
       // Construir URL con parámetros
       let url = `${this.baseChatUrl}api/temporary-rooms/user/list?username=${encodeURIComponent(identifier)}&page=${page}&limit=${limit}`;
 
-      // 🔥 NUEVO: Agregar parámetro de búsqueda si existe
+      //  NUEVO: Agregar parámetro de búsqueda si existe
       if (search && search.trim()) {
         url += `&search=${encodeURIComponent(search.trim())}`;
       }
@@ -1767,7 +1767,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener conversaciones de monitoreo (de otros usuarios) con paginación
+  //  NUEVO: Obtener conversaciones de monitoreo (de otros usuarios) con paginación
   async getMonitoringConversations(page = 1, limit = 20) {
     try {
       // Obtener el usuario actual
@@ -1777,7 +1777,7 @@ class ApiService {
         return { data: [], total: 0, page, limit, totalPages: 0 };
       }
 
-      // 🔥 FIX: Usar username (DNI) exclusivamente para evitar duplicados
+      //  FIX: Usar username (DNI) exclusivamente para evitar duplicados
       const identifier = user.username || user.email;
 
       // ✅ Pasar username como query param para filtrar correctamente
@@ -1987,7 +1987,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Búsqueda tipo WhatsApp - buscar en todos los mensajes del usuario
+  //  NUEVO: Búsqueda tipo WhatsApp - buscar en todos los mensajes del usuario
   async searchAllMessages(username, searchTerm, limit = 15, offset = 0) {
     try {
       if (!searchTerm || searchTerm.trim().length === 0) {
@@ -2145,7 +2145,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener conteos de mensajes no leídos para todas las salas del usuario
+  //  NUEVO: Obtener conteos de mensajes no leídos para todas las salas del usuario
   async getUnreadCounts() {
     try {
       const token = localStorage.getItem("token");
@@ -2155,7 +2155,7 @@ class ApiService {
         throw new Error("No hay token de autenticación o usuario");
       }
 
-      // 🔥 FIX: Enviar DNI (username) en lugar de nombre completo para conteo de no leídos
+      //  FIX: Enviar DNI (username) en lugar de nombre completo para conteo de no leídos
       const username = user.username || user.email;
 
       const response = await fetch(
@@ -2214,7 +2214,7 @@ class ApiService {
   }
 
 
-  // 🔥 NUEVO: Obtener mensajes de sala ANTES de un ID específico
+  //  NUEVO: Obtener mensajes de sala ANTES de un ID específico
   async getRoomMessagesBeforeId(roomCode, beforeId, limit = 20) {
     try {
       if (!roomCode || !beforeId) return { data: [] };
@@ -2232,7 +2232,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener mensajes privados ANTES de un ID específico
+  //  NUEVO: Obtener mensajes privados ANTES de un ID específico
   async getUserMessagesBeforeId(username, to, beforeId, limit = 20) {
     try {
       if (!username || !to || !beforeId) return { data: [] };
@@ -2253,7 +2253,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener mensajes de sala DESPUÉS de un ID específico (Forward Pagination)
+  //  NUEVO: Obtener mensajes de sala DESPUÉS de un ID específico (Forward Pagination)
   async getRoomMessagesAfterId(roomCode, afterId, limit = 20) {
     try {
       if (!roomCode || !afterId) return { data: [] };
@@ -2274,7 +2274,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener mensajes privados DESPUÉS de un ID específico (Forward Pagination)
+  //  NUEVO: Obtener mensajes privados DESPUÉS de un ID específico (Forward Pagination)
   async getUserMessagesAfterId(username, to, afterId, limit = 20) {
     try {
       if (!username || !to || !afterId) return { data: [] };
@@ -2300,7 +2300,7 @@ class ApiService {
   // Obtener lista de usuarios del backend Java con paginación
   async getUsersFromBackend(page = 0, size = 10, sede = null) {
     try {
-      // 🔥 Usar la sede especificada o la actual
+      //  Usar la sede especificada o la actual
       const baseUrl = sede ? this.getBaseUrlForSede(sede) : this.baseUrl;
 
       console.log(`📋 Obteniendo usuarios de ${baseUrl}api/user/listar?page=${page}&size=${size}`);
@@ -2350,7 +2350,7 @@ class ApiService {
         return [];
       }
 
-      // 🔥 Usar la sede especificada o la actual
+      //  Usar la sede especificada o la actual
       const baseUrl = sede ? this.getBaseUrlForSede(sede) : this.baseUrl;
 
       // ✅ Usar fetchWithAuth para renovación automática de token
@@ -2446,7 +2446,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener grupos favoritos con datos completos (para sección FAVORITOS)
+  //  NUEVO: Obtener grupos favoritos con datos completos (para sección FAVORITOS)
   async getUserFavoriteRoomsWithData(username) {
     try {
       const response = await this.fetchChatApi(
@@ -2579,7 +2579,7 @@ class ApiService {
       return false;
     }
   }
-  // 🔥 NUEVO: Obtener conteo de mensajes no leídos para un usuario en una sala
+  //  NUEVO: Obtener conteo de mensajes no leídos para un usuario en una sala
   async getUnreadCountForUserInRoom(roomCode, username) {
     try {
       const response = await fetch(
@@ -2607,7 +2607,7 @@ class ApiService {
     }
   }
 
-  // 🔥 NUEVO: Obtener conteo de mensajes no leídos para múltiples salas
+  //  NUEVO: Obtener conteo de mensajes no leídos para múltiples salas
   async getUnreadCountsForUserInRooms(roomCodes, username) {
     try {
       const response = await fetch(
@@ -2799,7 +2799,7 @@ class ApiService {
       throw error;
     }
   }
-  // 🔥 NUEVO: Marcar hilo como leído
+  //  NUEVO: Marcar hilo como leído
   async markThreadAsRead(threadId, username) {
     try {
       const response = await this.fetchChatApi(
@@ -2821,7 +2821,7 @@ class ApiService {
   }
 
 
-  // 🔥 NUEVO: Método para obtener archivos protegidos (imágenes, audios) usando el token
+  //  NUEVO: Método para obtener archivos protegidos (imágenes, audios) usando el token
   async getProtectedFile(url) {
     try {
       if (!url) return null;
@@ -2869,3 +2869,4 @@ class ApiService {
 }
 
 export default new ApiService();
+

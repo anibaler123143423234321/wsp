@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+﻿import { useCallback, useEffect, useRef } from 'react';
 import apiService from '../apiService';
 import { showSuccessAlert, showErrorAlert } from '../sweetalert2';
 
@@ -148,7 +148,7 @@ export const useConversations = (
         try {
             const counts = await apiService.getUnreadCounts();
             setUnreadMessages(counts || {});
-            setUnreadCountsLoaded(true); // 🔥 Marcar que los contadores ya están cargados
+            setUnreadCountsLoaded(true); //  Marcar que los contadores ya están cargados
         } catch (error) {
             console.error('❌ Error al cargar conteos de mensajes no leídos:', error);
             setUnreadMessages({});
@@ -196,7 +196,7 @@ export const useConversations = (
                                 (msg) => msg.from === participant1
                             );
                             if (unreadFromP1.length > 0) {
-                                // 🔥 FIX: El primer parámetro es el LECTOR (p2), el segundo el EMISOR (p1)
+                                //  FIX: El primer parámetro es el LECTOR (p2), el segundo el EMISOR (p1)
                                 await apiService.markConversationAsRead(participant2, participant1);
 
                                 if (socket && socket.connected) {
@@ -212,7 +212,7 @@ export const useConversations = (
                                 (msg) => msg.from === participant2
                             );
                             if (unreadFromP2.length > 0) {
-                                // 🔥 FIX: El primer parámetro es el LECTOR (p1), el segundo el EMISOR (p2)
+                                //  FIX: El primer parámetro es el LECTOR (p1), el segundo el EMISOR (p2)
                                 await apiService.markConversationAsRead(participant1, participant2);
 
                                 if (socket && socket.connected) {
@@ -468,7 +468,7 @@ export const useConversations = (
         [loadAssignedConversations]
     );
 
-    // 🔥 FIX: Usar ref para evitar llamadas repetidas
+    //  FIX: Usar ref para evitar llamadas repetidas
     const hasLoadedInitialConversations = useRef(false);
 
     useEffect(() => {
@@ -496,3 +496,4 @@ export const useConversations = (
         handleLoadAssignedConversations,
     };
 };
+

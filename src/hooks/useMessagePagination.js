@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+﻿import { useState, useCallback, useRef, useEffect } from "react";
 import apiService from "../apiService";
 
 export const useMessagePagination = (roomCode, username, to = null, isGroup = false, socket = null, user = null) => {
@@ -9,7 +9,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
 
   const [error, setError] = useState(null); //  Estado de error
 
-  // 🔥 NUEVO: Resolver nombre completo para detección robusta de "isSelf"
+  //  NUEVO: Resolver nombre completo para detección robusta de "isSelf"
   const currentUserFullName = user?.nombre && user?.apellido
     ? `${user.nombre} ${user.apellido}`
     : (user?.fullName || username);
@@ -21,7 +21,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
       fromLower === (currentUserFullName || '').toLowerCase().trim();
   };
 
-  // 🔥 NUEVO: Estados para paginación bidireccional (búsqueda)
+  //  NUEVO: Estados para paginación bidireccional (búsqueda)
   const [hasMoreBefore, setHasMoreBefore] = useState(false);
   const [hasMoreAfter, setHasMoreAfter] = useState(false);
   const [oldestLoadedId, setOldestLoadedId] = useState(null);
@@ -58,7 +58,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
           username //  Pasar username para validación
         );
       } else {
-        //  🔥 FIX: Normalizar orden alfabético de nombres para que ambos usuarios usen la misma URL
+        //   FIX: Normalizar orden alfabético de nombres para que ambos usuarios usen la misma URL
         const [user1, user2] = [username, to].sort((a, b) => a.localeCompare(b));
 
         //  Cargar mensajes entre usuarios ordenados por ID (para evitar problemas con sentAt corrupto)
@@ -140,7 +140,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
           unreadThreadCount: msg.unreadThreadCount || 0,
           lastReplyFrom: msg.lastReplyFrom || null,
           lastReplyText: msg.lastReplyText || null, //  NUEVO: Texto del último mensaje del hilo
-          // 🔥 NUEVO: Calcular si hay menciones pendientes en el hilo
+          //  NUEVO: Calcular si hay menciones pendientes en el hilo
           hasUnreadThreadMentions: (msg.unreadThreadCount > 0 && msg.lastReplyText)
             ? (() => {
               // Detectar menciones en lastReplyText
@@ -240,7 +240,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
             username // Pasar username para validación
           );
         } else {
-          //  🔥 FIX: Normalizar orden alfabético de nombres para que ambos usuarios usen la misma URL
+          //   FIX: Normalizar orden alfabético de nombres para que ambos usuarios usen la misma URL
           const [user1, user2] = [username, to].sort((a, b) => a.localeCompare(b));
 
           response = await apiService.getUserMessagesOrderedById(
@@ -317,7 +317,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
           unreadThreadCount: msg.unreadThreadCount || 0,
           lastReplyFrom: msg.lastReplyFrom || null,
           lastReplyText: msg.lastReplyText || null,
-          // 🔥 NUEVO: Calcular si hay menciones pendientes en el hilo
+          //  NUEVO: Calcular si hay menciones pendientes en el hilo
           hasUnreadThreadMentions: (msg.unreadThreadCount > 0 && msg.lastReplyText)
             ? (() => {
               const mentionRegex = /@([a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+(?:\s+[a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
@@ -352,7 +352,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
         const existingIds = new Set(prevMessages.map(m => m.id));
         const newMessages = formattedMessages.filter(m => !existingIds.has(m.id));
 
-        // 🔥 Actualizar oldestLoadedId con el ID más antiguo del nuevo lote
+        //  Actualizar oldestLoadedId con el ID más antiguo del nuevo lote
         if (aroundMode && newMessages.length > 0) {
           // Como vienen ordenados cronológicamente (más antiguo al inicio), 
           // el ID más pequeño debería ser el primero O el último dependiendo de cómo lo ordene el backend.
@@ -382,14 +382,14 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     } catch (error) {
       console.error("❌ Error al cargar más mensajes:", error);
     } finally {
-      // 🔥 FIX: Delay para asegurar que React termine de renderizar antes de permitir scroll automático
+      //  FIX: Delay para asegurar que React termine de renderizar antes de permitir scroll automático
       setTimeout(() => {
         setIsLoadingMore(false);
       }, 100);
     }
   }, [roomCode, username, to, isGroup, hasMoreMessages, isLoadingMore, aroundMode, oldestLoadedId]);
 
-  // 🔥 CARGAR MENSAJES NUEVOS (hacia abajo, forward pagination)
+  //  CARGAR MENSAJES NUEVOS (hacia abajo, forward pagination)
   const loadMoreMessagesAfter = useCallback(async () => {
     if (isGroup && !roomCode) return;
     if (!isGroup && !to) return;
@@ -639,7 +639,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     setMessages([]);
     setHasMoreMessages(true);
     currentOffset.current = 0;
-    // 🔥 Resetear modo "around" para permitir carga normal de mensajes
+    //  Resetear modo "around" para permitir carga normal de mensajes
     setAroundMode(false);
     setHasMoreBefore(false);
     setHasMoreAfter(false);
@@ -660,7 +660,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     }
   }, []);
 
-  // 🔥 NUEVO: Cargar mensajes alrededor de un messageId específico (para búsqueda WhatsApp)
+  //  NUEVO: Cargar mensajes alrededor de un messageId específico (para búsqueda WhatsApp)
   const loadMessagesAroundId = useCallback(async (messageId) => {
     if (!messageId) return null;
 
@@ -718,7 +718,7 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
           unreadThreadCount: msg.unreadThreadCount || 0,
           lastReplyFrom: msg.lastReplyFrom || null,
           lastReplyText: msg.lastReplyText || null,
-          // 🔥 NUEVO: Calcular si hay menciones pendientes en el hilo
+          //  NUEVO: Calcular si hay menciones pendientes en el hilo
           hasUnreadThreadMentions: (msg.unreadThreadCount > 0 && msg.lastReplyText)
             ? (() => {
               const mentionRegex = /@([a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+(?:\s+[a-záéíóúñA-ZÁÉÍÓÚÑ0-9]+){0,3})(?=\s|$|[.,!?;:]|\n)/g;
@@ -814,3 +814,4 @@ export const useMessagePagination = (roomCode, username, to = null, isGroup = fa
     aroundMode,
   };
 };
+

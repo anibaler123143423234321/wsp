@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+﻿import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { FaBars, FaStar, FaRegStar, FaChevronDown, FaChevronRight, FaChevronLeft } from 'react-icons/fa';
 import { MessageSquare, Home, Users } from 'lucide-react';
 import clsx from 'clsx';
@@ -85,7 +85,7 @@ const TabButton = ({ isActive, onClick, label, icon: Icon, notificationCount }) 
   );
 };
 
-// 🔥 Componente simple de header de sección (sin scroll interno)
+//  Componente simple de header de sección (sin scroll interno)
 const SectionHeader = ({ title, icon: Icon, isOpen, onToggle, count, isLoading }) => {
   return (
     <div
@@ -156,8 +156,8 @@ const ConversationList = ({
   to,
   pendingMentions = {},
   pendingThreads = {},
-  favoriteRooms = [], // 🔥 RECIBIR DE PROPS
-  setFavoriteRooms,   // 🔥 RECIBIR DE PROPS
+  favoriteRooms = [], //  RECIBIR DE PROPS
+  setFavoriteRooms,   //  RECIBIR DE PROPS
 }) => {
   const [activeModule, setActiveModule] = useState('chats');
   const [searchTerm, setSearchTerm] = useState('');
@@ -166,35 +166,35 @@ const ConversationList = ({
   const [isSearching, setIsSearching] = useState(false);
   const conversationsListRef = useRef(null);
   const [favoriteRoomCodes, setFavoriteRoomCodes] = useState([]);
-  // const [favoriteRooms, setFavoriteRooms] = useState([]); // 🔥 ELIMINADO: Ahora viene por props
+  // const [favoriteRooms, setFavoriteRooms] = useState([]); //  ELIMINADO: Ahora viene por props
   const [favoriteConversationIds, setFavoriteConversationIds] = useState([]);
   const [userCache, setUserCache] = useState({});
   const [messageSearchResults, setMessageSearchResults] = useState([]);
   const [showFavorites, setShowFavorites] = useState(true);
   const [showGroups, setShowGroups] = useState(true);
   const [showAssigned, setShowAssigned] = useState(true);
-  // 🔥 FIX: Estado para forzar re-render cuando se quita un favorito
+  //  FIX: Estado para forzar re-render cuando se quita un favorito
   const [favoriteToggleTimestamp, setFavoriteToggleTimestamp] = useState(Date.now());
 
-  // 🔥 Estados para controlar "Ver más / Ver menos" en cada sección
+  //  Estados para controlar "Ver más / Ver menos" en cada sección
   const INITIAL_ITEMS_TO_SHOW = 20;
   const [favoritesExpanded, setFavoritesExpanded] = useState(false);
   const [groupsExpanded, setGroupsExpanded] = useState(false);
   const [assignedExpanded, setAssignedExpanded] = useState(false);
 
   const searchTimeoutRef = useRef(null);
-  // 🔥 NUEVO: Estado para filtrar búsqueda por tipo
+  //  NUEVO: Estado para filtrar búsqueda por tipo
   const [searchFilter, setSearchFilter] = useState('select_option'); // 'select_option', 'groups', 'favorites', 'assigned', 'messages'
-  // 🔥 NUEVO: Estado para resaltar chat seleccionado desde búsqueda
+  //  NUEVO: Estado para resaltar chat seleccionado desde búsqueda
   const [highlightedChatId, setHighlightedChatId] = useState(null);
-  // 🔥 NUEVO: Estados para resultados de búsqueda desde la API
+  //  NUEVO: Estados para resultados de búsqueda desde la API
   const [apiSearchResults, setApiSearchResults] = useState({ groups: [], assigned: [] });
   const [isApiSearching, setIsApiSearching] = useState(false);
   const apiSearchTimeoutRef = useRef(null);
-  // 🔥 NUEVO: Estado para el modal de búsqueda
+  //  NUEVO: Estado para el modal de búsqueda
   const [showSearchModal, setShowSearchModal] = useState(false);
 
-  // 🔥 NUEVO: Estados para búsqueda tipo WhatsApp
+  //  NUEVO: Estados para búsqueda tipo WhatsApp
   const [whatsappSearchResults, setWhatsappSearchResults] = useState([]);
   const [whatsappSearchTotal, setWhatsappSearchTotal] = useState(0);
   const [whatsappSearchHasMore, setWhatsappSearchHasMore] = useState(false);
@@ -208,7 +208,7 @@ const ConversationList = ({
   const [sortedAssignedConversations, setSortedAssignedConversations] = useState([]);
   const [sortedRooms, setSortedRooms] = useState([]);
 
-  // 🔥 NUEVO: Lista de favoritos siempre ordenada por actividad más reciente
+  //  NUEVO: Lista de favoritos siempre ordenada por actividad más reciente
   const sortedFavoritesList = useMemo(() => {
     if (!favoriteRooms || !Array.isArray(favoriteRooms)) return [];
     return [...favoriteRooms].sort((a, b) => {
@@ -226,7 +226,7 @@ const ConversationList = ({
   const isAdmin = ['ADMIN', 'JEFEPISO'].includes(user?.role);
   const canViewMonitoring = ['SUPERADMIN', 'PROGRAMADOR'].includes(user?.role);
 
-  // 🔥 FIX: Resolver participante (DNI o nombre completo) a nombre legible para display
+  //  FIX: Resolver participante (DNI o nombre completo) a nombre legible para display
   const resolveParticipantName = useCallback((participantId) => {
     if (!participantId) return 'Usuario';
     const participantLower = participantId.toLowerCase().trim();
@@ -256,7 +256,7 @@ const ConversationList = ({
     return firstValid || 'Usuario';
   }, [resolveParticipantName]);
 
-  // 🔥 FIX: Encontrar el "otro" participante (que no soy yo) en una conversación
+  //  FIX: Encontrar el "otro" participante (que no soy yo) en una conversación
   const findOtherParticipant = useCallback((participants) => {
     if (!participants || participants.length === 0) return null;
     const myUsername = user?.username?.toLowerCase().trim();
@@ -271,7 +271,7 @@ const ConversationList = ({
     return other || participants[0];
   }, [user]);
 
-  // 🔥 Función para manejar búsqueda desde el modal
+  //  Función para manejar búsqueda desde el modal
   const handleSearchFromModal = useCallback(async (term, searchType, selectedResult = null) => {
     console.log(`🔍 Búsqueda desde modal: "${term}" - Tipo: ${searchType}`, selectedResult);
 
@@ -326,7 +326,7 @@ const ConversationList = ({
         }
       }
 
-      // 🔥 Resaltar el chat en la lista y hacer scroll
+      //  Resaltar el chat en la lista y hacer scroll
       if (chatId) {
         setHighlightedChatId(chatId);
 
@@ -400,7 +400,7 @@ const ConversationList = ({
 
       if (searchType === 'message') {
         // Buscar mensajes
-        // 🔥 FIX: Usar searchMessages (DNI) en lugar de searchByUserId (ID CRM irrelevante)
+        //  FIX: Usar searchMessages (DNI) en lugar de searchByUserId (ID CRM irrelevante)
         const messagesResult = await apiService.searchMessages(term);
         setMessageSearchResults(messagesResult || []);
         resultCount = (messagesResult || []).length;
@@ -431,7 +431,7 @@ const ConversationList = ({
     return mentions.some(mention => userNameUpper.includes(mention) || mention.includes(userNameUpper));
   }, [user]);
 
-  // 🔥 NUEVO: Función para verificar si hay menciones pendientes en una sala/conversación
+  //  NUEVO: Función para verificar si hay menciones pendientes en una sala/conversación
   const hasPendingMentions = useCallback((roomCodeOrConvId, lastMessage, roomData) => {
     // Si el chat está actualmente abierto, NO mostrar el punto rojo
     const isCurrentChat = isGroup
@@ -449,7 +449,7 @@ const ConversationList = ({
       return true;
     }
 
-    // 🔥 NUEVO: Verificar menciones en hilos (independiente de unreadCount)
+    //  NUEVO: Verificar menciones en hilos (independiente de unreadCount)
     if (roomData && roomData.hasUnreadThreadMentions) {
       return true;
     }
@@ -477,7 +477,7 @@ const ConversationList = ({
       const newCache = { ...prevCache };
       if (userList && userList.length > 0) {
         userList.forEach(u => {
-          // 🔥 FIX: Robustecer construcción de nombre para caché (permitir nombre o apellido solos)
+          //  FIX: Robustecer construcción de nombre para caché (permitir nombre o apellido solos)
           const fullName = (u.nombre || u.apellido)
             ? `${u.nombre || ''} ${u.apellido || ''}`.trim()
             : u.username;
@@ -495,7 +495,7 @@ const ConversationList = ({
             newCache[key] = userData;
           }
 
-          // 🔥 FIX: Siempre indexar por username (DNI) para búsquedas técnicas
+          //  FIX: Siempre indexar por username (DNI) para búsquedas técnicas
           if (u.username) {
             const dniKey = u.username.toLowerCase().trim();
             newCache[dniKey] = userData;
@@ -519,12 +519,12 @@ const ConversationList = ({
   useEffect(() => {
     let isMounted = true;
     const loadFavorites = async () => {
-      // 🔥 FIX: Usar user.username (DNI) para API de favoritos
+      //  FIX: Usar user.username (DNI) para API de favoritos
       const apiUsername = user?.username;
       if (!apiUsername || !isMounted) return;
 
       try {
-        // 🔥 El endpoint ahora devuelve tanto salas como conversaciones unificadas
+        //  El endpoint ahora devuelve tanto salas como conversaciones unificadas
         const allFavorites = await apiService.getUserFavoriteRoomsWithData(apiUsername);
 
         console.log('🔍 Favoritos recibidos del backend:', allFavorites);
@@ -541,7 +541,7 @@ const ConversationList = ({
         });
 
         if (isMounted) {
-          // 🔥 FIX: Normalizar el tipo basado en roomCode
+          //  FIX: Normalizar el tipo basado en roomCode
           // Si tiene roomCode, es un grupo (room), si no, es una conversación (conv)
           const normalizedFavorites = allFavorites.map(fav => {
             if (fav.roomCode && !fav.type) {
@@ -586,12 +586,12 @@ const ConversationList = ({
     return () => { isMounted = false; };
   }, [user?.id]);
 
-  // 🔥 EFECTOS DE SINCRONIZACIÓN ELIMINADOS
+  //  EFECTOS DE SINCRONIZACIÓN ELIMINADOS
   // Se han unificado en useSocketListeners.js para garantizar el ordenamiento en tiempo real.
 
   const handleToggleFavorite = async (room, e) => {
     e.stopPropagation();
-    // 🔥 FIX: Usar user.username (DNI) para API de favoritos
+    //  FIX: Usar user.username (DNI) para API de favoritos
     const apiUsername = user?.username;
     if (!apiUsername) return;
 
@@ -603,11 +603,11 @@ const ConversationList = ({
       const result = await apiService.toggleRoomFavorite(apiUsername, room.roomCode, room.id);
       console.log('⭐ API result:', result);
 
-      // 🔥 NUEVO: Usar el estado capturado para decidir, no confiar solo en result.isFavorite
+      //  NUEVO: Usar el estado capturado para decidir, no confiar solo en result.isFavorite
       const shouldAddToFavorites = result.isFavorite === true || (result.isFavorite === undefined && !wasAlreadyFavorite);
 
       if (shouldAddToFavorites && !wasAlreadyFavorite) {
-        // 🔥 Agregar a favoritos con datos completos
+        //  Agregar a favoritos con datos completos
         console.log('⭐ Agregando a favoritos');
         const newCodes = [...favoriteRoomCodes, room.roomCode];
         setFavoriteRoomCodes(newCodes);
@@ -626,7 +626,7 @@ const ConversationList = ({
         //  SINCRONIZAR con chatState
         if (setExternalFavoriteRoomCodes) setExternalFavoriteRoomCodes(newCodes);
       } else if (wasAlreadyFavorite) {
-        // 🔥 Quitar de favoritos
+        //  Quitar de favoritos
         console.log('⭐ Quitando de favoritos');
         const newCodes = favoriteRoomCodes.filter(code => code !== room.roomCode);
         setFavoriteRoomCodes(newCodes);
@@ -636,7 +636,7 @@ const ConversationList = ({
           return filtered;
         });
         //  SINCRONIZAR con chatState
-        // 🔥 FIX: Refrescar la lista de salas para que el grupo vuelva a aparecer en GRUPOS
+        //  FIX: Refrescar la lista de salas para que el grupo vuelva a aparecer en GRUPOS
         // ya que el backend lo excluye de la lista activa si es favorito.
         if (onLoadUserRooms) {
           onLoadUserRooms(1, false);
@@ -651,13 +651,13 @@ const ConversationList = ({
 
   const handleToggleConversationFavorite = async (conversation, e) => {
     e.stopPropagation();
-    // 🔥 FIX: Usar user.username (DNI) para API de favoritos
+    //  FIX: Usar user.username (DNI) para API de favoritos
     const apiUsername = user?.username;
     if (!apiUsername) return;
     try {
       const result = await apiService.toggleConversationFavorite(apiUsername, conversation.id);
       if (result.isFavorite) {
-        // 🔥 Agregar a IDs y a la lista unificada
+        //  Agregar a IDs y a la lista unificada
         setFavoriteConversationIds(prev => [...prev, conversation.id]);
         setFavoriteRooms(prev => {
           // Evitar duplicados
@@ -672,7 +672,7 @@ const ConversationList = ({
 
           const updated = [...prev, newFav];
 
-          // 🔥 SINCRONIZAR con chatState: Agregar el ID de la conversación a la lista global de códigos
+          //  SINCRONIZAR con chatState: Agregar el ID de la conversación a la lista global de códigos
           const newCodes = [...favoriteRoomCodes, conversation.id.toString()];
           setFavoriteRoomCodes(newCodes);
           if (setExternalFavoriteRoomCodes) setExternalFavoriteRoomCodes(newCodes);
@@ -685,22 +685,22 @@ const ConversationList = ({
           });
         });
       } else {
-        // 🔥 Quitar de IDs y de la lista unificada
+        //  Quitar de IDs y de la lista unificada
         setFavoriteConversationIds(prev => prev.filter(id => id !== conversation.id));
         setFavoriteRooms(prev => prev.filter(f => !(f.type === 'conv' && f.id === conversation.id)));
 
-        // 🔥 SINCRONIZAR con chatState: Quitar el ID de la conversación de la lista global de códigos
+        //  SINCRONIZAR con chatState: Quitar el ID de la conversación de la lista global de códigos
         const newCodes = favoriteRoomCodes.filter(c => String(c) !== String(conversation.id));
         setFavoriteRoomCodes(newCodes);
         if (setExternalFavoriteRoomCodes) setExternalFavoriteRoomCodes(newCodes);
 
-        // 🔥 FIX: Refrescar la lista de chats asignados para que la conversación vuelva a aparecer
+        //  FIX: Refrescar la lista de chats asignados para que la conversación vuelva a aparecer
         // ya que el backend la excluye de la lista activa si es favorito.
         if (onLoadAssignedConversations) {
           onLoadAssignedConversations(1);
         }
 
-        // 🔥 FIX: Forzar re-render para que la conversación aparezca inmediatamente en la lista
+        //  FIX: Forzar re-render para que la conversación aparezca inmediatamente en la lista
         setFavoriteToggleTimestamp(Date.now());
       }
     } catch (error) {
@@ -745,7 +745,7 @@ const ConversationList = ({
     }, 500);
   }, [user]);
 
-  // 🔥 NUEVO: Búsqueda tipo WhatsApp - búsqueda inicial
+  //  NUEVO: Búsqueda tipo WhatsApp - búsqueda inicial
   const handleWhatsappSearch = useCallback(async (searchValue) => {
     if (whatsappSearchTimeoutRef.current) {
       clearTimeout(whatsappSearchTimeoutRef.current);
@@ -789,7 +789,7 @@ const ConversationList = ({
     }, 300); // 300ms debounce
   }, [user]);
 
-  // 🔥 NUEVO: Búsqueda de chats (grupos + asignados) en la API
+  //  NUEVO: Búsqueda de chats (grupos + asignados) en la API
   const handleChatsApiSearch = useCallback((searchValue) => {
     if (apiSearchTimeoutRef.current) {
       clearTimeout(apiSearchTimeoutRef.current);
@@ -844,7 +844,7 @@ const ConversationList = ({
     }, 300);
   }, [user]);
 
-  // 🔥 NUEVO: Cargar más resultados de búsqueda WhatsApp
+  //  NUEVO: Cargar más resultados de búsqueda WhatsApp
   const loadMoreWhatsappSearch = useCallback(async () => {
     if (!whatsappSearchHasMore || isLoadingMoreSearch) return;
 
@@ -870,7 +870,7 @@ const ConversationList = ({
     }
   }, [whatsappSearchHasMore, isLoadingMoreSearch, whatsappSearchOffset, user, activeModule, assignedSearchTerm, searchTerm]);
 
-  // 🔥 NUEVO: Handler para scroll en resultados de búsqueda
+  //  NUEVO: Handler para scroll en resultados de búsqueda
   const handleSearchResultsScroll = useCallback((e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
     if (scrollHeight - scrollTop <= clientHeight + 100) {
@@ -878,7 +878,7 @@ const ConversationList = ({
     }
   }, [loadMoreWhatsappSearch]);
 
-  // 🔥 NUEVO: Navegar a un resultado de búsqueda
+  //  NUEVO: Navegar a un resultado de búsqueda
   const handleSearchResultClick = useCallback((result) => {
     console.log('🔍 handleSearchResultClick:', result);
     console.log('🔍 myActiveRooms:', myActiveRooms);
@@ -938,7 +938,7 @@ const ConversationList = ({
     };
   }, []);
 
-  // 🔥 NUEVO: Función para buscar en la API según el filtro seleccionado
+  //  NUEVO: Función para buscar en la API según el filtro seleccionado
   const handleApiSearch = useCallback((searchValue, filterOverride = null) => {
     if (apiSearchTimeoutRef.current) {
       clearTimeout(apiSearchTimeoutRef.current);
@@ -967,7 +967,7 @@ const ConversationList = ({
         // Buscar grupos si el filtro es 'groups'
         if (currentFilter === 'groups') {
           try {
-            // 🔥 Usar la API correcta según el rol del usuario
+            //  Usar la API correcta según el rol del usuario
             const isPrivilegedUser = ['ADMIN', 'JEFEPISO', 'PROGRAMADOR', 'SUPERADMIN'].includes(user?.role);
             let groupsResult;
             if (isPrivilegedUser) {
@@ -992,11 +992,11 @@ const ConversationList = ({
           }
         }
 
-        // 🔥 NUEVO: Buscar mensajes si el filtro es 'messages'
+        //  NUEVO: Buscar mensajes si el filtro es 'messages'
         if (currentFilter === 'messages') {
           try {
             console.log(`🔎 Buscando mensajes para: "${searchValue}"`);
-            // 🔥 FIX: Usar searchMessages (DNI) en lugar de searchByUserId (ID CRM irrelevante)
+            //  FIX: Usar searchMessages (DNI) en lugar de searchByUserId (ID CRM irrelevante)
             const messagesResult = await apiService.searchMessages(searchValue);
             setMessageSearchResults(messagesResult || []);
           } catch (error) {
@@ -1030,7 +1030,7 @@ const ConversationList = ({
 
   // --- LÓGICA DE CONTADORES CORREGIDA ---
   // Filtramos las conversaciones asignadas que pertenecen al usuario actual
-  // 🔥 NUEVO: Sincronizar favoriteConversationIds con favoriteRooms
+  //  NUEVO: Sincronizar favoriteConversationIds con favoriteRooms
   // Esto asegura que favoriteConversationIds siempre esté actualizado
   useEffect(() => {
     const convIds = favoriteRooms
@@ -1043,7 +1043,7 @@ const ConversationList = ({
     }
   }, [favoriteRooms]);
 
-  // 🔥 NUEVO: Filtrar conversaciones asignadas excluyendo las que tienen roomCode (son grupos)
+  //  NUEVO: Filtrar conversaciones asignadas excluyendo las que tienen roomCode (son grupos)
   const assignedConversationsFiltered = useMemo(() => {
     const filtered = (assignedConversations || []).filter(conv => !conv.roomCode);
     console.log('🔍 assignedConversationsFiltered:', {
@@ -1054,11 +1054,11 @@ const ConversationList = ({
     return filtered;
   }, [assignedConversations]);
 
-  // 🔥 FIX: También excluir favoritos del conteo - Usar useMemo para recalcular automáticamente
+  //  FIX: También excluir favoritos del conteo - Usar useMemo para recalcular automáticamente
   const myAssignedConversations = useMemo(() => {
     const result = assignedConversationsFiltered.filter(conv => {
       const displayName = getDisplayName();
-      // 🔥 FIX: Verificar pertenencia tanto por DNI (username) como por nombre completo
+      //  FIX: Verificar pertenencia tanto por DNI (username) como por nombre completo
       const belongsToUser = conv.participants?.some(p => {
         const pLower = p?.toLowerCase().trim();
         return pLower === user?.username?.toLowerCase().trim()
@@ -1075,7 +1075,7 @@ const ConversationList = ({
     return result;
   }, [assignedConversationsFiltered, favoriteConversationIds, user]);
 
-  // 🔥 CALCULO DE NO LEÍDOS PARA ASIGNADOS (Combinando prop interna + unreadMessages global)
+  //  CALCULO DE NO LEÍDOS PARA ASIGNADOS (Combinando prop interna + unreadMessages global)
   const unreadAssignedCount = myAssignedConversations.reduce((acc, conv) => {
     // Intentamos obtener el conteo real del socket (unreadMessages)
     // Usamos conv.id (si es por ID) o tratamos de buscar por username del otro participante si fuera necesario
@@ -1088,12 +1088,12 @@ const ConversationList = ({
 
   const unreadMonitoringCount = monitoringConversations.filter(conv => conv.unreadCount > 0).length;
 
-  // 🔥 FIX: Filtrar grupos activos excluyendo favoritos - Usar useMemo para recalcular automáticamente
+  //  FIX: Filtrar grupos activos excluyendo favoritos - Usar useMemo para recalcular automáticamente
   const myActiveRoomsFiltered = useMemo(() => {
     return (myActiveRooms || []).filter(room => !favoriteRoomCodes.includes(room.roomCode));
   }, [myActiveRooms, favoriteRoomCodes]);
 
-  // 🔥 CALCULO DE NO LEÍDOS PARA GRUPOS
+  //  CALCULO DE NO LEÍDOS PARA GRUPOS
   const unreadRoomsCount = useMemo(() => {
     return myActiveRoomsFiltered.filter(room => {
       const roomUnread = unreadMessages?.[room.roomCode];
@@ -1187,9 +1187,9 @@ const ConversationList = ({
                 } else {
                   setSearchTerm(value);
                 }
-                // 🔥 Búsqueda tipo WhatsApp (mensajes)
+                //  Búsqueda tipo WhatsApp (mensajes)
                 handleWhatsappSearch(value);
-                // 🔥 Búsqueda de chats en API (grupos + asignados)
+                //  Búsqueda de chats en API (grupos + asignados)
                 handleChatsApiSearch(value);
               }}
             />
@@ -1202,7 +1202,7 @@ const ConversationList = ({
                   else {
                     setSearchTerm('');
                   }
-                  // 🔥 Limpiar búsqueda WhatsApp
+                  //  Limpiar búsqueda WhatsApp
                   setWhatsappSearchResults([]);
                   setWhatsappSearchTotal(0);
                   setWhatsappSearchGrouped({});
@@ -1238,7 +1238,7 @@ const ConversationList = ({
       )}
 
       {/* =========================================================================
-         🔥 RESULTADOS DE BÚSQUEDA (CHATS + MENSAJES)
+          RESULTADOS DE BÚSQUEDA (CHATS + MENSAJES)
          ========================================================================= */}
       {((activeModule === 'chats' || activeModule === 'conversations' || activeModule === 'monitoring') &&
         (assignedSearchTerm.trim() || searchTerm.trim()) &&
@@ -1272,7 +1272,7 @@ const ConversationList = ({
                 room.name?.toLowerCase().includes(term) || room.roomCode?.toLowerCase().includes(term)
               );
 
-              // 🔥 Combinar con resultados de la API (sin duplicados)
+              //  Combinar con resultados de la API (sin duplicados)
               const localRoomCodes = new Set(localMatchingRooms.map(r => r.roomCode));
               const apiRooms = (apiSearchResults?.groups || []).filter(room => !localRoomCodes.has(room.roomCode));
               const matchingRooms = [...localMatchingRooms, ...apiRooms];
@@ -1285,7 +1285,7 @@ const ConversationList = ({
                 return otherParticipant?.toLowerCase().includes(term);
               });
 
-              // 🔥 Combinar con resultados de la API (sin duplicados)
+              //  Combinar con resultados de la API (sin duplicados)
               const localConvIds = new Set(localMatchingConvs.map(c => c.id));
               const apiConvs = (apiSearchResults?.assigned || []).filter(conv => !localConvIds.has(conv.id));
               const matchingConvs = [...localMatchingConvs, ...apiConvs];
@@ -1502,7 +1502,7 @@ const ConversationList = ({
                 const participants = conv.participants || [];
                 return participants.some(p => p?.toLowerCase().includes(term));
               });
-              // 🔥 Incluir resultados de API
+              //  Incluir resultados de API
               const hasMatchingChats = matchingRooms.length > 0 || matchingConvs.length > 0 ||
                 apiSearchResults?.groups?.length > 0 || apiSearchResults?.assigned?.length > 0;
 
@@ -1566,7 +1566,7 @@ const ConversationList = ({
                     count={totalRealFavorites}
                   />
                   {showFavorites && (() => {
-                    // 🔥 Usar la lista memorizada y ya ordenada para mayor robustez
+                    //  Usar la lista memorizada y ya ordenada para mayor robustez
                     const allFavorites = sortedFavoritesList.map(item => ({
                       type: item.type,
                       data: item,
@@ -1586,7 +1586,7 @@ const ConversationList = ({
                             const isTypingInRoom = typingUsers.length > 0;
                             const roomUnreadCount = unreadMessages?.[room.roomCode] !== undefined ? unreadMessages[room.roomCode] : (room.unreadCount || 0);
 
-                            // 🔥 DEBUG: Log para diagnosticar el problema del contador
+                            //  DEBUG: Log para diagnosticar el problema del contador
                             if (room.roomCode === '2E104789') {
                               console.log('🔍 [ConversationList] DEBUG contador para 2E104789:', {
                                 unreadMessagesValue: unreadMessages?.[room.roomCode],
@@ -1598,7 +1598,7 @@ const ConversationList = ({
 
                             const chatId = `room-${room.roomCode}`;
                             const isHighlighted = highlightedChatId === chatId;
-                            // 🔥 NUEVO: Verificar si hay menciones pendientes
+                            //  NUEVO: Verificar si hay menciones pendientes
                             const hasMentions = hasPendingMentions(room.roomCode, room.lastMessage, room);
                             return (
                               <div
@@ -1612,13 +1612,13 @@ const ConversationList = ({
                                   <div className="rounded-full overflow-hidden flex items-center justify-center text-white font-bold" style={{ width: '32px', height: '32px', border: '1.3px solid rgba(0, 0, 0, 0.1)', fontSize: '14px', backgroundColor: room.description ? '#A50104' : getAvatarColor(room.name) }}>
                                     {room.description ? <img src={room.description} alt={room.name} className="w-full h-full object-cover" /> : getFirstLetter(room.name)}
                                   </div>
-                                  {/* 🔥 Badge de no leídos para modo compacto */}
+                                  {/*  Badge de no leídos para modo compacto */}
                                   {isCompact && roomUnreadCount > 0 && (
                                     <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '16px', height: '16px', fontSize: '9px', fontWeight: 'bold', padding: '0 3px' }}>
                                       {roomUnreadCount > 99 ? '99+' : roomUnreadCount}
                                     </div>
                                   )}
-                                  {/* 🔥 NUEVO: Punto rojo para menciones */}
+                                  {/*  NUEVO: Punto rojo para menciones */}
                                   {hasMentions && (
                                     <div
                                       className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white"
@@ -1626,7 +1626,7 @@ const ConversationList = ({
                                       title="Tienes menciones pendientes"
                                     />
                                   )}
-                                  {/* 🔥 NUEVO: Punto verde para mensajes nuevos (sin menciones) */}
+                                  {/*  NUEVO: Punto verde para mensajes nuevos (sin menciones) */}
                                   {!hasMentions && (roomUnreadCount > 0 || pendingThreads[room.roomCode]) && (
                                     <div
                                       className="absolute top-0 right-0 rounded-full border-2 border-white"
@@ -1658,7 +1658,7 @@ const ConversationList = ({
                             const otherParticipantId = findOtherParticipant(participants);
                             const otherParticipantDisplay = resolveParticipantName(otherParticipantId);
 
-                            // 🔥 FIX: Búsqueda robusta de unreadCount (String vs Number)
+                            //  FIX: Búsqueda robusta de unreadCount (String vs Number)
                             let itemUnreadCount = 0;
                             if (unreadMessages) {
                               if (unreadMessages[conv.id] !== undefined) {
@@ -1672,25 +1672,25 @@ const ConversationList = ({
                               itemUnreadCount = conv.unreadCount || 0;
                             }
 
-                            // 🔥 DEBUG LOGS
+                            //  DEBUG LOGS
                             if (itemUnreadCount > 0) {
                               console.log(`🔍 [FAV-DEBUG] conv.id: ${conv.id} (${typeof conv.id}), unreadMessages len: ${Object.keys(unreadMessages || {}).length}, FINAL: ${itemUnreadCount}`);
                             }
 
                             const getInitials = (name) => { const parts = name?.split(' ') || []; return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : (name?.[0]?.toUpperCase() || 'U'); };
                             const chatId = `conv-${conv.id}`;
-                            // 🔥 FIX: Usar conv.name si existe, sino resolveParticipantName
+                            //  FIX: Usar conv.name si existe, sino resolveParticipantName
                             let displayName = resolveConversationDisplayName(conv, otherParticipantId) || otherParticipantDisplay;
 
                             const isHighlighted = highlightedChatId === chatId;
                             const isSelected = (!isGroup && to && (to === (displayName || '') || otherParticipantId?.toLowerCase().trim() === to?.toLowerCase().trim())) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
-                            // 🔥 NUEVO: Verificar si hay menciones pendientes
+                            //  NUEVO: Verificar si hay menciones pendientes
                             const hasMentions = hasPendingMentions(conv.id, conv.lastMessage, conv);
                             const isFavorite = true; // Siempre es favorito en esta sección
 
-                            // 🔥 LÓGICA AGREGADA: Estado en línea e imagen de perfil (igual que en Asignados)
+                            //  LÓGICA AGREGADA: Estado en línea e imagen de perfil (igual que en Asignados)
                             let isOtherParticipantOnline = false;
-                            // 🔥 FIX: Usar conv.picture como valor base (viene de la API)
+                            //  FIX: Usar conv.picture como valor base (viene de la API)
                             let otherParticipantPicture = conv.picture || null;
 
                             if (otherParticipantId) {
@@ -1731,16 +1731,16 @@ const ConversationList = ({
                                     {otherParticipantPicture ? <img src={otherParticipantPicture} alt={displayName} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = getInitials(displayName); }} /> : getInitials(displayName)}
                                   </div>
 
-                                  {/* 🔥 Indicador de estado para favoritos */}
+                                  {/*  Indicador de estado para favoritos */}
                                   <div className="absolute bottom-0 right-0 rounded-full border-2 border-white" style={{ width: '12px', height: '12px', backgroundColor: isOtherParticipantOnline ? '#10b981' : '#9ca3af' }} title={isOtherParticipantOnline ? 'En línea' : 'Desconectado'} />
 
-                                  {/* 🔥 Badge de no leídos para modo compacto */}
+                                  {/*  Badge de no leídos para modo compacto */}
                                   {isCompact && itemUnreadCount > 0 && (
                                     <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '16px', height: '16px', fontSize: '9px', fontWeight: 'bold', padding: '0 3px' }}>
                                       {itemUnreadCount > 99 ? '99+' : itemUnreadCount}
                                     </div>
                                   )}
-                                  {/* 🔥 NUEVO: Punto rojo para menciones */}
+                                  {/*  NUEVO: Punto rojo para menciones */}
                                   {hasMentions && (
                                     <div
                                       className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white"
@@ -1748,7 +1748,7 @@ const ConversationList = ({
                                       title="Tienes menciones pendientes"
                                     />
                                   )}
-                                  {/* 🔥 NUEVO: Punto verde para mensajes nuevos (sin menciones) */}
+                                  {/*  NUEVO: Punto verde para mensajes nuevos (sin menciones) */}
                                   {!hasMentions && (itemUnreadCount > 0 || pendingThreads[conv.id]) && (
                                     <div
                                       className="absolute top-0 right-0 rounded-full border-2 border-white"
@@ -1815,7 +1815,7 @@ const ConversationList = ({
                 {showGroups && (
                   <>
                     {(() => {
-                      // 🔥 NUEVO: Si hay búsqueda activa con resultados de API, usar esos resultados
+                      //  NUEVO: Si hay búsqueda activa con resultados de API, usar esos resultados
                       const hasApiSearch = assignedSearchTerm.trim().length >= 2 && apiSearchResults.groups.length > 0;
 
                       if (!myActiveRooms || myActiveRooms.length === 0) {
@@ -1829,7 +1829,7 @@ const ConversationList = ({
                         }
                       }
 
-                      // 🔥 El backend ya excluye favoritos por SQL
+                      //  El backend ya excluye favoritos por SQL
                       let filteredRooms;
                       if (hasApiSearch) {
                         filteredRooms = [...apiSearchResults.groups];
@@ -1840,7 +1840,7 @@ const ConversationList = ({
                               room.name.toLowerCase().includes(assignedSearchTerm.toLowerCase()) ||
                               room.roomCode.toLowerCase().includes(assignedSearchTerm.toLowerCase());
 
-                            // 🔥 FIX: Excluir favoritos TAMBIÉN aquí para evitar reaparición por updates de socket
+                            //  FIX: Excluir favoritos TAMBIÉN aquí para evitar reaparición por updates de socket
                             const isFavorite = favoriteRoomCodes.includes(room.roomCode);
 
                             return matchesSearch && !isFavorite;
@@ -1851,7 +1851,7 @@ const ConversationList = ({
                       filteredRooms.sort((a, b) => {
                         // Helper para obtener la fecha más reciente de una sala
                         const getDate = (room) => {
-                          // 🔥 Priorizar lastActivity (viene calculado del backend con el último mensaje real)
+                          //  Priorizar lastActivity (viene calculado del backend con el último mensaje real)
                           if (room.lastActivity) {
                             const t = new Date(room.lastActivity).getTime();
                             if (!isNaN(t)) return t;
@@ -1913,10 +1913,10 @@ const ConversationList = ({
                             const roomUnreadCount = unreadMessages?.[room.roomCode] !== undefined ? unreadMessages[room.roomCode] : (room.unreadCount || 0);
                             const chatId = `room-${room.roomCode}`;
                             const isHighlighted = highlightedChatId === chatId;
-                            // 🔥 NUEVO: Verificar si hay menciones pendientes
+                            //  NUEVO: Verificar si hay menciones pendientes
                             const hasMentions = hasPendingMentions(room.roomCode, room.lastMessage, room);
 
-                            // 🔥 DEBUG: Log para diagnosticar el problema del contador
+                            //  DEBUG: Log para diagnosticar el problema del contador
                             if (room.roomCode === '2E104789') {
                               console.log('🔍 [ConversationList GRUPOS] DEBUG contador para 2E104789:', {
                                 unreadMessagesValue: unreadMessages?.[room.roomCode],
@@ -1945,13 +1945,13 @@ const ConversationList = ({
                                       getFirstLetter(room.name)
                                     )}
                                   </div>
-                                  {/* 🔥 Badge de no leídos para modo compacto */}
+                                  {/*  Badge de no leídos para modo compacto */}
                                   {isCompact && roomUnreadCount > 0 && (
                                     <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '16px', height: '16px', fontSize: '9px', fontWeight: 'bold', padding: '0 3px' }}>
                                       {roomUnreadCount > 99 ? '99+' : roomUnreadCount}
                                     </div>
                                   )}
-                                  {/* 🔥 NUEVO: Punto rojo para menciones */}
+                                  {/*  NUEVO: Punto rojo para menciones */}
                                   {hasMentions && (
                                     <div
                                       className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white"
@@ -1959,7 +1959,7 @@ const ConversationList = ({
                                       title="Tienes menciones pendientes"
                                     />
                                   )}
-                                  {/* 🔥 NUEVO: Punto verde para mensajes nuevos (sin menciones) */}
+                                  {/*  NUEVO: Punto verde para mensajes nuevos (sin menciones) */}
                                   {!hasMentions && (roomUnreadCount > 0 || pendingThreads[room.roomCode]) && (
                                     <div
                                       className="absolute top-0 right-0 rounded-full border-2 border-white"
@@ -2036,7 +2036,7 @@ const ConversationList = ({
                   return (
                     <>
                       {(() => {
-                        // 🔥 NUEVO: Si hay búsqueda activa con resultados de API, usar esos resultados
+                        //  NUEVO: Si hay búsqueda activa con resultados de API, usar esos resultados
                         const hasApiSearch = assignedSearchTerm.trim().length >= 2 && apiSearchResults.assigned.length > 0;
 
                         // Mostrar indicador de búsqueda
@@ -2047,13 +2047,13 @@ const ConversationList = ({
                             </div>
                           );
                         }
-                        // 🔥 El backend ya excluye favoritos por SQL, pero filtramos aquí también para reactividad inmediata
+                        //  El backend ya excluye favoritos por SQL, pero filtramos aquí también para reactividad inmediata
                         let filteredConversations;
                         if (hasApiSearch) {
                           filteredConversations = [...apiSearchResults.assigned];
                         } else {
                           filteredConversations = myAssignedConversations
-                            // 🔥 FIX: Excluir conversaciones que ya están en favoritos
+                            //  FIX: Excluir conversaciones que ya están en favoritos
                             .filter(conv => !favoriteConversationIds.includes(conv.id))
                             .filter(conv => {
                               if (!assignedSearchTerm.trim()) return true;
@@ -2093,11 +2093,11 @@ const ConversationList = ({
                           <>
                             {convsToShow.map((conv) => {
                               const participants = conv.participants || [];
-                              // 🔥 FIX: Usar helpers para resolver participantes (ya sean DNI o nombres completos)
+                              //  FIX: Usar helpers para resolver participantes (ya sean DNI o nombres completos)
                               const otherParticipantId = findOtherParticipant(participants);
                               const displayName = resolveConversationDisplayName(conv, otherParticipantId);
 
-                              // 🔥 FIX: Usar conv.picture como valor base (viene de la API)
+                              //  FIX: Usar conv.picture como valor base (viene de la API)
                               let otherParticipantPicture = conv.picture || null;
                               let isOtherParticipantOnline = false;
                               if (otherParticipantId) {
@@ -2129,7 +2129,7 @@ const ConversationList = ({
 
                               const chatId = `conv-${conv.id}`;
                               const isHighlighted = highlightedChatId === chatId;
-                              // 🔥 NUEVO: Verificar si hay menciones pendientes
+                              //  NUEVO: Verificar si hay menciones pendientes
                               const hasMentions = hasPendingMentions(conv.id, conv.lastMessage, conv);
 
                               const isSelected = (!isGroup && to && participants.some(p => p?.toLowerCase().trim() === to?.toLowerCase().trim())) || (currentRoomCode && (String(currentRoomCode) === String(conv.id) || currentRoomCode === conv.roomCode));
@@ -2147,13 +2147,13 @@ const ConversationList = ({
                                       {otherParticipantPicture ? <img src={otherParticipantPicture} alt={displayName} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = getInitials(displayName); }} /> : getInitials(displayName)}
                                     </div>
                                     <div className="absolute bottom-0 right-0 rounded-full border-2 border-white" style={{ width: '12px', height: '12px', backgroundColor: isOtherParticipantOnline ? '#10b981' : '#9ca3af' }} title={isOtherParticipantOnline ? 'En línea' : 'Desconectado'} />
-                                    {/* 🔥 Badge de no leídos para modo compacto */}
+                                    {/*  Badge de no leídos para modo compacto */}
                                     {isCompact && itemUnreadCount > 0 && (
                                       <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 rounded-full bg-[#ff453a] text-white flex items-center justify-center" style={{ minWidth: '16px', height: '16px', fontSize: '9px', fontWeight: 'bold', padding: '0 3px' }}>
                                         {itemUnreadCount > 99 ? '99+' : itemUnreadCount}
                                       </div>
                                     )}
-                                    {/* 🔥 NUEVO: Punto rojo para menciones */}
+                                    {/*  NUEVO: Punto rojo para menciones */}
                                     {hasMentions && (
                                       <div
                                         className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white"
@@ -2161,7 +2161,7 @@ const ConversationList = ({
                                         title="Tienes menciones pendientes"
                                       />
                                     )}
-                                    {/* 🔥 NUEVO: Punto verde para mensajes nuevos (sin menciones) */}
+                                    {/*  NUEVO: Punto verde para mensajes nuevos (sin menciones) */}
                                     {!hasMentions && (itemUnreadCount > 0 || pendingThreads[conv.id]) && (
                                       <div
                                         className="absolute top-0 right-0 rounded-full border-2 border-white"
@@ -2338,3 +2338,4 @@ const ConversationList = ({
 };
 
 export default ConversationList;
+

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+﻿import { useCallback } from 'react';
 import apiService from '../apiService';
 import { showSuccessAlert, showErrorAlert, showConfirmAlert } from '../sweetalert2';
 
@@ -113,7 +113,7 @@ export const useRoomManagement = (
                         ? response.data.filter((room) => room.isActive)
                         : [];
 
-                    // 🔥 DEBUG: Log para SUPERADMIN - ver qué unreadCount viene del backend
+                    //  DEBUG: Log para SUPERADMIN - ver qué unreadCount viene del backend
                     if (user?.role === 'SUPERADMIN') {
                         const room2E104789 = activeRooms.find(r => r.roomCode === '2E104789');
                         if (room2E104789) {
@@ -290,7 +290,7 @@ export const useRoomManagement = (
         } catch (error) {
             console.error('Error al unirse a sala:', error);
 
-            // 🔥 NUEVO: Manejo de solicitudes pendientes
+            //  NUEVO: Manejo de solicitudes pendientes
             const errorMessage = error.response?.data?.message || error.message || '';
             const isPendingError =
                 errorMessage.includes('pendiente') ||
@@ -424,7 +424,7 @@ export const useRoomManagement = (
                     });
                 }
 
-                // 🔥 NUEVO: Limpiar marca de menciones en hilos al abrir la sala
+                //  NUEVO: Limpiar marca de menciones en hilos al abrir la sala
                 setMyActiveRooms(prev => prev.map(r =>
                     r.roomCode === room.roomCode
                         ? { ...r, hasUnreadThreadMentions: false }
@@ -478,7 +478,7 @@ export const useRoomManagement = (
                     });
                 }
 
-                // 🔥 NUEVO: Si hay messageId, cargar mensajes alrededor de ese ID
+                //  NUEVO: Si hay messageId, cargar mensajes alrededor de ese ID
                 if (messageId && loadMessagesAroundId) {
                     console.log('🔍 handleRoomSelect: Cargando mensajes alrededor de ID:', messageId);
                     await loadMessagesAroundId(messageId);
@@ -493,7 +493,7 @@ export const useRoomManagement = (
                     setShowSidebar(false);
                 }
 
-                // 🔥 NUEVO: Retornar maxCapacity para que el componente padre pueda usarlo
+                //  NUEVO: Retornar maxCapacity para que el componente padre pueda usarlo
                 return { maxCapacity: roomMaxCapacity };
             } catch (error) {
                 console.error('Error al seleccionar sala:', error);
@@ -518,7 +518,7 @@ export const useRoomManagement = (
             setPendingMentions,
             setShowSidebar,
             loadMessagesAroundId,
-            setMyActiveRooms, // 🔥 NUEVO: Para limpiar hasUnreadThreadMentions
+            setMyActiveRooms, //  NUEVO: Para limpiar hasUnreadThreadMentions
             setHighlightMessageId,
         ]
     );
@@ -766,3 +766,4 @@ export const useRoomManagement = (
         handleShowAdminRooms,
     };
 };
+

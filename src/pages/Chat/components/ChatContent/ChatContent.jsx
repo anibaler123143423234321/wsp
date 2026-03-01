@@ -46,6 +46,7 @@ import ReactionPicker from '../../../../components/ReactionPicker'; // Component
 import ChatInput from '../../../../components/ChatInput/ChatInput'; //  NUEVO: Componente reutilizable de input
 import AddReactionButton from '../../../../components/AddReactionButton/AddReactionButton'; // Componente reutilizable botón +
 import { useMessageSelection } from '../../../../hooks/useMessageSelection'; // Hook personalizado
+import { resolveDisplayName } from '../../../../hooks/useSocketListeners'; // Utilidad para resolución de nombres
 import { groupMessagesForGallery } from "../../utils/messageGrouper";
 import ImageGalleryGrid from "../../../../components/ImageGalleryGrid/ImageGalleryGrid";
 import "./ChatContent.css";
@@ -206,7 +207,7 @@ const getSenderSuffix = (message) => {
 const ChatContent = ({
   // Props de mensajes
   messages,
-  userList = [], // 🔥 NUEVO: Para resolución de nombres profesionales
+  userList = [], //  NUEVO: Para resolución de nombres profesionales
   highlightMessageId,
   onMessageHighlighted,
   replyingTo,
@@ -266,7 +267,7 @@ const ChatContent = ({
   onOpenPollModal,
   onPollVote, //  FIX: Pasar prop de votación
   onGoToLatest, //  NUEVO: Ir al final
-  chatInfo, // 🔥 FIX: Info del chat (picture, name, isOnline)
+  chatInfo, //  FIX: Info del chat (picture, name, isOnline)
 }) => {
   const { getUserColor } = useUserNameColor();
   // ============================================================
@@ -275,10 +276,10 @@ const ChatContent = ({
   const chatHistoryRef = useRef(null);
   const isUserScrollingRef = useRef(false);
   const lastMessageCountRef = useRef(0);
-  const lastMessageIdRef = useRef(null); // 🔥 NUEVO: Para rastrear el último mensaje
+  const lastMessageIdRef = useRef(null); //  NUEVO: Para rastrear el último mensaje
   const previousScrollHeightRef = useRef(0);
-  const previousScrollTopRef = useRef(0); // 🔥 Guardar scrollTop para preservar posición
-  const isLoadingMoreRef = useRef(false); // 🔥 Bandera de carga en progreso
+  const previousScrollTopRef = useRef(0); //  Guardar scrollTop para preservar posición
+  const isLoadingMoreRef = useRef(false); //  Bandera de carga en progreso
   const hasScrolledToUnreadRef = useRef(false); // Rastrear si ya hicimos scroll al primer mensaje no leído
   const typingTimeoutRef = useRef(null);
   const emojiPickerRef = useRef(null);
@@ -306,7 +307,7 @@ const ChatContent = ({
     }
 
     const userNameUpper = normalizeText(currentUsername);
-    // 🔥 FIX: También comparar contra el nombre completo del usuario (nombre + apellido)
+    //  FIX: También comparar contra el nombre completo del usuario (nombre + apellido)
     const userFullNameUpper = (user?.nombre && user?.apellido)
       ? normalizeText(`${user.nombre} ${user.apellido}`)
       : null;
@@ -326,12 +327,12 @@ const ChatContent = ({
       return false;
     }
 
-    // 🔥 NUEVO: Si el mensaje tiene la marca de menciones pendientes, mostrar punto rojo
+    //  NUEVO: Si el mensaje tiene la marca de menciones pendientes, mostrar punto rojo
     if (message.hasUnreadThreadMentions) {
       return true;
     }
 
-    // 🔥 CRÍTICO: Solo mostrar punto rojo si hay mensajes NO LEÍDOS en el hilo
+    //  CRÍTICO: Solo mostrar punto rojo si hay mensajes NO LEÍDOS en el hilo
     if (!message.unreadThreadCount || message.unreadThreadCount === 0) {
       return false; // No hay mensajes sin leer en el hilo, no mostrar punto rojo
     }
@@ -565,7 +566,7 @@ const ChatContent = ({
     setShowReactionUsers(null); // Limpiar popover de reacciones al cambiar de chat
     hasScrolledToUnreadRef.current = false;
     lastMessageCountRef.current = 0;
-    lastMessageIdRef.current = null; // 🔥 NUEVO: Resetear ID del último mensaje
+    lastMessageIdRef.current = null; //  NUEVO: Resetear ID del último mensaje
     isLoadingMoreRef.current = false;
     firstMessageIdRef.current = null;
     initialScrollDoneRef.current = false;
@@ -652,7 +653,7 @@ const ChatContent = ({
   // Función simple para agrupar mensajes usando solo datos del backend
   //  NUEVO: También inserta separador de "X mensajes no leídos"
   const groupMessagesByDate = (messages, currentUser) => {
-    // 🔥 NUEVO: Agrupar imágenes antes de procesar fechas
+    //  NUEVO: Agrupar imágenes antes de procesar fechas
     const galleryGroupedMessages = groupMessagesForGallery(messages);
 
     const groups = [];
@@ -680,11 +681,11 @@ const ChatContent = ({
     });
 
     //  Contar mensajes no leídos (que no sean del usuario actual)
-    // 🔥 FIX: Para grupos, verificar si el usuario está en readBy array, no solo isRead
+    //  FIX: Para grupos, verificar si el usuario está en readBy array, no solo isRead
     const isMessageReadByUser = (msg, username) => {
-      // 🔥 FIX: Manejar tanto boolean true como string "true"
+      //  FIX: Manejar tanto boolean true como string "true"
       if (msg.isRead === true || msg.isRead === 'true') return true;
-      // 🔥 FIX: Si readByCount > 0, significa que alguien lo leyó (el mensaje fue marcado como leído)
+      //  FIX: Si readByCount > 0, significa que alguien lo leyó (el mensaje fue marcado como leído)
       if (msg.readByCount && msg.readByCount > 0) return true;
 
       if (msg.readBy && Array.isArray(msg.readBy)) {
@@ -735,12 +736,12 @@ const ChatContent = ({
         unreadSeparatorInserted = true;
       }
 
-      // 🔥 FIX: Calcular isGroupStart AQUÍ usando el array filtrado correcto (uniqueMessages)
+      //  FIX: Calcular isGroupStart AQUÍ usando el array filtrado correcto (uniqueMessages)
       // Esto soluciona el bug visual donde un mensaje se agrupaba incorrectamente con el anterior
       // debido a mismatch de índices con el array original 'messages'
       const prevMsg = index > 0 ? uniqueMessages[index - 1] : null;
 
-      // 🔥 FIX: También verificar si el elemento anterior en groups es un separador de fecha
+      //  FIX: También verificar si el elemento anterior en groups es un separador de fecha
       // Si es así, el mensaje actual debe ser inicio de grupo
       const prevGroupItem = groups.length > 0 ? groups[groups.length - 1] : null;
       const isPrevItemDateSeparator = prevGroupItem && prevGroupItem.type === 'date-separator';
@@ -750,14 +751,14 @@ const ChatContent = ({
         || prevMsg.sender !== message.sender
         || prevMsg.type === 'info'
         || prevMsg.type === 'error'
-        || isPrevItemDateSeparator  // 🔥 NUEVO: Después de separador de fecha, siempre es inicio
-        || isPrevItemUnreadSeparator; // 🔥 NUEVO: Después de separador de no leídos, siempre es inicio
+        || isPrevItemDateSeparator  //  NUEVO: Después de separador de fecha, siempre es inicio
+        || isPrevItemUnreadSeparator; //  NUEVO: Después de separador de no leídos, siempre es inicio
 
       groups.push({
         type: "message",
         data: message,
         index,
-        isGroupStart, // 🔥 Pasamos el booleano calculado correctamente
+        isGroupStart, //  Pasamos el booleano calculado correctamente
       });
     });
 
@@ -1129,7 +1130,7 @@ const ChatContent = ({
         if (messageElement && chatContainer) {
           console.log('🔍 Scroll al mensaje:', highlightMessageId);
 
-          // 🔥 MEJORADO: Calcular scroll manual para manejar mensajes al final
+          //  MEJORADO: Calcular scroll manual para manejar mensajes al final
           // Posición actual del mensaje relativa al contenedor
           const messageOffsetTop = messageElement.offsetTop;
           const messageHeight = messageElement.offsetHeight;
@@ -1143,11 +1144,11 @@ const ChatContent = ({
           const maxScrollTop = scrollHeight - containerHeight;
           const minScrollTop = 0;
 
-          // 🔥 Si el mensaje está cerca del final, el scroll ideal podría exceder el máximo
+          //  Si el mensaje está cerca del final, el scroll ideal podría exceder el máximo
           // En ese caso, hacemos scroll al máximo para asegurar visibilidad
           let targetScrollTop = Math.max(minScrollTop, Math.min(idealScrollTop, maxScrollTop));
 
-          // 🔥 Verificar si el mensaje quedará visible después del scroll
+          //  Verificar si el mensaje quedará visible después del scroll
           const messageTopAfterScroll = messageOffsetTop - targetScrollTop;
           const messageBottomAfterScroll = messageTopAfterScroll + messageHeight;
 
@@ -1186,7 +1187,7 @@ const ChatContent = ({
             onMessageHighlighted?.();
           }, 5000);
         }
-      }, 150); // 🔥 Aumentar delay ligeramente para asegurar renderizado completo
+      }, 150); //  Aumentar delay ligeramente para asegurar renderizado completo
 
       return () => clearTimeout(timeoutId);
     }
@@ -1205,7 +1206,7 @@ const ChatContent = ({
 
   // Función para cargar readBy bajo demanda (lazy loading)
   const loadReadByForMessage = async (messageId) => {
-    // 🔥 FIX: Manejar IDs de galería sintéticos (ej. "gallery-123")
+    //  FIX: Manejar IDs de galería sintéticos (ej. "gallery-123")
     // El backend espera un ID numérico, así que extraemos el ID real del mensaje original
     let realMessageId = messageId;
     if (typeof messageId === 'string' && messageId.startsWith('gallery-')) {
@@ -1236,7 +1237,7 @@ const ChatContent = ({
     //  NUEVO: No hacer scroll automático hasta que hayamos completado el scroll inicial a no leídos
     if (!hasScrolledToUnreadRef.current) return;
 
-    // 🔥 FIX: No hacer scroll automático si estamos cargando mensajes antiguos
+    //  FIX: No hacer scroll automático si estamos cargando mensajes antiguos
     if (isLoadingMore) {
       console.log('🚫 Scroll automático bloqueado: isLoadingMore = true');
       return;
@@ -1255,7 +1256,7 @@ const ChatContent = ({
     const isLastMessageNew = lastMessage && lastMessage.id !== lastMessageIdRef.current;
     const isLastMessageSelf = lastMessage && (lastMessage.isSelf || lastMessage.sender === 'Tú' || lastMessage.sender === currentUsername);
 
-    // 🔥 CRÍTICO: Solo hacer scroll si es un mensaje NUEVO y propio, no si ya existía
+    //  CRÍTICO: Solo hacer scroll si es un mensaje NUEVO y propio, no si ya existía
     const shouldScroll = messages.length > lastMessageCountRef.current && (isAtBottom || (isLastMessageNew && isLastMessageSelf));
 
     if (shouldScroll) {
@@ -1304,7 +1305,7 @@ const ChatContent = ({
   // usando markRoomMessagesAsRead (bulk) para evitar múltiples emisiones de socket.
   // NO usar un forEach aquí porque causa bucles cuando hay múltiples clusters.
 
-  // 🔥 REMOVIDO: El marcado automático de chats individuales
+  //  REMOVIDO: El marcado automático de chats individuales
   // Los chats 1 a 1 NO deben marcarse como leídos automáticamente al abrir
   // Solo se marcan cuando el usuario escribe (onClearUnreadOnTyping)
   // Esto es consistente con el comportamiento de WhatsApp y otros chats
@@ -1753,7 +1754,7 @@ const ChatContent = ({
   const renderTextWithMentions = (text) => {
     if (!text) return text;
 
-    // 🔥 FIX: Trim whitespace to prevent extra newlines/spacing
+    //  FIX: Trim whitespace to prevent extra newlines/spacing
     text = String(text).trim();
 
     // Obtener lista de usuarios válidos normalizada (sin acentos, mayúsculas, sin espacios extra)
@@ -1773,7 +1774,7 @@ const ChatContent = ({
           if (u.displayName) validUsersSet.add(normalizeText(u.displayName));
           if (u.username) validUsersSet.add(normalizeText(u.username));
           if (u.name) validUsersSet.add(normalizeText(u.name));
-          // 🔥 FIX: Agregar nombre + apellido para que menciones por nombre completo funcionen
+          //  FIX: Agregar nombre + apellido para que menciones por nombre completo funcionen
           if (u.nombre) validUsersSet.add(normalizeText(u.nombre));
           if (u.apellido) validUsersSet.add(normalizeText(u.apellido));
           if (u.nombre && u.apellido) validUsersSet.add(normalizeText(`${u.nombre} ${u.apellido}`));
@@ -1854,7 +1855,7 @@ const ChatContent = ({
           const userWordsCount = validMatch.split(/\s+/).length;
           const capturedWords = mentionedUser.split(/\s+/);
 
-          // 🔥 FIX: Calcular el índice final exacto en el string original para preservar espacios
+          //  FIX: Calcular el índice final exacto en el string original para preservar espacios
           // y evitar desajustes que causan caracteres repetidos.
           let endIndex = 0;
           let searchPos = 0;
@@ -2050,7 +2051,7 @@ const ChatContent = ({
       ? message.isSelf
       : message.sender === "Tú" || message.sender === currentUsername;
 
-    // 🔥 FIX: Resolver el nombre de display del sender (DNI → nombre completo)
+    //  FIX: Resolver el nombre de display del sender (DNI → nombre completo)
     const senderDisplayName = (() => {
       const raw = message.sender || message.from;
       if (!raw || raw === "Tú") return raw;
@@ -2070,7 +2071,7 @@ const ChatContent = ({
     })();
 
     // Lógica de agrupación (Slack Style)
-    // 🔥 FIX: Si isGroupStartProp viene definido (desde groupMessagesByDate), USARLO.
+    //  FIX: Si isGroupStartProp viene definido (desde groupMessagesByDate), USARLO.
     // Si no, fallback a la lógica antigua (prop messages)
     const prevMsg = index > 0 ? messages[index - 1] : null;
 
@@ -2089,7 +2090,7 @@ const ChatContent = ({
     // Color consistente del usuario basado en su nombre
     const userColor = getUserColor(message.sender, isOwnMessage);
 
-    // 🔥 FALLBACK ROBUSTO: Buscar foto en roomUsers si no viene en el mensaje
+    //  FALLBACK ROBUSTO: Buscar foto en roomUsers si no viene en el mensaje
     let finalPicture = message.picture || message.senderPicture;
     if (!finalPicture && !isOwnMessage) {
       // 1. Buscar en roomUsers
@@ -2105,7 +2106,7 @@ const ChatContent = ({
         }
       }
 
-      // 2. 🔥 Buscar en assignedConversations (si aún no tenemos foto)
+      // 2.  Buscar en assignedConversations (si aún no tenemos foto)
       if (!finalPicture && assignedConversations) {
         const senderNorm = message.sender?.toLowerCase().trim();
         const conv = assignedConversations.find(c =>
@@ -2116,7 +2117,7 @@ const ChatContent = ({
         }
       }
 
-      // 3. 🔥 FIX: Fallback a chatInfo.picture (para favoritos privados que no están en assignedConversations)
+      // 3.  FIX: Fallback a chatInfo.picture (para favoritos privados que no están en assignedConversations)
       if (!finalPicture && !isGroup && chatInfo?.picture) {
         finalPicture = chatInfo.picture;
       }
@@ -2129,7 +2130,7 @@ const ChatContent = ({
     // DEBUG: Verificar por qué falla la foto
     // if (message.picture) console.log('🖼️ Render message picture:', { id: message.id, sender: message.sender, pic: message.picture, isOwn: isOwnMessage });
 
-    // 🔥 FIX: Generar indicador de estado (Vistos) para mensajes propios - REUTILIZABLE
+    //  FIX: Generar indicador de estado (Vistos) para mensajes propios - REUTILIZABLE
     const renderStatusCheck = () => {
       if (!isOwnMessage) return null;
 
@@ -2944,12 +2945,12 @@ const ChatContent = ({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      position: 'relative' // 🔥 NUEVO: Para posicionar el punto rojo
+                      position: 'relative' //  NUEVO: Para posicionar el punto rojo
                     }}>
                       <div className="_indicator-icon_133tf_26" style={{ width: '100%', height: '100%' }} data-indicator={message.unreadThreadCount > 0 ? "success" : "default"}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" viewBox="0 0 24 24"><path d="M4 3h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6l-2.293 2.293c-.63.63-1.707.184-1.707-.707V5a2 2 0 0 1 2-2Zm3 7h10a.97.97 0 0 0 .712-.287A.967.967 0 0 0 18 9a.967.967 0 0 0-.288-.713A.968.968 0 0 0 17 8H7a.968.968 0 0 0-.713.287A.968.968 0 0 0 6 9c0 .283.096.52.287.713.192.191.43.287.713.287Zm0 4h6c.283 0 .52-.096.713-.287A.968.968 0 0 0 14 13a.968.968 0 0 0-.287-.713A.968.968 0 0 0 13 12H7a.967.967 0 0 0-.713.287A.968.968 0 0 0 6 13c0 .283.096.52.287.713.192.191.43.287.713.287Z"></path></svg>
                       </div>
-                      {/* 🔥 PUNTO ROJO: Solo para menciones */}
+                      {/*  PUNTO ROJO: Solo para menciones */}
                       {hasThreadMention(message) && (
                         <div
                           className="absolute top-0 right-0 rounded-full bg-red-600 border-2 border-white"
@@ -2961,7 +2962,7 @@ const ChatContent = ({
                           title="Tienes menciones en este hilo"
                         />
                       )}
-                      {/* 🔥 NUEVO: PUNTO VERDE para mensajes nuevos (sin menciones) */}
+                      {/*  NUEVO: PUNTO VERDE para mensajes nuevos (sin menciones) */}
                       {!hasThreadMention(message) && message.unreadThreadCount > 0 && (
                         <div
                           className="absolute top-0 right-0 rounded-full border-2 border-white"
@@ -3276,14 +3277,28 @@ const ChatContent = ({
                         <span style={{ color: '#666', fontSize: '12px' }}>Cargando...</span>
                       </div>
                     ) : (() => {
-                      // 🔥 FIX: Construcción inteligente de la lista
+                      //  FIX: Construcción inteligente de la lista
                       let readerList = message.readByData || loadedReadBy[message.id] || message.readBy || [];
 
                       // Si es mensaje entrante (no mío) y está leído, YO debería estar en la lista
                       if (!isOwnMessage && (message.isRead || (message.readBy && message.readBy.length > 0))) {
                         const amIInList = readerList.some(r => {
-                          const rName = (typeof r === 'object' ? (r.username || r.nombre) : r);
-                          return rName && currentUsername && rName.toLowerCase() === currentUsername.toLowerCase();
+                          const rName = (typeof r === 'object' ? (r.username || r.nombre || r.displayName || r.name) : r);
+                          if (!rName) return false;
+                          const rNameLower = String(rName).toLowerCase().trim();
+
+                          // Probar con username
+                          if (currentUsername && rNameLower === String(currentUsername).toLowerCase().trim()) return true;
+
+                          // Probar con nombre completo si está disponible en 'user'
+                          if (user) {
+                            const userFullName = `${user.nombre || ''} ${user.apellido || ''}`.trim().toLowerCase();
+                            const userDisplayName = (user.displayName || '').toLowerCase().trim();
+
+                            if (userFullName && rNameLower === userFullName) return true;
+                            if (userDisplayName && rNameLower === userDisplayName) return true;
+                          }
+                          return false;
                         });
 
                         if (!amIInList && currentUsername) {
@@ -3297,16 +3312,86 @@ const ChatContent = ({
                         }
                       }
 
-                      return readerList.length > 0 ? (
-                        readerList.map((readerItem, idx) => {
+                      //  FIX: Deduplicar la lista para evitar nombres repetidos
+                      const uniqueReadersMap = new Map();
+
+                      const getUnifiedKey = (r) => {
+                        let extracted = "";
+                        if (typeof r === 'object' && r !== null) {
+                          extracted = r.username || r.dni || r.email || r.id || r.displayName || (r.nombre && r.apellido ? `${r.nombre} ${r.apellido}` : r.nombre) || r.name;
+                        } else {
+                          extracted = r;
+                        }
+
+                        if (!extracted) return "";
+                        const extractedLower = String(extracted).toLowerCase().trim();
+
+                        // Si roomUsers está disponible, buscar el usuario para obtener su identificador único maestro (username/DNI)
+                        if (roomUsers && Array.isArray(roomUsers)) {
+                          const u = roomUsers.find(u => {
+                            const uName = (u.username || "").toLowerCase();
+                            const uFull = (u.nombre && u.apellido) ? `${u.nombre} ${u.apellido}`.toLowerCase() : "";
+                            const uDisplayName = (u.displayName || "").toLowerCase();
+                            return uName === extractedLower || uFull === extractedLower || uDisplayName === extractedLower || (u.email && u.email.toLowerCase() === extractedLower);
+                          });
+                          if (u && u.username) {
+                            return u.username.toLowerCase(); // Usar siempre el username (DNI) como clave unificada
+                          }
+                        }
+
+                        return extractedLower;
+                      };
+
+                      readerList.forEach(r => {
+                        const keyLower = getUnifiedKey(r);
+
+                        // Fix: si no tenemos un keyLower claro, usamos el nombre en sí (si es texto) 
+                        // o stringificamos si es obj y de ahí mapeamos para no duplicar un string con otro obj
+                        const mapKey = keyLower || (typeof r === 'object' && r !== null ? (r.displayName || (r.nombre && r.apellido ? `${r.nombre} ${r.apellido}` : false) || JSON.stringify(r)) : String(r)).toLowerCase().trim();
+
+                        if (!uniqueReadersMap.has(mapKey)) {
+                          uniqueReadersMap.set(mapKey, r);
+                        } else {
+                          // Si ya existe, nos quedamos con el objeto más rico
+                          const existing = uniqueReadersMap.get(mapKey);
+                          if (typeof r === 'object' && typeof existing !== 'object') {
+                            uniqueReadersMap.set(mapKey, r);
+                          } else if (typeof r === 'object' && typeof existing === 'object') {
+                            // Merge opcional, por ahora nos quedamos con el existente
+                            // si r tiene más keys podríamos pisarlo, pero con preferir object>string basta.
+                          }
+                        }
+                      });
+
+                      const deduplicatedReaderList = Array.from(uniqueReadersMap.values());
+
+                      // LOG PARA DEBUG
+                      // console.log("--- READ RECEIPTS DEDUPLICATOR ---");
+                      // console.log("Raw readerList:", readerList);
+                      // console.log("Unique Readers Map:", uniqueReadersMap);
+                      // console.log("Final deduplicatedReaderList:", deduplicatedReaderList);
+
+                      return deduplicatedReaderList.length > 0 ? (
+                        deduplicatedReaderList.map((readerItem, idx) => {
                           let userPic = null;
                           let fullName = "";
                           let username = "";
 
                           // Manejar si es objeto (readByData) o string (readBy/loadedReadBy antiguo)
                           if (typeof readerItem === 'object' && readerItem !== null) {
-                            username = readerItem.username;
-                            fullName = readerItem.nombre && readerItem.apellido ? `${readerItem.nombre} ${readerItem.apellido}` : readerItem.username;
+                            username = readerItem.username || readerItem.dni || readerItem.email || readerItem.id || "";
+
+                            // Construir el nombre completo más adecuado
+                            if (readerItem.displayName) {
+                              fullName = readerItem.displayName;
+                            } else if (readerItem.nombre && readerItem.apellido) {
+                              fullName = `${readerItem.nombre} ${readerItem.apellido}`;
+                            } else if (readerItem.name) {
+                              fullName = readerItem.name;
+                            } else {
+                              fullName = readerItem.nombre || username;
+                            }
+
                             userPic = readerItem.picture;
                           } else {
                             username = readerItem;
@@ -3320,12 +3405,21 @@ const ChatContent = ({
                               const u = roomUsers.find(u => {
                                 const uName = (u.username || "").toLowerCase();
                                 const uFull = (u.nombre && u.apellido) ? `${u.nombre} ${u.apellido}`.toLowerCase() : "";
-                                return uName === searchName || uFull === searchName;
+                                const uDisplayName = (u.displayName || "").toLowerCase();
+                                return uName === searchName || uFull === searchName || uDisplayName === searchName || (u.email && u.email.toLowerCase() === searchName) || (u.id && String(u.id) === searchName);
                               });
                               if (u) {
                                 userPic = u.picture || userPic;
-                                fullName = u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : (u.username || fullName);
+                                fullName = u.displayName || (u.nombre && u.apellido ? `${u.nombre} ${u.apellido}` : (u.username || fullName));
                               }
+                            }
+                          }
+
+                          // Si después de todo sigue siendo el DNI (números), intentar resolverlo a nivel de aplicación (para chats individuales/asignados)
+                          if (resolveDisplayName && (/^\d+$/.test(fullName) || fullName === username)) {
+                            const resolvedName = resolveDisplayName(String(username).trim(), roomUsers, userList);
+                            if (resolvedName && resolvedName !== username) {
+                              fullName = resolvedName;
                             }
                           }
 
@@ -3417,7 +3511,7 @@ const ChatContent = ({
         ref={chatHistoryRef}
         onScroll={handleScroll}
         onWheel={(e) => {
-          // 🔥 FIX: Permitir cargar mensajes anteriores con rueda del mouse
+          //  FIX: Permitir cargar mensajes anteriores con rueda del mouse
           // incluso si no hay suficiente contenido para scroll (overflow)
           if (e.deltaY < 0 && chatHistoryRef.current && chatHistoryRef.current.scrollTop === 0) {
             if (hasMoreMessages && !isLoadingMore) {
@@ -3506,7 +3600,7 @@ const ChatContent = ({
               }
             })}
 
-            {/* 🔥 BOTÓN PARA CARGAR MENSAJES MÁS RECIENTES (FORWARD PAGINATION) */}
+            {/*  BOTÓN PARA CARGAR MENSAJES MÁS RECIENTES (FORWARD PAGINATION) */}
             {hasMoreAfter && (
               <div
                 className="load-more-container" // Reutilizamos clase

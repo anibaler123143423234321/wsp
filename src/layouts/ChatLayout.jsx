@@ -90,7 +90,7 @@ const ChatLayout = ({
   onGoToMessage, //  NUEVO: Callback para ir a mensaje
   onGoToLatest, //  NUEVO: Ir al final
   updateMessage, // ðŸ”¥ NUEVO: Para actualizar contador de hilos desde ThreadPanel
-  setRoomUsers, // 🔥 NUEVO: Para actualizar globalmente desde paneles
+  setRoomUsers, //  NUEVO: Para actualizar globalmente desde paneles
 }) => {
   // State para el panel de miembros (lifted from ChatHeader)
   const [showMembersPanel, setShowMembersPanel] = React.useState(false);
@@ -617,7 +617,7 @@ const ChatLayout = ({
         user={user}
         userList={userList}
         socket={socket}
-        setRoomUsers={setRoomUsers} // 🔥 NUEVO: Para sincronización global
+        setRoomUsers={setRoomUsers} //  NUEVO: Para sincronización global
       />
 
       {/* Info Panel (Displacement Layout) */}
@@ -737,3 +737,4 @@ const ChatLayout = ({
 };
 
 export default ChatLayout;
+

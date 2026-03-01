@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ChatPage.jsx - Versión Refactorizada
  * 
  * Componente principal del chat que utiliza hooks personalizados para
@@ -28,7 +28,7 @@ import { useSocketListeners } from '../../hooks/useSocketListeners';
 import { showSuccessAlert, showErrorAlert, showConfirmAlert } from '../../sweetalert2';
 import { faviconBadge } from '../../utils/faviconBadge'; //  NUEVO: Badge en el favicon
 import whatsappSound from '../../assets/sonidos/whatsapp_pc.mp3';
-import mentionSoundFile from '../../assets/sonidos/etiqueta.mp3'; // 🔥 NUEVO: Sonido para menciones
+import mentionSoundFile from '../../assets/sonidos/etiqueta.mp3'; //  NUEVO: Sonido para menciones
 import ringtoneSoundFile from '../../assets/sonidos/llamada_wsp.mp3'; //  NUEVO: Tono de llamada
 
 const ChatPage = () => {
@@ -43,7 +43,7 @@ const ChatPage = () => {
     refreshAuth,
   } = useAuth();
 
-  // 🔥 NUEVO: Inicializar tema desde localStorage (Persistencia de Modo Oscuro)
+  //  NUEVO: Inicializar tema desde localStorage (Persistencia de Modo Oscuro)
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -77,7 +77,7 @@ const ChatPage = () => {
     isRecording,
     setIsRecording,
     messageSound,
-    mentionSound, // 🔥 NUEVO: Ref del sonido de menciones
+    mentionSound, //  NUEVO: Ref del sonido de menciones
     playMessageSound,
     ringtoneSound, //  Ref del tono
     playRingtone,  //  Función play
@@ -106,7 +106,7 @@ const ChatPage = () => {
     setInitialMessages,
     setMessages, //  NUEVO: Exponer para prepend
     isLoading: isLoadingMessages,
-    // 🔥 NUEVO: Para búsqueda WhatsApp
+    //  NUEVO: Para búsqueda WhatsApp
     loadMessagesAroundId,
     aroundMode, // Indica si estamos en modo "around" (búsqueda)
     hasMoreAfter, // Vienen del hook
@@ -141,11 +141,11 @@ const ChatPage = () => {
     {
       ...chatState,
       setInitialMessages,
-      setMessages, // 🔥 NUEVO: Necesario para prepend en loadMoreAdminViewMessages
+      setMessages, //  NUEVO: Necesario para prepend en loadMoreAdminViewMessages
     }
   );
 
-  // 🔥 FIX: Restaurar contadores desde localStorage al iniciar (antes de que el backend los corrompa)
+  //  FIX: Restaurar contadores desde localStorage al iniciar (antes de que el backend los corrompa)
   const hasRestoredFromLocalStorage = useRef(false);
   useEffect(() => {
     if (!username || hasRestoredFromLocalStorage.current) return;
@@ -170,7 +170,7 @@ const ChatPage = () => {
     }
   }, [username]);
 
-  // 🔥 FIX: Persistir contadores en localStorage cada vez que cambien
+  //  FIX: Persistir contadores en localStorage cada vez que cambien
   useEffect(() => {
     if (!username) return;
     // Solo guardar si hay datos (evitar guardar {} vacío al inicio)
@@ -184,7 +184,7 @@ const ChatPage = () => {
     }
   }, [chatState.unreadMessages, username]);
 
-  // 🔥 FIX: Refs para evitar dependencias circulares en el polling de unreads
+  //  FIX: Refs para evitar dependencias circulares en el polling de unreads
   const myActiveRoomsRef = useRef(chatState.myActiveRooms);
   const favoriteRoomsRef = useRef(chatState.favoriteRooms);
   const assignedConversationsRef = useRef(chatState.assignedConversations);
@@ -344,7 +344,7 @@ const ChatPage = () => {
         user?.nombre && user?.apellido
           ? `${user.nombre} ${user.apellido}`
           : user?.username;
-      // 🔥 FIX: Verificar pertenencia tanto por DNI (username) como por nombre completo
+      //  FIX: Verificar pertenencia tanto por DNI (username) como por nombre completo
       return conv.participants?.some(p => {
         const pLower = p?.toLowerCase().trim();
         return pLower === user?.username?.toLowerCase().trim()
@@ -360,7 +360,7 @@ const ChatPage = () => {
     }).length;
 
     // 2. Unread count from Rooms (Active + Favorites)
-    // 🔥 FIX: Combinar myActiveRooms y favoriteRooms para asegurar que tenemos todos los datos
+    //  FIX: Combinar myActiveRooms y favoriteRooms para asegurar que tenemos todos los datos
     // y usar un Map por roomCode para evitar duplicados y tomar el objeto con datos más frescos
     const allUniqueRooms = new Map();
 
@@ -388,7 +388,7 @@ const ChatPage = () => {
       // Prioridad: 1. Socket (realtime), 2. API (room.unreadCount)
       const count = (realtimeCount !== undefined) ? realtimeCount : (room.unreadCount || 0);
 
-      // 🔥 DEBUG: Log para diagnosticar el problema del contador
+      //  DEBUG: Log para diagnosticar el problema del contador
       if (room.roomCode === '2E104789') {
         console.log('🔍 DEBUG contador para 2E104789:', {
           realtimeCount,
@@ -470,7 +470,7 @@ const ChatPage = () => {
     [socket, username]
   );
 
-  // 🔥 NOTA: Los favoritos se cargan en ConversationList.jsx y se sincronizan
+  //  NOTA: Los favoritos se cargan en ConversationList.jsx y se sincronizan
   // a chatState via setExternalFavoriteRoomCodes. No duplicar la llamada aquí.
 
   useEffect(() => {
@@ -500,7 +500,7 @@ const ChatPage = () => {
 
   // Cargar mensajes cuando cambie currentRoomCode
   useEffect(() => {
-    // 🔥 No cargar si estamos en modo "around" (búsqueda)
+    //  No cargar si estamos en modo "around" (búsqueda)
     if (chatState.currentRoomCode && username && chatState.isGroup && !aroundMode) {
       loadInitialMessages();
     }
@@ -513,7 +513,7 @@ const ChatPage = () => {
   useEffect(() => {
     // A. Lógica para GRUPOS
     if (chatState.isGroup && chatState.currentRoomCode && messages.length > 0) {
-      // 🔥 Usar key que incluye messages.length para re-marcar cuando llegan nuevos mensajes
+      //  Usar key que incluye messages.length para re-marcar cuando llegan nuevos mensajes
       const roomKey = `room:${chatState.currentRoomCode}:${messages.length}`;
       if (lastMarkedChatRef.current !== roomKey) {
         lastMarkedChatRef.current = roomKey;
@@ -521,7 +521,7 @@ const ChatPage = () => {
         console.log(`📝 Marcando grupo como leído: ${chatState.currentRoomCode}`);
         markRoomMessagesAsRead(chatState.currentRoomCode);
 
-        // 🔥 FIX: Resetear contador local inmediatamente (no esperar al backend)
+        //  FIX: Resetear contador local inmediatamente (no esperar al backend)
         chatState.setUnreadMessages(prev => ({ ...prev, [chatState.currentRoomCode]: 0 }));
 
         // También resetear en myActiveRooms y favoriteRooms
@@ -547,7 +547,7 @@ const ChatPage = () => {
       }
     }
 
-    // B. 🔥 RESTAURADO: Marcar como leído al abrir chats asignados
+    // B.  RESTAURADO: Marcar como leído al abrir chats asignados
     if (!chatState.isGroup && chatState.to && messages.length > 0) {
       const chatKey = `chat:${chatState.to}:${messages.length}`;
       if (lastMarkedChatRef.current !== chatKey) {
@@ -556,7 +556,7 @@ const ChatPage = () => {
         // Buscar conversación asignada o en favoritos
         const normalizedTo = chatState.to.toLowerCase().trim();
 
-        // 🔥 FIX: Función robusta para encontrar la conversación considerando DNIs y Nombres Completos
+        //  FIX: Función robusta para encontrar la conversación considerando DNIs y Nombres Completos
         const findConversation = (conversations) => {
           return conversations?.find(c => {
             // 1. Coincidencia directa con DNI o nombre en participants
@@ -589,7 +589,7 @@ const ChatPage = () => {
           console.log(`📝 Marcando chat asignado/favorito como leído. Conv: ${conv.id}`);
 
           // 1. Marcar en Backend (API)
-          // 🔥 FIX: El primer parámetro es QUIEN lee (Karen/DNI), el segundo de QUIÉN lee (Jesus)
+          //  FIX: El primer parámetro es QUIEN lee (Karen/DNI), el segundo de QUIÉN lee (Jesus)
           apiService.markConversationAsRead(username, chatState.to).catch(err =>
             console.error('Error al marcar conversación como leída:', err)
           );
@@ -613,7 +613,7 @@ const ChatPage = () => {
             );
           }
 
-          // 5. Actualizar estado de Favoritos (🔥 CLAVE)
+          // 5. Actualizar estado de Favoritos ( CLAVE)
           if (favoriteConv) {
             chatState.setFavoriteRooms(prev =>
               prev.map(f => f.id === conv.id ? { ...f, unreadCount: 0 } : f)
@@ -644,7 +644,7 @@ const ChatPage = () => {
 
   // Cargar mensajes cuando cambie 'to'
   useEffect(() => {
-    // 🔥 No cargar si estamos en modo "around" (búsqueda)
+    //  No cargar si estamos en modo "around" (búsqueda)
     if (
       chatState.to &&
       username &&
@@ -697,19 +697,19 @@ const ChatPage = () => {
       stopRingtone, //  Pasar función
       loadAssignedConversations: conversations.loadAssignedConversations,
       loadMyActiveRooms: roomManagement.loadMyActiveRooms,
-      loadFavoriteRoomCodes: chatState.loadFavoriteRoomCodes, // 🔥 NUEVO: Para refrescar favoritos en tiempo real
+      loadFavoriteRoomCodes: chatState.loadFavoriteRoomCodes, //  NUEVO: Para refrescar favoritos en tiempo real
       clearMessages
     },
     {
       user,
-      userList: chatState.userList, // 🔥 NUEVO: Para resolución de nombres amigables
+      userList: chatState.userList, //  NUEVO: Para resolución de nombres amigables
       username,
       isAdmin,
       soundsEnabled: chatState.soundsEnabled,
       favoriteRoomCodes: chatState.favoriteRoomCodes,
       areAlertsEnabled: chatState.areAlertsEnabled,
-      areThreadAlertsEnabled: chatState.areThreadAlertsEnabled, // 🔥 NUEVO
-      areMessageAlertsEnabled: chatState.areMessageAlertsEnabled // 🔥 NUEVO
+      areThreadAlertsEnabled: chatState.areThreadAlertsEnabled, //  NUEVO
+      areMessageAlertsEnabled: chatState.areMessageAlertsEnabled //  NUEVO
     }
   );
 
@@ -718,7 +718,7 @@ const ChatPage = () => {
     messageId = null,
     conversationData = null
   ) => {
-    // 🔥 DEBUG: Ver qué está pasando
+    //  DEBUG: Ver qué está pasando
     console.log('🔍 handleUserSelect llamado:', {
       userName,
       messageId,
@@ -731,14 +731,14 @@ const ChatPage = () => {
       }
     });
 
-    // 🔥 NUEVO: Si conversationData tiene roomCode Y es tipo 'room', redirigir a handleGroupSelect
+    //  NUEVO: Si conversationData tiene roomCode Y es tipo 'room', redirigir a handleGroupSelect
     // Evitamos redirigir si es un favorito tipo 'conv' (que también trae roomCode por compatibilidad)
     if (conversationData && conversationData.roomCode && (conversationData.type === 'room' || !conversationData.participants)) {
       console.log('🔄 Grupo detectado, redirigiendo a handleGroupSelect');
       return handleGroupSelect(conversationData);
     }
 
-    // 🔥 NUEVO: Evitar limpiar chat si ya estamos en el mismo chat asignado
+    //  NUEVO: Evitar limpiar chat si ya estamos en el mismo chat asignado
     // (previene que doble clic accidental limpie el contenido)
     const normalizedUserName = userName?.toLowerCase().trim();
     const currentTo = chatState.to?.toLowerCase().trim();
@@ -766,9 +766,9 @@ const ChatPage = () => {
     // (Asumiendo que 'clearMessages' viene de useMessagePagination o roomManagement)
     if (typeof clearMessages === 'function') clearMessages();
 
-    setSelectedRoomData(conversationData?.picture ? { picture: conversationData.picture } : null); // 🔥 FIX: Preservar picture de favoritos
+    setSelectedRoomData(conversationData?.picture ? { picture: conversationData.picture } : null); //  FIX: Preservar picture de favoritos
 
-    // 🔥 NUEVO: Limpiar pendingMentions para este chat
+    //  NUEVO: Limpiar pendingMentions para este chat
     // Puede ser conversationId (asignado) o userName (chat directo)
     const conversationId = conversationData?.id || userName;
     if (conversationId && chatState.pendingMentions[conversationId]) {
@@ -790,7 +790,7 @@ const ChatPage = () => {
 
     // 2. Definir quién soy yo (normalizado)
     const myNameNormalized = normalizeUsername(currentUserFullName);
-    // 🔥 FIX: También normalizar DNI para comparación
+    //  FIX: También normalizar DNI para comparación
     const myDniNormalized = normalizeUsername(user?.username || '');
 
     // 3. Lógica Inteligente: ¿Soy Participante o Soy Admin?
@@ -812,7 +812,7 @@ const ChatPage = () => {
         );
 
         // Establecer el destinatario (esto dispara la carga de mensajes)
-        // 🔥 FIX: Usar conversationData.name (que viene de la API) si existe
+        //  FIX: Usar conversationData.name (que viene de la API) si existe
         chatState.setTo(conversationData.name || otherPerson || userName);
 
       } else {
@@ -828,7 +828,7 @@ const ChatPage = () => {
       chatState.setTo(conversationData?.name || userName);
     }
 
-    // 4. 🔥 NUEVO: Si hay messageId, cargar mensajes alrededor de ese ID
+    // 4.  NUEVO: Si hay messageId, cargar mensajes alrededor de ese ID
     if (messageId && loadMessagesAroundId) {
       console.log('🔍 handleUserSelect: Cargando mensajes alrededor de ID:', messageId);
       await loadMessagesAroundId(messageId);
@@ -857,7 +857,7 @@ const ChatPage = () => {
     chatState.currentRoomCodeRef.current = group.roomCode;
     setSelectedRoomData(group);
 
-    // 🔥 FIX: Resetear contador inmediatamente al entrar al grupo
+    //  FIX: Resetear contador inmediatamente al entrar al grupo
     chatState.setUnreadMessages(prev => ({ ...prev, [group.roomCode]: 0 }));
     chatState.setMyActiveRooms(prev => prev.map(room =>
       room.roomCode === group.roomCode ? { ...room, unreadCount: 0 } : room
@@ -888,7 +888,7 @@ const ChatPage = () => {
         }
       }
 
-      // 🔥 ENRIQUECIMIENTO Y DEDUPLICACIÓN: Priorizar objetos sobre strings
+      //  ENRIQUECIMIENTO Y DEDUPLICACIÓN: Priorizar objetos sobre strings
       const userMap = new Map();
 
       apiUsers.forEach(u => {
@@ -1320,14 +1320,14 @@ const ChatPage = () => {
           replyToSender: chatState.replyingTo.sender,
           replyToText: replyToTextClean,
           replyToSenderNumeroAgente: chatState.replyingTo.senderNumeroAgente,
-          replyToAttachmentId: specificAttachment?.id || null // 🔥 NUEVO: ID del adjunto específico
+          replyToAttachmentId: specificAttachment?.id || null //  NUEVO: ID del adjunto específico
         };
       }
 
       // C. CONSTRUCCIÓN DEL MENSAJE ÚNICO
       let messageObj = {
         from: username,
-        // fromId: user.id, // 🔥 REMOVIDO: El backend lo resuelve vía DNI (username)
+        // fromId: user.id, //  REMOVIDO: El backend lo resuelve vía DNI (username)
         to: chatState.to,
         groupName: effectiveIsGroup ? chatState.to : undefined,
         message: String(input || ""),
@@ -1413,7 +1413,7 @@ const ChatPage = () => {
 
       } // Fin del bucle
 
-      // 🔥 NUEVO: Función de ordenamiento unificada (para ser consistente con useSocketListeners)
+      //  NUEVO: Función de ordenamiento unificada (para ser consistente con useSocketListeners)
       const sortUnified = (rooms, codes) => {
         if (!rooms || !Array.isArray(rooms)) return rooms;
         const favCodes = Array.isArray(codes) ? codes.map(c => String(c).toLowerCase().trim()) : [];
@@ -1450,7 +1450,7 @@ const ChatPage = () => {
           if (isTarget(r)) {
             return {
               ...r,
-              lastActivity: now, // 🔥 CRÍTICO: Para el sort
+              lastActivity: now, //  CRÍTICO: Para el sort
               lastMessage: {
                 text: messageObj.message,
                 from: currentUserFullName,
@@ -1648,7 +1648,7 @@ const ChatPage = () => {
       const hasUnread = (chatState.unreadMessages?.[chatState.currentRoomCode] || 0) > 0;
 
       if (hasUnread) {
-        // 🔥 FIX: Sincronizar lectura de grupo con el backend
+        //  FIX: Sincronizar lectura de grupo con el backend
         markRoomMessagesAsRead(chatState.currentRoomCode);
 
         chatState.setUnreadMessages(prev => {
@@ -1657,7 +1657,7 @@ const ChatPage = () => {
         });
       }
     } else if (!chatState.isGroup && chatState.to) {
-      // 🔥 FIX: Para chats individuales, marcar como leído cuando el usuario escribe
+      //  FIX: Para chats individuales, marcar como leído cuando el usuario escribe
       const conv = chatState.assignedConversations?.find(c =>
         c.participants?.some(p => normalizeUsername(p) === normalizeUsername(chatState.to))
       );
@@ -1669,7 +1669,7 @@ const ChatPage = () => {
         if (hasUnread) {
           try {
             // 1. Marcar en Backend
-            // 🔥 FIX: Corregir orden (Lector primero: username/DNI, Emisor segundo: chatState.to)
+            //  FIX: Corregir orden (Lector primero: username/DNI, Emisor segundo: chatState.to)
             await apiService.markConversationAsRead(username, chatState.to);
 
             // 2. Emitir Socket
@@ -1740,7 +1740,7 @@ const ChatPage = () => {
         isGroup: effectiveIsGroup,
         groupName: effectiveIsGroup ? chatState.to : undefined,
         from: username,
-        // fromId: user.id, // 🔥 REMOVIDO: El backend lo resuelve vía DNI (username)
+        // fromId: user.id, //  REMOVIDO: El backend lo resuelve vía DNI (username)
         mediaType: "audio",
         mediaData: uploadResult.fileUrl,
         fileName: uploadResult.fileName,
@@ -1817,12 +1817,12 @@ const ChatPage = () => {
         messageObj.fileSize = messageData.fileSize;
       }
 
-      // 🔥 NUEVO: Incluir attachments para mensajes con múltiples archivos
+      //  NUEVO: Incluir attachments para mensajes con múltiples archivos
       if (messageData.attachments && Array.isArray(messageData.attachments)) {
         messageObj.attachments = messageData.attachments;
       }
 
-      // 🔥 NUEVO: Incluir replyToAttachmentId si existe
+      //  NUEVO: Incluir replyToAttachmentId si existe
       if (messageData.replyToAttachmentId) {
         messageObj.replyToAttachmentId = messageData.replyToAttachmentId;
       }
@@ -1858,7 +1858,7 @@ const ChatPage = () => {
           roomCode: messageData.roomCode,
           from: messageObj.from,
           to: messageObj.to,
-          replyToAttachmentId: messageData.replyToAttachmentId || null, // 🔥 NUEVO: Para hilos de adjuntos
+          replyToAttachmentId: messageData.replyToAttachmentId || null, //  NUEVO: Para hilos de adjuntos
         });
 
         //  ESTA LÍNEA ES LA CLAVE: Avisa al servidor que avise a todos (incluyéndome) que actualicen el contador
@@ -2107,7 +2107,7 @@ const ChatPage = () => {
     localStorage.setItem('soundsEnabled', String(newValue));
   }, [chatState.soundsEnabled, chatState]);
 
-  // 🔥 NUEVO: Toggle para silenciar TODAS las alertas
+  //  NUEVO: Toggle para silenciar TODAS las alertas
   const handleAlertsToggle = useCallback(() => {
     // Si areAlertsEnabled es true, el usuario quiere DESACTIVARLAS (silenciar)
     // Si areAlertsEnabled es false (silenciado), quiere ACTIVARLAS
@@ -2117,7 +2117,7 @@ const ChatPage = () => {
     console.log('🔔 Alertas globales cambiadas a:', newValue ? 'ACTIVADAS' : 'DESACTIVADAS');
   }, [chatState.areAlertsEnabled, chatState]);
 
-  // 🔥 NUEVO: Toggle para alertas de hilos
+  //  NUEVO: Toggle para alertas de hilos
   const handleThreadAlertsToggle = useCallback(() => {
     const newValue = !chatState.areThreadAlertsEnabled;
     chatState.setAreThreadAlertsEnabled(newValue);
@@ -2125,7 +2125,7 @@ const ChatPage = () => {
     console.log('🧵 Alertas de hilos:', newValue ? 'ACTIVADAS' : 'DESACTIVADAS');
   }, [chatState.areThreadAlertsEnabled, chatState]);
 
-  // 🔥 NUEVO: Toggle para alertas de mensajes
+  //  NUEVO: Toggle para alertas de mensajes
   const handleMessageAlertsToggle = useCallback(() => {
     const newValue = !chatState.areMessageAlertsEnabled;
     chatState.setAreMessageAlertsEnabled(newValue);
@@ -2133,13 +2133,13 @@ const ChatPage = () => {
     console.log('💬 Alertas de mensajes:', newValue ? 'ACTIVADAS' : 'DESACTIVADAS');
   }, [chatState.areMessageAlertsEnabled, chatState]);
 
-  // 🔥 NUEVO: Función para probar sonido desde ajustes
+  //  NUEVO: Función para probar sonido desde ajustes
   const handleTestSound = useCallback(() => {
     console.log('🔊 Probando sonido de mención...');
     playMessageSound(true, true); // Forzar sonido de mención
   }, [playMessageSound]);
 
-  // 🔥 NUEVO: Función para probar sonido normal
+  //  NUEVO: Función para probar sonido normal
   const handleTestNormalSound = useCallback(() => {
     console.log('🔊 Probando sonido normal...');
     playMessageSound(true, false); // Forzar sonido normal
@@ -2265,7 +2265,7 @@ const ChatPage = () => {
   const canSendMessages = useMemo(() => {
     if (!chatState.to) return false;
 
-    // 🔥 FIX: Considerar tanto Nombre Completo como DNI para permisos
+    //  FIX: Considerar tanto Nombre Completo como DNI para permisos
     const myNameNormalized = normalizeUsername(
       user?.nombre && user?.apellido
         ? `${user.nombre} ${user.apellido}`
@@ -2456,13 +2456,13 @@ const ChatPage = () => {
         setFavoriteRoomCodes={chatState.setFavoriteRoomCodes}
         setFavoriteRooms={chatState.setFavoriteRooms}
         lastFavoriteUpdate={chatState.lastFavoriteUpdate}
-        pendingMentions={chatState.pendingMentions} // 🔥 NUEVO: Pasar menciones pendientes
-        pendingThreads={chatState.pendingThreads} // 🔥 NUEVO: Pasar hilos pendientes
-        setPendingThreads={chatState.setPendingThreads} // 🔥 NUEVO: Para limpiar hilos pendientes
+        pendingMentions={chatState.pendingMentions} //  NUEVO: Pasar menciones pendientes
+        pendingThreads={chatState.pendingThreads} //  NUEVO: Pasar hilos pendientes
+        setPendingThreads={chatState.setPendingThreads} //  NUEVO: Para limpiar hilos pendientes
         onRoomSelect={async (room, messageId) => {
           setSelectedRoomData(room); //  Guardar datos de sala para favoritos/imágenes
           const result = await roomManagement.handleRoomSelect(room, messageId);
-          // 🔥 NUEVO: Actualizar selectedRoomData con maxCapacity de la API
+          //  NUEVO: Actualizar selectedRoomData con maxCapacity de la API
           if (result?.maxCapacity) {
             setSelectedRoomData(prev => ({ ...prev, maxCapacity: result.maxCapacity }));
           }
@@ -2539,7 +2539,7 @@ const ChatPage = () => {
         onPinMessage={handlePinMessage}
         onPollVote={handlePollVote}
         onRoomUpdated={() => roomManagement.loadMyActiveRooms(1, false, null, user)}
-        setRoomUsers={chatState.setRoomUsers} // 🔥 NUEVO: Para actualizar globalmente desde paneles
+        setRoomUsers={chatState.setRoomUsers} //  NUEVO: Para actualizar globalmente desde paneles
         // Props de modales
         showCreateRoomModal={chatState.showCreateRoomModal}
         setShowCreateRoomModal={chatState.setShowCreateRoomModal}
@@ -2567,7 +2567,7 @@ const ChatPage = () => {
         setShowRoomUsersModal={chatState.setShowRoomUsersModal}
         roomUsersModalData={chatState.roomUsersModalData}
         selectedRoomData={selectedRoomData} //  Pasar datos seleccionados
-        updateMessage={updateMessage} // 🔥 NUEVO: Para actualizar contador de hilos desde ThreadPanel
+        updateMessage={updateMessage} //  NUEVO: Para actualizar contador de hilos desde ThreadPanel
       />
 
       {/* Contenedor de modales */}
@@ -2609,8 +2609,8 @@ const ChatPage = () => {
         user={user}
         isSoundEnabled={chatState.soundsEnabled}
         onSoundToggle={handleSoundToggle}
-        onTestSound={handleTestSound} // 🔥 Pasamos la función de prueba
-        onTestNormalSound={handleTestNormalSound} // 🔥 Pasamos la función de prueba de sonido normal
+        onTestSound={handleTestSound} //  Pasamos la función de prueba
+        onTestNormalSound={handleTestNormalSound} //  Pasamos la función de prueba de sonido normal
         areAlertsEnabled={chatState.areAlertsEnabled}
         onAlertsToggle={handleAlertsToggle}
         areThreadAlertsEnabled={chatState.areThreadAlertsEnabled}
@@ -2623,3 +2623,4 @@ const ChatPage = () => {
 };
 
 export default ChatPage;
+

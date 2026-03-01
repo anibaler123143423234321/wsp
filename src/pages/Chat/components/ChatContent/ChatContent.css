@@ -1,4 +1,4 @@
-/* Import shared ChatInput styles */
+﻿/* Import shared ChatInput styles */
 @import '../../../../components/ChatInput/ChatInput.css';
 
 /* Drag & Drop Overlay - Mejorado con rem */
@@ -1007,7 +1007,7 @@ html.dark .message-timestamp-left {
   min-width: 38px;
   position: relative;
   z-index: 100;
-  /* 🔥 CRITICAL: Fix hover area overlap */
+  /*  CRITICAL: Fix hover area overlap */
 
   background-color: #ffffff;
   color: #111b21;
@@ -2475,7 +2475,7 @@ html.dark .message-text-body {
   color: #e5e5e5 !important;
 }
 
-/* 🔥 Mensajes propios (.is-own) - forzar texto blanco con máxima especificidad */
+/*  Mensajes propios (.is-own) - forzar texto blanco con máxima especificidad */
 html.dark .message-row.is-own .message-text-body,
 html.dark .message-row.is-own .message-text-body *:not(.mention-span),
 html.dark .message-row.is-own .message-text-body p:not(.mention-span),
@@ -2521,7 +2521,7 @@ html.dark .message-row.is-own .message-text-body {
   /* Verde oscuro tipo WhatsApp dark */
 }
 
-/* 🔥 SUPER ESPECÍFICO: Override del color #1d1c1d del .message-text-body base */
+/*  SUPER ESPECÍFICO: Override del color #1d1c1d del .message-text-body base */
 html.dark .message-text-body {
   color: #e5e5e5 !important;
   -webkit-text-fill-color: #e5e5e5 !important;
@@ -2535,7 +2535,7 @@ html.dark .message-timestamp-left {
   color: #9ca3af !important;
 }
 
-/* 🔥 Botón de respuestas/hilos */
+/*  Botón de respuestas/hilos */
 html.dark .mx_ThreadSummaryLine {
   background-color: #2a2a2a !important;
   border-color: #3a3a3a !important;
@@ -2562,7 +2562,7 @@ html.dark .thread-face-pile {
   background-color: transparent !important;
 }
 
-/* 🔥 Popover de "Quién ha leído" */
+/*  Popover de "Quién ha leído" */
 html.dark .read-receipts-popover {
   background-color: #2a2a2a !important;
   border: 1px solid #3a3a3a !important;
@@ -2592,7 +2592,7 @@ html.dark .popover-avatar-initial {
   color: #e5e5e5 !important;
 }
 
-/* 🔥 Reacciones (Píldoras) */
+/*  Reacciones (Píldoras) */
 html.dark .reaction-pill {
   background-color: #2a2a2a !important;
   border: 1px solid #3a3a3a !important;
@@ -2670,7 +2670,7 @@ html.dark .message-content {
   color: #e5e5e5 !important;
 }
 
-/* 🔥 Mensajes propios - texto blanco/claro */
+/*  Mensajes propios - texto blanco/claro */
 html.dark .message-row p,
 html.dark .message-row span,
 html.dark .message-row div {

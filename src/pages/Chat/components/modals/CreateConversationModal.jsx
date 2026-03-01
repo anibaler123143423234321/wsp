@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { FaTimes, FaUser, FaComments, FaInfoCircle, FaSearch, FaCheck } from 'react-icons/fa';
 import BaseModal from './BaseModal';
 import './Modal.css';
@@ -70,7 +70,7 @@ const CreateConversationModal = ({
     }
   }, [isOpen]); //  Solo cargar cuando se abre el modal, NO cuando cambia la sede
 
-  // 🔥 Cargar usuarios cuando cambia la sede
+  //  Cargar usuarios cuando cambia la sede
   useEffect(() => {
     if (isOpen) {
       loadBackendUsers();
@@ -688,4 +688,5 @@ const CreateConversationModal = ({
 };
 
 export default CreateConversationModal;
+
 

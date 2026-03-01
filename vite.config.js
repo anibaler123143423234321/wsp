@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+﻿import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 import { fileURLToPath, URL } from "node:url";
@@ -17,9 +17,9 @@ export default defineConfig({
       devOptions: {
         enabled: true,
         type: 'module',
-        suppressWarnings: true, // 🔥 Silenciar logs de precaching en dev
+        suppressWarnings: true, //  Silenciar logs de precaching en dev
       },
-      strategies: 'injectManifest', // 🔥 Usar nuestro propio SW
+      strategies: 'injectManifest', //  Usar nuestro propio SW
       srcDir: 'src',
       filename: 'sw.js',
       injectManifest: {
@@ -89,8 +89,9 @@ export default defineConfig({
     minify: "terser",
     terserOptions: {
       compress: {
-        drop_console: true, // 🔥 Limpiar logs en producción
+        drop_console: true, //  Limpiar logs en producción
       },
     },
   },
 });
+

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FaTimes, FaUserPlus } from 'react-icons/fa';
 import apiService from '../../../../apiService';
 import './MembersPanel.css';
@@ -13,7 +13,7 @@ const MembersPanel = ({
     user,
     userList,
     socket, //  NUEVO: Socket para escuchar eventos en tiempo real
-    setRoomUsers: setGlobalRoomUsers // 🔥 NUEVO: Setter global para sincronización
+    setRoomUsers: setGlobalRoomUsers //  NUEVO: Setter global para sincronización
 }) => {
     const [filterText, setFilterText] = useState('');
     const [roomUsers, setRoomUsers] = useState([]);
@@ -129,7 +129,7 @@ const MembersPanel = ({
 
             setRoomUsers(enrichedUsers);
 
-            // 🔥 SINCRONIZACIÓN GLOBAL: Actualizar el estado centralizado
+            //  SINCRONIZACIÓN GLOBAL: Actualizar el estado centralizado
             if (setGlobalRoomUsers) {
                 console.log('✅ MembersPanel: Sincronizando estado global de roomUsers');
                 setGlobalRoomUsers(enrichedUsers);
@@ -185,7 +185,7 @@ const MembersPanel = ({
 
             <div className="members-panel-content">
 
-                {/* 🔥 NUEVO: Lista de solicitudes pendientes (Solo Admin) */}
+                {/*  NUEVO: Lista de solicitudes pendientes (Solo Admin) */}
                 {isAdmin && (
                     <PendingRequestsList
                         roomCode={currentRoomCode}
@@ -276,3 +276,4 @@ const MembersPanel = ({
 };
 
 export default MembersPanel;
+

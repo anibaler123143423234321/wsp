@@ -1,4 +1,4 @@
-import { FaTimes, FaKey, FaUserCircle, FaCog } from 'react-icons/fa'; // Añadido FaCog
+﻿import { FaTimes, FaKey, FaUserCircle, FaCog } from 'react-icons/fa'; // Añadido FaCog
 import './SettingsPanel.css';
 
 const SettingsPanel = ({
@@ -11,10 +11,10 @@ const SettingsPanel = ({
   onTestNormalSound,//  Nueva prop: Función para probar sonido normal
   areAlertsEnabled, //  Nueva prop: Estado global de alertas
   onAlertsToggle,    //  Nueva prop: Función para alternar alertas
-  areThreadAlertsEnabled, // 🔥 NUEVO
-  onThreadAlertsToggle,   // 🔥 NUEVO
-  areMessageAlertsEnabled,// 🔥 NUEVO
-  onMessageAlertsToggle   // 🔥 NUEVO
+  areThreadAlertsEnabled, //  NUEVO
+  onThreadAlertsToggle,   //  NUEVO
+  areMessageAlertsEnabled,//  NUEVO
+  onMessageAlertsToggle   //  NUEVO
 }) => {
   if (!isOpen) return null;
 
@@ -87,7 +87,7 @@ const SettingsPanel = ({
                 </label>
               </div>
 
-              {/* 🔥 NUEVO: Controles Granulares (Solo si alertas globales están activadas) */}
+              {/*  NUEVO: Controles Granulares (Solo si alertas globales están activadas) */}
               {areAlertsEnabled && (
                 <div style={{ paddingLeft: '10px', borderLeft: '2px solid #333', marginBottom: '10px' }}>
                   <div className="settings-toggle-item">

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { FaEdit, FaTrash, FaUsers, FaSearch, FaChevronLeft, FaChevronRight, FaPause, FaPlay, FaSave, FaTimes } from 'react-icons/fa';
 import BaseModal from './BaseModal';
 import './ManageAssignedConversationsModal.css';
@@ -302,7 +302,7 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
 
   const handleViewMembers = async (conv) => {
     const title = 'Participantes';
-    // 🔥 NUEVO: Usar participantNames (Nombres Completos) si está disponible
+    //  NUEVO: Usar participantNames (Nombres Completos) si está disponible
     const memberList = filterType === 'assigned'
       ? (conv.participantNames || conv.participants || conv.users || [])
       : (conv.members || []);
@@ -658,4 +658,5 @@ const ManageAssignedConversationsModal = ({ show, onClose, onConversationUpdated
 };
 
 export default ManageAssignedConversationsModal;
+
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Utilidad para agrupar mensajes de imagen consecutivos del mismo remitente.
  * Esto permite renderizarlos como una galería estilo WhatsApp.
  */
@@ -63,7 +63,7 @@ export const groupMessagesForGallery = (messages) => {
                     sentAt: msg.sentAt,
                     isSelf: msg.isSelf,
                     messages: [msg],
-                    // 🔥 Copiar estado de lectura inicial
+                    //  Copiar estado de lectura inicial
                     isRead: msg.isRead,
                     readBy: msg.readBy,
                     readByCount: msg.readByCount
@@ -88,3 +88,4 @@ export const groupMessagesForGallery = (messages) => {
 
     return processedMessages;
 };
+

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { FaTimes, FaUserPlus, FaSearch, FaCheck } from 'react-icons/fa';
 import BaseModal from './BaseModal';
 import apiService from "../../../../apiService";
@@ -235,7 +235,7 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
       for (const username of selectedUsers) {
         try {
           // console.log(`➕ Agregando usuario: ${username}`);
-          // 🔥 MODIFICADO: Usar addUserDirectlyToRoom en lugar de joinRoom
+          //  MODIFICADO: Usar addUserDirectlyToRoom en lugar de joinRoom
           // Esto bypasses el pending approval y agrega usuarios directameente
           const result = await apiService.addUserDirectlyToRoom(roomCode, username);
           results.push({ username, success: true, result });
@@ -438,4 +438,5 @@ const AddUsersToRoomModal = ({ isOpen, onClose, roomCode, roomName, currentMembe
 };
 
 export default AddUsersToRoomModal;
+
 

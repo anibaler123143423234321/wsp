@@ -1,6 +1,6 @@
-/* ConversationList - Estilos mejorados con rem */
+﻿/* ConversationList - Estilos mejorados con rem */
 
-/* 🔥 Resaltado de chat seleccionado desde búsqueda */
+/*  Resaltado de chat seleccionado desde búsqueda */
 .highlighted-chat {
   background: #fffbeb !important;
   border: 2px solid #fbbf24 !important;
@@ -1062,7 +1062,7 @@ html.dark .hover\:bg-gray-100:hover {
   background: #3a3a3a !important;
 }
 
-/* 🔥 COLORES HARDCODEADOS EN JSX - Nombres de conversación */
+/*  COLORES HARDCODEADOS EN JSX - Nombres de conversación */
 html.dark .text-\[\#111\],
 html.dark [class*="text-[#111]"],
 html.dark h3.font-semibold[class*="text-[#111]"] {
