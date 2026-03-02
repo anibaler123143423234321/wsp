@@ -418,11 +418,13 @@ const CreateConversationModal = ({
         return username;
       };
 
-      await onCreateConversation({
-        user1: selectedUser1, // ENVIAMOS EL DNI A LA DB
-        user2: selectedUser2, // ENVIAMOS EL DNI A LA DB
-        name: conversationName
-      });
+      await onCreateConversation(
+        selectedUser1,
+        selectedUser2,
+        conversationName,
+        getFullNameForUser(selectedUser1),
+        getFullNameForUser(selectedUser2)
+      );
     } finally {
       setIsSubmitting(false);
     }

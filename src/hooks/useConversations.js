@@ -425,19 +425,19 @@ export const useConversations = (
 
     // Crear nueva conversación asignada
     const handleCreateConversation = useCallback(
-        async (data) => {
+        async (user1, user2, name, user1Full, user2Full) => {
             try {
                 const result = await apiService.createAdminAssignedConversation(
-                    data.user1,
-                    data.user2,
-                    data.name
+                    user1,
+                    user2,
+                    name
                 );
 
                 chatState.setShowCreateConversationModal(false);
 
                 await showSuccessAlert(
                     'Conversación creada',
-                    `Conversación creada exitosamente entre ${data.user1} y ${data.user2}`
+                    `Conversación creada exitosamente entre ${user1Full || user1} y ${user2Full || user2}`
                 );
 
                 // Recargar conversaciones asignadas
@@ -446,10 +446,11 @@ export const useConversations = (
                 // Notificar via Socket.io
                 if (socket && socket.connected) {
                     socket.emit('conversationAssigned', {
-                        user1: data.user1,
-                        user2: data.user2,
-                        conversationName: data.name,
+                        user1: user1,
+                        user2: user2,
+                        conversationName: name,
                         linkId: result.linkId,
+                        conversationId: result.id
                     });
                 }
             } catch (error) {

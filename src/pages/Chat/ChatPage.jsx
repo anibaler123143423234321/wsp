@@ -2151,13 +2151,27 @@ const ChatPage = () => {
     setLoginProgress(0);
     setLoginLoadingMessage('Iniciando sesión...');
 
+    try {
+      //  NUEVO: Obtener el ID real del sistema de chat pulsando el nuevo endpoint
+      setLoginLoadingMessage('Sincronizando identidad...');
+      const chatUser = await apiService.getUserByUsername(userData.username);
+      if (chatUser && chatUser.id) {
+        console.log('✅ ID de chat recuperado:', chatUser.id);
+        userData.id = chatUser.id; // Actualizar con el ID real de chat_users
+      }
+    } catch (error) {
+      console.warn('⚠️ No se pudo recuperar el ID de chat, se usará el fallback:', error);
+    }
+
+    setLoginProgress(20);
+
     // Guardar datos de usuario
     localStorage.setItem('user', JSON.stringify(userData));
     localStorage.setItem('token', userData.token || 'mock-token');
 
     // Pequeño delay para mostrar el inicio
     await new Promise(resolve => setTimeout(resolve, 200));
-    setLoginProgress(20);
+    setLoginProgress(30);
     setLoginLoadingMessage('Conectando...');
 
     // Trigger auth que activará los hooks de carga
@@ -2172,13 +2186,35 @@ const ChatPage = () => {
     if (!isLoading && isAuthenticated && !hasRestoredSession.current) {
       hasRestoredSession.current = true;
 
+      const restoreId = async () => {
+        //  NUEVO/FIX: Si el ID falta en el localStorage (restauración F5), traerlo ahora
+        const currentUser = apiService.getCurrentUser();
+        if (currentUser && !currentUser.id) {
+          console.log('🔍 ID faltante en sesión restaurada, recuperando...');
+          try {
+            const chatUser = await apiService.getUserByUsername(currentUser.username);
+            if (chatUser && chatUser.id) {
+              currentUser.id = chatUser.id;
+              localStorage.setItem('user', JSON.stringify(currentUser));
+              // No es necesario refrescar el estado 'user' de useAuth aquí si useAuth lee de localStorage al refrescar
+              // pero forzamos un refreshAuth para estar seguros
+              refreshAuth();
+            }
+          } catch (e) {
+            console.error('Error recuperando ID en restauración:', e);
+          }
+        }
+      };
+
+      restoreId();
+
       // Activar manualmente la pantalla de carga para simular el proceso de login
       console.log('🔄 Sesión restaurada, activando pantalla de carga...');
       setIsPostLoginLoading(true);
       setLoginProgress(10);
       setLoginLoadingMessage('Restaurando sesión...');
     }
-  }, [isLoading, isAuthenticated]);
+  }, [isLoading, isAuthenticated, refreshAuth]);
 
   // Efecto para observar cuando terminan de cargar los datos después del login
   useEffect(() => {
@@ -2219,8 +2255,8 @@ const ChatPage = () => {
   }, [
     isPostLoginLoading,
     isAuthenticated,
-    chatState.assignedConversations.length,
-    chatState.myActiveRooms.length,
+    chatState.assignedConversations?.length,
+    chatState.myActiveRooms?.length,
     chatState.assignedLoading,
     chatState.roomsLoading
   ]);

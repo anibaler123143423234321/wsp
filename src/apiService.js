@@ -246,6 +246,27 @@ class ApiService {
     }
   }
 
+  // NUEVO: Obtener información del usuario desde el backend de chat (para obtener el ID real)
+  async getUserByUsername(username) {
+    try {
+      const response = await this.fetchChatApi(
+        `${this.baseChatUrl}api/users/${username}`,
+        {
+          method: "GET",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error al obtener usuario: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error en getUserByUsername:", error);
+      throw error;
+    }
+  }
+
   // Método para cerrar sesión
   logout() {
     // 1. Preservar configuración que debe persistir (Sede y Tema)

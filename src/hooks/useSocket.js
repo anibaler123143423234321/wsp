@@ -88,8 +88,9 @@ export const useSocket = (isAuthenticated, username, user) => {
           //  FIX: Enviar user.username (DNI) como identificador principal
           socket.current.emit("register", {
             username: user.username,
+            id: user.id, // RESTAURADO
             userData: {
-              // id: user.id, //  REMOVIDO: Evitar usar ID de CRM irrelevante
+              id: user.id, // RESTAURADO
               username: user.username,
               role: user.role || "USER",
               nombre: user.nombre,
@@ -121,8 +122,9 @@ export const useSocket = (isAuthenticated, username, user) => {
           //  FIX: Enviar user.username (DNI) como identificador principal
           socket.current.emit("register", {
             username: user.username,
+            id: user.id, // RESTAURADO
             userData: {
-              // id: user.id, //  REMOVIDO: Evitar usar ID de CRM irrelevante
+              id: user.id, // RESTAURADO
               username: user.username,
               role: user.role || "USER",
               nombre: user.nombre,

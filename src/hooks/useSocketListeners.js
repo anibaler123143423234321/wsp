@@ -383,13 +383,14 @@ export const useSocketListeners = (
                 });
             }
             if (data.roomCode !== currentRoomCodeRef.current) {
-                setMyActiveRooms((prevRooms) =>
-                    prevRooms.map((room) =>
+                setMyActiveRooms((prevRooms) => {
+                    if (!Array.isArray(prevRooms)) return [];
+                    return prevRooms.map((room) =>
                         room.roomCode === data.roomCode
-                            ? { ...room, currentMembers: data.users.length }
+                            ? { ...room, currentMembers: data.users?.length || 0 }
                             : room
-                    )
-                );
+                    );
+                });
             }
         });
 
@@ -1518,8 +1519,29 @@ export const useSocketListeners = (
                     // Verificar primera sala después de ordenar
                     console.log('📬 Después de sort, primera sala:', sorted[0]?.roomCode, 'sentAt:', sorted[0]?.lastMessage?.sentAt);
 
-                    return sorted;
                 });
+            }
+        });
+
+        // =====================================================
+        // 5. EVENTOS DE ASIGNACIÓN (NUEVO)
+        // =====================================================
+        s.on("conversationAssigned", (data) => {
+            console.log("🆕 EVENTO conversationAssigned RECIBIDO:", data);
+
+            // Recargar la lista de conversaciones asignadas para que aparezca la nueva
+            if (typeof loadAssignedConversations === 'function') {
+                console.log("🆕 Recargando conversaciones asignadas por nueva asignación...");
+                loadAssignedConversations(1);
+            }
+
+            // Si el usuario actual es uno de los participantes, mostrar una alerta
+            const isParticipant = String(data.user1) === String(username) || String(data.user2) === String(username);
+            if (isParticipant) {
+                showSuccessAlert(
+                    'Nueva conversación asignada',
+                    `Se te ha asignado una nueva conversación: ${data.name || 'Chat'}`
+                );
             }
         });
 
