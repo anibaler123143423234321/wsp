@@ -1518,6 +1518,7 @@ export const useSocketListeners = (
 
                     // Verificar primera sala después de ordenar
                     console.log('📬 Después de sort, primera sala:', sorted[0]?.roomCode, 'sentAt:', sorted[0]?.lastMessage?.sentAt);
+                    return sorted;
 
                 });
             }
